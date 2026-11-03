@@ -1,5 +1,6 @@
-import { Pane } from 'tweakpane'
 import * as THREE from 'three/webgpu'
+import { Pane } from 'tweakpane'
+import { Engine } from './engine/index.js'
 import { createNodeMaterial } from './material.js'
 import './style.css'
 
@@ -7,13 +8,15 @@ const canvas = document.querySelector('.webgl')
 const panelElement = document.querySelector('.debug-panel')
 const unsupportedElement = document.querySelector('.unsupported')
 
-async function createWebGPUScene() {
+async function createGame() {
   if (!navigator.gpu) {
     canvas.hidden = true
     panelElement.hidden = true
     unsupportedElement.hidden = false
     return null
   }
+
+  const engine = new Engine()
 
   const scene = new THREE.Scene()
   const params = {
@@ -27,7 +30,7 @@ async function createWebGPUScene() {
   }
   scene.background = new THREE.Color(params.background)
 
-  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100)
+  const camera = new THREE.PerspectiveCamera(45, engine.size.aspect, 0.1, 100)
   camera.position.set(0, 0, 4.5)
 
   const geometry = new THREE.TorusKnotGeometry(1, 0.3, 192, 32)
@@ -50,25 +53,35 @@ async function createWebGPUScene() {
     canvas,
     forceWebGL: false,
   })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  renderer.setSize(window.innerWidth, window.innerHeight)
+  renderer.setPixelRatio(engine.size.pixelRatio)
+  renderer.setSize(engine.size.width, engine.size.height)
   renderer.toneMapping = THREE.ACESFilmicToneMapping
   renderer.toneMappingExposure = 1.15
   await renderer.init()
 
-  const pane = new Pane({
+  const pane = engine.disposer.add(new Pane({
     container: panelElement,
     title: 'WebGPU Render',
-  })
+  }))
 
   const appearanceFolder = pane.addFolder({ title: 'Appearance' })
   appearanceFolder.addBinding(params, 'colorTop', { label: 'Top color' })
     .on('change', ({ value }) => uniforms.colorTop.value.set(value))
   appearanceFolder.addBinding(params, 'colorBottom', { label: 'Bottom color' })
     .on('change', ({ value }) => uniforms.colorBottom.value.set(value))
-  appearanceFolder.addBinding(params, 'metalness', { label: 'Metalness', min: 0, max: 1, step: 0.01 })
+  appearanceFolder.addBinding(params, 'metalness', {
+    label: 'Metalness',
+    min: 0,
+    max: 1,
+    step: 0.01,
+  })
     .on('change', ({ value }) => { uniforms.metalness.value = value })
-  appearanceFolder.addBinding(params, 'roughness', { label: 'Roughness', min: 0, max: 1, step: 0.01 })
+  appearanceFolder.addBinding(params, 'roughness', {
+    label: 'Roughness',
+    min: 0,
+    max: 1,
+    step: 0.01,
+  })
     .on('change', ({ value }) => { uniforms.roughness.value = value })
   appearanceFolder.addBinding(params, 'wireframe', { label: 'Wireframe' })
     .on('change', ({ value }) => {
@@ -79,44 +92,53 @@ async function createWebGPUScene() {
   const sceneFolder = pane.addFolder({ title: 'Scene' })
   sceneFolder.addBinding(params, 'background', { label: 'Background' })
     .on('change', ({ value }) => scene.background.set(value))
-  sceneFolder.addBinding(params, 'rotationSpeed', { label: 'Rotation', min: 0, max: 2, step: 0.01 })
+  sceneFolder.addBinding(params, 'rotationSpeed', {
+    label: 'Rotation',
+    min: 0,
+    max: 2,
+    step: 0.01,
+  })
+  sceneFolder.addBinding(engine.time, 'timeScale', {
+    label: 'Time scale',
+    min: 0,
+    max: 3,
+    step: 0.01,
+  })
 
-  const timer = new THREE.Timer()
-  timer.connect(document)
+  engine.addSystem('gameplay', {
+    name: 'spin',
+    update: ({ time }) => {
+      mesh.rotation.x = time.elapsed * params.rotationSpeed * 0.35
+      mesh.rotation.y = time.elapsed * params.rotationSpeed
+    },
+  })
 
-  function resize() {
-    camera.aspect = window.innerWidth / window.innerHeight
+  const offResize = engine.size.on('resize', ({ width, height, pixelRatio, aspect }) => {
+    camera.aspect = aspect
     camera.updateProjectionMatrix()
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-    renderer.setSize(window.innerWidth, window.innerHeight)
-  }
+    renderer.setPixelRatio(pixelRatio)
+    renderer.setSize(width, height)
+  })
 
-  function render() {
-    timer.update()
-    const elapsed = timer.getElapsed()
-    mesh.rotation.x = elapsed * params.rotationSpeed * 0.35
-    mesh.rotation.y = elapsed * params.rotationSpeed
-    renderer.render(scene, camera)
-  }
+  engine.addSystem('render', {
+    name: 'render',
+    update: () => renderer.render(scene, camera),
+    dispose: () => {
+      offResize()
+      geometry.dispose()
+      material.dispose()
+      renderer.dispose()
+    },
+  })
 
-  window.addEventListener('resize', resize)
-  renderer.setAnimationLoop(render)
-
-  return function dispose() {
-    window.removeEventListener('resize', resize)
-    renderer.setAnimationLoop(null)
-    timer.disconnect()
-    pane.dispose()
-    geometry.dispose()
-    material.dispose()
-    renderer.dispose()
-  }
+  engine.start()
+  return engine
 }
 
-let disposeScene = null
+let engine = null
 
-createWebGPUScene()
-  .then((dispose) => { disposeScene = dispose })
+createGame()
+  .then((created) => { engine = created })
   .catch((error) => {
     console.error(error)
     canvas.hidden = true
@@ -126,5 +148,5 @@ createWebGPUScene()
   })
 
 if (import.meta.hot) {
-  import.meta.hot.dispose(() => disposeScene?.())
+  import.meta.hot.dispose(() => engine?.destroy())
 }

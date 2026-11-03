@@ -1,0 +1,29 @@
+---
+description: Do not add debug panels for colors, metalness, roughness, or other look-dev knobs. Set them in code, or tune the live scene with Needle.
+alwaysApply: true
+---
+
+# No look-dev panels
+
+Needle is available for live scene edits. Do not add a Tweakpane, lil-gui, dat.GUI, or custom debug panel just to expose appearance and scene-look controls. Do not add the dependency, DOM node, or CSS for that panel either.
+
+Write the value directly in code. When the user asks to try a color, metalness, roughness, or similar detail on a running page, change it with Needle (`inspector_property_write` and related inspector tools) instead of building UI.
+
+## Do not add controls for
+
+- Colors: material color, gradient stops, background, light color
+- Surface: metalness, roughness, transmission, IOR, clearcoat, sheen, emissive, opacity, wireframe
+- Look-dev scene knobs: exposure, rotation speed, time scale, and light intensity or position sliders whose only job is visual tuning
+
+```javascript
+// Bad: a panel whose only job is tuning the look
+pane.addBinding(params, 'metalness', { min: 0, max: 1 })
+
+// Good: a fixed value on the material or uniform
+material.metalness = 0.65
+```
+
+## Still add UI when
+
+- The user explicitly asks for a panel, slider, or debug GUI
+- The control is part of the experience itself (a game HUD, or a tool the end user must operate), not a stand-in for look-dev

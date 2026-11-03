@@ -1,0 +1,42 @@
+---
+description: Game objects are component-based, updated in a tick loop, talk through events, and live in a scene. Use when structuring gameplay objects, scenes, or simulation code.
+globs: **/*.{js,jsx,ts,tsx,mjs}
+alwaysApply: false
+---
+
+# Game object architecture
+
+Everything in the world is a game object. Keep entity state on objects, not in loose functions or renderer globals.
+
+## Components
+
+Describe an object as a container of components. Put data and behavior on components instead of growing one subclass.
+
+```javascript
+const player = {
+  id: 'player',
+  components: { transform, health, input },
+}
+```
+
+## Tick
+
+Update object state in one tick loop. Do not change simulation state from render callbacks or one-off timers.
+
+```javascript
+function tick(dt) {
+  for (const object of scene.objects) object.update(dt)
+}
+```
+
+## Events
+
+Objects interact by emitting and listening to events. Do not reach into another object and call its internals.
+
+```javascript
+object.emit('hit', { source, amount })
+```
+
+## Scene
+
+The scene owns add, remove, and lookup. Query the scene instead of keeping a second object list.
