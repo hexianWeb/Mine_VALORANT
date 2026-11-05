@@ -1,183 +1,218 @@
-# Render 层升级设计
+# Render 层升级设计 · V2
 
-日期：2026-11-04
-three 版本：r187（无需升级，所需 addon 均已内置）
+更新：2026-11-05。状态：重新规划，下一步验证代表性样区。
 
-## 目标
+进展：已完成保留合并几何的顶点 GI 第一轮实验，包含法线恢复、CORNER 属性、glTF 数值验证及独立 GI 视角对照。约 1.99 MiB 的 GI 属性可表达低频照明，但近景细节仍有插值误差；见 [顶点 GI 验证](docs/lighting/vertex-gi-validation.md)。它作为下述分区 lightmap 路线的对照候选。
 
-把 `src/engine/systems/render/` 从 TODO 占位升级为完整 render 系统，为 PC 独显上的 Minecraft 风格战术射击游戏（类 Valorant）服务：
+目标：面向 PC 独显的 Minecraft 风格战术射击场景，优先保证近景光照、角色受光、移动稳定性和帧时间。
 
-- GI：静态地图用 `LightMapper` 烘焙 lightmap（光源为 VXGI），动态物体用 `LightProbeGrid`
-- GTAO
-- 抗锯齿：SMAA / TRAA 代码内可切换
-- `RenderPipeline` 节点后处理管线
-- Tone mapping：Khronos PBR Neutral
-- Color grading：3D LUT
+## 1. 本轮结论
 
-## 非目标
+当前“整张地图 → Smart Project → 单张 2048² lightmap”的方案已否决。Blender/Cycles 仍是静态光照的候选求解器，但资产分区、连续 UV、单位面积光照密度和运行时光照分工需要重做。
 
-- 不做实时 VXGI（逐像素锥追踪开销高、噪点依赖 TRAA，不适合高帧率竞技）
-- 不做 lightmap 离线导出持久化（第一版每次加载时在 GPU 上重新烘焙）
-- 不加任何调参面板（见 `.cursor/rules/no-lookdev-panels.mdc`），所有参数写在代码里
-- 不改 `main.js` 中现有 Tweakpane
-- 不做设备丢失恢复
+推荐主线：**实时直射与阴影 + 分区离线间接光 + 局部动态物体探针**。先在练枪房、窗外及连接走廊组成的样区验证，再决定整图资源规模。
 
-## 模块
+当前 `map_day.glb`、`map_day.exr` 和对应 info 属于实验资源；旧设计与过程见 [单张 atlas 试验记录](docs/lighting/2026-11-05-single-atlas-experiment.md)。
 
-所有代码位于 `src/engine/systems/render/`。
+## 2. 为什么上一轮失败
 
-| 文件 | 职责 | 依赖 |
+### 2.1 实测的有效分辨率太低
+
+对 Blender 中本次生成的 `Lightmap` UV，按世界空间三角形面积与 UV 三角形面积重新统计：
+
+| 指标 | 实测值 |
+|---|---:|
+| Lightmap 接收对象 | 97 |
+| 接收表面三角形 | 88,766 |
+| 接收表面积 | 约 40,224 m² |
+| UV 岛数量 | 43,871 |
+| Atlas 分辨率 | 2048 × 2048 |
+| 实际表面 UV 面积占比 | 14.65% |
+| 实际表面覆盖的连续像素面积 | 约 61.5 万 texel |
+| 面积加权密度 P10 / P50 / P90 | 均约 3.91 texel/m |
+| 单个 texel 对应长度 | 约 25.6 cm |
+| 短边不足 4 px 的 UV 岛 | 43,813 / 43,871 |
+
+这里的覆盖率是 UV 三角形面积之和，未包含扩边；EXR 中非黑像素还包含扩边，不能用它代表有效表面分辨率。当前 atlas 近似为“一块方块面一个小岛”，给每块面留下约 4 × 4 个光照像素。
+
+这样的密度无法稳定表达近景墙角、窗边过渡、局部灯光变化及接缝；1 px 扩边已经占据很高比例。增加 samples 只会降低噪声，不会增加空间细节。
+
+### 2.2 直接光与间接光混在同一质量预算中
+
+上一轮把 7 盏 Area Light 的直接照明也烘进了 atlas。这样小岛不仅存储低频环境光，还承担局部明暗变化，进一步放大分辨率问题。
+
+同时，地块获得烘焙直射，而角色只读取间接光探针，无法自然保证两者照明一致。地块反射出的光不等同于区域灯直接照到角色的光。
+
+### 2.3 验证覆盖不足
+
+亮度校准、EXR 方向、GLB 绑定和一个室内相机的预览均已做过，但未验证单位面积密度、贴墙近景、跨房间受光、远近移动和显存预算。上一轮把“资源能正确读取”过早视为“画质方案成立”。
+
+## 3. 新的画质提升顺序
+
+| 顺序 | 工作 | 要解决的问题 |
 |---|---|---|
-| `index.js` | `createRenderSystem({ engine, canvas, scene, camera, aa })`：创建并 `init()` WebGPURenderer；订阅 `engine.size` resize；`update()` 调 `pipeline.render()`；`dispose()` 释放 renderer、pipeline、GI 资源、LUT 纹理。对外暴露 `setAA(mode)`、`bakeGI({ mapRoot, probeBox, sky })`。 | pipeline.js, gi.js, lut.js |
-| `pipeline.js` | `buildPipeline(renderer, scene, camera, { aa, lut })` → `RenderPipeline`。只负责节点连线。 | three/tsl, GTAONode, DenoiseNode, TRAANode, SMAANode, Lut3DNode |
-| `gi.js` | 把 `mapRoot` 下的网格按"有没有 `uv1`"分成两组。有 `uv1` 的：`VXGIVolume.update()`，用 `LightMapper` 和自定义的 `skyVxgiIrradiance` 逐帧累积烘焙，结果赋给材质的 `lightMap`。没有 `uv1` 的细碎物件，以及所有动态物体：在 `probeBox` 内建 `LightProbeGrid` 并 `bake()` 一次。返回 `{ update(), dispose() }`；`update()` 在 lightmap 累积期间每帧调用。 | LightMapper, VXGIVolume, createConeTracer, LightProbeGrid, pmremTexture |
-| `sky-irradiance.js` | `skyVxgiIrradiance(volume, skyTexture, skyIntensity)`：改写自 `vxgiIrradiance` 和 `gather`，每条锥额外加上 `(1 - alpha)` × 天空颜色。 | VXGIConeTracer, three/tsl |
-| `lut.js` | `loadLut(url)` → `{ texture3D, size }`，按扩展名选 `LUTCubeLoader` 或 `LUTImageLoader`。 | LUT loaders |
+| 1 | 统一直接光与阴影 | 场景立体感、角色落地、室内外对比 |
+| 2 | 地图空间分区与连续 lightmap UV | 有效光照密度、接缝、纹理预算 |
+| 3 | 样区离线 GI | 反弹色、天空遮蔽、局部灯光的间接贡献 |
+| 4 | 局部探针与动态物体 | 角色/细碎物件和地块的受光一致性 |
+| 5 | AO、AA、色调映射与调色 | 接触细节、移动稳定性、最终风格 |
+| 6 | 整图扩展与性能验证 | 常驻显存、draw calls、阴影与后处理耗时 |
 
-资源与工具：
+GTAO 不能替代缺失的 GI，TRAA 不能恢复 atlas 中没有的空间细节，LUT 不能用来掩盖室内外光照错误。
 
-- `public/luts/stylized.cube`：33³，暗部偏青、亮部偏暖、轻微提饱和
-- `public/luts/identity.png`：identity 条带，供 PS / DaVinci 调色后替换
-- `tools/gen_luts.mjs`：生成上述两个文件的 Node 脚本
-- `tools/add_lightmap_uv.py`：Blender 脚本，把下文"Lightmap UV"一节的试验步骤固化下来，用法和 `fix_mcprep_gltf_alpha.py` 一样，在 MCprep 导出前运行
-- `public/model/map_lightmap.glb`：试验产物，带 `TEXCOORD_1`，已生成
+## 4. 直接光和阴影
 
-`main.js` 改动：
+### 4.1 太阳
 
-- 用 `createRenderSystem` 替换现有 renderer 创建、resize 监听、render system 三段
-- 加载 `public/model/map_lightmap.glb` 作为静态地图
-- `scene.background` 设为 `public/hdr/skybox-day.png`（等距柱状投影，`SRGBColorSpace`）
-- 移除 `HemisphereLight`（环境光改由 lightmap 和 probe 提供，避免重复计算）
-- 地图加载后调用一次 `bakeGI(...)`
+- 太阳直射及角色/地块阴影实时计算，方向、线性颜色、强度继续来自 Blender 导出的 info。
+- 整图优先验证 r187 `SunLight` / `SunLightNode`。当前 addon 使用 **2 级 CSM**，不是任意可配置的四级阴影；先测每级 2048²、限定有效阴影距离，依据近景质量和 GPU 时间调整。
+- `SunLight` 的方向由位置向量定义，无 `target`；读取 `directionToSun` 后按该 API 设置。单房间的对照场景可以用紧贴范围的 `DirectionalLight`，不据此推断整图阴影质量。
+- 重点检查贴墙阴影、台阶、角色脚底、级联切换与相机移动时的抖动。
 
-## 每帧数据流
+### 4.2 室内灯光
 
-```
-prePass(depth + normal, 低开销材质)
-  └─ GTAO（resolutionScale 0.5）
-       ├─ SMAA 模式：denoise(ao, depth, normal, camera)
-       └─ TRAA 模式：useTemporalFiltering = true
-scenePass(samples: 0)
-  contextNode = builtinAOContext(ao)      // AO 只压间接光
-  有 uv1 的静态网格：material.lightMap 提供间接漫反射
-  细碎物件和动态物体：LightProbeGrid 提供间接漫反射
-  直接光（太阳 DirectionalLight + 阴影）保持实时
-  TRAA 模式：MRT { output, velocity } → traa(output, depth, velocity, camera)   // HDR
-renderOutput(color)                        // outputColorTransform = false；Neutral tone mapping + 曝光 + sRGB
-lut3D(color, lut, size, intensity)         // LDR / sRGB
-SMAA 模式：smaa(color)                     // 最终 LDR
-```
+保留用户当前 7 盏 Area Light 的艺术布光，逐灯明确运行时角色：
 
-固定参数（写在代码中）：
+- 影响角色可读性、轮廓与接触阴影的主要灯，需要运行时直接照明。样区先验证能投影的 Spot/Point 等效布光，并回传同一组设置到烘焙场景；不能只复制 Area 的功率数值就认为效果相同。
+- 确认仅服务静态表面的装饰照明，可单独采用分区烘焙直射，但必须提高对应区域的密度并验证附近动态物体；标记为显式例外。
+- r187 `RectAreaLight` 支持面积照明但**不支持阴影**，不能把它作为有遮挡、可隔墙的 Area Light 直接替代品。
+- 每盏灯在 info 中记录 `realtime` / `baked-static` 策略及接收者范围，保证每个接收者只得到一次直接光。
 
-- `renderer.toneMapping = NeutralToneMapping`，`toneMappingExposure = 1.0`
-- GTAO：`resolutionScale = 0.5`，其余用默认值，实现时按画面调整
-- LUT intensity：`1.0`
-- Probe 烘焙：`cubemapSize: 16`，`bounces: 1`
-- VXGI：`resolution: 256`，`coneCount: 3`
-- LightMapper：atlas `2048`，`64` 个样本
-- 天空强度 `skyIntensity`：初始 `1.0`，实现时按画面调整
+主要实时灯的直接光从 lightmap 中排除。lightmap 优先承载天空照明及其反弹、太阳反弹和室内灯的反弹。
 
-## GI 设计
+## 5. 地图与 UV：先建立连续表面
 
-### 目标地图 `public/model/map.glb`（实测）
+### 5.1 按空间组织资源
 
-- 201 个网格，201 个材质，约 16 万三角面、31 万顶点
-- 原文件没有 `uv1`；没有蒙皮、没有 GPU 实例化，`LightMapper` 可以直接用
-- 所有节点带绕 X 轴 90° 的旋转。换算后的世界尺寸约为 149 × 53 × 115（X × Y × Z），按 1 单位 = 1 格计
-- VXGI 在最长轴 256 体素下，体素大小约 0.58 格，1 格厚的墙能分辨出来（约 1.7 个体素）
+当前对象主要按方块材质类型汇总，一个对象可能散布全图，不能把“对象数少”当成适合烘焙和剔除。
 
-### 静态和动态分开
+- 室内按房间、走廊、楼层划分；室外按可见/可活动区域分块。16–32 m 的 chunk 可作为初始比较尺度，最终边界服从关卡结构。
+- 玩家可接近的表面优先分配分辨率；可见远景采用较低密度。
+- 删除或忽略的内部面必须经过可见性与遮挡分析。影响 GI 的遮挡/反弹几何可以不接收 lightmap，但仍参与烘焙。
+- 某个区域单独输出 atlas 时，周边地块仍参与遮挡和反弹，不能通过隐藏其他区域改变光照。
+- 树叶、栅栏等继续遵循用户指定的烘焙排除规则；其运行时实时阴影单独处理。
 
-| | 大块静态方块（140 个对象） | 细碎物件（61 个对象）和动态物体 |
-|---|---|---|
-| 判定规则 | 网格有 `uv1` | 网格没有 `uv1` |
-| 间接光来源 | lightmap | `LightProbeGrid` |
-| 烘焙光源 | `skyVxgiIrradiance`（VXGI 反弹光 + 天空光） | 探针 cubemap 捕获，天然包含 `scene.background` |
-| 运行时开销 | 每像素采样一次贴图 | 每像素采样一次 3D 纹理 |
+### 5.2 Lightmap UV 独立于方块颜色 UV
 
-`LightMapper` 不支持蒙皮和实例化网格，所以动态物体必须走 probe。细碎物件走 probe 是因为它们的 UV 块很碎，进 atlas 占地多、效果差。
+目标是让一段连续墙面、一片地面成为有合理尺寸的光照 chart，而不是每个方块面占一个小岛。
 
-### Lightmap UV（Blender 离线展开，已试验）
+1. 建立保留源对象/面角 ID 的烘焙代理。
+2. 在世界空间识别重合顶点与边，恢复被 glTF 材质、法线或颜色 UV 接缝拆开的几何邻接。
+3. 把法线一致、同平面且连通的表面组成 chart；允许 chart 跨越不同的方块颜色材质。
+4. 门洞、相反朝向、硬折角、不同楼层和空间分区保留必要边界；处理台阶 T-junction 和局部面边，不能盲目全局 Merge by Distance。
+5. 只把第二套 UV 映射回源面角。原 `UVMap`、像素贴图、材质与可见几何保持其语义。
+6. 按 texel/m 缩放各 chart，再打包到多张 atlas。空间 UV 处理与渲染网格合并是两个独立工程决策。
 
-运行时不调用 `unwrapUVs`，改为在 Blender 里离线生成第二层 UV，随 glb 一起导出。
+对样区记录 chart 数、有效表面覆盖率、密度分布、最窄 chart 尺寸、接缝与重叠。成功标准是近景光照连续，不是仅仅看 atlas 排得紧。
 
-细碎物件的判定：平均每个面的面积小于 0.4 m²。整块方块的面接近 1 m²，栅栏、墙柱、按钮、告示牌、灯笼、花盆、地毯、铁栏杆的面都远小于这个值。按"分块数 / 面数"判定会误判零散分布的整块方块，所以不用这个规则。
+## 6. 从密度推导纹理规模
 
-| 分组 | 对象数 | 面数 | 表面积 |
-|---|---|---|---|
-| 进 lightmap | 140 | 50805 | 约 45900 m² |
-| 走 probe | 61 | 29374 | 约 5600 m² |
+### 6.1 样区比较档位
 
-Blender 4.3.2 中的步骤，对 140 个对象一起操作：
+- 同一份连续 UV 方案测试 **16 / 32 texel/m**。
+- 确有需要的近景区域再测 **64 texel/m**，用于观察收益和显存代价。
+- 远景单独测试 4–8 texel/m，不能稀释可玩区域的密度。
+- Atlas 页面可以仍为 2048²；页数由密度和覆盖面积推导。2048 是页面尺寸，不再是整图的固定总预算。
 
-1. 新建 UV 层 `Lightmap`，设为当前编辑层。渲染用的 UV 层仍然是 `UVMap`。
-2. 多对象编辑模式下全选，执行 `uv.smart_project(angle_limit=5°, island_margin=0)`。
-3. 执行 `uv.average_islands_scale()`，让所有对象的像素密度一致。
-4. 执行 `uv.pack_islands(rotate_method='CARDINAL', margin_method='FRACTION', margin=3/2048, shape_method='AABB')`。
-5. 导出 GLB，第二层 UV 会被写成 `TEXCOORD_1`。
+这些是需要比较的起始档位，不是未经验证的画质保证。
 
-实测结果：
+### 6.2 面积和显存预算
 
-- UV 展开加打包耗时 0.4 秒，导出耗时 1 秒
-- 2048 atlas 的覆盖率是 30%，每格方块边长约 5.2 个像素。像素数不多，但 lightmap 只存间接光，够用
-- 只允许 90° 旋转时，矩形 UV 面之间重叠为 0
-- 导出文件和原 `map.glb` 相比，网格、材质、透明模式（141 个 OPAQUE、54 个 MASK）、贴图、采样器都一致；顶点多 1070 个，来自新 UV 的接缝拆分
-
-### 天空光补偿
-
-`VXGIVolume` 只注入直接光源，不包含天空和背景。锥追踪器 `createConeTracer` 会给每条锥返回 `{ color, alpha }`，锥离开体积后不再累积，所以 `1 - alpha` 就是这个方向的天空可见度。
-
-`skyVxgiIrradiance` 改写 `gather` 的循环，每条锥的结果变为：
+近似公式：
 
 ```
-cone.color + (1 - cone.alpha) * sky(direction) * skyIntensity
+所需 atlas texel 总数 ≈ 接收表面积 × (texel/m)² / 有效覆盖率
+RGBA16F 基础显存 = texel 总数 × 8 bytes
+完整 mip 链约再乘 4/3
 ```
 
-`sky(direction)` 用 `pmremTexture(skyTexture)` 采样，粗糙度按锥的半角（20°）匹配。这样被墙挡住的室内自然变暗，户外背光面能得到天空的蓝色环境光。
+以当前约 40,224 m² 全部保持同一密度、改善后有效覆盖率暂按 65% 估计：
 
-天空图来源：`public/hdr/skybox-day.png`。它是 4096×2048 的等距柱状投影图，8 位调色板格式，不是真 HDR：
+| 密度 | 约需 2048² 页数 | RGBA16F 显存，含完整 mip 链 |
+|---|---:|---:|
+| 16 texel/m | 4 | 171 MiB |
+| 32 texel/m | 16 | 683 MiB |
+| 64 texel/m | 61 | 约 2.54 GiB |
 
-- 漫反射天空光只需要低频颜色，PMREM 模糊后色带看不出来，精度够用
-- 亮度没有物理意义，靠 `skyIntensity` 调整
-- 太阳圆盘最亮只到 1.0，和天空亮度接近，不会和 `DirectionalLight` 重复计算；`DirectionalLight` 的方向对齐图里太阳的位置
-- `skybox-night.png` 可以用于夜晚，但 lightmap 是静态的，昼夜要分别烘焙
+65% 是预算假设，尚未达到。表格说明整图统一高密度的代价，因此要结合分区、远近密度和可见表面筛选。磁盘 EXR 的压缩体积不能作为 GPU 显存数字。
 
-已知局限：天空光照到地面后再反弹的二次天空光不会被计算，因为 VXGI 体积里没有天空光。
+初始讨论预算为 lightmap 常驻 128–256 MiB（包含使用的 mip）；若实测需要超出，应明确画质收益与其他渲染资源的占用，再选择密度、分区驻留或 GPU 压缩。HDR 压缩格式需先验证 WebGPU 支持、解码路径和误差，不把 EXR 压缩当成 GPU 压缩。
 
-运行时不设置 `scene.environment`，否则所有材质都会再加一份漫反射环境光，和 lightmap 重复。
+### 6.3 扩边和 mip 必须一起设计
 
-如果这个方案效果不好，就回退为用 `LightProbeGrid` 作为 lightmap 的烘焙光源，它会自动包含天空。
+- 单个 UV 岛的有效内容必须足够大，padding 不能吞掉主体。
+- 若希望 mip 2 仍有 1 px 边缘保护，基础级每侧至少需要约 4 px 扩边；两岛间隙还要容纳双方扩边及取样余量。
+- 根据实际允许的 mip 层数设置扩边、打包间距和最大采样 LOD；逐 mip 验证串色，不能生成完整 mip 链后默认它安全。
+- 相邻空间分区的接缝需要独立验证，防止不同 atlas 的采样和边界处理造成亮度跳变。
 
-### Probe 只作用于没有 lightmap 的网格（需要先验证）
+## 7. GI 与动态物体的一致性
 
-`LightProbeGrid` 是一个 Light，加到场景里会作用于所有受光材质，这会让有 lightmap 的网格重复计算间接光。候选做法有两个：
+### 7.1 静态地块
 
-1. 不把 grid 加入场景。在没有 `uv1` 的网格和动态物体的材质上，通过 `builtinGIContext` 和 `lightProbeGridIrradiance` 单独注入。
-2. 把 grid 加入场景，然后查清 r187 中 lightmap 和 probe 的叠加规则。
+- 样区仍使用 Cycles 完整路径追踪；关闭 Fast GI。
+- 主要实时光源只烘焙间接贡献；World 照明包含其 Direct + Indirect。实际烘焙按光源策略拆分，而不是统一勾选一个 Indirect 开关。
+- 保留已经验证的线性 irradiance、去接收面 albedo、π 换算和坐标协议。
+- samples 根据噪声测试增加；分辨率根据空间细节测试增加，二者分别验收。
 
-先验证第 1 种。
+### 7.2 动态角色和细碎物件
 
-### Probe 网格范围
+- 首先获得与周围地块一致的实时直接光和阴影，再叠加低频间接光探针。
+- 探针按房间、走廊和室外局部分区，不再先铺设覆盖整图的 4 m 均匀网格。
+- 1–2 m 间距可作为样区起点；排除墙内、地板下等无效位置，验证门口和楼梯过渡。
+- r187 `LightProbeGrid` 的基础 SH 插值不自动提供墙体可见性测试。阻止穿墙插值、区域选择、边界混合及必要的可见度权重，都要在集成中实际解决；仅加密探针不能保证消除漏光。
+- 已有静态 GI 的地块用于捕获探针时，不追加一轮探针反馈，避免重复反弹。
+- 样区先验证探针质量与捕获成本；随后设计预计算数据缓存。整图首次加载时捕获约 4300 个探针，不再作为默认方案。
 
-`probeBox` 只覆盖玩家能活动的高度范围，不覆盖整张地图的高度。间距约 4 格，按 149 × 16 × 115 的范围算，大约 37 × 4 × 29 ≈ 4300 个探针。
+## 8. 后处理顺序
 
-## AA 切换
+```
+正确的直接光/阴影 + 静态分区 GI / 动态局部探针
+  → GTAO（克制地补充接触细节）
+  → TRAA（HDR，若启用）
+  → Neutral tone mapping + 曝光 + 输出颜色转换
+  → LUT
+  → SMAA（LDR，若选择此模式）
+```
 
-`setAA('smaa' | 'traa')` 释放旧管线并用 `buildPipeline` 重建。两种模式的场景 pass 都设 `samples: 0`；只有 TRAA 模式才输出 velocity。
+- 先关闭 AO 和 LUT、使用固定曝光检查光照本身，再逐项加入后处理。
+- GTAO 检查墙角重复压黑、角色脚底、屏幕边缘与视角依赖；不能靠高强度 AO 填补失败的 lightmap。
+- SMAA / TRAA 的选择以实测移动画面为依据，覆盖角色、细碎物件、镂空叶片、远处像素纹理和阴影边缘。
+- 不新增外观调参面板；记录固定的测试配置与同机位截图。
 
-## 错误处理
+## 9. 实施步骤与交付
 
-- LUT 加载失败：`console.warn`，管线不含 LUT 节点继续运行
-- 网格没有 `uv1`：不报错，按规则走 probe
-- WebGPU 不可用：沿用 `main.js` 现有提示
+### A. 建立样区基线
 
-## 验证
+范围：练枪房 + 窗外一段地形 + 相连走廊/台阶，加入一个可移动角色或中性灰测试模型。
 
-- 在浏览器里截图对比：SMAA 与 TRAA，AO 开与关，lightmap 开与关，有无天空光补偿
-- 记录 VXGI 更新耗时、lightmap 累积到 64 个样本的总耗时
-- 用调试视图直接显示 lightmap，检查 UV 接缝处有没有漏色或黑边
-- 对比地毯这类被划到 probe 组的物件，和周围有 lightmap 的地面亮度是否一致
-- 控制台无报错与警告
-- 用 GPU timing 分析各 pass 耗时
-- 构建通过：`pnpm build`
+输出同机位、同曝光的 Blender 参考及 Three.js 基线；至少包含贴墙近景、门口室内外切换、局部灯下角色和移动远景。测试机先使用当前 RTX 4060，记录分辨率和目标刷新率；帧率目标作为显式测试参数，不预先宣称达标。
+
+### B. 重建样区 chart，比较密度
+
+输出连续 UV、chart/density 可视化、16/32/必要时局部 64 texel/m 的对照，记录页面数和 padding 开销。此阶段确定最终分区 UV 工具方案。
+
+### C. 接入样区直射、GI 和探针
+
+检查地块与角色一致性、区域灯遮挡、薄墙漏光、不同 atlas 接缝、移动时的稳定性。确认每个光源的直接贡献只计算一次。
+
+### D. 加入后处理并测量
+
+记录 GPU 各 pass 时间、总帧时间及高分位抖动、可见 draw calls、阴影开销、纹理常驻量和加载/捕获时间。空间分块可能增加 draw calls，需与材质/atlas 分组及剔除一起评估。
+
+### E. 按验证结果扩展整图
+
+多 atlas 加载、空间资源组织、GI 绑定与探针缓存随后落地。整图离线烘焙沿用样区已经验证的密度与质量预算。
+
+## 10. 光照 info 的调整方向
+
+沿用单一光照来源、坐标转换和线性颜色协议，扩展为区域化资源：
+
+- 全局：版本、坐标系、单位、太阳、`sky.type = color | equirectangular`、曝光。
+- 光源：稳定 ID、源布光参数、运行时等效参数、直接光策略与接收者范围。
+- 区域：bounds、可见/驻留关联、接收者和烘焙贡献者。
+- Lightmap 页面：路径、尺寸、UV 通道、irradiance 编码、实际 texel/m、覆盖率、padding、有效 mip 范围。
+- 绑定：稳定 mesh/primitive ID 到区域和 atlas 的映射；一个旧材质对象跨多个页面时必须能区分。
+- 探针：局部范围、数据版本、有效性与区域选择信息。
+- 质量报告：实测密度、chart 分布、参考视角、内存和性能数据。
+
+旧版文件读取验证只说明资源格式正确。新版验收需要同时满足视觉、空间采样与运行时预算。
