@@ -1,3 +1,5 @@
+> 历史会话笔记：下文 VXGI / 运行时 LightMapper 路线已被替代。当前渲染实施依据为 [练枪房渲染接入与升级计划 · V3](docs/superpowers/specs/2026-11-06-range-room-render-plan.md)（2026-11-06）。
+
 本次使用了 brainstorming、webgpu-threejs-tsl:
 
 spec 已经按你的选择改好并提交（16847f6）：静态地图用 LightMapper 烘焙 lightmap，烘焙源是 VXGI；动态物体用 LightProbeGrid。
