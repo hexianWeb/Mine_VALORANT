@@ -1,0 +1,417 @@
+import { Buffer } from 'node:buffer'
+import { spawn } from 'node:child_process'
+import fs from 'node:fs'
+import path from 'node:path'
+import process from 'node:process'
+
+// Native CDP: no test dependency or browser profile added to the project.
+const output = path.resolve(process.env.ROOM_TEST_OUTPUT ?? 'D:/opencode-temp/opencode/range-room-browser')
+fs.mkdirSync(output, { recursive: true })
+const chrome = process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe'
+const child = spawn(chrome, [
+  '--headless=new',
+  '--enable-unsafe-webgpu',
+  '--no-first-run',
+  '--no-default-browser-check',
+  '--remote-debugging-port=0',
+  `--user-data-dir=${path.join(output, `profile-${Date.now()}`)}`,
+  'about:blank',
+], {
+  windowsHide: true,
+  stdio: ['ignore', 'ignore', 'pipe'],
+})
+let socket
+const errors = []
+const messages = []
+const report = { url: process.argv[2] ?? process.env.ROOM_TEST_URL ?? 'http://127.0.0.1:5173/', errors }
+try {
+  const endpoint = await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Chrome startup timeout')), 30000)
+    let log = ''
+    child.once('error', reject)
+    child.stderr.on('data', (data) => {
+      log += data.toString()
+      const match = log.match(/DevTools listening on (ws:\/\/\S+)/)
+      if (match) {
+        clearTimeout(timeout)
+        resolve(match[1])
+      }
+    })
+  })
+  const browser = new URL(endpoint)
+  const target = await (await fetch(`http://${browser.host}/json/new?about:blank`, { method: 'PUT' })).json()
+  socket = new WebSocket(target.webSocketDebuggerUrl)
+  await new Promise((resolve, reject) => {
+    socket.onopen = resolve
+    socket.onerror = reject
+  })
+  let nextId = 0
+  const pending = new Map()
+  socket.onmessage = (event) => {
+    const message = JSON.parse(event.data)
+    if (message.id) {
+      const request = pending.get(message.id)
+      if (!request)
+        return
+      pending.delete(message.id)
+      clearTimeout(request.timeout)
+      if (message.error)
+        request.reject(new Error(JSON.stringify(message.error)))
+      else
+        request.resolve(message.result)
+    }
+    else if (message.method === 'Runtime.exceptionThrown') {
+      errors.push(message.params.exceptionDetails.exception?.description ?? message.params.exceptionDetails.text)
+    }
+    else if (message.method === 'Runtime.consoleAPICalled') {
+      const text = message.params.args.map(arg => arg.value ?? arg.description ?? '').join(' ')
+      messages.push({ type: message.params.type, text })
+      if (message.params.type === 'error')
+        errors.push(text)
+    }
+  }
+  const send = (method, params = {}) => new Promise((resolve, reject) => {
+    const id = ++nextId
+    const timeout = setTimeout(() => {
+      pending.delete(id)
+      reject(new Error(`${method} timeout`))
+    }, 120000)
+    pending.set(id, { resolve, reject, timeout })
+    socket.send(JSON.stringify({ id, method, params }))
+  })
+  const evaluate = async (expression) => {
+    const result = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })
+    if (result.exceptionDetails)
+      throw new Error(result.exceptionDetails.exception?.description ?? result.exceptionDetails.text)
+    return result.result.value
+  }
+  await send('Runtime.enable')
+  await send('Page.enable')
+  await send('Emulation.setDeviceMetricsOverride', {
+    width: 960,
+    height: 540,
+    deviceScaleFactor: 1,
+    mobile: false,
+  })
+  const loaded = new Promise((resolve) => {
+    const listener = (event) => {
+      if (JSON.parse(event.data).method === 'Page.loadEventFired') {
+        socket.removeEventListener('message', listener)
+        resolve()
+      }
+    }
+    socket.addEventListener('message', listener)
+  })
+  await send('Page.navigate', { url: report.url })
+  await loaded
+  await evaluate(`new Promise((resolve, reject) => {
+    const deadline = performance.now() + 100000;
+    function check() {
+      const error = document.querySelector('.unsupported');
+      if (error && !error.hidden) return reject(new Error(error.textContent));
+      if (globalThis.__RANGE_ROOM__?.ready) return resolve(true);
+      if (performance.now() > deadline) return reject(new Error('Room readiness timeout'));
+      requestAnimationFrame(check);
+    }
+    check();
+  })`)
+  const frames = count => evaluate(`new Promise(resolve => { let n=${count}; function tick(){ if(--n<=0) resolve(true); else requestAnimationFrame(tick); } requestAnimationFrame(tick); })`)
+  await frames(35)
+  report.baseline = await evaluate('globalThis.__RANGE_ROOM__.snapshot()')
+  if (report.baseline.toneMapping !== 2 || report.baseline.exposure !== 1.2 || !report.baseline.skybox)
+    throw new Error('Expected Reinhard, exposure 1.2 and skybox-day')
+  if (report.baseline.sampling.atlasMipLevels.some(count => count !== 3) || report.baseline.sampling.anisotropy < 1)
+    throw new Error('Linear/aniso atlas sampling was not configured')
+  if (report.baseline.environmentSize[0] > 1024 || report.baseline.lights.filter(light => light.type === 'PointLight').length !== 3)
+    throw new Error('Expected bounded sky lighting and three corridor lights')
+  report.surfaceSampling = await evaluate(`(()=>{
+    const samplers=__RANGE_ROOM__.room.samplers.snapshot();
+    const surfaces=samplers.filter(texture=>texture.role==='voxel-surface');
+    const atlases=samplers.filter(texture=>texture.role==='baked-atlas');
+    return {
+      surfaceCount:surfaces.length,atlasCount:atlases.length,
+      nearestSurfaces:surfaces.every(texture=>texture.magFilter===1003&&texture.minFilter===1003&&texture.anisotropy===1&&texture.mipLevels===1),
+      linearAtlases:atlases.every(texture=>texture.magFilter===1006&&texture.minFilter===1008&&texture.mipLevels===3)
+    };
+  })()`)
+  if (!report.surfaceSampling.surfaceCount || !report.surfaceSampling.nearestSurfaces || !report.surfaceSampling.linearAtlases)
+    throw new Error('Voxel maps must use nearest; baked atlases must retain linear filtering')
+  report.camera = await evaluate('({position:__RANGE_ROOM__.camera.position.toArray(),quaternion:__RANGE_ROOM__.camera.quaternion.toArray(),reference:__RANGE_ROOM__.room.manifest.camera})')
+  const positionDelta = Math.max(...report.camera.position.map((v, i) => Math.abs(v - report.camera.reference.position[i])))
+  const rotationDot = Math.abs(report.camera.quaternion.reduce((sum, v, i) => sum + v * report.camera.reference.quaternion[i], 0))
+  if (positionDelta > 1e-5 || Math.abs(rotationDot - 1) > 1e-5)
+    throw new Error('Inspection controls changed the reference camera pose')
+  report.adapter = await evaluate('(async()=>{const a=await navigator.gpu.requestAdapter();return a?{vendor:a.info.vendor,architecture:a.info.architecture,device:a.info.device,description:a.info.description}:null})()')
+  const screenshot = async (name) => {
+    const image = await send('Page.captureScreenshot', { format: 'png' })
+    fs.writeFileSync(path.join(output, name), Buffer.from(image.data, 'base64'))
+  }
+  // Inspect the displayed output, not the HDR target (which intentionally excludes the LUT).
+  const displayProbe = async () => {
+    const image = await send('Page.captureScreenshot', { format: 'png' })
+    return evaluate(`(async()=>{
+      const bitmap=await createImageBitmap(await (await fetch('data:image/png;base64,${image.data}')).blob());
+      const canvas=new OffscreenCanvas(bitmap.width,bitmap.height);const ctx=canvas.getContext('2d');
+      ctx.drawImage(bitmap,0,0);bitmap.close();const {data}=ctx.getImageData(0,0,canvas.width,canvas.height);
+      const samples=[];const width=Math.max(100,canvas.width-360);
+      for(let y=20;y<canvas.height-20;y+=Math.max(1,Math.floor(canvas.height/16))){
+        for(let x=20;x<width;x+=Math.max(1,Math.floor(width/24))){
+          const i=(y*canvas.width+x)*4;samples.push([data[i],data[i+1],data[i+2]]);
+        }
+      }
+      return samples;
+    })()`)
+  }
+  const displayDelta = (a, b) => a.reduce((sum, pixel, index) => sum + pixel.reduce((delta, value, channel) => delta + Math.abs(value - b[index][channel]), 0), 0) / (a.length * 3)
+  await screenshot('room-gtao-smaa.png')
+  report.pixelIsolation = await evaluate(`(async()=>{
+    const app=__RANGE_ROOM__;const baked=[];const realtime=[];
+    for(let y=40;y<530;y+=70)for(let x=40;x<950;x+=90){
+      const pick=app.pickPixel(x,y);
+      const list=pick?.mode==='baked-appearance'?baked:pick?.mode==='realtime'?realtime:null;
+      if(list&&list.length<(list===baked?5:24))list.push({x,y,name:pick.name});
+    }
+    if(!baked.length||!realtime.length)throw new Error('No visible receivers for pixel isolation test');
+    const sample=async points=>{const result=[];for(const p of points)result.push(await app.render.readLinearPixel(p.x,p.y));return result};
+    globalThis.__ROOM_PIXEL_CHECK__={baked,realtime,beforeAO:await sample(baked),realtimeBeforeAO:await sample(realtime),sample};
+    return {baked,realtime};
+  })()`)
+  await evaluate('__RANGE_ROOM__.render.setEffects({ao:false,aa:"smaa"})')
+  await frames(8)
+  await evaluate(`(async()=>{
+    const state=__ROOM_PIXEL_CHECK__;
+    state.afterAO=await state.sample(state.baked);
+    state.beforeLighting=await state.sample(state.realtime);
+    __RANGE_ROOM__.render.setRuntimeLighting(false);
+  })()`)
+  await frames(8)
+  report.pixelIsolation.results = await evaluate(`(async()=>{
+    const state=__ROOM_PIXEL_CHECK__;
+    const bakedDark=await state.sample(state.baked);
+    const realtimeDark=await state.sample(state.realtime);
+    const delta=(a,b)=>Math.max(...a.flatMap((p,i)=>p.slice(0,3).map((v,c)=>Math.abs(v-b[i][c]))));
+    const result={bakedAODelta:delta(state.beforeAO,state.afterAO),realtimeAODelta:delta(state.realtimeBeforeAO,state.beforeLighting),bakedLightingDelta:delta(state.afterAO,bakedDark),realtimeLightingDelta:delta(state.beforeLighting,realtimeDark)};
+    __RANGE_ROOM__.render.setRuntimeLighting(true);
+    delete globalThis.__ROOM_PIXEL_CHECK__;
+    return result;
+  })()`)
+  if (report.pixelIsolation.results.bakedAODelta > 0.001 || report.pixelIsolation.results.bakedLightingDelta > 0.001 || report.pixelIsolation.results.realtimeLightingDelta < 0.001 || report.pixelIsolation.results.realtimeAODelta < 0.00001)
+    throw new Error('Baked/realtime lighting or AO isolation failed')
+  await evaluate('__RANGE_ROOM__.render.setEffects({ao:true,aa:"smaa"})')
+  await frames(6)
+  report.gpuBenchmark = await evaluate(`(async()=>{
+    const {engine, render}=__RANGE_ROOM__;
+    engine.pause();
+    const supported=render.renderer.hasFeature('timestamp-query');
+    const variants=[];
+    if(supported){
+      await render.renderer.resolveTimestampsAsync('render');
+      for(const effects of [{ao:true,aa:'smaa'},{ao:false,aa:'smaa'},{ao:false,aa:'none'}]){
+        render.setEffects(effects);
+        await new Promise(requestAnimationFrame);
+        render.update();
+        await render.renderer.resolveTimestampsAsync('render');
+        const gpuMs=[];
+        for(let i=0;i<12;i++){
+          await new Promise(requestAnimationFrame);
+          render.update();
+          if(render.renderer.info.render.frameCalls<2) throw new Error('Cached frame cannot be used for a GPU pipeline benchmark');
+          gpuMs.push(await render.renderer.resolveTimestampsAsync('render'));
+        }
+        gpuMs.sort((a,b)=>a-b);
+        variants.push({effects,samples:gpuMs.length,p50:gpuMs[6],p95:gpuMs[11]});
+      }
+    }
+    engine.resume();
+    return {supported,unit:'GPU milliseconds per whole pipeline frame; variants are not isolated pass timings',variants};
+  })()`)
+  await evaluate('globalThis.__RANGE_ROOM__.render.setEffects({ao:false,aa:"none"})')
+  await frames(8)
+  report.withoutEffects = await evaluate('globalThis.__RANGE_ROOM__.snapshot()')
+  await screenshot('room-no-ao-no-aa.png')
+  await send('Emulation.setDeviceMetricsOverride', {
+    width: 800,
+    height: 600,
+    deviceScaleFactor: 1,
+    mobile: false,
+  })
+  await frames(8)
+  report.resized = await evaluate('globalThis.__RANGE_ROOM__.snapshot().viewport')
+  await send('Emulation.setDeviceMetricsOverride', {
+    width: 1920,
+    height: 1080,
+    deviceScaleFactor: 1,
+    mobile: false,
+  })
+  await evaluate('__RANGE_ROOM__.render.setEffects({ao:true,aa:"smaa"})')
+  await frames(12)
+  report.fullHd = await evaluate('__RANGE_ROOM__.snapshot()')
+  report.fullHdGpu = await evaluate(`(async()=>{
+    const {engine,render}=__RANGE_ROOM__; engine.pause();
+    const gpuMs=[];
+    if(render.renderer.hasFeature('timestamp-query')){
+      await render.renderer.resolveTimestampsAsync('render');
+      for(let i=0;i<12;i++){
+        await new Promise(requestAnimationFrame); render.update();
+        gpuMs.push(await render.renderer.resolveTimestampsAsync('render'));
+      }
+    }
+    engine.resume(); gpuMs.sort((a,b)=>a-b);
+    return {samples:gpuMs.length,p50:gpuMs[6]??null,p95:gpuMs[11]??null,unit:'GPU milliseconds per whole pipeline frame'};
+  })()`)
+  await screenshot('room-fullhd-gtao-smaa.png')
+  await evaluate(`(()=>{
+    globalThis.__ROOM_UI_CHANGE__=(label,value)=>{
+      const row=[...document.querySelectorAll('.tp-lblv')].find(row=>row.querySelector('.tp-lblv_l')?.textContent===label);
+      if(!row)throw new Error('Missing panel row: '+label);
+      const input=row.querySelector('select,input');if(!input)throw new Error('Missing control: '+label);
+      if(input.tagName==='SELECT'){
+        const option=[...input.options].find(option=>option.textContent===value);
+        if(!option)throw new Error('Missing option: '+value);
+        input.value=option.value;input.dispatchEvent(new Event('change',{bubbles:true}));
+      }else if(input.type==='checkbox'){
+        if(input.checked!==value)input.click();
+      }else{
+        input.value=String(value);input.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+    };
+    globalThis.__ROOM_UI_BUTTON__=title=>{
+      const button=[...document.querySelectorAll('.debug-panel button')].find(button=>button.textContent===title);
+      if(!button)throw new Error('Missing button: '+title);button.click();
+    };
+    __ROOM_UI_CHANGE__('强度',0.6);__ROOM_UI_CHANGE__('半径 / m',0.8);
+    __ROOM_UI_CHANGE__('采样','8');__ROOM_UI_CHANGE__('分辨率','50%');__ROOM_UI_CHANGE__('显示','仅AO');
+  })()`)
+  await frames(10)
+  const aoImage = await displayProbe()
+  report.panel = await evaluate('({ao:__RANGE_ROOM__.render.getDebugState(),folders:__RANGE_ROOM__.panel.pane.children.map(folder=>folder.title)})')
+  report.panel.aoGrayscale = aoImage.every(([r, g, b]) => Math.max(r, g, b) - Math.min(r, g, b) <= 1)
+  report.panel.aoRange = [
+    Math.min(...aoImage.map(pixel => pixel[0])),
+    Math.max(...aoImage.map(pixel => pixel[0])),
+  ]
+  if (!report.panel.aoGrayscale || report.panel.aoRange[0] === report.panel.aoRange[1] || report.panel.ao.aoView !== 'ao' || report.panel.ao.aoSamples !== 8 || report.panel.ao.aoRadius !== 0.8 || report.panel.ao.aoStrength !== 0.6 || report.panel.ao.aoResolutionScale !== 0.5)
+    throw new Error('AO panel changes or grayscale preview failed')
+  await screenshot('room-ao-preview.png')
+  await evaluate('__ROOM_UI_BUTTON__("重置 AO")')
+  await frames(8)
+  const neutral = await displayProbe()
+  await evaluate('__ROOM_UI_CHANGE__("预设","暖色")')
+  await frames(8)
+  report.panel.warmDelta = displayDelta(neutral, await displayProbe())
+  await screenshot('room-lut-warm.png')
+  await evaluate('__ROOM_UI_CHANGE__("启用 LUT",false)')
+  await frames(6)
+  report.panel.disabledLutDelta = displayDelta(neutral, await displayProbe())
+  await evaluate('__ROOM_UI_CHANGE__("启用 LUT",true);__ROOM_UI_CHANGE__("曝光强度",1.5)')
+  await frames(6)
+  report.panel.changedExposure = await evaluate('__RANGE_ROOM__.snapshot().exposure')
+  await evaluate('__ROOM_UI_BUTTON__("重置调色")')
+  await frames(6)
+  report.panel.resetDelta = displayDelta(neutral, await displayProbe())
+  report.panel.resetExposure = await evaluate('__RANGE_ROOM__.snapshot().exposure')
+  const cubeRows = []
+  for (let b = 0; b < 2; b++) {
+    for (let g = 0; g < 2; g++) {
+      for (let r = 0; r < 2; r++)
+        cubeRows.push(`${r * 0.8} ${g * 0.9} ${b}`)
+    }
+  }
+  const cube = `TITLE "Browser import"\nLUT_3D_SIZE 2\n${cubeRows.join('\n')}\n`
+  await evaluate(`(()=>{
+    const files=new DataTransfer();files.items.add(new File([${JSON.stringify(cube)}],'browser-test.cube',{type:'text/plain'}));
+    const input=document.querySelector('.debug-panel input[type=file]');input.files=files.files;input.dispatchEvent(new Event('change',{bubbles:true}));
+  })()`)
+  await frames(12)
+  report.panel.imported = await evaluate('__RANGE_ROOM__.snapshot().colorGrading')
+  report.panel.importDelta = displayDelta(neutral, await displayProbe())
+  await evaluate(`(()=>{
+    const files=new DataTransfer();files.items.add(new File(['LUT_3D_SIZE 2\\n0 0 0'],'invalid.cube'));
+    const input=document.querySelector('.debug-panel input[type=file]');input.files=files.files;input.dispatchEvent(new Event('change',{bubbles:true}));
+  })()`)
+  await frames(6)
+  report.panel.invalidImport = await evaluate('({message:document.querySelector(".debug-message").textContent,size:__RANGE_ROOM__.snapshot().colorGrading.size})')
+  await evaluate('__ROOM_UI_BUTTON__("重置调色")')
+  await frames(6)
+  report.panel.finalResetDelta = displayDelta(neutral, await displayProbe())
+  if (report.panel.warmDelta < 1 || report.panel.disabledLutDelta > 1 || report.panel.resetDelta > 1 || report.panel.importDelta < 1 || report.panel.imported.size !== 2 || report.panel.invalidImport.size !== 2 || !report.panel.invalidImport.message.includes('无效') || report.panel.changedExposure !== 1.5 || report.panel.resetExposure !== 1.2 || report.panel.finalResetDelta > 1)
+    throw new Error('LUT panel preset, toggle, exposure, import or reset failed')
+
+  await evaluate(`(()=>{
+    const app=__RANGE_ROOM__;
+    globalThis.__ROOM_POSE__={position:app.camera.position.toArray(),target:app.controls.target.toArray()};
+    app.camera.position.set(0,10.8,-10.5);app.controls.target.set(16,10.8,-10.5);app.controls.update();
+    document.querySelector('.debug-panel').hidden=true;
+  })()`)
+  await frames(10)
+  await screenshot('room-corridor-lit.png')
+  report.corridor = await evaluate(`(async()=>{
+    const app=__RANGE_ROOM__;const points=[];
+    for(let y=80;y<1080;y+=140)for(let x=80;x<1920;x+=160){
+      const pick=app.pickPixel(x,y);if(pick)points.push({x,y,...pick});
+    }
+    const sample=async()=>{const result=[];for(const p of points)result.push(await app.render.readLinearPixel(p.x,p.y));return result};
+    globalThis.__CORRIDOR_CHECK__={points,sample,lit:await sample()};
+    app.render.setCorridorLighting(false);return {sampleCount:points.length};
+  })()`)
+  await frames(8)
+  await screenshot('room-corridor-unlit.png')
+  report.corridor.results = await evaluate(`(async()=>{
+    const state=__CORRIDOR_CHECK__;const unlit=await state.sample();
+    const result={bakedDelta:0,realtimeDelta:0,bakedChanged:0,realtimeChanged:0};
+    state.points.forEach((point,i)=>{
+      const delta=Math.max(...state.lit[i].slice(0,3).map((v,c)=>v-unlit[i][c]));
+      const key=point.mode==='baked-appearance'?'baked':point.mode==='realtime'?'realtime':null;
+      if(key){result[key+'Delta']=Math.max(result[key+'Delta'],delta);if(delta>0.001)result[key+'Changed']++;}
+    });
+    __RANGE_ROOM__.render.setCorridorLighting(true);delete globalThis.__CORRIDOR_CHECK__;return result;
+  })()`)
+  if (report.corridor.results.bakedDelta < 0.001 || report.corridor.results.realtimeDelta < 0.001)
+    throw new Error('Corridor point lights must brighten baked and realtime receivers')
+  await evaluate(`(()=>{
+    const app=__RANGE_ROOM__;app.camera.position.fromArray(__ROOM_POSE__.position);app.controls.target.fromArray(__ROOM_POSE__.target);app.controls.update();
+    document.querySelector('.debug-panel').hidden=false;delete globalThis.__ROOM_POSE__;delete globalThis.__ROOM_UI_CHANGE__;delete globalThis.__ROOM_UI_BUTTON__;
+  })()`)
+  await evaluate(`(()=>{
+    const app=__RANGE_ROOM__;
+    globalThis.__ROOM_POSE__={position:app.camera.position.toArray(),target:app.controls.target.toArray()};
+    app.camera.position.x+=0.75; app.controls.target.x+=0.75;
+    app.camera.position.y-=0.4; app.controls.target.y-=0.4;
+    app.camera.position.z+=0.75; app.controls.target.z+=0.75;
+    app.controls.update();
+  })()`)
+  await frames(12)
+  report.motion = await evaluate('({ready:__RANGE_ROOM__.snapshot().ready,position:__RANGE_ROOM__.camera.position.toArray(),state:__RANGE_ROOM__.engine.state})')
+  await screenshot('room-motion-inspection.png')
+  await evaluate('__RANGE_ROOM__.camera.position.fromArray(__ROOM_POSE__.position);__RANGE_ROOM__.controls.target.fromArray(__ROOM_POSE__.target);__RANGE_ROOM__.controls.update();delete globalThis.__ROOM_POSE__')
+  await frames(4)
+  await evaluate('globalThis.__RANGE_ROOM__.engine.destroy()')
+  report.disposed = await evaluate('globalThis.__RANGE_ROOM__.snapshot().ready === false && document.querySelectorAll(".debug-panel input,.debug-panel button").length === 0')
+  report.messages = messages
+  if (!report.baseline.ready || errors.length || !report.disposed)
+    throw new Error('Room smoke test failed; see report')
+  report.passed = true
+}
+catch (error) {
+  report.passed = false
+  report.failure = error.stack
+  process.exitCode = 1
+}
+finally {
+  fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify(report, null, 2))
+  console.log(JSON.stringify({
+    passed: report.passed,
+    errors,
+    failure: report.failure,
+    report: path.join(output, 'report.json'),
+    exposure: report.baseline?.exposure,
+    sampling: report.baseline?.sampling,
+    surfaceSampling: report.surfaceSampling,
+    panel: report.panel,
+    corridor: report.corridor,
+    fullHdGpu: report.fullHdGpu,
+    fullHdMemory: report.fullHd?.memory.total,
+  }, null, 2))
+  socket?.close()
+  child.kill()
+}

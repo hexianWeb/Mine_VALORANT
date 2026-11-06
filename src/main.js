@@ -1,152 +1,103 @@
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import * as THREE from 'three/webgpu'
-import { Pane } from 'tweakpane'
-import { Engine } from './engine/index.js'
-import { createNodeMaterial } from './material.js'
+import { Engine, ResourceManager } from './engine/index.js'
+import { renderConfig } from './engine/systems/render/config.js'
+import { createDebugPanel } from './engine/systems/render/debug-panel.js'
+import { createRenderSystem } from './engine/systems/render/index.js'
 import './style.css'
 
 const canvas = document.querySelector('.webgl')
-const panelElement = document.querySelector('.debug-panel')
-const unsupportedElement = document.querySelector('.unsupported')
+const status = document.querySelector('.loading')
+const unsupported = document.querySelector('.unsupported')
+let engine = null
+let cancelled = false
 
-async function createGame() {
-  if (!navigator.gpu) {
-    canvas.hidden = true
-    panelElement.hidden = true
-    unsupportedElement.hidden = false
-    return null
-  }
-
-  const engine = new Engine()
-
+async function startRoom() {
+  if (!navigator.gpu)
+    throw new Error('当前浏览器不支持 WebGPU，请使用最新版 Chrome 或 Edge。')
+  engine = new Engine({ maxPixelRatio: renderConfig.maxPixelRatio })
+  const resources = engine.disposer.add(new ResourceManager())
   const scene = new THREE.Scene()
-  const params = {
-    background: '#0d1117',
-    colorTop: '#7c3aed',
-    colorBottom: '#22d3ee',
-    metalness: 0.65,
-    roughness: 0.22,
-    rotationSpeed: 0.35,
-    wireframe: false,
-  }
-  scene.background = new THREE.Color(params.background)
-
-  const camera = new THREE.PerspectiveCamera(45, engine.size.aspect, 0.1, 100)
-  camera.position.set(0, 0, 4.5)
-
-  const geometry = new THREE.TorusKnotGeometry(1, 0.3, 192, 32)
-  const { material, uniforms } = createNodeMaterial({
-    colorTop: params.colorTop,
-    colorBottom: params.colorBottom,
-    metalness: params.metalness,
-    roughness: params.roughness,
-  })
-  const mesh = new THREE.Mesh(geometry, material)
-  scene.add(mesh)
-
-  scene.add(new THREE.HemisphereLight('#ffffff', '#172033', 1.8))
-  const keyLight = new THREE.DirectionalLight('#ffffff', 4)
-  keyLight.position.set(3, 4, 5)
-  scene.add(keyLight)
-
-  const renderer = new THREE.WebGPURenderer({
-    antialias: true,
+  scene.background = new THREE.Color(0x161B24)
+  const camera = new THREE.PerspectiveCamera(50, engine.size.aspect, 0.05, 400)
+  const parameters = new URLSearchParams(location.search)
+  const config = { ...renderConfig }
+  // Deterministic validation variants; the user-requested panel edits these same settings.
+  if (parameters.get('ao') === '0')
+    config.ao = false
+  if (parameters.get('aa') === 'none')
+    config.aa = 'none'
+  const render = await createRenderSystem({
+    engine,
     canvas,
-    forceWebGL: false,
+    scene,
+    camera,
+    resources,
+    config,
   })
-  renderer.setPixelRatio(engine.size.pixelRatio)
-  renderer.setSize(engine.size.width, engine.size.height)
-  renderer.toneMapping = THREE.ACESFilmicToneMapping
-  renderer.toneMappingExposure = 1.15
-  await renderer.init()
-
-  const pane = engine.disposer.add(new Pane({
-    container: panelElement,
-    title: 'WebGPU Render',
-  }))
-
-  const appearanceFolder = pane.addFolder({ title: 'Appearance' })
-  appearanceFolder.addBinding(params, 'colorTop', { label: 'Top color' })
-    .on('change', ({ value }) => uniforms.colorTop.value.set(value))
-  appearanceFolder.addBinding(params, 'colorBottom', { label: 'Bottom color' })
-    .on('change', ({ value }) => uniforms.colorBottom.value.set(value))
-  appearanceFolder.addBinding(params, 'metalness', {
-    label: 'Metalness',
-    min: 0,
-    max: 1,
-    step: 0.01,
+  if (cancelled) {
+    render.dispose()
+    return
+  }
+  engine.addSystem('render', render)
+  const room = await render.loadRoom()
+  if (cancelled)
+    return
+  const forward = camera.getWorldDirection(new THREE.Vector3())
+  const controls = engine.disposer.add(new OrbitControls(camera, canvas))
+  controls.target.copy(camera.position).addScaledVector(forward, 6)
+  controls.enableDamping = true
+  controls.maxDistance = 60
+  controls.minDistance = 0.2
+  controls.update()
+  const panel = engine.disposer.add(createDebugPanel(render, document.querySelector('.debug-panel')))
+  engine.addSystem('input', {
+    name: 'inspection-camera',
+    update: () => controls.update(),
   })
-    .on('change', ({ value }) => { uniforms.metalness.value = value })
-  appearanceFolder.addBinding(params, 'roughness', {
-    label: 'Roughness',
-    min: 0,
-    max: 1,
-    step: 0.01,
-  })
-    .on('change', ({ value }) => { uniforms.roughness.value = value })
-  appearanceFolder.addBinding(params, 'wireframe', { label: 'Wireframe' })
-    .on('change', ({ value }) => {
-      material.wireframe = value
-      material.needsUpdate = true
-    })
-
-  const sceneFolder = pane.addFolder({ title: 'Scene' })
-  sceneFolder.addBinding(params, 'background', { label: 'Background' })
-    .on('change', ({ value }) => scene.background.set(value))
-  sceneFolder.addBinding(params, 'rotationSpeed', {
-    label: 'Rotation',
-    min: 0,
-    max: 2,
-    step: 0.01,
-  })
-  sceneFolder.addBinding(engine.time, 'timeScale', {
-    label: 'Time scale',
-    min: 0,
-    max: 3,
-    step: 0.01,
-  })
-
-  engine.addSystem('gameplay', {
-    name: 'spin',
-    update: ({ time }) => {
-      mesh.rotation.x = time.elapsed * params.rotationSpeed * 0.35
-      mesh.rotation.y = time.elapsed * params.rotationSpeed
+  // Inspection/test surface, not a GUI or a gameplay controller.
+  globalThis.__RANGE_ROOM__ = {
+    engine,
+    render,
+    room,
+    scene,
+    camera,
+    controls,
+    panel,
+    ready: true,
+    snapshot: () => render.snapshot(),
+    pickPixel(x, y) {
+      const ray = new THREE.Raycaster()
+      ray.setFromCamera(new THREE.Vector2(x / canvas.width * 2 - 1, 1 - y / canvas.height * 2), camera)
+      const hit = ray.intersectObject(room.root, true)[0]
+      return hit
+        ? { mode: hit.object.material.userData.roomMode, name: hit.object.name }
+        : null
     },
-  })
-
-  const offResize = engine.size.on('resize', ({ width, height, pixelRatio, aspect }) => {
-    camera.aspect = aspect
-    camera.updateProjectionMatrix()
-    renderer.setPixelRatio(pixelRatio)
-    renderer.setSize(width, height)
-  })
-
-  engine.addSystem('render', {
-    name: 'render',
-    update: () => renderer.render(scene, camera),
-    dispose: () => {
-      offResize()
-      geometry.dispose()
-      material.dispose()
-      renderer.dispose()
-    },
-  })
-
+  }
+  status.hidden = true
+  engine.events.on('error', ({ error }) => showError(error))
   engine.start()
-  return engine
+  console.debug('[Range room] loaded', render.snapshot())
 }
 
-let engine = null
+function showError(error) {
+  status.hidden = true
+  unsupported.hidden = false
+  unsupported.textContent = `练枪房加载失败：${error?.message ?? error}`
+  console.error('[Range room]', error)
+}
 
-createGame()
-  .then((created) => { engine = created })
-  .catch((error) => {
-    console.error(error)
-    canvas.hidden = true
-    panelElement.hidden = true
-    unsupportedElement.hidden = false
-    unsupportedElement.textContent = 'WebGPU 初始化失败，请检查浏览器与显卡支持。'
-  })
+startRoom().catch((error) => {
+  engine?.destroy()
+  if (!cancelled)
+    showError(error)
+})
 
 if (import.meta.hot) {
-  import.meta.hot.dispose(() => engine?.destroy())
+  import.meta.hot.dispose(() => {
+    cancelled = true
+    engine?.destroy()
+    delete globalThis.__RANGE_ROOM__
+  })
 }

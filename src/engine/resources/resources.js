@@ -184,7 +184,10 @@ export class ResourceManager extends EventEmitter {
       if (task.cancelled)
         throw abortError(entry)
       this.emit('error', { name: entry.name, error })
-      throw new Error(`[Resources] failed to load "${entry.name}" (${entry.url})`, { cause: error })
+      const reason = error instanceof Error
+        ? error.message
+        : String(error)
+      throw new Error(`[Resources] failed to load "${entry.name}" (${entry.url}): ${reason}`, { cause: error })
     }
     finally {
       if (this.#pending.get(entry.name) === task)
@@ -214,6 +217,7 @@ function disposeAsset(type, asset) {
     case 'texture':
     case 'cubeTexture':
     case 'hdr':
+    case 'exr':
       asset.dispose()
       break
     case 'gltf':

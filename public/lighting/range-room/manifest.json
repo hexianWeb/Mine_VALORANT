@@ -1,0 +1,2243 @@
+{
+  "schemaVersion": 3,
+  "id": "range-room-v3",
+  "sourceBlend": "F:\\temp\\07_已烘焙贴图_降噪预览_透明修复.blend",
+  "model": {
+    "url": "../../model/range-room.glb",
+    "sha256": "1619c08ae1a6d33076d436f819d4fefa9df8a0f8e9a80b75fed2b374a825d930"
+  },
+  "coordinates": {
+    "up": "Y",
+    "units": "metres",
+    "conversion": "x,z,-y",
+    "rootTransform": "identity"
+  },
+  "atlases": [
+    {
+      "id": "B01",
+      "url": "./atlases/B01.exr",
+      "sha256": "826049ecae2950b0f558717575df30eaaf2c499a303bd88e8405ea1fe5d57c14",
+      "width": 2048,
+      "height": 2048,
+      "content": "baked-appearance",
+      "colorSpace": "linear-rec709",
+      "sourceImage": "DENOISED_HDR__B01_主地面与地毯",
+      "sourceColorSpace": "sRGB",
+      "encoding": "exr-half",
+      "flipY": false,
+      "sampling": {
+        "filter": "linear",
+        "mipmaps": false,
+        "maxLod": 0
+      },
+      "verification": {
+        "finite": true,
+        "rgbMax": 0.82275390625
+      }
+    },
+    {
+      "id": "B02",
+      "url": "./atlases/B02.exr",
+      "sha256": "cf2237b0e7eac33307778d122321e02da74e8cf41336cb1eb263f2a6f89a4266",
+      "width": 2048,
+      "height": 2048,
+      "content": "baked-appearance",
+      "colorSpace": "linear-rec709",
+      "sourceImage": "DENOISED_HDR__B02_其他地面与石英",
+      "sourceColorSpace": "Linear Rec.709",
+      "encoding": "exr-half",
+      "flipY": false,
+      "sampling": {
+        "filter": "linear",
+        "mipmaps": false,
+        "maxLod": 0
+      },
+      "verification": {
+        "finite": true,
+        "rgbMax": 1.2890625
+      }
+    },
+    {
+      "id": "B03",
+      "url": "./atlases/B03.exr",
+      "sha256": "fbf4928de8bac8e6659564a7d1de9b34bc3391bfd833a3603e54f360e6a5e538",
+      "width": 2048,
+      "height": 2048,
+      "content": "baked-appearance",
+      "colorSpace": "linear-rec709",
+      "sourceImage": "DENOISED_HDR__B03_砂岩主墙与浅蓝小组",
+      "sourceColorSpace": "Linear Rec.709",
+      "encoding": "exr-half",
+      "flipY": false,
+      "sampling": {
+        "filter": "linear",
+        "mipmaps": false,
+        "maxLod": 0
+      },
+      "verification": {
+        "finite": true,
+        "rgbMax": 1.0869140625
+      }
+    },
+    {
+      "id": "B04",
+      "url": "./atlases/B04.exr",
+      "sha256": "7a2e3701b2cce79e265a7eea44420ab5857ef1980940f0126514b9843315cde1",
+      "width": 2048,
+      "height": 2048,
+      "content": "baked-appearance",
+      "colorSpace": "linear-rec709",
+      "sourceImage": "DENOISED_HDR__B04_砂岩与玄武岩",
+      "sourceColorSpace": "Linear Rec.709",
+      "encoding": "exr-half",
+      "flipY": false,
+      "sampling": {
+        "filter": "linear",
+        "mipmaps": false,
+        "maxLod": 0
+      },
+      "verification": {
+        "finite": true,
+        "rgbMax": 1.1767578125
+      }
+    },
+    {
+      "id": "B05",
+      "url": "./atlases/B05.exr",
+      "sha256": "6c5fd45450a323bb4414e35bb5ddc96de8b3171c546c00672f84212861c97895",
+      "width": 2048,
+      "height": 2048,
+      "content": "baked-appearance",
+      "colorSpace": "linear-rec709",
+      "sourceImage": "DENOISED_HDR__B05_石砖与光滑石头",
+      "sourceColorSpace": "Linear Rec.709",
+      "encoding": "exr-half",
+      "flipY": false,
+      "sampling": {
+        "filter": "linear",
+        "mipmaps": false,
+        "maxLod": 0
+      },
+      "verification": {
+        "finite": true,
+        "rgbMax": 1.595703125
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "mode": "realtime",
+      "sourceMaterial": "acacia_planks",
+      "receiverId": "room-ee280c0bc28f68c9",
+      "meshIndex": 0,
+      "primitiveIndex": 0,
+      "materialIndex": 0,
+      "sourceObject": "Acacia_Button"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "acacia_planks",
+      "receiverId": "room-a4c89bed51f2f806",
+      "meshIndex": 1,
+      "primitiveIndex": 0,
+      "materialIndex": 0,
+      "sourceObject": "Acacia_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "acacia_trapdoor",
+      "receiverId": "room-f13e1822c397ed05",
+      "meshIndex": 2,
+      "primitiveIndex": 0,
+      "materialIndex": 1,
+      "sourceObject": "Acacia_Trapdoor"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__andesite",
+      "atlasId": "B02",
+      "uvChannel": 1,
+      "receiverId": "room-2a2a81e47daa149c",
+      "meshIndex": 3,
+      "primitiveIndex": 0,
+      "materialIndex": 2,
+      "sourceObject": "Andesite"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "andesite",
+      "receiverId": "room-f83e0fd4b23fbcf9",
+      "meshIndex": 4,
+      "primitiveIndex": 0,
+      "materialIndex": 3,
+      "sourceObject": "Andesite_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "andesite",
+      "receiverId": "room-451ea2085aa3a691",
+      "meshIndex": 5,
+      "primitiveIndex": 0,
+      "materialIndex": 3,
+      "sourceObject": "Andesite_Wall"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "anvil",
+      "receiverId": "room-297fa03ced0b0de4",
+      "meshIndex": 6,
+      "primitiveIndex": 0,
+      "materialIndex": 4,
+      "sourceObject": "Anvil"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "anvil_top",
+      "receiverId": "room-297fa03ced0b0de4",
+      "meshIndex": 6,
+      "primitiveIndex": 1,
+      "materialIndex": 5,
+      "sourceObject": "Anvil"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "barrel_top",
+      "receiverId": "room-ae8695893112e311",
+      "meshIndex": 7,
+      "primitiveIndex": 0,
+      "materialIndex": 6,
+      "sourceObject": "Barrel"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "barrel_side",
+      "receiverId": "room-ae8695893112e311",
+      "meshIndex": 7,
+      "primitiveIndex": 1,
+      "materialIndex": 7,
+      "sourceObject": "Barrel"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "barrel_bottom",
+      "receiverId": "room-ae8695893112e311",
+      "meshIndex": 7,
+      "primitiveIndex": 2,
+      "materialIndex": 8,
+      "sourceObject": "Barrel"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "beehive_end",
+      "receiverId": "room-59d4cc5f6fa0a833",
+      "meshIndex": 8,
+      "primitiveIndex": 0,
+      "materialIndex": 9,
+      "sourceObject": "Beehive"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "beehive_front",
+      "receiverId": "room-59d4cc5f6fa0a833",
+      "meshIndex": 8,
+      "primitiveIndex": 1,
+      "materialIndex": 10,
+      "sourceObject": "Beehive"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "beehive_side",
+      "receiverId": "room-59d4cc5f6fa0a833",
+      "meshIndex": 8,
+      "primitiveIndex": 2,
+      "materialIndex": 11,
+      "sourceObject": "Beehive"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "birch_door_bottom",
+      "receiverId": "room-79de915e9e649896",
+      "meshIndex": 9,
+      "primitiveIndex": 0,
+      "materialIndex": 12,
+      "sourceObject": "Birch_Door"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "birch_door_top",
+      "receiverId": "room-79de915e9e649896",
+      "meshIndex": 9,
+      "primitiveIndex": 1,
+      "materialIndex": 13,
+      "sourceObject": "Birch_Door"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "birch_planks",
+      "receiverId": "room-53e1abe43d4bdd81",
+      "meshIndex": 10,
+      "primitiveIndex": 0,
+      "materialIndex": 14,
+      "sourceObject": "Birch_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "birch_sign",
+      "receiverId": "room-595e70b34e4fc069",
+      "meshIndex": 11,
+      "primitiveIndex": 0,
+      "materialIndex": 15,
+      "sourceObject": "Birch_Wall_Sign"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "black_stained_glass",
+      "receiverId": "room-b123fd163f4fa5cb",
+      "meshIndex": 12,
+      "primitiveIndex": 0,
+      "materialIndex": 16,
+      "sourceObject": "Black_Stained_Glass_Pane"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "black_stained_glass_pane_top",
+      "receiverId": "room-b123fd163f4fa5cb",
+      "meshIndex": 12,
+      "primitiveIndex": 1,
+      "materialIndex": 17,
+      "sourceObject": "Black_Stained_Glass_Pane"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "blackstone",
+      "receiverId": "room-e619f01cf6e70a82",
+      "meshIndex": 13,
+      "primitiveIndex": 0,
+      "materialIndex": 18,
+      "sourceObject": "Blackstone_Wall"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__quartz_pillar_top",
+      "atlasId": "B02",
+      "uvChannel": 1,
+      "receiverId": "room-17eed657ddb68f7e",
+      "meshIndex": 14,
+      "primitiveIndex": 0,
+      "materialIndex": 19,
+      "sourceObject": "Block_of_Quartz"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__quartz_pillar_side",
+      "atlasId": "B02",
+      "uvChannel": 1,
+      "receiverId": "room-17eed657ddb68f7e",
+      "meshIndex": 14,
+      "primitiveIndex": 1,
+      "materialIndex": 20,
+      "sourceObject": "Block_of_Quartz"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__quartz_bricks",
+      "atlasId": "B02",
+      "uvChannel": 1,
+      "receiverId": "room-17eed657ddb68f7e",
+      "meshIndex": 14,
+      "primitiveIndex": 2,
+      "materialIndex": 21,
+      "sourceObject": "Block_of_Quartz"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "redstone_block",
+      "receiverId": "room-e08e08d48efdd67d",
+      "meshIndex": 15,
+      "primitiveIndex": 0,
+      "materialIndex": 22,
+      "sourceObject": "Block_of_Redstone"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "blue_orchid",
+      "receiverId": "room-09cf42fa2dc6e6a3",
+      "meshIndex": 16,
+      "primitiveIndex": 0,
+      "materialIndex": 23,
+      "sourceObject": "Blue_Orchid"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "bricks",
+      "receiverId": "room-a8b850c8677e4444",
+      "meshIndex": 17,
+      "primitiveIndex": 0,
+      "materialIndex": 24,
+      "sourceObject": "Brick_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "bricks",
+      "receiverId": "room-ce8dae7638aeb3b3",
+      "meshIndex": 18,
+      "primitiveIndex": 0,
+      "materialIndex": 24,
+      "sourceObject": "Brick_Stairs"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "bricks",
+      "receiverId": "room-8f48bbb8606e03d0",
+      "meshIndex": 19,
+      "primitiveIndex": 0,
+      "materialIndex": 24,
+      "sourceObject": "Brick_Wall"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "bricks",
+      "receiverId": "room-c26107cabdbf52a7",
+      "meshIndex": 20,
+      "primitiveIndex": 0,
+      "materialIndex": 24,
+      "sourceObject": "Bricks"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "brown_shulker_box",
+      "receiverId": "room-88a744700753bbd2",
+      "meshIndex": 21,
+      "primitiveIndex": 0,
+      "materialIndex": 25,
+      "sourceObject": "Brown_Shulker_Box"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "MWO_shulker_side_brown",
+      "receiverId": "room-88a744700753bbd2",
+      "meshIndex": 21,
+      "primitiveIndex": 1,
+      "materialIndex": 26,
+      "sourceObject": "Brown_Shulker_Box"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "campfire_log",
+      "receiverId": "room-bf3fac40de1b75b9",
+      "meshIndex": 22,
+      "primitiveIndex": 0,
+      "materialIndex": 27,
+      "sourceObject": "Campfire"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "MWO_chest_top",
+      "receiverId": "room-378d83808237a445",
+      "meshIndex": 23,
+      "primitiveIndex": 0,
+      "materialIndex": 28,
+      "sourceObject": "Chest"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "MWO_chest_side",
+      "receiverId": "room-378d83808237a445",
+      "meshIndex": 23,
+      "primitiveIndex": 1,
+      "materialIndex": 29,
+      "sourceObject": "Chest"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "MWO_chest_front",
+      "receiverId": "room-378d83808237a445",
+      "meshIndex": 23,
+      "primitiveIndex": 2,
+      "materialIndex": 30,
+      "sourceObject": "Chest"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "MWO_double_chest_front_left",
+      "receiverId": "room-378d83808237a445",
+      "meshIndex": 23,
+      "primitiveIndex": 3,
+      "materialIndex": 31,
+      "sourceObject": "Chest"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "MWO_double_chest_front_right",
+      "receiverId": "room-378d83808237a445",
+      "meshIndex": 23,
+      "primitiveIndex": 4,
+      "materialIndex": 32,
+      "sourceObject": "Chest"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "MWO_double_chest_back_left",
+      "receiverId": "room-378d83808237a445",
+      "meshIndex": 23,
+      "primitiveIndex": 5,
+      "materialIndex": 33,
+      "sourceObject": "Chest"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "MWO_double_chest_back_right",
+      "receiverId": "room-378d83808237a445",
+      "meshIndex": 23,
+      "primitiveIndex": 6,
+      "materialIndex": 34,
+      "sourceObject": "Chest"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "MWO_double_chest_top_left",
+      "receiverId": "room-378d83808237a445",
+      "meshIndex": 23,
+      "primitiveIndex": 7,
+      "materialIndex": 35,
+      "sourceObject": "Chest"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "MWO_double_chest_top_right",
+      "receiverId": "room-378d83808237a445",
+      "meshIndex": 23,
+      "primitiveIndex": 8,
+      "materialIndex": 36,
+      "sourceObject": "Chest"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "MWO_chest_latch",
+      "receiverId": "room-378d83808237a445",
+      "meshIndex": 23,
+      "primitiveIndex": 9,
+      "materialIndex": 37,
+      "sourceObject": "Chest"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "chiseled_quartz_block",
+      "receiverId": "room-887205e3a7a6a44c",
+      "meshIndex": 24,
+      "primitiveIndex": 0,
+      "materialIndex": 38,
+      "sourceObject": "Chiseled_Quartz_Block"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "composter_top",
+      "receiverId": "room-b6c39f8fd1f8d852",
+      "meshIndex": 25,
+      "primitiveIndex": 0,
+      "materialIndex": 39,
+      "sourceObject": "Composter"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "composter_side",
+      "receiverId": "room-b6c39f8fd1f8d852",
+      "meshIndex": 25,
+      "primitiveIndex": 1,
+      "materialIndex": 40,
+      "sourceObject": "Composter"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "composter_bottom",
+      "receiverId": "room-b6c39f8fd1f8d852",
+      "meshIndex": 25,
+      "primitiveIndex": 2,
+      "materialIndex": 41,
+      "sourceObject": "Composter"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "crimson_planks",
+      "receiverId": "room-f1d527902c6cc508",
+      "meshIndex": 26,
+      "primitiveIndex": 0,
+      "materialIndex": 42,
+      "sourceObject": "Crimson_Fence"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "sandstone_top",
+      "receiverId": "room-9c43fd9f90fc5acd",
+      "meshIndex": 27,
+      "primitiveIndex": 0,
+      "materialIndex": 43,
+      "sourceObject": "Cut_Sandstone_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "cut_sandstone",
+      "receiverId": "room-9c43fd9f90fc5acd",
+      "meshIndex": 27,
+      "primitiveIndex": 1,
+      "materialIndex": 44,
+      "sourceObject": "Cut_Sandstone_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "sandstone_top",
+      "receiverId": "room-578d919ec560ad38",
+      "meshIndex": 28,
+      "primitiveIndex": 0,
+      "materialIndex": 43,
+      "sourceObject": "Cut_Sandstone_Slab.001"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "cut_sandstone",
+      "receiverId": "room-578d919ec560ad38",
+      "meshIndex": 28,
+      "primitiveIndex": 1,
+      "materialIndex": 44,
+      "sourceObject": "Cut_Sandstone_Slab.001"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "cyan_concrete",
+      "receiverId": "room-ca9f3a217c7f9a08",
+      "meshIndex": 29,
+      "primitiveIndex": 0,
+      "materialIndex": 45,
+      "sourceObject": "Cyan_Concrete"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "dark_oak_planks",
+      "receiverId": "room-f0cd55ae1704b5fe",
+      "meshIndex": 30,
+      "primitiveIndex": 0,
+      "materialIndex": 46,
+      "sourceObject": "Dark_Oak_Button"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "dark_oak_door_bottom",
+      "receiverId": "room-bc0a0988b97f0779",
+      "meshIndex": 31,
+      "primitiveIndex": 0,
+      "materialIndex": 47,
+      "sourceObject": "Dark_Oak_Door"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "dark_oak_door_top",
+      "receiverId": "room-bc0a0988b97f0779",
+      "meshIndex": 31,
+      "primitiveIndex": 1,
+      "materialIndex": 48,
+      "sourceObject": "Dark_Oak_Door"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "dark_oak_trapdoor",
+      "receiverId": "room-1f137dc40e1e86e8",
+      "meshIndex": 32,
+      "primitiveIndex": 0,
+      "materialIndex": 49,
+      "sourceObject": "Dark_Oak_Trapdoor"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "dark_prismarine",
+      "receiverId": "room-abe36095d22e9fef",
+      "meshIndex": 33,
+      "primitiveIndex": 0,
+      "materialIndex": 50,
+      "sourceObject": "Dark_Prismarine"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "diorite",
+      "receiverId": "room-14e2b4a99d244b47",
+      "meshIndex": 34,
+      "primitiveIndex": 0,
+      "materialIndex": 51,
+      "sourceObject": "Diorite_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "diorite",
+      "receiverId": "room-7a4f51bc1158e8d4",
+      "meshIndex": 35,
+      "primitiveIndex": 0,
+      "materialIndex": 51,
+      "sourceObject": "Diorite_Wall"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "acacia_planks",
+      "receiverId": "room-fa1407729e74be18",
+      "meshIndex": 36,
+      "primitiveIndex": 0,
+      "materialIndex": 0,
+      "sourceObject": "Double_Acacia_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "bricks",
+      "receiverId": "room-1a140fa69a6cda63",
+      "meshIndex": 37,
+      "primitiveIndex": 0,
+      "materialIndex": 24,
+      "sourceObject": "Double_Brick_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "jungle_planks",
+      "receiverId": "room-14b5b320df0199ed",
+      "meshIndex": 38,
+      "primitiveIndex": 0,
+      "materialIndex": 52,
+      "sourceObject": "Double_Jungle_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "quartz_block_side",
+      "receiverId": "room-5b79e65d683bc196",
+      "meshIndex": 39,
+      "primitiveIndex": 0,
+      "materialIndex": 53,
+      "sourceObject": "Double_Quartz_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "quartz_block_top",
+      "receiverId": "room-5b79e65d683bc196",
+      "meshIndex": 39,
+      "primitiveIndex": 1,
+      "materialIndex": 54,
+      "sourceObject": "Double_Quartz_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "spruce_planks",
+      "receiverId": "room-1b4d41a4b6dd4939",
+      "meshIndex": 40,
+      "primitiveIndex": 0,
+      "materialIndex": 55,
+      "sourceObject": "Double_Spruce_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "stone_bricks",
+      "receiverId": "room-0a57cb0d33998a2a",
+      "meshIndex": 41,
+      "primitiveIndex": 0,
+      "materialIndex": 56,
+      "sourceObject": "Double_Stone_Brick_Slab"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__quartz_bricks",
+      "atlasId": "B02",
+      "uvChannel": 1,
+      "receiverId": "room-6635eee5091b9443",
+      "meshIndex": 42,
+      "primitiveIndex": 0,
+      "materialIndex": 21,
+      "sourceObject": "Double_Stone_Slab"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__smooth_stone_slab_side",
+      "atlasId": "B05",
+      "uvChannel": 1,
+      "receiverId": "room-6635eee5091b9443",
+      "meshIndex": 42,
+      "primitiveIndex": 1,
+      "materialIndex": 57,
+      "sourceObject": "Double_Stone_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "stone",
+      "receiverId": "room-daf7372e31606576",
+      "meshIndex": 43,
+      "primitiveIndex": 0,
+      "materialIndex": 58,
+      "sourceObject": "Double_Stone_Slab.001"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "end_rod",
+      "receiverId": "room-fbc7ba8c5d3c6353",
+      "meshIndex": 44,
+      "primitiveIndex": 0,
+      "materialIndex": 59,
+      "sourceObject": "End_Rod"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "fern",
+      "receiverId": "room-2a6118aaab29a215",
+      "meshIndex": 45,
+      "primitiveIndex": 0,
+      "materialIndex": 60,
+      "sourceObject": "Fern"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "dirt",
+      "receiverId": "room-c4bcf932db19040f",
+      "meshIndex": 46,
+      "primitiveIndex": 0,
+      "materialIndex": 61,
+      "sourceObject": "Flower_Pot"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "flower_pot",
+      "receiverId": "room-c4bcf932db19040f",
+      "meshIndex": 46,
+      "primitiveIndex": 1,
+      "materialIndex": 62,
+      "sourceObject": "Flower_Pot"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "grass_block_top",
+      "receiverId": "room-13d245ab5c3093a6",
+      "meshIndex": 47,
+      "primitiveIndex": 0,
+      "materialIndex": 63,
+      "sourceObject": "Grass_Block"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "gray_wool",
+      "receiverId": "room-841a4256342e88ea",
+      "meshIndex": 48,
+      "primitiveIndex": 0,
+      "materialIndex": 64,
+      "sourceObject": "Gray_Carpet"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__gray_concrete",
+      "atlasId": "B02",
+      "uvChannel": 1,
+      "receiverId": "room-a3171ff340b7c932",
+      "meshIndex": 49,
+      "primitiveIndex": 0,
+      "materialIndex": 65,
+      "sourceObject": "Gray_Concrete"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "gray_concrete",
+      "receiverId": "room-550f62bbf891f1d8",
+      "meshIndex": 50,
+      "primitiveIndex": 0,
+      "materialIndex": 66,
+      "sourceObject": "Gray_Wall_Banner"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "green_wool",
+      "receiverId": "room-d4f7b3a8a2acbdfe",
+      "meshIndex": 51,
+      "primitiveIndex": 0,
+      "materialIndex": 67,
+      "sourceObject": "Green_Carpet"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "green_concrete",
+      "receiverId": "room-960809b0b3de8d7d",
+      "meshIndex": 52,
+      "primitiveIndex": 0,
+      "materialIndex": 68,
+      "sourceObject": "Green_Concrete"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "iron_block",
+      "receiverId": "room-7e580785d784bf97",
+      "meshIndex": 53,
+      "primitiveIndex": 0,
+      "materialIndex": 69,
+      "sourceObject": "Heavy_Weighted_Pressure_Plate"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "iron_bars",
+      "receiverId": "room-6cf97038b1402da7",
+      "meshIndex": 54,
+      "primitiveIndex": 0,
+      "materialIndex": 70,
+      "sourceObject": "Iron_Bars"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "iron_chain",
+      "receiverId": "room-27ebac7acc3c2118",
+      "meshIndex": 55,
+      "primitiveIndex": 0,
+      "materialIndex": 71,
+      "sourceObject": "Iron_Chain"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "iron_door_top",
+      "receiverId": "room-d329472ec6211afb",
+      "meshIndex": 56,
+      "primitiveIndex": 0,
+      "materialIndex": 72,
+      "sourceObject": "Iron_Door"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "iron_door_bottom",
+      "receiverId": "room-d329472ec6211afb",
+      "meshIndex": 56,
+      "primitiveIndex": 1,
+      "materialIndex": 73,
+      "sourceObject": "Iron_Door"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "iron_trapdoor",
+      "receiverId": "room-94b80b82300be904",
+      "meshIndex": 57,
+      "primitiveIndex": 0,
+      "materialIndex": 74,
+      "sourceObject": "Iron_Trapdoor"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "jungle_planks",
+      "receiverId": "room-a5530f4ebcae6c34",
+      "meshIndex": 58,
+      "primitiveIndex": 0,
+      "materialIndex": 52,
+      "sourceObject": "Jungle_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "jungle_planks",
+      "receiverId": "room-ce98850a2d4c26f1",
+      "meshIndex": 59,
+      "primitiveIndex": 0,
+      "materialIndex": 52,
+      "sourceObject": "Jungle_Stairs"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "ladder",
+      "receiverId": "room-df0663641d3ef583",
+      "meshIndex": 60,
+      "primitiveIndex": 0,
+      "materialIndex": 75,
+      "sourceObject": "Ladder"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__light_gray_wool",
+      "atlasId": "B01",
+      "uvChannel": 1,
+      "receiverId": "room-42c58b5d56a539bf",
+      "meshIndex": 61,
+      "primitiveIndex": 0,
+      "materialIndex": 76,
+      "sourceObject": "Light_Carpet"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__light_blue_concrete",
+      "atlasId": "B03",
+      "uvChannel": 1,
+      "receiverId": "room-ce0ecd984f358799",
+      "meshIndex": 62,
+      "primitiveIndex": 0,
+      "materialIndex": 77,
+      "sourceObject": "Light_Concrete"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "light_gray_bed_foot_east",
+      "receiverId": "room-21028c42352ba13d",
+      "meshIndex": 63,
+      "primitiveIndex": 0,
+      "materialIndex": 78,
+      "sourceObject": "Light_Gray_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "light_gray_bed_foot_south",
+      "receiverId": "room-21028c42352ba13d",
+      "meshIndex": 63,
+      "primitiveIndex": 1,
+      "materialIndex": 79,
+      "sourceObject": "Light_Gray_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "light_gray_bed_foot_up",
+      "receiverId": "room-21028c42352ba13d",
+      "meshIndex": 63,
+      "primitiveIndex": 2,
+      "materialIndex": 80,
+      "sourceObject": "Light_Gray_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "light_gray_bed_foot_west",
+      "receiverId": "room-21028c42352ba13d",
+      "meshIndex": 63,
+      "primitiveIndex": 3,
+      "materialIndex": 81,
+      "sourceObject": "Light_Gray_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "light_gray_bed_head_east",
+      "receiverId": "room-21028c42352ba13d",
+      "meshIndex": 63,
+      "primitiveIndex": 4,
+      "materialIndex": 82,
+      "sourceObject": "Light_Gray_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "light_gray_bed_head_up",
+      "receiverId": "room-21028c42352ba13d",
+      "meshIndex": 63,
+      "primitiveIndex": 5,
+      "materialIndex": 83,
+      "sourceObject": "Light_Gray_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "light_gray_bed_head_west",
+      "receiverId": "room-21028c42352ba13d",
+      "meshIndex": 63,
+      "primitiveIndex": 6,
+      "materialIndex": 84,
+      "sourceObject": "Light_Gray_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "bed_down",
+      "receiverId": "room-21028c42352ba13d",
+      "meshIndex": 63,
+      "primitiveIndex": 7,
+      "materialIndex": 85,
+      "sourceObject": "Light_Gray_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "bed_head_north",
+      "receiverId": "room-21028c42352ba13d",
+      "meshIndex": 63,
+      "primitiveIndex": 8,
+      "materialIndex": 86,
+      "sourceObject": "Light_Gray_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "lily_of_the_valley",
+      "receiverId": "room-570e8f93ef694c85",
+      "meshIndex": 64,
+      "primitiveIndex": 0,
+      "materialIndex": 87,
+      "sourceObject": "Lily_of_the_Valley"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "nether_bricks",
+      "receiverId": "room-49872f04bc71aa1d",
+      "meshIndex": 65,
+      "primitiveIndex": 0,
+      "materialIndex": 88,
+      "sourceObject": "Nether_Brick_Fence"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "netherite_block",
+      "receiverId": "room-5bfd6a546832def7",
+      "meshIndex": 66,
+      "primitiveIndex": 0,
+      "materialIndex": 89,
+      "sourceObject": "Netherite_Block"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "oak_leaves",
+      "receiverId": "room-dcd3aa84ae0b1b6c",
+      "meshIndex": 67,
+      "primitiveIndex": 0,
+      "materialIndex": 90,
+      "sourceObject": "Oak_Leaves"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "oak_planks",
+      "receiverId": "room-10868b3c57ae5d4e",
+      "meshIndex": 68,
+      "primitiveIndex": 0,
+      "materialIndex": 91,
+      "sourceObject": "Oak_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "oak_sign",
+      "receiverId": "room-269cc78d30b48c57",
+      "meshIndex": 69,
+      "primitiveIndex": 0,
+      "materialIndex": 92,
+      "sourceObject": "Oak_Wall_Sign"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "observer_back",
+      "receiverId": "room-f20b6db009508832",
+      "meshIndex": 70,
+      "primitiveIndex": 0,
+      "materialIndex": 93,
+      "sourceObject": "Observer"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "observer_front",
+      "receiverId": "room-f20b6db009508832",
+      "meshIndex": 70,
+      "primitiveIndex": 1,
+      "materialIndex": 94,
+      "sourceObject": "Observer"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "observer_side",
+      "receiverId": "room-f20b6db009508832",
+      "meshIndex": 70,
+      "primitiveIndex": 2,
+      "materialIndex": 95,
+      "sourceObject": "Observer"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "observer_top",
+      "receiverId": "room-f20b6db009508832",
+      "meshIndex": 70,
+      "primitiveIndex": 3,
+      "materialIndex": 96,
+      "sourceObject": "Observer"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "orange_concrete",
+      "receiverId": "room-1a16f10906ccd89d",
+      "meshIndex": 71,
+      "primitiveIndex": 0,
+      "materialIndex": 97,
+      "sourceObject": "Orange_Concrete"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "orange_terracotta",
+      "receiverId": "room-2481d3f6df94b7c4",
+      "meshIndex": 72,
+      "primitiveIndex": 0,
+      "materialIndex": 98,
+      "sourceObject": "Orange_Terracotta"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "piston_side",
+      "receiverId": "room-f1da8c0d1fea849c",
+      "meshIndex": 73,
+      "primitiveIndex": 0,
+      "materialIndex": 99,
+      "sourceObject": "Piston"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "piston_bottom",
+      "receiverId": "room-f1da8c0d1fea849c",
+      "meshIndex": 73,
+      "primitiveIndex": 1,
+      "materialIndex": 100,
+      "sourceObject": "Piston"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "piston_inner",
+      "receiverId": "room-f1da8c0d1fea849c",
+      "meshIndex": 73,
+      "primitiveIndex": 2,
+      "materialIndex": 101,
+      "sourceObject": "Piston"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "piston_top",
+      "receiverId": "room-509cd78977cce6bb",
+      "meshIndex": 74,
+      "primitiveIndex": 0,
+      "materialIndex": 102,
+      "sourceObject": "Piston_Head"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "piston_side",
+      "receiverId": "room-509cd78977cce6bb",
+      "meshIndex": 74,
+      "primitiveIndex": 1,
+      "materialIndex": 99,
+      "sourceObject": "Piston_Head"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "polished_andesite",
+      "receiverId": "room-ae84906f6452c4be",
+      "meshIndex": 75,
+      "primitiveIndex": 0,
+      "materialIndex": 103,
+      "sourceObject": "Polished_Andesite"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "polished_andesite",
+      "receiverId": "room-6b37823979b27bc9",
+      "meshIndex": 76,
+      "primitiveIndex": 0,
+      "materialIndex": 103,
+      "sourceObject": "Polished_Andesite_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "polished_andesite",
+      "receiverId": "room-751e47ec083d97e8",
+      "meshIndex": 77,
+      "primitiveIndex": 0,
+      "materialIndex": 103,
+      "sourceObject": "Polished_Andesite_Stairs"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__polished_basalt_top",
+      "atlasId": "B04",
+      "uvChannel": 1,
+      "receiverId": "room-377f70c989e3050e",
+      "meshIndex": 78,
+      "primitiveIndex": 0,
+      "materialIndex": 104,
+      "sourceObject": "Polished_Basalt"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__polished_basalt_side",
+      "atlasId": "B04",
+      "uvChannel": 1,
+      "receiverId": "room-377f70c989e3050e",
+      "meshIndex": 78,
+      "primitiveIndex": 1,
+      "materialIndex": 105,
+      "sourceObject": "Polished_Basalt"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "polished_blackstone_bricks",
+      "receiverId": "room-a488b2cd69054b8d",
+      "meshIndex": 79,
+      "primitiveIndex": 0,
+      "materialIndex": 106,
+      "sourceObject": "Polished_Blackstone_Brick_Wall"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "polished_blackstone",
+      "receiverId": "room-93791771ff0ba320",
+      "meshIndex": 80,
+      "primitiveIndex": 0,
+      "materialIndex": 107,
+      "sourceObject": "Polished_Blackstone_Button"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "dirt",
+      "receiverId": "room-af4316b60632922b",
+      "meshIndex": 81,
+      "primitiveIndex": 0,
+      "materialIndex": 61,
+      "sourceObject": "Potted_Blue_Orchid"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "flower_pot",
+      "receiverId": "room-af4316b60632922b",
+      "meshIndex": 81,
+      "primitiveIndex": 1,
+      "materialIndex": 62,
+      "sourceObject": "Potted_Blue_Orchid"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "dirt",
+      "receiverId": "room-0f398c7bd080e1df",
+      "meshIndex": 82,
+      "primitiveIndex": 0,
+      "materialIndex": 61,
+      "sourceObject": "Potted_Fern"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "flower_pot",
+      "receiverId": "room-0f398c7bd080e1df",
+      "meshIndex": 82,
+      "primitiveIndex": 1,
+      "materialIndex": 62,
+      "sourceObject": "Potted_Fern"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "dirt",
+      "receiverId": "room-f5dcebdfe2d80dba",
+      "meshIndex": 83,
+      "primitiveIndex": 0,
+      "materialIndex": 61,
+      "sourceObject": "Potted_Lily_of_the_Valley"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "flower_pot",
+      "receiverId": "room-f5dcebdfe2d80dba",
+      "meshIndex": 83,
+      "primitiveIndex": 1,
+      "materialIndex": 62,
+      "sourceObject": "Potted_Lily_of_the_Valley"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "dirt",
+      "receiverId": "room-25e615921c97a971",
+      "meshIndex": 84,
+      "primitiveIndex": 0,
+      "materialIndex": 61,
+      "sourceObject": "Potted_Warped_Roots"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "flower_pot",
+      "receiverId": "room-25e615921c97a971",
+      "meshIndex": 84,
+      "primitiveIndex": 1,
+      "materialIndex": 62,
+      "sourceObject": "Potted_Warped_Roots"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "quartz_block_bottom",
+      "receiverId": "room-6dbfeeb207b36340",
+      "meshIndex": 85,
+      "primitiveIndex": 0,
+      "materialIndex": 108,
+      "sourceObject": "Quartz"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "quartz_block_side",
+      "receiverId": "room-be826ec9fca23de2",
+      "meshIndex": 86,
+      "primitiveIndex": 0,
+      "materialIndex": 53,
+      "sourceObject": "Quartz_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "quartz_block_top",
+      "receiverId": "room-be826ec9fca23de2",
+      "meshIndex": 86,
+      "primitiveIndex": 1,
+      "materialIndex": 54,
+      "sourceObject": "Quartz_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "quartz_block_side",
+      "receiverId": "room-023de337d77ef488",
+      "meshIndex": 87,
+      "primitiveIndex": 0,
+      "materialIndex": 53,
+      "sourceObject": "Quartz_Stairs"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "quartz_block_top",
+      "receiverId": "room-023de337d77ef488",
+      "meshIndex": 87,
+      "primitiveIndex": 1,
+      "materialIndex": 54,
+      "sourceObject": "Quartz_Stairs"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "red_shulker_box",
+      "receiverId": "room-2449564e7a1261f1",
+      "meshIndex": 88,
+      "primitiveIndex": 0,
+      "materialIndex": 109,
+      "sourceObject": "Red_Shulker_Box"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "MWO_shulker_side_red",
+      "receiverId": "room-2449564e7a1261f1",
+      "meshIndex": 88,
+      "primitiveIndex": 1,
+      "materialIndex": 110,
+      "sourceObject": "Red_Shulker_Box"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "redstone_lamp",
+      "receiverId": "room-0244045b43a11311",
+      "meshIndex": 89,
+      "primitiveIndex": 0,
+      "materialIndex": 111,
+      "sourceObject": "Redstone_Lamp_(inactive)"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "sand",
+      "receiverId": "room-82855c11ae69b065",
+      "meshIndex": 90,
+      "primitiveIndex": 0,
+      "materialIndex": 112,
+      "sourceObject": "Sand"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__sandstone_top",
+      "atlasId": "B03",
+      "uvChannel": 1,
+      "receiverId": "room-9e51f828316a737b",
+      "meshIndex": 91,
+      "primitiveIndex": 0,
+      "materialIndex": 113,
+      "sourceObject": "Sandstone"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__sandstone",
+      "atlasId": "B04",
+      "uvChannel": 1,
+      "receiverId": "room-9e51f828316a737b",
+      "meshIndex": 91,
+      "primitiveIndex": 1,
+      "materialIndex": 114,
+      "sourceObject": "Sandstone"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__sandstone_bottom",
+      "atlasId": "B04",
+      "uvChannel": 1,
+      "receiverId": "room-9e51f828316a737b",
+      "meshIndex": 91,
+      "primitiveIndex": 2,
+      "materialIndex": 115,
+      "sourceObject": "Sandstone"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "sea_lantern",
+      "receiverId": "room-132d3f3279cb8288",
+      "meshIndex": 92,
+      "primitiveIndex": 0,
+      "materialIndex": 116,
+      "sourceObject": "Sea_Lantern"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "sea_pickle",
+      "receiverId": "room-f416d6390d271a5d",
+      "meshIndex": 93,
+      "primitiveIndex": 0,
+      "materialIndex": 117,
+      "sourceObject": "Sea_Pickle"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "sea_pickle",
+      "receiverId": "room-2c944c7b588968f0",
+      "meshIndex": 94,
+      "primitiveIndex": 0,
+      "materialIndex": 117,
+      "sourceObject": "Sea_Pickle__1"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "sea_pickle",
+      "receiverId": "room-940627ee271cb7a8",
+      "meshIndex": 95,
+      "primitiveIndex": 0,
+      "materialIndex": 117,
+      "sourceObject": "Sea_Pickle__2"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "sea_pickle",
+      "receiverId": "room-49e049b7fefa87e4",
+      "meshIndex": 96,
+      "primitiveIndex": 0,
+      "materialIndex": 117,
+      "sourceObject": "Sea_Pickle__3"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "short_grass",
+      "receiverId": "room-4079c6193da497e4",
+      "meshIndex": 97,
+      "primitiveIndex": 0,
+      "materialIndex": 118,
+      "sourceObject": "Short_Grass"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "shroomlight",
+      "receiverId": "room-bd7006fe1a956abe",
+      "meshIndex": 98,
+      "primitiveIndex": 0,
+      "materialIndex": 119,
+      "sourceObject": "Shroomlight"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "MWO_player_head",
+      "receiverId": "room-65af0f6be76d41ab",
+      "meshIndex": 99,
+      "primitiveIndex": 0,
+      "materialIndex": 120,
+      "sourceObject": "Skeleton_Skull"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "quartz_block_bottom",
+      "receiverId": "room-d7f61cfd216c31b2",
+      "meshIndex": 100,
+      "primitiveIndex": 0,
+      "materialIndex": 108,
+      "sourceObject": "Smooth_Quartz_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "quartz_block_bottom",
+      "receiverId": "room-372c4e879f9eed8c",
+      "meshIndex": 101,
+      "primitiveIndex": 0,
+      "materialIndex": 108,
+      "sourceObject": "Smooth_Quartz_Slab.001"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__sandstone_top",
+      "atlasId": "B03",
+      "uvChannel": 1,
+      "receiverId": "room-6cb19ca9a25dd2d3",
+      "meshIndex": 102,
+      "primitiveIndex": 0,
+      "materialIndex": 113,
+      "sourceObject": "Smooth_Sandstone"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "smooth_stone",
+      "receiverId": "room-481155aa212bb4f9",
+      "meshIndex": 103,
+      "primitiveIndex": 0,
+      "materialIndex": 121,
+      "sourceObject": "Smooth_Stone"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "campfire_log",
+      "receiverId": "room-fd4d0292941ccf0a",
+      "meshIndex": 104,
+      "primitiveIndex": 0,
+      "materialIndex": 27,
+      "sourceObject": "Soul_Campfire"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "spruce_planks",
+      "receiverId": "room-489d955ae90a99df",
+      "meshIndex": 105,
+      "primitiveIndex": 0,
+      "materialIndex": 55,
+      "sourceObject": "Spruce_Fence"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "spruce_leaves",
+      "receiverId": "room-76b1f1fd82858246",
+      "meshIndex": 106,
+      "primitiveIndex": 0,
+      "materialIndex": 122,
+      "sourceObject": "Spruce_Leaves"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "spruce_planks",
+      "receiverId": "room-3437e473ae8b5bd2",
+      "meshIndex": 107,
+      "primitiveIndex": 0,
+      "materialIndex": 55,
+      "sourceObject": "Spruce_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "spruce_trapdoor",
+      "receiverId": "room-899c5c72fdbf01fe",
+      "meshIndex": 108,
+      "primitiveIndex": 0,
+      "materialIndex": 123,
+      "sourceObject": "Spruce_Trapdoor"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "spruce_planks",
+      "receiverId": "room-979c050a97faa2ad",
+      "meshIndex": 109,
+      "primitiveIndex": 0,
+      "materialIndex": 55,
+      "sourceObject": "Spruce_Wood_Planks"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__stone",
+      "atlasId": "B01",
+      "uvChannel": 1,
+      "receiverId": "room-6ffa6b8b1c9fa11c",
+      "meshIndex": 110,
+      "primitiveIndex": 0,
+      "materialIndex": 124,
+      "sourceObject": "Stone"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "stone_bricks",
+      "receiverId": "room-58991f4b91657e7b",
+      "meshIndex": 111,
+      "primitiveIndex": 0,
+      "materialIndex": 56,
+      "sourceObject": "Stone_Brick_Slab"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "stone_bricks",
+      "receiverId": "room-4d2717dcabfcc07e",
+      "meshIndex": 112,
+      "primitiveIndex": 0,
+      "materialIndex": 56,
+      "sourceObject": "Stone_Brick_Stairs"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "stone_bricks",
+      "receiverId": "room-cbf4f30b14569699",
+      "meshIndex": 113,
+      "primitiveIndex": 0,
+      "materialIndex": 56,
+      "sourceObject": "Stone_Brick_Wall"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "stone",
+      "receiverId": "room-e46c8e9710ea3f56",
+      "meshIndex": 114,
+      "primitiveIndex": 0,
+      "materialIndex": 58,
+      "sourceObject": "Stone_Button"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "stone",
+      "receiverId": "room-8e48ab7e01c1db11",
+      "meshIndex": 115,
+      "primitiveIndex": 0,
+      "materialIndex": 58,
+      "sourceObject": "Stone_Slab"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__sandstone_top",
+      "atlasId": "B03",
+      "uvChannel": 1,
+      "receiverId": "room-1d3d191817dfc83f",
+      "meshIndex": 116,
+      "primitiveIndex": 0,
+      "materialIndex": 113,
+      "sourceObject": "Stone_Slab.001"
+    },
+    {
+      "mode": "baked-appearance",
+      "sourceMaterial": "TRIAL85_SOURCE__smooth_stone_slab_side",
+      "atlasId": "B05",
+      "uvChannel": 1,
+      "receiverId": "room-1d3d191817dfc83f",
+      "meshIndex": 116,
+      "primitiveIndex": 1,
+      "materialIndex": 57,
+      "sourceObject": "Stone_Slab.001"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "stripped_spruce_log",
+      "receiverId": "room-e2b7736ac4c48ccd",
+      "meshIndex": 117,
+      "primitiveIndex": 0,
+      "materialIndex": 125,
+      "sourceObject": "Stripped_Spruce_Log"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "stripped_spruce_log_top",
+      "receiverId": "room-e2b7736ac4c48ccd",
+      "meshIndex": 117,
+      "primitiveIndex": 1,
+      "materialIndex": 126,
+      "sourceObject": "Stripped_Spruce_Log"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "target_top",
+      "receiverId": "room-978354db0c00fc78",
+      "meshIndex": 118,
+      "primitiveIndex": 0,
+      "materialIndex": 127,
+      "sourceObject": "Target"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "target_side",
+      "receiverId": "room-978354db0c00fc78",
+      "meshIndex": 118,
+      "primitiveIndex": 1,
+      "materialIndex": 128,
+      "sourceObject": "Target"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "terracotta",
+      "receiverId": "room-433d669dcf6e6be8",
+      "meshIndex": 119,
+      "primitiveIndex": 0,
+      "materialIndex": 129,
+      "sourceObject": "Terracotta"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "tripwire",
+      "receiverId": "room-9f53db24c9f1311f",
+      "meshIndex": 120,
+      "primitiveIndex": 0,
+      "materialIndex": 130,
+      "sourceObject": "Tripwire"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "twisting_vines",
+      "receiverId": "room-daa6bcc3eaf3a3ee",
+      "meshIndex": 121,
+      "primitiveIndex": 0,
+      "materialIndex": 131,
+      "sourceObject": "Twisting_Vines"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "twisting_vines_plant",
+      "receiverId": "room-daa6bcc3eaf3a3ee",
+      "meshIndex": 121,
+      "primitiveIndex": 1,
+      "materialIndex": 132,
+      "sourceObject": "Twisting_Vines"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "vine",
+      "receiverId": "room-d4a365d73f6f48cb",
+      "meshIndex": 122,
+      "primitiveIndex": 0,
+      "materialIndex": 133,
+      "sourceObject": "Vines"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "warped_planks",
+      "receiverId": "room-74aff9a822b2f354",
+      "meshIndex": 123,
+      "primitiveIndex": 0,
+      "materialIndex": 134,
+      "sourceObject": "Warped_Button"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "warped_roots_pot",
+      "receiverId": "room-8dc1841fe7d96a4b",
+      "meshIndex": 124,
+      "primitiveIndex": 0,
+      "materialIndex": 135,
+      "sourceObject": "Warped_Roots"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "white_bed_foot_east",
+      "receiverId": "room-0aec55e39a49f62c",
+      "meshIndex": 125,
+      "primitiveIndex": 0,
+      "materialIndex": 136,
+      "sourceObject": "White_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "white_bed_foot_south",
+      "receiverId": "room-0aec55e39a49f62c",
+      "meshIndex": 125,
+      "primitiveIndex": 1,
+      "materialIndex": 137,
+      "sourceObject": "White_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "white_bed_foot_up",
+      "receiverId": "room-0aec55e39a49f62c",
+      "meshIndex": 125,
+      "primitiveIndex": 2,
+      "materialIndex": 138,
+      "sourceObject": "White_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "white_bed_foot_west",
+      "receiverId": "room-0aec55e39a49f62c",
+      "meshIndex": 125,
+      "primitiveIndex": 3,
+      "materialIndex": 139,
+      "sourceObject": "White_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "white_bed_head_east",
+      "receiverId": "room-0aec55e39a49f62c",
+      "meshIndex": 125,
+      "primitiveIndex": 4,
+      "materialIndex": 140,
+      "sourceObject": "White_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "white_bed_head_up",
+      "receiverId": "room-0aec55e39a49f62c",
+      "meshIndex": 125,
+      "primitiveIndex": 5,
+      "materialIndex": 141,
+      "sourceObject": "White_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "white_bed_head_west",
+      "receiverId": "room-0aec55e39a49f62c",
+      "meshIndex": 125,
+      "primitiveIndex": 6,
+      "materialIndex": 142,
+      "sourceObject": "White_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "bed_down",
+      "receiverId": "room-0aec55e39a49f62c",
+      "meshIndex": 125,
+      "primitiveIndex": 7,
+      "materialIndex": 85,
+      "sourceObject": "White_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "bed_head_north",
+      "receiverId": "room-0aec55e39a49f62c",
+      "meshIndex": 125,
+      "primitiveIndex": 8,
+      "materialIndex": 86,
+      "sourceObject": "White_Bed"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "white_wool",
+      "receiverId": "room-b314db77c743cc06",
+      "meshIndex": 126,
+      "primitiveIndex": 0,
+      "materialIndex": 143,
+      "sourceObject": "White_Carpet"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "white_stained_glass",
+      "receiverId": "room-7c1b5ca745c29844",
+      "meshIndex": 127,
+      "primitiveIndex": 0,
+      "materialIndex": 144,
+      "sourceObject": "White_Stained_Glass_Pane"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "yellow_terracotta",
+      "receiverId": "room-dccbf45fbf739f17",
+      "meshIndex": 128,
+      "primitiveIndex": 0,
+      "materialIndex": 145,
+      "sourceObject": "Yellow_Terracotta"
+    },
+    {
+      "mode": "fixture-emissive",
+      "sourceMaterial": "线型顶灯｜中性白扩散面",
+      "emissionColor": [
+        0.8999999761581421,
+        0.949999988079071,
+        1.0
+      ],
+      "emissionStrength": 3.5,
+      "receiverId": "room-b73949877581e439",
+      "meshIndex": 129,
+      "primitiveIndex": 0,
+      "materialIndex": 146,
+      "sourceObject": "连续顶灯｜第1排·发光面"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "线型顶灯｜深灰金属",
+      "receiverId": "room-98c906800447bbcf",
+      "meshIndex": 130,
+      "primitiveIndex": 0,
+      "materialIndex": 147,
+      "sourceObject": "连续顶灯｜第1排·灯槽"
+    },
+    {
+      "mode": "fixture-emissive",
+      "sourceMaterial": "线型顶灯｜中性白扩散面",
+      "emissionColor": [
+        0.8999999761581421,
+        0.949999988079071,
+        1.0
+      ],
+      "emissionStrength": 3.5,
+      "receiverId": "room-e689d32e0d71c51f",
+      "meshIndex": 131,
+      "primitiveIndex": 0,
+      "materialIndex": 146,
+      "sourceObject": "连续顶灯｜第2排·发光面"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "线型顶灯｜深灰金属",
+      "receiverId": "room-5295f76abcbfde72",
+      "meshIndex": 132,
+      "primitiveIndex": 0,
+      "materialIndex": 147,
+      "sourceObject": "连续顶灯｜第2排·灯槽"
+    },
+    {
+      "mode": "fixture-emissive",
+      "sourceMaterial": "线型顶灯｜中性白扩散面",
+      "emissionColor": [
+        0.8999999761581421,
+        0.949999988079071,
+        1.0
+      ],
+      "emissionStrength": 3.5,
+      "receiverId": "room-49fe847700b823d0",
+      "meshIndex": 133,
+      "primitiveIndex": 0,
+      "materialIndex": 146,
+      "sourceObject": "连续顶灯｜第3排·发光面"
+    },
+    {
+      "mode": "realtime",
+      "sourceMaterial": "线型顶灯｜深灰金属",
+      "receiverId": "room-a88b96a8e7f77884",
+      "meshIndex": 134,
+      "primitiveIndex": 0,
+      "materialIndex": 147,
+      "sourceObject": "连续顶灯｜第3排·灯槽"
+    }
+  ],
+  "lights": [
+    {
+      "id": "连续顶灯｜第1排·向下照明",
+      "type": "rect-area",
+      "position": [
+        -10.5,
+        17.75,
+        5.5
+      ],
+      "direction": [
+        0.0,
+        -1.0,
+        -0.0
+      ],
+      "width": 0.47999998927116394,
+      "height": 22.799999237060547,
+      "color": [
+        0.8999999761581421,
+        0.949999988079071,
+        1.0
+      ],
+      "sourcePowerWatts": 510.0,
+      "sourceSpreadRadians": 1.5707963705062866,
+      "sourceNormalize": true,
+      "intensity": 5.0,
+      "calibration": "initial-fit-not-photometric-equivalence"
+    },
+    {
+      "id": "连续顶灯｜第2排·向下照明",
+      "type": "rect-area",
+      "position": [
+        0.5,
+        17.75,
+        5.5
+      ],
+      "direction": [
+        0.0,
+        -1.0,
+        -0.0
+      ],
+      "width": 0.47999998927116394,
+      "height": 22.799999237060547,
+      "color": [
+        0.8999999761581421,
+        0.949999988079071,
+        1.0
+      ],
+      "sourcePowerWatts": 510.0,
+      "sourceSpreadRadians": 1.5707963705062866,
+      "sourceNormalize": true,
+      "intensity": 5.0,
+      "calibration": "initial-fit-not-photometric-equivalence"
+    },
+    {
+      "id": "连续顶灯｜第3排·向下照明",
+      "type": "rect-area",
+      "position": [
+        11.5,
+        17.75,
+        5.5
+      ],
+      "direction": [
+        0.0,
+        -1.0,
+        -0.0
+      ],
+      "width": 0.47999998927116394,
+      "height": 22.799999237060547,
+      "color": [
+        0.8999999761581421,
+        0.949999988079071,
+        1.0
+      ],
+      "sourcePowerWatts": 510.0,
+      "sourceSpreadRadians": 1.5707963705062866,
+      "sourceNormalize": true,
+      "intensity": 5.0,
+      "calibration": "initial-fit-not-photometric-equivalence"
+    }
+  ],
+  "camera": {
+    "position": [
+      0.0,
+      10.800000190734863,
+      -3.049278736114502
+    ],
+    "quaternion": [
+      0.0005231039831414819,
+      -0.9992718696594238,
+      0.014879399910569191,
+      0.03513065353035927
+    ],
+    "fov": 53.70162658790905,
+    "near": 0.05000000074505806,
+    "far": 400.0,
+    "aspect": 1.7777777777777777
+  },
+  "display": {
+    "sourceView": "AgX",
+    "exposureEV": -0.5,
+    "displayTransformBaked": false
+  },
+  "environment": {
+    "color": [
+      0.9,
+      0.95,
+      1.0
+    ],
+    "intensity": 0.35,
+    "calibration": "controlled-low-frequency-approximation"
+  },
+  "verification": {
+    "exportedObjects": [
+      "Acacia_Button",
+      "Acacia_Slab",
+      "Acacia_Trapdoor",
+      "Andesite_Slab",
+      "Andesite_Wall",
+      "Anvil",
+      "Barrel",
+      "Beehive",
+      "Birch_Door",
+      "Birch_Slab",
+      "Birch_Wall_Sign",
+      "Black_Stained_Glass_Pane",
+      "Blackstone_Wall",
+      "Block_of_Redstone",
+      "Blue_Orchid",
+      "Brick_Slab",
+      "Brick_Stairs",
+      "Brick_Wall",
+      "Bricks",
+      "Brown_Shulker_Box",
+      "Campfire",
+      "Chest",
+      "Chiseled_Quartz_Block",
+      "Coarse_Dirt",
+      "Composter",
+      "Crimson_Fence",
+      "Cut_Sandstone_Slab",
+      "Cut_Sandstone_Slab.001",
+      "Cyan_Concrete",
+      "Dark_Oak_Button",
+      "Dark_Oak_Door",
+      "Dark_Oak_Trapdoor",
+      "Dark_Prismarine",
+      "Dead_Brain_Coral",
+      "Dead_Fire_Coral",
+      "Dead_Horn_Coral_Fan",
+      "Diorite_Slab",
+      "Diorite_Wall",
+      "Double_Acacia_Slab",
+      "Double_Andesite_Slab",
+      "Double_Brick_Slab",
+      "Double_Jungle_Slab",
+      "Double_Quartz_Slab",
+      "Double_Spruce_Slab",
+      "Double_Stone_Brick_Slab",
+      "Double_Stone_Slab.001",
+      "End_Rod",
+      "Fern",
+      "Flower_Pot",
+      "Grass_Block",
+      "Gray_Carpet",
+      "Gray_Wall_Banner",
+      "Green_Carpet",
+      "Green_Concrete",
+      "Heavy_Weighted_Pressure_Plate",
+      "Iron_Bars",
+      "Iron_Chain",
+      "Iron_Door",
+      "Iron_Trapdoor",
+      "Jungle_Slab",
+      "Jungle_Stairs",
+      "Ladder",
+      "Light_Gray_Bed",
+      "Lily_of_the_Valley",
+      "Mossy_Stone_Bricks",
+      "Nether_Brick_Fence",
+      "Netherite_Block",
+      "Oak_Leaves",
+      "Oak_Slab",
+      "Oak_Wall_Sign",
+      "Observer",
+      "Orange_Concrete",
+      "Orange_Terracotta",
+      "Piston",
+      "Piston_Head",
+      "Podzol",
+      "Polished_Andesite",
+      "Polished_Andesite_Slab",
+      "Polished_Andesite_Stairs",
+      "Polished_Blackstone_Brick_Wall",
+      "Polished_Blackstone_Button",
+      "Potted_Blue_Orchid",
+      "Potted_Fern",
+      "Potted_Lily_of_the_Valley",
+      "Potted_Warped_Roots",
+      "Quartz",
+      "Quartz_Slab",
+      "Quartz_Stairs",
+      "Red_Shulker_Box",
+      "Redstone_Lamp_(inactive)",
+      "Sand",
+      "Sea_Lantern",
+      "Sea_Pickle",
+      "Sea_Pickle__1",
+      "Sea_Pickle__2",
+      "Sea_Pickle__3",
+      "Short_Grass",
+      "Skeleton_Skull",
+      "Smooth_Quartz_Slab",
+      "Smooth_Quartz_Slab.001",
+      "Smooth_Stone",
+      "Soul_Campfire",
+      "Spruce_Fence",
+      "Spruce_Leaves",
+      "Spruce_Slab",
+      "Spruce_Trapdoor",
+      "Spruce_Wood_Planks",
+      "Stone_Brick_Slab",
+      "Stone_Brick_Stairs",
+      "Stone_Brick_Wall",
+      "Stone_Button",
+      "Stone_Slab",
+      "Target",
+      "Terracotta",
+      "Tripwire",
+      "Twisting_Vines",
+      "Vines",
+      "Warped_Button",
+      "Warped_Roots",
+      "White_Bed",
+      "White_Carpet",
+      "White_Stained_Glass_Pane",
+      "Yellow_Terracotta",
+      "Shroomlight",
+      "Stripped_Spruce_Log",
+      "连续顶灯｜第1排·灯槽",
+      "连续顶灯｜第1排·发光面",
+      "连续顶灯｜第2排·灯槽",
+      "连续顶灯｜第2排·发光面",
+      "连续顶灯｜第3排·灯槽",
+      "连续顶灯｜第3排·发光面",
+      "Andesite",
+      "Block_of_Quartz",
+      "Double_Stone_Slab",
+      "Gray_Concrete",
+      "Light_Carpet",
+      "Light_Concrete",
+      "Polished_Basalt",
+      "Sandstone",
+      "Smooth_Sandstone",
+      "Stone",
+      "Stone_Slab.001"
+    ],
+    "emptySourceMeshes": ["Coarse_Dirt", "Dead_Brain_Coral", "Dead_Fire_Coral", "Dead_Horn_Coral_Fan", "Double_Andesite_Slab", "Mossy_Stone_Bricks", "Podzol"],
+    "meshNodes": 135,
+    "primitiveCount": 199,
+    "alphaRepair": {
+      "method": "native Blender nodes: opaque Alpha=1, binary Alpha via Math Round",
+      "alphaModes": { "OPAQUE": 109, "MASK": 35, "BLEND": 4 },
+      "geometryNormalsUVsIndicesUnchanged": true,
+      "stableBindingsUnchanged": true
+    },
+    "sourceUntouched": true,
+    "reunwrap": false,
+    "rebake": false
+  }
+}
