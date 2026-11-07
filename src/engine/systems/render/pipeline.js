@@ -7,7 +7,7 @@ import * as THREE from 'three/webgpu'
 import { upsampleAO } from './ao-upsample.js'
 import { NormalPrepass } from './normal-prepass.js'
 
-/** An indirect-only AO context: never multiply AO into baked radiance or the final image. */
+/** AO modulates material indirect lighting (including lightMap), never the final image. */
 export function buildPipeline(renderer, scene, camera, config, grading = null) {
   if (!['smaa', 'none'].includes(config.aa))
     throw new Error(`[Render pipeline] Unsupported AA mode: ${config.aa}`)

@@ -60,13 +60,16 @@ def main():
     parser.add_argument('--project', required=True)
     parser.add_argument('--scope', required=True)
     parser.add_argument('--reference-dir')
+    parser.add_argument('--lightmap-report', help='Export completed light-only bake as a separate asset version')
     args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:])
     project = Path(args.project).resolve()
     scope = json.loads(Path(args.scope).read_text(encoding='utf-8'))
-    out = project / 'public' / 'lighting' / 'range-room'
+    lightmap = json.loads(Path(args.lightmap_report).read_text(encoding='utf-8')) if args.lightmap_report else None
+    asset_name = 'range-room-lightmap' if lightmap else 'range-room'
+    out = project / 'public' / 'lighting' / asset_name
     atlas_dir = out / 'atlases'
     atlas_dir.mkdir(parents=True, exist_ok=True)
-    model = project / 'public' / 'model' / 'range-room.glb'
+    model = project / 'public' / 'model' / f'{asset_name}.glb'
     if (out / 'manifest.json').exists() or model.exists():
         raise FileExistsError('Room assets already exist. Export to a new destination or explicitly archive them first.')
     scene = bpy.context.scene
@@ -103,7 +106,8 @@ def main():
     settings.color_depth = choose_enum(settings, 'color_depth', '16')
     settings.color_mode = choose_enum(settings, 'color_mode', 'RGBA')
     settings.exr_codec = choose_enum(settings, 'exr_codec', 'ZIP')
-    atlas_images = sorted((i for i in bpy.data.images if i.name.startswith('DENOISED_HDR__B')), key=lambda i: i.name)
+    image_prefix = 'LIGHTMAP_HDR__B' if lightmap else 'DENOISED_HDR__B'
+    atlas_images = sorted((i for i in bpy.data.images if i.name.startswith(image_prefix)), key=lambda i: i.name)
     if len(atlas_images) != 5:
         raise ValueError(f'Expected exactly 5 denoised atlases, found {len(atlas_images)}')
     pages = []
@@ -122,7 +126,7 @@ def main():
         pages.append({
             'id': page_id, 'url': f'./atlases/{page_id}.exr', 'sha256': digest(target),
             'width': check.size[0], 'height': check.size[1],
-            'content': 'baked-appearance', 'colorSpace': 'linear-rec709',
+            'content': 'diffuse-lightmap' if lightmap else 'baked-appearance', 'colorSpace': 'linear-rec709',
             'sourceImage': image.name, 'sourceColorSpace': image.colorspace_settings.name,
             'encoding': 'exr-half', 'flipY': False,
             'sampling': {'filter': 'linear', 'mipmaps': False, 'maxLod': 0},
@@ -143,13 +147,17 @@ def main():
             if material.name in material_records:
                 continue
             textures = [n for n in material.node_tree.nodes if n.type == 'TEX_IMAGE' and n.image and n.image.name in image_page]
-            mode = 'baked-appearance' if textures else 'realtime'
-            record = {'mode': mode, 'sourceMaterial': material.name}
+            mode = ('lightmap' if lightmap else 'baked-appearance') if textures else 'realtime'
+            record = {'mode': mode, 'sourceMaterial': material.get('lightmapSourceMaterial', material.name) if lightmap else material.name}
             if textures:
                 ids = {image_page[n.image.name] for n in textures}
                 if len(ids) != 1 or not obj.data.uv_layers.get('BakeUV'):
                     raise ValueError(f'{obj.name}/{material.name}: ambiguous atlas or missing BakeUV')
                 record.update(atlasId=ids.pop(), uvChannel=list(obj.data.uv_layers).index(obj.data.uv_layers['BakeUV']))
+                if lightmap:
+                    # Cycles Color-off diffuse is unit-albedo outgoing radiance E/pi.
+                    # Three's Lambert lightMap consumes irradiance and applies 1/pi.
+                    record['lightMapIntensity'] = math.pi
             elif '连续顶灯' in obj.name and '发光面' in obj.name:
                 emission = next(n for n in material.node_tree.nodes if n.type == 'EMISSION')
                 record.update(mode='fixture-emissive', emissionColor=list(emission.inputs['Color'].default_value)[:3], emissionStrength=float(emission.inputs['Strength'].default_value))
@@ -214,7 +222,7 @@ def main():
             mat = document['materials'][primitive['material']]
             key = mat.get('extras', {}).get('rangeRoomMaterial')
             record = dict(material_records[source_names[key]])
-            if record['mode'] == 'baked-appearance':
+            if record['mode'] in ('baked-appearance', 'lightmap'):
                 attr = f'TEXCOORD_{record["uvChannel"]}'
                 if attr not in primitive['attributes']:
                     raise ValueError(f'{node["name"]}: exported GLB missing {attr}; refusing a bad UV binding')
@@ -225,8 +233,8 @@ def main():
     if used_pages != {page['id'] for page in pages}:
         raise ValueError(f'Unused or missing atlas pages: {used_pages}')
     manifest = {
-        'schemaVersion': 3, 'id': 'range-room-v3', 'sourceBlend': scope['sourceBlend'],
-        'model': {'url': '../../model/range-room.glb', 'sha256': digest(model)},
+        'schemaVersion': 4 if lightmap else 3, 'id': 'range-room-lightmap-v1' if lightmap else 'range-room-v3', 'sourceBlend': scope['sourceBlend'],
+        'model': {'url': f'../../model/{asset_name}.glb', 'sha256': digest(model)},
         'coordinates': {'up': 'Y', 'units': 'metres', 'conversion': 'x,z,-y', 'rootTransform': 'identity'},
         'atlases': pages, 'bindings': bindings, 'lights': light_records,
         'camera': reference_camera,
@@ -234,6 +242,9 @@ def main():
         'environment': {'color': [0.9, 0.95, 1.0], 'intensity': 0.35, 'calibration': 'controlled-low-frequency-approximation'},
         'verification': {'exportedObjects': [o.name for o in objects], 'emptySourceMeshes': [o.name for o in objects if len(o.data.polygons) == 0], 'meshNodes': len({b['receiverId'] for b in bindings}), 'primitiveCount': len(bindings), 'sourceUntouched': True, 'reunwrap': False, 'rebake': False, 'alphaRepair': alpha_report},
     }
+    if lightmap:
+        manifest['bake'] = lightmap
+        manifest['verification']['rebake'] = True
     (out / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
     print('ROOM_EXPORT_COMPLETE ' + json.dumps({'objects': len(objects), 'primitives': len(bindings), 'pages': len(pages), 'modelBytes': model.stat().st_size, 'manifest': str(out / 'manifest.json')}), flush=True)
 

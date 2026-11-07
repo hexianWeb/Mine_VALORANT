@@ -25,12 +25,14 @@ export function validateRoomFiles(manifestPath) {
   const gltf = JSON.parse(model.subarray(20, 20 + model.readUInt32LE(12)).toString())
   let triangles = 0
   const counts = { 'baked-appearance': 0, 'realtime': 0, 'fixture-emissive': 0 }
+  if (manifest.schemaVersion === 4)
+    counts.lightmap = 0
   const nodeKeys = new Set(gltf.nodes.filter(n => n.mesh !== undefined).map(n => `${n.extras?.rangeRoomId}/${n.mesh}`))
   for (const binding of manifest.bindings) {
     const primitive = gltf.meshes[binding.meshIndex]?.primitives[binding.primitiveIndex]
     if (!nodeKeys.has(`${binding.receiverId}/${binding.meshIndex}`) || !primitive || primitive.material !== binding.materialIndex)
       throw new Error(`Missing or stale GLB binding ${binding.receiverId}`)
-    if (binding.mode === 'baked-appearance' && primitive.attributes[`TEXCOORD_${binding.uvChannel}`] === undefined)
+    if (['baked-appearance', 'lightmap'].includes(binding.mode) && primitive.attributes[`TEXCOORD_${binding.uvChannel}`] === undefined)
       throw new Error(`Missing atlas UV ${binding.receiverId}`)
     counts[binding.mode]++
     triangles += gltf.accessors[primitive.indices ?? primitive.attributes.POSITION].count / 3
@@ -57,6 +59,6 @@ export function validateRoomFiles(manifestPath) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const report = validateRoomFiles(process.argv[2] ?? 'public/lighting/range-room/manifest.json')
+  const report = validateRoomFiles(process.argv[2] ?? 'public/lighting/range-room-lightmap/manifest.json')
   console.log(JSON.stringify(report, null, 2))
 }

@@ -38,6 +38,8 @@ try {
   const frames = count => evaluate(`new Promise(resolve => { let n=${count}; function tick(){ if(--n<=0) resolve(true); else requestAnimationFrame(tick); } requestAnimationFrame(tick); })`)
   await frames(35)
   report.baseline = await evaluate('globalThis.__RANGE_ROOM__.snapshot()')
+  report.lightingMode = report.baseline.lightingMode
+  report.lightingSwitch = await evaluate('({text:document.querySelector(".debug-lighting")?.textContent,href:document.querySelector(".debug-lighting a")?.href})')
   if (report.baseline.toneMapping !== 2 || report.baseline.exposure !== 1.2 || !report.baseline.skybox)
     throw new Error('Expected Reinhard, exposure 1.2 and skybox-day')
   if (report.baseline.sampling.atlasMipLevels.some(count => count !== 3) || report.baseline.sampling.anisotropy < 1)
@@ -92,8 +94,8 @@ try {
     const app=__RANGE_ROOM__;const baked=[];const realtime=[];
     for(let y=40;y<530;y+=70)for(let x=40;x<950;x+=90){
       const pick=app.pickPixel(x,y);
-      const list=pick?.mode==='baked-appearance'?baked:pick?.mode==='realtime'?realtime:null;
-      if(list&&list.length<(list===baked?5:24))list.push({x,y,name:pick.name});
+       const list=['baked-appearance','lightmap'].includes(pick?.mode)?baked:pick?.mode==='realtime'?realtime:null;
+       if(list&&list.length<24)list.push({x,y,name:pick.name});
     }
     if(!baked.length||!realtime.length)throw new Error('No visible receivers for pixel isolation test');
     const sample=async points=>{const result=[];for(const p of points)result.push(await app.render.readLinearPixel(p.x,p.y));return result};
@@ -119,7 +121,10 @@ try {
     delete globalThis.__ROOM_PIXEL_CHECK__;
     return result;
   })()`)
-  if (report.pixelIsolation.results.bakedAODelta > 0.001 || report.pixelIsolation.results.bakedLightingDelta > 0.001 || report.pixelIsolation.results.realtimeLightingDelta < 0.001 || report.pixelIsolation.results.realtimeAODelta < 0.00001)
+  const atlasAOFailed = report.lightingMode === 'lightmap'
+    ? report.pixelIsolation.results.bakedAODelta < 0.00001
+    : report.pixelIsolation.results.bakedAODelta > 0.001
+  if (atlasAOFailed || report.pixelIsolation.results.bakedLightingDelta > 0.001 || report.pixelIsolation.results.realtimeLightingDelta < 0.001 || report.pixelIsolation.results.realtimeAODelta < 0.00001)
     throw new Error('Baked/realtime lighting or AO isolation failed')
   await evaluate('__RANGE_ROOM__.render.setEffects({ao:true,aa:"smaa"})')
   await frames(6)
@@ -293,7 +298,7 @@ try {
     const result={bakedDelta:0,realtimeDelta:0,bakedChanged:0,realtimeChanged:0};
     state.points.forEach((point,i)=>{
       const delta=Math.max(...state.lit[i].slice(0,3).map((v,c)=>v-unlit[i][c]));
-      const key=point.mode==='baked-appearance'?'baked':point.mode==='realtime'?'realtime':null;
+       const key=['baked-appearance','lightmap'].includes(point.mode)?'baked':point.mode==='realtime'?'realtime':null;
       if(key){result[key+'Delta']=Math.max(result[key+'Delta'],delta);if(delta>0.001)result[key+'Changed']++;}
     });
     __RANGE_ROOM__.world.setCorridorLighting(true);delete globalThis.__CORRIDOR_CHECK__;return result;
@@ -337,6 +342,8 @@ finally {
     errors,
     failure: report.failure,
     report: path.join(output, 'report.json'),
+    lightingMode: report.lightingMode,
+    pixelIsolation: report.pixelIsolation?.results,
     exposure: report.baseline?.exposure,
     sampling: report.baseline?.sampling,
     surfaceSampling: report.surfaceSampling,

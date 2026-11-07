@@ -65,13 +65,22 @@ export async function loadRoomAssets({ resources, manifestUrl, signal, sampling 
       const atlas = resources.get(`${prefix}:${page.id}`, 'exr')
       if (atlas.image.width !== page.width || atlas.image.height !== page.height)
         throw new Error(`[Room assets] ${page.id}: texture dimensions mismatch`)
-      return [
-        page.id,
-        samplers.atlas(atlas),
-      ]
+      const sampled = samplers.atlas(atlas)
+      if (page.content === 'diffuse-lightmap') {
+        const binding = manifest.bindings.find(binding => binding.atlasId === page.id)
+        sampled.channel = binding.uvChannel
+        // glTF's V convention versus EXR scanlines: flip exactly once, through
+        // the built-in lightMap texture matrix rather than an explicit TSL UV.
+        sampled.repeat.y = -1
+        sampled.offset.y = 1
+        sampled.updateMatrix()
+      }
+      return [page.id, sampled]
     }))
     const consumed = new Set()
     const counts = { 'baked-appearance': 0, 'realtime': 0, 'fixture-emissive': 0 }
+    if (manifest.schemaVersion === 4)
+      counts.lightmap = 0
     const materialCache = new Map()
     const recipes = new Map()
     root.traverse((object) => {
@@ -87,7 +96,7 @@ export async function loadRoomAssets({ resources, manifestUrl, signal, sampling 
         throw new Error(`[Room assets] Missing or duplicate receiver ${object.name}: ${key}`)
       if (Array.isArray(object.material))
         throw new TypeError(`[Room assets] Expected a glTF primitive material: ${key}`)
-      if (binding.mode === 'baked-appearance') {
+      if (binding.mode === 'baked-appearance' || binding.mode === 'lightmap') {
         const attribute = binding.uvChannel === 0
           ? 'uv'
           : `uv${binding.uvChannel}`
@@ -104,7 +113,7 @@ export async function loadRoomAssets({ resources, manifestUrl, signal, sampling 
       }
       object.material = materialCache.get(cacheKey)
       object.castShadow = binding.mode !== 'fixture-emissive'
-      object.receiveShadow = binding.mode === 'realtime'
+      object.receiveShadow = binding.mode === 'realtime' || binding.mode === 'lightmap'
       consumed.add(key)
       counts[binding.mode]++
     })
@@ -122,7 +131,7 @@ export async function loadRoomAssets({ resources, manifestUrl, signal, sampling 
       enableCorridorLighting(corridor) {
         const replacements = new Map()
         for (const [key, recipe] of recipes) {
-          if (recipe.binding.mode !== 'baked-appearance')
+          if (!['baked-appearance', 'lightmap'].includes(recipe.binding.mode))
             continue
           const old = materialCache.get(key)
           const material = createRoomMaterial(recipe.source, recipe.binding, atlases, corridor)

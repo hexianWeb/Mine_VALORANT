@@ -4,7 +4,30 @@ import * as THREE from 'three/webgpu'
 /** Replacement materials are instance-owned; source maps and geometry remain ResourceManager-owned. */
 export function createRoomMaterial(source, binding, atlases, corridor = null) {
   let material
-  if (binding.mode === 'baked-appearance') {
+  if (binding.mode === 'lightmap') {
+    const atlas = atlases.get(binding.atlasId)
+    if (!atlas)
+      throw new Error(`[Room materials] Missing lightmap ${binding.atlasId}`)
+    // These receivers were authored as diffuse-only (specular level = 0).
+    // Lambert keeps the baked unit-albedo response without a second PBR energy loss.
+    material = new THREE.MeshLambertNodeMaterial()
+    material.color.copy(source.color)
+    material.map = source.map
+    material.normalMap = source.normalMap
+    if (source.normalScale)
+      material.normalScale.copy(source.normalScale)
+    material.side = source.side
+    material.lightMap = atlas
+    material.lightMapIntensity = binding.lightMapIntensity
+    // lights=true retains built-in lightMap and GTAO; the explicit list excludes
+    // original lights already baked into the map. Lambert has no scene IBL diffuse.
+    material.lightsNode = selectiveLights(corridor?.points ?? [])
+    material.transparent = false
+    material.depthWrite = true
+    material.toneMapped = true
+    material.userData.staticLightingBaked = true
+  }
+  else if (binding.mode === 'baked-appearance') {
     const atlas = atlases.get(binding.atlasId)
     if (!atlas)
       throw new Error(`[Room materials] Missing atlas ${binding.atlasId}`)

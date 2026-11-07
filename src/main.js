@@ -46,6 +46,9 @@ async function startRoom() {
     camera,
     resources,
     maxAnisotropy: render.renderer.getMaxAnisotropy(),
+    config: parameters.get('lighting') === 'appearance'
+      ? { manifestUrl: '/lighting/range-room/manifest.json' }
+      : {},
   }))
   const room = await world.load()
   if (cancelled)
@@ -57,7 +60,7 @@ async function startRoom() {
   controls.maxDistance = 60
   controls.minDistance = 0.2
   controls.update()
-  const panel = engine.disposer.add(createDebugPanel(render, document.querySelector('.debug-panel')))
+  const panel = engine.disposer.add(createDebugPanel(render, document.querySelector('.debug-panel'), world.snapshot().lightingMode))
   engine.addSystem('input', {
     name: 'inspection-camera',
     update: () => controls.update(),

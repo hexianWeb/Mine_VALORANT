@@ -4,7 +4,7 @@ import { createRoomLights } from './room-lights.js'
 import { createEnvironmentProxy } from './sky-environment.js'
 
 export const rangeRoomConfig = Object.freeze({
-  manifestUrl: '/lighting/range-room/manifest.json',
+  manifestUrl: '/lighting/range-room-lightmap/manifest.json',
   textureAnisotropy: 16,
   atlasMaxMipLevel: 2,
   skyboxUrl: '/hdr/skybox-day.png',
@@ -100,6 +100,9 @@ export function createRangeRoom({ scene, camera, resources, maxAnisotropy = 16, 
       return {
         ready: !!lights && !disposed,
         room: room?.manifest.id,
+        lightingMode: room?.manifest.schemaVersion === 4
+          ? 'lightmap'
+          : 'baked-appearance',
         counts: room?.counts,
         atlasCount: room?.atlases.size,
         atlasBytes: room

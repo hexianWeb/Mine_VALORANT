@@ -3,7 +3,7 @@ import { gradingPresets } from './engine/systems/render/color-grading.js'
 import { renderConfig } from './engine/systems/render/config.js'
 
 /** User-requested AO and LUT controls. No mutation of source assets or Blender state. */
-export function createDebugPanel(render, container) {
+export function createDebugPanel(render, container, lightingMode = 'lightmap') {
   const state = render.getDebugState()
   const params = {
     ...state,
@@ -12,6 +12,18 @@ export function createDebugPanel(render, container) {
     lutFile: state.customLutTitle || '内置 LUT',
   }
   const pane = new Pane({ container, title: '渲染调试 · Reinhard' })
+  const lighting = document.createElement('p')
+  lighting.className = 'debug-lighting'
+  const alternate = new URL(location.href)
+  const isLightmap = lightingMode === 'lightmap'
+  alternate.searchParams.set('lighting', isLightmap ? 'appearance' : 'lightmap')
+  const label = isLightmap ? 'Lightmap · AO 可作用墙地面' : '原版 · 完整烘焙外观'
+  lighting.append(`${label} · `)
+  const switchLink = document.createElement('a')
+  switchLink.href = alternate.href
+  switchLink.textContent = isLightmap ? '切回原版' : '切换 Lightmap'
+  lighting.append(switchLink)
+  container.prepend(lighting)
   const message = document.createElement('p')
   message.className = 'debug-message'
   message.textContent = 'AO：低分辨率 + 边缘重建 · LUT：线性 SMAA 后的 sRGB 域'
@@ -177,6 +189,7 @@ export function createDebugPanel(render, container) {
       pane.dispose()
       file.remove()
       message.remove()
+      lighting.remove()
     },
   }
 }

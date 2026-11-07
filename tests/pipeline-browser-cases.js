@@ -243,7 +243,7 @@ export async function compareAOQuality(app) {
   for (let y = 40; y < height; y += 80) {
     for (let x = 40; x < width; x += 100) {
       const hit = app.pickPixel(x, y)
-      if (hit?.mode === 'realtime' || hit?.mode === 'baked-appearance')
+      if (['realtime', 'baked-appearance', 'lightmap'].includes(hit?.mode))
         points.push({ x, y, mode: hit.mode })
     }
   }
@@ -262,10 +262,18 @@ export async function compareAOQuality(app) {
   let realtimeMax = 0
   let realtimeSum = 0
   let realtimeCount = 0
+  let lightmapMax = 0
+  let lightmapSum = 0
+  let lightmapCount = 0
   for (const [index, point] of points.entries()) {
     const delta = full[index].map((value, channel) => Math.abs(value - half[index][channel]))
     if (point.mode === 'baked-appearance') {
       bakedMax = Math.max(bakedMax, ...delta)
+    }
+    else if (point.mode === 'lightmap') {
+      lightmapCount++
+      lightmapMax = Math.max(lightmapMax, ...delta)
+      lightmapSum += delta.reduce((sum, value) => sum + value, 0)
     }
     else {
       realtimeCount++
@@ -276,12 +284,18 @@ export async function compareAOQuality(app) {
   check(realtimeCount >= 10, 'Insufficient visible realtime surfaces for AO quality comparison')
   check(bakedMax === 0, 'Changing AO resolution affected baked appearance')
   check(realtimeMax < 0.08, 'Half-resolution AO has excessive linear HDR error against full resolution')
+  check(lightmapMax < 0.12, 'Half-resolution AO has excessive lightmap HDR error against full resolution')
   return {
     pixels: points.length,
     realtimePixels: realtimeCount,
     bakedMax,
     realtimeMax,
     realtimeMean: realtimeSum / (realtimeCount * 3),
+    lightmapPixels: lightmapCount,
+    lightmapMax,
+    lightmapMean: lightmapCount
+      ? lightmapSum / (lightmapCount * 3)
+      : 0,
     domain: 'linear HDR, default reference camera, full AO/denoise versus half AO/denoise',
   }
 }

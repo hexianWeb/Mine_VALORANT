@@ -47,13 +47,22 @@ body {
   scrollbar-width: thin;
 }
 
-.debug-message {
+.debug-message,
+.debug-lighting {
   padding: 8px 10px;
   color: #a5b4c5;
   background: #20232b;
   font-size: 11px;
   line-height: 1.5;
   border-radius: 0 0 6px 6px;
+}
+
+.debug-lighting {
+  border-radius: 6px 6px 0 0;
+}
+
+.debug-lighting a {
+  color: #93c5fd;
 }
 
 .unsupported {
