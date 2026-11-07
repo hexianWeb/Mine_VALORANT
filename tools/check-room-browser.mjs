@@ -55,15 +55,19 @@ try {
   report.surfaceSampling = await evaluate(`(()=>{
     const samplers=__RANGE_ROOM__.room.samplers.snapshot();
     const surfaces=samplers.filter(texture=>texture.role==='voxel-surface');
+    const nearest=surfaces.filter(texture=>texture.sampling==='nearest');
+    const minified=surfaces.filter(texture=>texture.sampling==='pixel-art-mip-anisotropic');
     const atlases=samplers.filter(texture=>texture.role==='baked-atlas');
     return {
       surfaceCount:surfaces.length,atlasCount:atlases.length,
-      nearestSurfaces:surfaces.every(texture=>texture.magFilter===1003&&texture.minFilter===1003&&texture.anisotropy===1&&texture.mipLevels===1),
+      nearestSurfaces:nearest.every(texture=>texture.magFilter===1003&&texture.minFilter===1003&&texture.anisotropy===1&&texture.mipLevels===1),
+      lightmapAlbedoCount:minified.length,
+      filteredAlbedo:minified.every(texture=>texture.magFilter===1006&&texture.minFilter===1008&&texture.anisotropy===__RANGE_ROOM__.snapshot().sampling.anisotropy&&texture.mipLevels>1),
       linearAtlases:atlases.every(texture=>texture.magFilter===1006&&texture.minFilter===1008&&texture.mipLevels===3)
     };
   })()`)
-  if (!report.surfaceSampling.surfaceCount || !report.surfaceSampling.nearestSurfaces || !report.surfaceSampling.linearAtlases)
-    throw new Error('Voxel maps must use nearest; baked atlases must retain linear filtering')
+  if (!report.surfaceSampling.surfaceCount || !report.surfaceSampling.nearestSurfaces || !report.surfaceSampling.linearAtlases || !report.surfaceSampling.filteredAlbedo || (report.lightingMode === 'lightmap' && !report.surfaceSampling.lightmapAlbedoCount))
+    throw new Error('Expected pixel-sharp mipmapped lightmap albedo, nearest realtime surfaces and linear atlases')
   report.camera = await evaluate('({position:__RANGE_ROOM__.camera.position.toArray(),quaternion:__RANGE_ROOM__.camera.quaternion.toArray(),reference:__RANGE_ROOM__.room.manifest.camera})')
   const positionDelta = Math.max(...report.camera.position.map((v, i) => Math.abs(v - report.camera.reference.position[i])))
   const rotationDot = Math.abs(report.camera.quaternion.reduce((sum, v, i) => sum + v * report.camera.reference.quaternion[i], 0))
