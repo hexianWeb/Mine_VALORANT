@@ -1,109 +1,29 @@
 import { Buffer } from 'node:buffer'
-import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
+import { openBrowser } from './browser-session.mjs'
 
 // Native CDP: no test dependency or browser profile added to the project.
 const output = path.resolve(process.env.ROOM_TEST_OUTPUT ?? 'D:/opencode-temp/opencode/range-room-browser')
 fs.mkdirSync(output, { recursive: true })
-const chrome = process.env.CHROME_PATH ?? 'C:/Program Files/Google/Chrome/Application/chrome.exe'
-const child = spawn(chrome, [
-  '--headless=new',
-  '--enable-unsafe-webgpu',
-  '--no-first-run',
-  '--no-default-browser-check',
-  '--remote-debugging-port=0',
-  `--user-data-dir=${path.join(output, `profile-${Date.now()}`)}`,
-  'about:blank',
-], {
-  windowsHide: true,
-  stdio: ['ignore', 'ignore', 'pipe'],
-})
-let socket
+let session
 const errors = []
 const messages = []
 const report = { url: process.argv[2] ?? process.env.ROOM_TEST_URL ?? 'http://127.0.0.1:5173/', errors }
+const url = new URL(report.url)
+url.searchParams.set('profile', '1')
+report.url = url.href
 try {
-  const endpoint = await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('Chrome startup timeout')), 30000)
-    let log = ''
-    child.once('error', reject)
-    child.stderr.on('data', (data) => {
-      log += data.toString()
-      const match = log.match(/DevTools listening on (ws:\/\/\S+)/)
-      if (match) {
-        clearTimeout(timeout)
-        resolve(match[1])
-      }
-    })
-  })
-  const browser = new URL(endpoint)
-  const target = await (await fetch(`http://${browser.host}/json/new?about:blank`, { method: 'PUT' })).json()
-  socket = new WebSocket(target.webSocketDebuggerUrl)
-  await new Promise((resolve, reject) => {
-    socket.onopen = resolve
-    socket.onerror = reject
-  })
-  let nextId = 0
-  const pending = new Map()
-  socket.onmessage = (event) => {
-    const message = JSON.parse(event.data)
-    if (message.id) {
-      const request = pending.get(message.id)
-      if (!request)
-        return
-      pending.delete(message.id)
-      clearTimeout(request.timeout)
-      if (message.error)
-        request.reject(new Error(JSON.stringify(message.error)))
-      else
-        request.resolve(message.result)
-    }
-    else if (message.method === 'Runtime.exceptionThrown') {
-      errors.push(message.params.exceptionDetails.exception?.description ?? message.params.exceptionDetails.text)
-    }
-    else if (message.method === 'Runtime.consoleAPICalled') {
-      const text = message.params.args.map(arg => arg.value ?? arg.description ?? '').join(' ')
-      messages.push({ type: message.params.type, text })
-      if (message.params.type === 'error')
-        errors.push(text)
-    }
-  }
-  const send = (method, params = {}) => new Promise((resolve, reject) => {
-    const id = ++nextId
-    const timeout = setTimeout(() => {
-      pending.delete(id)
-      reject(new Error(`${method} timeout`))
-    }, 120000)
-    pending.set(id, { resolve, reject, timeout })
-    socket.send(JSON.stringify({ id, method, params }))
-  })
-  const evaluate = async (expression) => {
-    const result = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })
-    if (result.exceptionDetails)
-      throw new Error(result.exceptionDetails.exception?.description ?? result.exceptionDetails.text)
-    return result.result.value
-  }
-  await send('Runtime.enable')
-  await send('Page.enable')
+  session = await openBrowser({ output, errors, messages })
+  const { send, evaluate, navigate } = session
   await send('Emulation.setDeviceMetricsOverride', {
     width: 960,
     height: 540,
     deviceScaleFactor: 1,
     mobile: false,
   })
-  const loaded = new Promise((resolve) => {
-    const listener = (event) => {
-      if (JSON.parse(event.data).method === 'Page.loadEventFired') {
-        socket.removeEventListener('message', listener)
-        resolve()
-      }
-    }
-    socket.addEventListener('message', listener)
-  })
-  await send('Page.navigate', { url: report.url })
-  await loaded
+  await navigate(report.url)
   await evaluate(`new Promise((resolve, reject) => {
     const deadline = performance.now() + 100000;
     function check() {
@@ -122,6 +42,10 @@ try {
     throw new Error('Expected Reinhard, exposure 1.2 and skybox-day')
   if (report.baseline.sampling.atlasMipLevels.some(count => count !== 3) || report.baseline.sampling.anisotropy < 1)
     throw new Error('Linear/aniso atlas sampling was not configured')
+  if (!report.baseline.sampling.atlasDecoders.every(decode => decode.worker))
+    throw new Error('Atlas decode/mip generation must run in Workers')
+  if (report.baseline.pipeline.denoise.depthBuffer || report.baseline.pipeline.aaInput.depthBuffer)
+    throw new Error('Fullscreen effect targets must not allocate depth')
   if (report.baseline.environmentSize[0] > 1024 || report.baseline.lights.filter(light => light.type === 'PointLight').length !== 3)
     throw new Error('Expected bounded sky lighting and three corridor lights')
   report.surfaceSampling = await evaluate(`(()=>{
@@ -182,7 +106,7 @@ try {
     const state=__ROOM_PIXEL_CHECK__;
     state.afterAO=await state.sample(state.baked);
     state.beforeLighting=await state.sample(state.realtime);
-    __RANGE_ROOM__.render.setRuntimeLighting(false);
+    __RANGE_ROOM__.world.setRuntimeLighting(false);
   })()`)
   await frames(8)
   report.pixelIsolation.results = await evaluate(`(async()=>{
@@ -191,7 +115,7 @@ try {
     const realtimeDark=await state.sample(state.realtime);
     const delta=(a,b)=>Math.max(...a.flatMap((p,i)=>p.slice(0,3).map((v,c)=>Math.abs(v-b[i][c]))));
     const result={bakedAODelta:delta(state.beforeAO,state.afterAO),realtimeAODelta:delta(state.realtimeBeforeAO,state.beforeLighting),bakedLightingDelta:delta(state.afterAO,bakedDark),realtimeLightingDelta:delta(state.beforeLighting,realtimeDark)};
-    __RANGE_ROOM__.render.setRuntimeLighting(true);
+    __RANGE_ROOM__.world.setRuntimeLighting(true);
     delete globalThis.__ROOM_PIXEL_CHECK__;
     return result;
   })()`)
@@ -290,6 +214,14 @@ try {
     Math.min(...aoImage.map(pixel => pixel[0])),
     Math.max(...aoImage.map(pixel => pixel[0])),
   ]
+  await evaluate('__ROOM_UI_CHANGE__("去噪分辨率","全分辨率")')
+  await frames(6)
+  report.panel.denoiseOverride = await evaluate('__RANGE_ROOM__.snapshot().pipeline.denoise')
+  await evaluate('__ROOM_UI_CHANGE__("去噪分辨率","跟随AO")')
+  await frames(6)
+  report.panel.denoiseLinked = await evaluate('__RANGE_ROOM__.snapshot().pipeline.denoise')
+  if (report.panel.denoiseOverride.width !== 1920 || report.panel.denoiseLinked.width !== 960)
+    throw new Error('Independent/linked denoise panel controls failed')
   if (!report.panel.aoGrayscale || report.panel.aoRange[0] === report.panel.aoRange[1] || report.panel.ao.aoView !== 'ao' || report.panel.ao.aoSamples !== 8 || report.panel.ao.aoRadius !== 0.8 || report.panel.ao.aoStrength !== 0.6 || report.panel.ao.aoResolutionScale !== 0.5)
     throw new Error('AO panel changes or grayscale preview failed')
   await screenshot('room-ao-preview.png')
@@ -352,7 +284,7 @@ try {
     }
     const sample=async()=>{const result=[];for(const p of points)result.push(await app.render.readLinearPixel(p.x,p.y));return result};
     globalThis.__CORRIDOR_CHECK__={points,sample,lit:await sample()};
-    app.render.setCorridorLighting(false);return {sampleCount:points.length};
+    app.world.setCorridorLighting(false);return {sampleCount:points.length};
   })()`)
   await frames(8)
   await screenshot('room-corridor-unlit.png')
@@ -364,7 +296,7 @@ try {
       const key=point.mode==='baked-appearance'?'baked':point.mode==='realtime'?'realtime':null;
       if(key){result[key+'Delta']=Math.max(result[key+'Delta'],delta);if(delta>0.001)result[key+'Changed']++;}
     });
-    __RANGE_ROOM__.render.setCorridorLighting(true);delete globalThis.__CORRIDOR_CHECK__;return result;
+    __RANGE_ROOM__.world.setCorridorLighting(true);delete globalThis.__CORRIDOR_CHECK__;return result;
   })()`)
   if (report.corridor.results.bakedDelta < 0.001 || report.corridor.results.realtimeDelta < 0.001)
     throw new Error('Corridor point lights must brighten baked and realtime receivers')
@@ -398,6 +330,7 @@ catch (error) {
   process.exitCode = 1
 }
 finally {
+  report.messages = messages
   fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify(report, null, 2))
   console.log(JSON.stringify({
     passed: report.passed,
@@ -412,6 +345,5 @@ finally {
     fullHdGpu: report.fullHdGpu,
     fullHdMemory: report.fullHd?.memory.total,
   }, null, 2))
-  socket?.close()
-  child.kill()
+  session?.close()
 }

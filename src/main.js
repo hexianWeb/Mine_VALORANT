@@ -1,9 +1,10 @@
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import * as THREE from 'three/webgpu'
+import { createDebugPanel } from './debug-panel.js'
 import { Engine, ResourceManager } from './engine/index.js'
 import { renderConfig } from './engine/systems/render/config.js'
-import { createDebugPanel } from './engine/systems/render/debug-panel.js'
 import { createRenderSystem } from './engine/systems/render/index.js'
+import { createRangeRoom } from './world/range-room.js'
 import './style.css'
 
 const canvas = document.querySelector('.webgl')
@@ -22,6 +23,7 @@ async function startRoom() {
   const camera = new THREE.PerspectiveCamera(50, engine.size.aspect, 0.05, 400)
   const parameters = new URLSearchParams(location.search)
   const config = { ...renderConfig }
+  config.trackTimestamp = parameters.get('profile') === '1'
   // Deterministic validation variants; the user-requested panel edits these same settings.
   if (parameters.get('ao') === '0')
     config.ao = false
@@ -32,7 +34,6 @@ async function startRoom() {
     canvas,
     scene,
     camera,
-    resources,
     config,
   })
   if (cancelled) {
@@ -40,7 +41,13 @@ async function startRoom() {
     return
   }
   engine.addSystem('render', render)
-  const room = await render.loadRoom()
+  const world = engine.disposer.add(createRangeRoom({
+    scene,
+    camera,
+    resources,
+    maxAnisotropy: render.renderer.getMaxAnisotropy(),
+  }))
+  const room = await world.load()
   if (cancelled)
     return
   const forward = camera.getWorldDirection(new THREE.Vector3())
@@ -55,17 +62,31 @@ async function startRoom() {
     name: 'inspection-camera',
     update: () => controls.update(),
   })
+  const snapshot = () => {
+    const renderState = render.snapshot()
+    const worldState = world.snapshot()
+    return {
+      ...renderState,
+      ...worldState,
+      ready: renderState.ready && worldState.ready,
+      config: {
+        ...renderState.config,
+        ...worldState.config,
+      },
+    }
+  }
   // Inspection/test surface, not a GUI or a gameplay controller.
   globalThis.__RANGE_ROOM__ = {
     engine,
     render,
+    world,
     room,
     scene,
     camera,
     controls,
     panel,
     ready: true,
-    snapshot: () => render.snapshot(),
+    snapshot,
     pickPixel(x, y) {
       const ray = new THREE.Raycaster()
       ray.setFromCamera(new THREE.Vector2(x / canvas.width * 2 - 1, 1 - y / canvas.height * 2), camera)
@@ -78,7 +99,7 @@ async function startRoom() {
   status.hidden = true
   engine.events.on('error', ({ error }) => showError(error))
   engine.start()
-  console.debug('[Range room] loaded', render.snapshot())
+  console.debug('[Range room] loaded', snapshot())
 }
 
 function showError(error) {

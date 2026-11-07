@@ -1,8 +1,8 @@
 // @ts-check
-import { EXRLoader } from 'three/addons/loaders/EXRLoader.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js'
 import * as THREE from 'three/webgpu'
+import { decodeEXR } from './decode-exr.js'
 
 /**
  * @typedef {object} GLTF
@@ -32,7 +32,7 @@ import * as THREE from 'three/webgpu'
  * @property {string} name unique key used by `get(name)`
  * @property {AssetType} type registered loader type
  * @property {string | string[]} url relative to `public/` (served at site root)
- * @property {{ colorSpace?: string, sha256?: string }} [options] optional integrity hash; explicit colorSpace for ordinary textures
+ * @property {{ colorSpace?: string, sha256?: string, atlasMaxMipLevel?: number, signal?: AbortSignal }} [options] integrity, sampling and cancellation
  */
 
 /**
@@ -73,11 +73,13 @@ export const loaders = {
 
   async exr(entry, manager) {
     const data = await loadCheckedBuffer(entry, manager)
-    const parsed = new EXRLoader(manager).setDataType(THREE.HalfFloatType).parse(data)
+    const parsed = await decodeEXR(data, { maxMipLevel: entry.options?.atlasMaxMipLevel ?? 0, signal: entry.options?.signal })
     const texture = new THREE.DataTexture(parsed.data, parsed.width, parsed.height, parsed.format, parsed.type)
     texture.colorSpace = parsed.colorSpace
     texture.flipY = false
     texture.generateMipmaps = false
+    texture.mipmaps = parsed.mipmaps
+    texture.userData.decode = { worker: parsed.worker, milliseconds: parsed.decodeMs }
     texture.minFilter = THREE.LinearFilter
     texture.magFilter = THREE.LinearFilter
     texture.needsUpdate = true

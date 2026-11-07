@@ -3,15 +3,16 @@ import test from 'node:test'
 import * as THREE from 'three/webgpu'
 import { createColorGrading } from '../src/engine/systems/render/color-grading.js'
 import { renderConfig, validateEffects } from '../src/engine/systems/render/config.js'
-import { createRoomMaterial } from '../src/engine/systems/render/materials.js'
-import { createRoomLights } from '../src/engine/systems/render/room-lights.js'
-import { createEnvironmentProxy } from '../src/engine/systems/render/sky-environment.js'
-import { buildAtlasMips, createTextureSampling } from '../src/engine/systems/render/texture-sampling.js'
+import { createRoomMaterial } from '../src/world/materials.js'
+import { rangeRoomConfig } from '../src/world/range-room.js'
+import { createRoomLights } from '../src/world/room-lights.js'
+import { createEnvironmentProxy } from '../src/world/sky-environment.js'
+import { buildAtlasMips, createTextureSampling } from '../src/world/texture-sampling.js'
 
 test('Reinhard exposure 1.2 and 16x anisotropy are the requested defaults', () => {
   assert.equal(renderConfig.toneMapping, 'reinhard')
   assert.equal(renderConfig.toneMappingExposure, 1.2)
-  assert.equal(renderConfig.textureAnisotropy, 16)
+  assert.equal(rangeRoomConfig.textureAnisotropy, 16)
   assert.doesNotThrow(() => validateEffects(renderConfig))
   assert.throws(() => validateEffects({ ...renderConfig, aoRadius: Number.NaN }))
   assert.throws(() => validateEffects({ ...renderConfig, lutIntensity: 2 }))

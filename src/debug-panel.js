@@ -1,6 +1,6 @@
 import { Pane } from 'tweakpane'
-import { gradingPresets } from './color-grading.js'
-import { renderConfig } from './config.js'
+import { gradingPresets } from './engine/systems/render/color-grading.js'
+import { renderConfig } from './engine/systems/render/config.js'
 
 /** User-requested AO and LUT controls. No mutation of source assets or Blender state. */
 export function createDebugPanel(render, container) {
@@ -8,12 +8,13 @@ export function createDebugPanel(render, container) {
   const params = {
     ...state,
     ...state.grading,
+    denoiseResolutionScale: state.denoiseResolutionScale ?? 0,
     lutFile: state.customLutTitle || '内置 LUT',
   }
   const pane = new Pane({ container, title: '渲染调试 · Reinhard' })
   const message = document.createElement('p')
   message.className = 'debug-message'
-  message.textContent = 'LUT：显示 sRGB 域 · Tone mapping 后 / SMAA 前'
+  message.textContent = 'AO：低分辨率 + 边缘重建 · LUT：线性 SMAA 后的 sRGB 域'
   container.append(message)
   const file = document.createElement('input')
   file.type = 'file'
@@ -23,13 +24,13 @@ export function createDebugPanel(render, container) {
   let disposed = false
   const sync = () => {
     const current = render.getDebugState()
-    Object.assign(params, current, current.grading, { lutFile: current.customLutTitle || '内置 LUT' })
+    Object.assign(params, current, current.grading, { lutFile: current.customLutTitle || '内置 LUT', denoiseResolutionScale: current.denoiseResolutionScale ?? 0 })
     pane.refresh()
   }
   const safely = (action) => {
     try {
       action()
-      message.textContent = 'LUT：显示 sRGB 域 · Tone mapping 后 / SMAA 前'
+      message.textContent = 'AO：低分辨率 + 边缘重建 · LUT：线性 SMAA 后的 sRGB 域'
     }
     catch (error) {
       message.textContent = error.message
@@ -71,6 +72,15 @@ export function createDebugPanel(render, container) {
     options: { '全分辨率': 1, '75%': 0.75, '50%': 0.5 },
   })
   bindEffect(ao, 'denoise', { label: '去噪' })
+  ao.addBinding(params, 'denoiseResolutionScale', {
+    label: '去噪分辨率',
+    options: {
+      '跟随AO': 0,
+      '全分辨率': 1,
+      '75%': 0.75,
+      '50%': 0.5,
+    },
+  }).on('change', event => safely(() => render.setEffects({ denoiseResolutionScale: event.value || null })))
   bindEffect(ao, 'denoiseRadius', {
     label: '去噪半径',
     min: 1,
@@ -86,6 +96,7 @@ export function createDebugPanel(render, container) {
     aoSamples: renderConfig.aoSamples,
     aoResolutionScale: renderConfig.aoResolutionScale,
     denoise: true,
+    denoiseResolutionScale: renderConfig.denoiseResolutionScale,
     denoiseRadius: renderConfig.denoiseRadius,
   })))
 

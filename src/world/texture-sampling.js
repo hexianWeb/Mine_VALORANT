@@ -1,46 +1,7 @@
 import * as THREE from 'three/webgpu'
+import { buildAtlasMips } from '../engine/resources/atlas-mips.js'
 
-let halfValues
-
-/** Limited mip chain: no original pixels/UVs change, and unused transparent texels don't darken chart edges. */
-export function buildAtlasMips(image, maxLevel = 2) {
-  if (!halfValues) {
-    halfValues = Float32Array.from({ length: 65536 }, (_, index) => THREE.DataUtils.fromHalfFloat(index))
-  }
-  const levels = [image]
-  let { data, width, height } = image
-  for (let level = 1; level <= maxLevel && width > 1 && height > 1; level++) {
-    const nextWidth = Math.max(1, Math.floor(width / 2))
-    const nextHeight = Math.max(1, Math.floor(height / 2))
-    const next = new Uint16Array(nextWidth * nextHeight * 4)
-    for (let y = 0; y < nextHeight; y++) {
-      for (let x = 0; x < nextWidth; x++) {
-        const a = ((y * 2) * width + x * 2) * 4
-        const b = a + 4
-        const c = a + width * 4
-        const d = c + 4
-        const alphaA = halfValues[data[a + 3]]
-        const alphaB = halfValues[data[b + 3]]
-        const alphaC = halfValues[data[c + 3]]
-        const alphaD = halfValues[data[d + 3]]
-        const weight = alphaA + alphaB + alphaC + alphaD
-        const offset = (y * nextWidth + x) * 4
-        for (let channel = 0; channel < 3; channel++) {
-          const value = weight > 0
-            ? (halfValues[data[a + channel]] * alphaA + halfValues[data[b + channel]] * alphaB + halfValues[data[c + channel]] * alphaC + halfValues[data[d + channel]] * alphaD) / weight
-            : 0
-          next[offset + channel] = THREE.DataUtils.toHalfFloat(value)
-        }
-        next[offset + 3] = THREE.DataUtils.toHalfFloat(weight / 4)
-      }
-    }
-    data = next
-    width = nextWidth
-    height = nextHeight
-    levels.push({ data, width, height })
-  }
-  return levels
-}
+export { buildAtlasMips } from '../engine/resources/atlas-mips.js'
 
 /** Separate smooth baked radiance from nearest-neighbor voxel surfaces; preserve color-space decoding. */
 export function createTextureSampling({ anisotropy = 16, atlasMaxMipLevel = 2 } = {}) {
@@ -53,7 +14,10 @@ export function createTextureSampling({ anisotropy = 16, atlasMaxMipLevel = 2 } 
         texture.name = `${source.name}:linear-anisotropic`
         texture.colorSpace = source.colorSpace
         texture.flipY = false
-        texture.mipmaps = buildAtlasMips(source.image, atlasMaxMipLevel)
+        texture.mipmaps = source.mipmaps.length > atlasMaxMipLevel
+          ? source.mipmaps.slice(0, atlasMaxMipLevel + 1)
+          : buildAtlasMips(source.image, atlasMaxMipLevel)
+        texture.userData.decode = source.userData.decode
         texture.generateMipmaps = false
         texture.minFilter = texture.mipmaps.length > 1
           ? THREE.LinearMipmapLinearFilter
@@ -94,6 +58,7 @@ export function createTextureSampling({ anisotropy = 16, atlasMaxMipLevel = 2 } 
         magFilter: texture.magFilter,
         minFilter: texture.minFilter,
         mipLevels: texture.mipmaps.length || 1,
+        decode: texture.userData.decode,
       }))
     },
     dispose() {

@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { validateManifest } from '../src/engine/systems/render/manifest.js'
+import { validateManifest } from '../src/world/manifest.js'
 
 export function validateRoomFiles(manifestPath) {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))

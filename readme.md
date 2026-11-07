@@ -1,10 +1,10 @@
-# renderer V1 · 练枪房 · Three.js WebGPU
+# renderer V2 · 练枪房 · Three.js WebGPU
 
-本轮运行时渲染器暂定为 **renderer V1**；房间资产仍沿用 `range-room-v3` 标识。
+运行时渲染器为 **renderer V2**；房间资产版本为 `range-room-v3`。
 
-单房间渲染入口：五张线性 EXR 烘焙外观、像素风未烘焙物体 PBR、三排矩形顶灯、日间天空环境、走廊补光、GTAO + 空间去噪、Reinhard（曝光强度 1.2）、LUT 与 SMAA。
+单房间渲染入口：五张线性 EXR 烘焙外观、像素风未烘焙物体 PBR、三排矩形顶灯、日间天空环境、走廊补光、半分辨率 GTAO/去噪与边缘重建、Reinhard（曝光强度 1.2）、线性 SMAA 与显示域 LUT。
 
-实施与验证见 [练枪房实施与验证记录](docs/lighting/range-room-v3-implementation.md)。正式资源在 `public/model/range-room.glb` 与 `public/lighting/range-room/`，由带 SHA-256 的 manifest 绑定。不会回退到旧整图。
+本轮改造见 [renderer V2 优化与验证](docs/lighting/renderer-v2-optimization.md)，首版接入见 [练枪房实施与验证记录](docs/lighting/range-room-v3-implementation.md)。正式资源在 `public/model/range-room.glb` 与 `public/lighting/range-room/`，由带 SHA-256 的 manifest 绑定。
 
 ## 开发
 
@@ -27,17 +27,36 @@ npm run preview
 node tools/check-room-browser.mjs http://localhost:4173/
 ```
 
+新增 GPU 专项测试使用开发服务器（需要加载测试夹具模块）：
+
+```bash
+npm run dev
+node tools/check-pipeline-browser.mjs http://localhost:5173/
+```
+
+专项测试覆盖法线预通道的透明裁剪/顶点变形、参数原地更新、分辨率联动、效果循环释放，以及 1080p 分 pass GPU 计时。浏览器脚本自动添加 `?profile=1`。
+
 浏览器检查使用原生 CDP，默认 Chrome 路径可通过 `CHROME_PATH` 修改。截图、独立浏览器配置和 `report.json` 保存至 `D:/opencode-temp/opencode/range-room-browser`，可通过 `ROOM_TEST_OUTPUT` 指定其他临时目录。
 
-运行时检查入口：控制台 `__RANGE_ROOM__.snapshot()`。测试变体可使用 `?ao=0&aa=none`。EXR 纹理保持 `flipY=false`，材质按本次已验证的 glTF/EXR 方向显式翻转一次 V 轴。
+运行时检查入口：控制台 `__RANGE_ROOM__.snapshot()`；通过 `?profile=1` 开启计时后，`await __RANGE_ROOM__.render.measureGpu()` 返回最后提交帧的各 pass GPU 毫秒数。CPU 统计排除启动/配置变化后的 30 帧暖机。测试变体可使用 `?ao=0&aa=none`。
+
+EXR 解码和 alpha 加权 mip 生成在独立 Worker 中完成，通过 transferable buffers 传回；取消加载会终止 Worker。纹理保持 half-float、`flipY=false`，材质显式翻转一次 V 轴。
+
+## 代码分层
+
+- `src/engine/`：通用生命周期、资源管理与渲染管线。`createRenderSystem()` 创建完成即具备 pipeline，负责后处理、调色、性能分析、resize 与逐帧渲染。
+- `src/world/`：平铺的练枪房内容。`range-room.js` 编排资产加载、参考相机、天空环境与灯光；房间默认配置也在这里。依赖方向为 `world → engine`。
+- `src/main.js`：先创建渲染系统，再创建、注册清理并加载房间；合并渲染和房间快照。`src/debug-panel.js` 是应用层 UI。
+
+检查接口：`__RANGE_ROOM__.render` 管理渲染效果，`__RANGE_ROOM__.world` 提供 `setRuntimeLighting()`、`setCorridorLighting()` 和房间快照，`__RANGE_ROOM__.room` 是加载后的资产实例。整体状态继续通过 `__RANGE_ROOM__.snapshot()` 获取。
 
 ## 当前显示与调试配置
 
 - **未烘焙像素贴图**：`minFilter` / `magFilter` 均为 `NearestFilter`，关闭 mip 生成和混合，保留 Minecraft 风格的清晰纹素。颜色 PNG 仍按 sRGB 解码，不把最近邻与线性色彩空间混淆。
 - **烘焙 atlas**：线性放大、三线性缩小、最高 16× 各向异性（受设备上限限制）；仅生成 0–2 级 mip，透明空白不参与颜色平均。UV 与原始图像不变。WebGPU 各向异性要求线性过滤，所以未烘焙最近邻贴图使用 anisotropy 1。
-- **显示**：`ReinhardToneMapping`，`toneMappingExposure = 1.2`，不是 1.2 EV。显示变换/sRGB 输出之后接 LUT，最后 SMAA；中性默认 LUT 为 33³ 半浮点 identity。
+- **显示**：`ReinhardToneMapping`，`toneMappingExposure = 1.2`，不是 1.2 EV。顺序为线性 tone mapping → SMAA → sRGB → LUT；中性默认 LUT 为 33³ 半浮点 identity，identity 或关闭 LUT 时走真正的 shader 旁路。
 - **天空与走廊**：`skybox-day.png` 是 LDR PNG，保留 4096×2048 背景，用 1024×512 代理生成低成本环境光，关闭旧 AmbientLight 避免叠加。三盏顶棚点光的作用距离为 9 m；烘焙走廊只额外接收这三盏新灯的局部漫反射，不接收原顶灯、环境或 AO 的重复照明。
-- **AO 面板**：开关、仅 AO 预览、强度、半径、厚度、采样、分辨率、去噪与重置。
+- **AO 面板**：开关、仅 AO 预览、强度、半径、厚度、采样、分辨率、去噪与重置。默认 GTAO 为 50%/16 samples，去噪分辨率默认跟随 AO，也可独立选择；R16F 去噪结果经深度/法线引导的四点重建接入实时间接光。修改 samples/分辨率保留现有 render targets。
 - **LUT 面板**：曝光、开关/混合强度、中性/暖/冷/柔和电影预设、对比度/饱和度/色温/色偏、`.cube` 导入与重置。导入支持 2–64³、0–1 显示域，不直接接受 Log LUT；错误文件保留上一个有效 LUT。
 
 ## 导出与替换模型

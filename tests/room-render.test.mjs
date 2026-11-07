@@ -5,9 +5,9 @@ import { EXRLoader } from 'three/addons/loaders/EXRLoader.js'
 import * as THREE from 'three/webgpu'
 import { loaders } from '../src/engine/resources/loaders.js'
 import { ResourceManager } from '../src/engine/resources/resources.js'
-import { validateManifest } from '../src/engine/systems/render/manifest.js'
-import { createRoomMaterial } from '../src/engine/systems/render/materials.js'
-import { createRoomLights } from '../src/engine/systems/render/room-lights.js'
+import { validateManifest } from '../src/world/manifest.js'
+import { createRoomMaterial } from '../src/world/materials.js'
+import { createRoomLights } from '../src/world/room-lights.js'
 import { validateRoomFiles } from '../tools/validate-room-assets.mjs'
 
 const manifest = JSON.parse(fs.readFileSync(new URL('../public/lighting/range-room/manifest.json', import.meta.url)))

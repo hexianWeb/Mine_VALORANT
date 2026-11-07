@@ -24,7 +24,7 @@ export async function loadRoomAssets({ resources, manifestUrl, signal, sampling 
       name: `${prefix}:${page.id}`,
       type: 'exr',
       url: new URL(page.url, base).href,
-      options: { sha256: page.sha256 },
+      options: { sha256: page.sha256, atlasMaxMipLevel: sampling.atlasMaxMipLevel ?? 2, signal },
     })),
   ]
   const materials = new Set()

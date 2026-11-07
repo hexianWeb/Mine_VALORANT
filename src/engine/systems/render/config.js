@@ -1,30 +1,31 @@
-// Defaults; AO and color grading can now be edited in the explicitly requested debug panel.
+// Renderer and post-processing defaults, independent of scene content.
 export const renderConfig = Object.freeze({
-  manifestUrl: '/lighting/range-room/manifest.json',
   maxPixelRatio: 1,
   toneMapping: 'reinhard',
   toneMappingExposure: 1.2,
-  textureAnisotropy: 16,
-  atlasMaxMipLevel: 2,
-  skyboxUrl: '/hdr/skybox-day.png',
-  environmentIntensity: 0.35,
-  corridorLighting: true,
   ao: true,
-  aoResolutionScale: 1,
+  aoResolutionScale: 0.5,
   aoRadius: 0.5,
   aoThickness: 0.5,
   aoStrength: 1,
   aoSamples: 16,
   denoise: true,
+  denoiseResolutionScale: null, // null follows GTAO; an explicit scale overrides it.
   aoView: 'scene',
   denoiseRadius: 5,
   lutEnabled: true,
   lutIntensity: 1,
   aa: 'smaa',
-  trackTimestamp: true,
+  trackTimestamp: false, // Enable with ?profile=1 or when creating a profiling instance.
 })
 
 export function validateEffects(config) {
+  for (const key of ['ao', 'denoise', 'lutEnabled']) {
+    if (typeof config[key] !== 'boolean')
+      throw new TypeError(`Invalid ${key}: expected a boolean`)
+  }
+  if (config.denoiseResolutionScale !== null && (!Number.isFinite(config.denoiseResolutionScale) || config.denoiseResolutionScale < 0.25 || config.denoiseResolutionScale > 1))
+    throw new Error('Invalid denoiseResolutionScale: expected null or 0.25–1')
   const ranges = {
     toneMappingExposure: [0.01, 16],
     aoRadius: [0.01, 10],

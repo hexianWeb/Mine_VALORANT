@@ -17,7 +17,7 @@ export const gradingPresets = Object.freeze({
 })
 const clamp = value => Math.min(1, Math.max(0, value))
 
-/** RGB display-domain 3D LUT, sampled AFTER tone mapping/sRGB and BEFORE SMAA. */
+/** RGB display-domain 3D LUT, sampled after linear SMAA and sRGB encoding. */
 export function createColorGrading() {
   const params = { ...gradingDefaults }
   let custom = null
@@ -40,7 +40,7 @@ export function createColorGrading() {
       texture.magFilter = THREE.LinearFilter
       texture.generateMipmaps = false
       texture.unpackAlignment = 1
-      texture.name = 'Room display-domain grading LUT'
+      texture.name = 'Display-domain grading LUT'
     }
     const data = texture.image.data
     const presetTemperature = params.preset === 'warm'
@@ -90,6 +90,9 @@ export function createColorGrading() {
     get texture() { return texture },
     get size() { return size },
     get customTitle() { return custom?.title ?? '' },
+    get isIdentity() {
+      return params.preset === 'neutral' && params.contrast === 1 && params.saturation === 1 && params.temperature === 0 && params.tint === 0
+    },
     update(changes) {
       if (changes.preset === 'custom' && !custom)
         throw new Error('请先导入 .cube LUT 文件')

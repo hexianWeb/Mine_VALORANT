@@ -9,10 +9,10 @@ import { Time } from './time.js'
 
 /**
  * @typedef {object} EngineEvents
- * @property {void} start
- * @property {void} pause
- * @property {void} resume
- * @property {void} destroy
+ * @property {void} start idle -> running
+ * @property {void} pause running -> paused; frame loop stops
+ * @property {void} resume paused -> running; next frame delta is 0
+ * @property {void} destroy any -> destroyed; cannot restart
  * @property {{ error: unknown }} error a system threw; engine is paused
  */
 

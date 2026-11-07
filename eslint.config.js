@@ -53,6 +53,21 @@ export default antfu({
     ],
   },
 }, {
+  files: ['src/engine/**/*.js'],
+  rules: {
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: ['**/world/**', '**/main.js', '**/debug-panel.js'],
+            message: 'Engine modules must not depend on world content or application UI.',
+          },
+        ],
+      },
+    ],
+  },
+}, {
   files: ['tests/**/*.mjs'],
   rules: {
     'test/no-import-node-test': 'off', // The project uses Node's built-in runner, not Vitest.
