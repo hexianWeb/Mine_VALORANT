@@ -8,6 +8,8 @@
 
 最新 [Lightmap 重烘与接入](docs/lighting/lightmap-v1.md) 仅覆盖“预烘焙”集合的 11 个对象、18 个分区。新资源在 `public/model/range-room-lightmap.glb` 与 `public/lighting/range-room-lightmap/`。右上角 **切回原版** 或 `?lighting=appearance` 可回退；`?lighting=lightmap` 使用新方案。
 
+[室内 LightProbeGrid](docs/lighting/light-probes.md) 使用 Blender `LightProbeVolumes` 的三个 Box，共 282 个预计算探针，为实时物体和漂浮茶壶提供局部间接光。右侧 Panel 可分别调节探针、天空漫反射/镜面反射、顶灯，并配置捕获与查看边界。`?probes=0` 跳过探针模块。
+
 ## 开发
 
 ``` bash
@@ -34,6 +36,7 @@ node tools/check-room-browser.mjs "http://localhost:4173/"
 ```bash
 npm run dev
 node tools/check-pipeline-browser.mjs "http://localhost:5173/"
+node tools/check-probes-browser.mjs "http://localhost:5173/"
 ```
 
 专项测试覆盖法线预通道的透明裁剪/顶点变形、像素贴图的近处锐度与远处缩小过滤、参数原地更新、分辨率联动、效果循环释放，以及 1080p 分 pass GPU 计时。浏览器脚本自动添加 `?profile=1`。
@@ -70,4 +73,4 @@ Lightmap 重烘使用 `tools/bake_range_room_lightmaps.py`，完成后调用上�
 
 模型修复后必须同步校验/更新 `manifest.json` 的 hash 与 primitive 绑定。不能只换 GLB 并跳过版本校验。透明分类由回归测试检查，失败不能当作已验收。
 
-矩形顶灯目前是待视觉校准的初始拟合，不等价于 Blender 的瓦特功率；不支持阴影或 Area Spread。独立观察模块使用室内聚光灯提供实时阴影，烘焙表面通过可释放的材质扩展接收动态阴影。TRAA、探针尚未实现。最近邻贴图的远景闪烁与烘焙 atlas 的滤波需分别验收，不能用全局线性过滤模糊所有物件来解决。
+矩形顶灯目前是待视觉校准的初始拟合，不等价于 Blender 的瓦特功率；不支持阴影或 Area Spread。独立观察模块使用室内聚光灯提供实时阴影，烘焙表面通过可释放的材质扩展接收动态阴影。漫反射探针使用静态 LightProbeGrid，TRAA 尚未实现。最近邻贴图的远景闪烁与烘焙 atlas 的滤波需分别验收，不能用全局线性过滤模糊所有物件来解决。

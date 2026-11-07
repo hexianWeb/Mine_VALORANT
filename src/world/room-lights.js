@@ -30,12 +30,27 @@ export function createRoomLights(manifest, options = {}) {
   ambient.name = 'Controlled room indirect approximation (not GI)'
   root.add(ambient)
   const originalIntensities = new Map(root.children.map(light => [light, light.intensity]))
+  let enabled = true
+  let scale = 1
+  const apply = () => {
+    root.visible = enabled
+    for (const [light, intensity] of originalIntensities) {
+      light.intensity = enabled
+        ? intensity * scale
+        : 0
+    }
+  }
   return {
     root,
-    setEnabled(enabled) {
-      root.visible = enabled
-      for (const [light, intensity] of originalIntensities)
-        light.intensity = enabled ? intensity : 0
+    setEnabled(value) {
+      enabled = !!value
+      apply()
+    },
+    setIntensityScale(value) {
+      if (!Number.isFinite(value) || value < 0 || value > 4)
+        throw new Error('[Room lights] Invalid intensity scale')
+      scale = value
+      apply()
     },
     dispose() {
       root.removeFromParent()

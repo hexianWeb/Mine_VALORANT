@@ -8,6 +8,7 @@ import hashlib
 import importlib.util
 import json
 import math
+import shutil
 import struct
 import sys
 from pathlib import Path
@@ -61,10 +62,14 @@ def main():
     parser.add_argument('--scope', required=True)
     parser.add_argument('--reference-dir')
     parser.add_argument('--lightmap-report', help='Export completed light-only bake as a separate asset version')
+    parser.add_argument('--reuse-atlases', help='Copy exact lightmap files and metadata from an existing manifest without encoding images')
     args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:])
     project = Path(args.project).resolve()
     scope = json.loads(Path(args.scope).read_text(encoding='utf-8'))
     lightmap = json.loads(Path(args.lightmap_report).read_text(encoding='utf-8')) if args.lightmap_report else None
+    reused = json.loads(Path(args.reuse_atlases).read_text(encoding='utf-8')) if args.reuse_atlases is not None else None
+    if args.reuse_atlases is not None and (not lightmap or not isinstance(reused, dict) or reused.get('schemaVersion') != 4):
+        raise ValueError('Atlas reuse requires an existing lightmap manifest and bake report')
     asset_name = 'range-room-lightmap' if lightmap else 'range-room'
     out = project / 'public' / 'lighting' / asset_name
     atlas_dir = out / 'atlases'
@@ -117,6 +122,15 @@ def main():
         target = atlas_dir / f'{page_id}.exr'
         if target.exists():
             raise FileExistsError(target)
+        if reused is not None:
+            page = next(entry for entry in reused['atlases'] if entry['id'] == page_id)
+            source = (Path(args.reuse_atlases).parent / page['url']).resolve()
+            if digest(source) != page['sha256'] or list(image.size) != [page['width'], page['height']]:
+                raise ValueError(f'{page_id}: reusable atlas hash or dimensions do not match')
+            shutil.copyfile(source, target)
+            pages.append(page)
+            image_page[image.name] = page_id
+            continue
         image.save_render(str(target), scene=scene)
         check = bpy.data.images.load(str(target), check_existing=False)
         pixels = np.empty(len(check.pixels), dtype=np.float32)
@@ -244,7 +258,15 @@ def main():
     }
     if lightmap:
         manifest['bake'] = lightmap
-        manifest['verification']['rebake'] = True
+        manifest['verification']['rebake'] = reused is None
+    if reused is not None:
+        manifest['verification']['reusedLightmapsFrom'] = {
+            'modelSha256': reused['model']['sha256'],
+            'manifestSha256': digest(args.reuse_atlases),
+        }
+    manifest['verification']['sourceTriangles'] = sum(len(face.vertices) - 2 for obj in objects for face in obj.data.polygons)
+    if 'modelUpdate' in scope:
+        manifest['verification']['modelUpdate'] = scope['modelUpdate']
     (out / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
     print('ROOM_EXPORT_COMPLETE ' + json.dumps({'objects': len(objects), 'primitives': len(bindings), 'pages': len(pages), 'modelBytes': model.stat().st_size, 'manifest': str(out / 'manifest.json')}), flush=True)
 

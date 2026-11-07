@@ -54,6 +54,15 @@ async function startRoom() {
   const room = await world.load()
   if (cancelled)
     return
+  if (room.manifest.schemaVersion === 4 && parameters.get('probes') !== '0') {
+    await world.loadProbes(render.renderer, (state) => {
+      status.textContent = state.busy
+        ? `正在捕获室内探针 ${Math.round(state.progress * 100)}%…`
+        : '正在加载室内探针…'
+    })
+  }
+  if (cancelled)
+    return
   const inspection = engine.disposer.add(createRoomInspection({
     engine,
     scene,
@@ -63,7 +72,8 @@ async function startRoom() {
     room,
   }))
   const controls = inspection.orbit
-  const panel = engine.disposer.add(createDebugPanel(render, document.querySelector('.debug-panel'), world.snapshot().lightingMode))
+  world.probes?.bindRoot(inspection.teapot.mesh)
+  const panel = engine.disposer.add(createDebugPanel(render, document.querySelector('.debug-panel'), world.snapshot().lightingMode, world.probes))
   const snapshot = () => {
     const renderState = render.snapshot()
     const worldState = world.snapshot()

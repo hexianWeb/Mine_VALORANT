@@ -1,9 +1,10 @@
 import { Pane } from 'tweakpane'
 import { gradingPresets } from './engine/systems/render/color-grading.js'
 import { renderConfig } from './engine/systems/render/config.js'
+import { addProbePanel } from './probe-panel.js'
 
-/** User-requested AO and LUT controls. No mutation of source assets or Blender state. */
-export function createDebugPanel(render, container, lightingMode = 'lightmap') {
+/** Scene lighting, AO and LUT controls. */
+export function createDebugPanel(render, container, lightingMode = 'lightmap', probes = null) {
   const state = render.getDebugState()
   const params = {
     ...state,
@@ -34,6 +35,9 @@ export function createDebugPanel(render, container, lightingMode = 'lightmap') {
   file.hidden = true
   container.append(file)
   let disposed = false
+  const probePanel = probes
+    ? addProbePanel(pane, probes)
+    : null
   const sync = () => {
     const current = render.getDebugState()
     Object.assign(params, current, current.grading, { lutFile: current.customLutTitle || '内置 LUT', denoiseResolutionScale: current.denoiseResolutionScale ?? 0 })
@@ -186,6 +190,7 @@ export function createDebugPanel(render, container, lightingMode = 'lightmap') {
     dispose() {
       disposed = true
       file.removeEventListener('change', onFile)
+      probePanel?.dispose()
       pane.dispose()
       file.remove()
       message.remove()

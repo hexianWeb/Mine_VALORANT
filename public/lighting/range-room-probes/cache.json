@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "sourceKey": "{\"version\":1,\"three\":\"187\",\"model\":\"d3d7fa8e109dede3d4166ae7f0614f7f9510d7cb917f89388d2610fcf87413a4\",\"atlases\":[\"c92b326d1f43597aa7344d039717952ea97b2af16532354666d9c1c7929e01eb\",\"a5b156546a78eb757b238836b4a004e93cd587622adfc5e70440f3a578f81d99\",\"d691aa0fcdf9c3e5bce591530f52c1891579326f1fa882942d7a3c2ba67cb39a\",\"e5236b943b00dd27b7b55a1879250694338902f490a63ab329412a7f4c27c48f\",\"88d47a2b2f908318370def54753976fcdd4d1acb0b98e6a819ddf38d6a3811e6\"],\"lights\":[{\"id\":\"连续顶灯｜第1排·向下照明\",\"type\":\"rect-area\",\"position\":[-10.5,17.75,5.5],\"direction\":[0,-1,0],\"width\":0.47999998927116394,\"height\":22.799999237060547,\"color\":[0.8999999761581421,0.949999988079071,1],\"sourcePowerWatts\":510,\"sourceSpreadRadians\":1.5707963705062866,\"sourceNormalize\":true,\"intensity\":5,\"calibration\":\"initial-fit-not-photometric-equivalence\"},{\"id\":\"连续顶灯｜第2排·向下照明\",\"type\":\"rect-area\",\"position\":[0.5,17.75,5.5],\"direction\":[0,-1,0],\"width\":0.47999998927116394,\"height\":22.799999237060547,\"color\":[0.8999999761581421,0.949999988079071,1],\"sourcePowerWatts\":510,\"sourceSpreadRadians\":1.5707963705062866,\"sourceNormalize\":true,\"intensity\":5,\"calibration\":\"initial-fit-not-photometric-equivalence\"},{\"id\":\"连续顶灯｜第3排·向下照明\",\"type\":\"rect-area\",\"position\":[11.5,17.75,5.5],\"direction\":[0,-1,0],\"width\":0.47999998927116394,\"height\":22.799999237060547,\"color\":[0.8999999761581421,0.949999988079071,1],\"sourcePowerWatts\":510,\"sourceSpreadRadians\":1.5707963705062866,\"sourceNormalize\":true,\"intensity\":5,\"calibration\":\"initial-fit-not-photometric-equivalence\"}],\"skyboxUrl\":\"/hdr/skybox-day.png\",\"volumes\":[{\"id\":\"LPV_Corridor_01\",\"min\":[-5.775979518890381,9.149614334106445,-12.004508972167969],\"max\":[5.9723687171936035,17.857566833496094,-6.832398891448975],\"resolution\":[3,3,2],\"priority\":10},{\"id\":\"LPV_Corridor_02\",\"min\":[-3.796603202819824,8.08193588256836,-18.976911544799805],\"max\":[22.778663635253906,20.63709259033203,-13.804801940917969],\"resolution\":[6,4,2],\"priority\":10},{\"id\":\"LPV_Room\",\"min\":[-22.087432861328125,9.049585342407227,-6.833240509033203],\"max\":[21.725418090820312,21.403011322021484,18.980003356933594],\"resolution\":[9,4,6],\"priority\":0}],\"encoding\":\"l2-sh-rgba16f-7-padded-volumes\"}",
+  "capture": {
+    "sky": 0.35,
+    "emissive": 0,
+    "direct": 1,
+    "cubemapSize": 16
+  },
+  "encoding": "rgba16f-le",
+  "url": "./probe-atlas.bin",
+  "sha256": "b56885451f3fc0de467cf3baad3248e8f95273adca1099cad4e7d18ca636ba42",
+  "volumes": [
+    {
+      "id": "LPV_Corridor_01",
+      "offset": 0,
+      "bytes": 2016
+    },
+    {
+      "id": "LPV_Corridor_02",
+      "offset": 2016,
+      "bytes": 5376
+    },
+    {
+      "id": "LPV_Room",
+      "offset": 7392,
+      "bytes": 16128
+    }
+  ],
+  "capturedSourceKey": "{\"version\":1,\"three\":\"187\",\"model\":\"bdbf53dcf30bffc8130f8c7c11e8fed2e2632c21ad9ec45db0366a4b974a8bc8\",\"atlases\":[\"c92b326d1f43597aa7344d039717952ea97b2af16532354666d9c1c7929e01eb\",\"a5b156546a78eb757b238836b4a004e93cd587622adfc5e70440f3a578f81d99\",\"d691aa0fcdf9c3e5bce591530f52c1891579326f1fa882942d7a3c2ba67cb39a\",\"e5236b943b00dd27b7b55a1879250694338902f490a63ab329412a7f4c27c48f\",\"88d47a2b2f908318370def54753976fcdd4d1acb0b98e6a819ddf38d6a3811e6\"],\"lights\":[{\"id\":\"连续顶灯｜第1排·向下照明\",\"type\":\"rect-area\",\"position\":[-10.5,17.75,5.5],\"direction\":[0,-1,0],\"width\":0.47999998927116394,\"height\":22.799999237060547,\"color\":[0.8999999761581421,0.949999988079071,1],\"sourcePowerWatts\":510,\"sourceSpreadRadians\":1.5707963705062866,\"sourceNormalize\":true,\"intensity\":5,\"calibration\":\"initial-fit-not-photometric-equivalence\"},{\"id\":\"连续顶灯｜第2排·向下照明\",\"type\":\"rect-area\",\"position\":[0.5,17.75,5.5],\"direction\":[0,-1,0],\"width\":0.47999998927116394,\"height\":22.799999237060547,\"color\":[0.8999999761581421,0.949999988079071,1],\"sourcePowerWatts\":510,\"sourceSpreadRadians\":1.5707963705062866,\"sourceNormalize\":true,\"intensity\":5,\"calibration\":\"initial-fit-not-photometric-equivalence\"},{\"id\":\"连续顶灯｜第3排·向下照明\",\"type\":\"rect-area\",\"position\":[11.5,17.75,5.5],\"direction\":[0,-1,0],\"width\":0.47999998927116394,\"height\":22.799999237060547,\"color\":[0.8999999761581421,0.949999988079071,1],\"sourcePowerWatts\":510,\"sourceSpreadRadians\":1.5707963705062866,\"sourceNormalize\":true,\"intensity\":5,\"calibration\":\"initial-fit-not-photometric-equivalence\"}],\"skyboxUrl\":\"/hdr/skybox-day.png\",\"volumes\":[{\"id\":\"LPV_Corridor_01\",\"min\":[-5.775979518890381,9.149614334106445,-12.004508972167969],\"max\":[5.9723687171936035,17.857566833496094,-6.832398891448975],\"resolution\":[3,3,2],\"priority\":10},{\"id\":\"LPV_Corridor_02\",\"min\":[-3.796603202819824,8.08193588256836,-18.976911544799805],\"max\":[22.778663635253906,20.63709259033203,-13.804801940917969],\"resolution\":[6,4,2],\"priority\":10},{\"id\":\"LPV_Room\",\"min\":[-22.087432861328125,9.049585342407227,-6.833240509033203],\"max\":[21.725418090820312,21.403011322021484,18.980003356933594],\"resolution\":[9,4,6],\"priority\":0}],\"encoding\":\"l2-sh-rgba16f-7-padded-volumes\"}",
+  "reuse": {
+    "mode": "model-only-export-without-recapture",
+    "previousModelSha256": "bdbf53dcf30bffc8130f8c7c11e8fed2e2632c21ad9ec45db0366a4b974a8bc8",
+    "modelSha256": "d3d7fa8e109dede3d4166ae7f0614f7f9510d7cb917f89388d2610fcf87413a4",
+    "lightmapHashesUnchanged": true,
+    "probeDataSha256": "b56885451f3fc0de467cf3baad3248e8f95273adca1099cad4e7d18ca636ba42"
+  }
+}

@@ -32,29 +32,51 @@ function attributeBytes(glb, binding, name) {
   return glb.binary.subarray(start, start + accessor.count * components * 4)
 }
 
-test('lightmaps cover precisely the existing prebaked receivers and preserve old assets', () => {
+test('lightmaps cover the prebaked receivers and preserve unaffected geometry from the original assets', () => {
   const current = validateRoomFiles('public/lighting/range-room-lightmap/manifest.json')
   const old = validateRoomFiles('public/lighting/range-room/manifest.json')
-  assert.equal(current.primitives, old.primitives)
-  assert.equal(current.triangles, old.triangles)
-  assert.equal(current.counts.lightmap, 18)
-  assert.equal(current.counts.realtime, old.counts.realtime)
+  const removed = new Set(manifest.verification.modelOnlyUpdate?.removedSinceBake ?? [])
+  const retained = {
+    ...previous,
+    bindings: previous.bindings.filter(b => !removed.has(b.sourceObject)),
+  }
+  for (const name of removed) {
+    assert.ok(previous.verification.exportedObjects.includes(name))
+    assert.ok(!manifest.verification.exportedObjects.includes(name))
+    assert.ok(!manifest.bindings.some(b => b.sourceObject === name))
+  }
+  assert.equal(current.primitives, old.primitives - (previous.bindings.length - retained.bindings.length))
+  assert.equal(current.triangles, manifest.verification.sourceTriangles)
+  assert.equal(current.counts.lightmap, retained.bindings.filter(b => b.mode === 'baked-appearance').length)
+  assert.equal(current.counts.realtime, retained.bindings.filter(b => b.mode === 'realtime').length)
   assert.equal(current.alphaModes.MASK, old.alphaModes.MASK)
   assert.equal(current.alphaModes.BLEND, old.alphaModes.BLEND)
   const receivers = (m, mode) => m.bindings.filter(b => b.mode === mode).map(b => `${b.sourceObject}/${b.sourceMaterial}/${b.uvChannel}`).sort()
-  assert.deepEqual(receivers(manifest, 'lightmap'), receivers(previous, 'baked-appearance'))
+  assert.deepEqual(receivers(manifest, 'lightmap'), receivers(retained, 'baked-appearance'))
   assert.equal(manifest.bake.objects.length, 11)
   assert.equal(manifest.bake.collection, '预烘焙')
   assert.equal(manifest.bake.geometryAndUVUnchanged, true)
   assert.equal(manifest.bake.uvOwnership.overlappingTexels, 0)
+  const translatedObjects = Array.from(new Set((manifest.bake.uvTranslations ?? []).map(entry => entry.object))).sort()
+  const sourceGeometry = manifest.bake.sourceGeometryUVHashes ?? manifest.bake.geometryUVHashes
+  const uvChanges = Object.entries(manifest.bake.geometryUVHashes)
+    .filter(([name, hash]) => hash !== sourceGeometry[name])
+    .map(([name]) => name)
+    .sort()
+  assert.deepEqual(uvChanges, translatedObjects, 'Only explicitly translated BakeUV islands may change during preparation')
   for (const object of ['Double_Stone_Slab', 'Stone_Slab.001']) {
     const bindings = manifest.bindings.filter(b => b.sourceObject === object)
-    assert.equal(bindings.length, 2)
+    assert.equal(bindings.length, removed.has(object)
+      ? 0
+      : 2)
     assert.ok(bindings.every(b => b.atlasId === 'B05'), `${object}: albedo reassignment must not change the packed atlas page`)
   }
   const oldGLB = readGLB('range-room')
   const newGLB = readGLB('range-room-lightmap')
+  const updatedReceivers = new Set(manifest.verification.modelUpdate?.changedLightmapReceivers ?? [])
   for (const binding of manifest.bindings.filter(b => b.mode === 'lightmap')) {
+    if (updatedReceivers.has(binding.sourceObject))
+      continue
     const oldBinding = previous.bindings.find(b => b.sourceObject === binding.sourceObject && b.sourceMaterial === binding.sourceMaterial)
     for (const attribute of [
       'POSITION',
@@ -66,7 +88,7 @@ test('lightmaps cover precisely the existing prebaked receivers and preserve old
   }
 })
 
-test('all rebaked pages contain finite nonempty half-float HDR lighting and original albedo remains in GLB', () => {
+test('all lightmap pages contain finite nonempty half-float HDR lighting and original albedo remains in GLB', () => {
   for (const page of manifest.atlases) {
     const bytes = fs.readFileSync(new URL(`../public/lighting/range-room-lightmap/atlases/${page.id}.exr`, import.meta.url))
     const parsed = new EXRLoader().setDataType(THREE.HalfFloatType).parse(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength))

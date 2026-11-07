@@ -1,4 +1,5 @@
 import * as THREE from 'three/webgpu'
+import { createProbeLighting } from './probe-lighting.js'
 import { loadRoomAssets } from './room-assets.js'
 import { createRoomLights } from './room-lights.js'
 import { createEnvironmentProxy } from './sky-environment.js'
@@ -25,12 +26,15 @@ export function createRangeRoom({ scene, camera, resources, maxAnisotropy = 16, 
   const controller = new AbortController()
   let room = null
   let lights = null
+  let probes = null
+  let probesLoading = false
   let skyLoaded = false
   let environmentProxy = null
   let disposed = false
   let loading = false
 
   const world = {
+    get probes() { return probes },
     async load() {
       if (loading || room || disposed)
         throw new Error('[Range room] Already loaded/loading or disposed; create a new room instance to reload')
@@ -82,10 +86,36 @@ export function createRangeRoom({ scene, camera, resources, maxAnisotropy = 16, 
         loading = false
       }
     },
+    async loadProbes(renderer, onProgress) {
+      if (!room || !lights || disposed || probes || probesLoading)
+        throw new Error('[Range room] Probes cannot be loaded in the current state')
+      probesLoading = true
+      try {
+        const result = await createProbeLighting({
+          scene,
+          renderer,
+          room,
+          lights,
+          skyboxUrl: settings.skyboxUrl,
+          signal: controller.signal,
+          onProgress,
+        })
+        if (disposed) {
+          result.dispose()
+          throw new DOMException('Room was disposed during probe loading', 'AbortError')
+        }
+        probes = result
+        return probes
+      }
+      finally {
+        probesLoading = false
+      }
+    },
     setRuntimeLighting(enabled) {
       if (!lights || disposed)
         throw new Error('[Range room] Room is not ready')
       lights.setEnabled(enabled)
+      probes?.setRuntimeEnabled(enabled)
       scene.environmentIntensity = enabled ? settings.environmentIntensity : 0
     },
     snapshot() {
@@ -129,6 +159,7 @@ export function createRangeRoom({ scene, camera, resources, maxAnisotropy = 16, 
             }
           : null,
         lightCalibration: 'initial fit; RectAreaLight shadows/Spread unavailable; visual acceptance required',
+        probes: probes?.getDebugState() ?? null,
       }
     },
     dispose() {
@@ -136,6 +167,7 @@ export function createRangeRoom({ scene, camera, resources, maxAnisotropy = 16, 
         return
       disposed = true
       controller.abort()
+      probes?.dispose()
       lights?.dispose()
       room?.dispose()
       scene.background = previousBackground

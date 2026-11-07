@@ -40,6 +40,8 @@ try {
   const lightmapModule = `/@fs/${path.resolve('tests/lightmap-browser-cases.js').replaceAll('\\', '/')}`
   report.lightmapMaterial = await evaluate(`import(${JSON.stringify(lightmapModule)}).then(module=>module.checkLightmapMaterial())`)
   report.pixelArtMinification = await evaluate(`import(${JSON.stringify(lightmapModule)}).then(module=>module.checkPixelArtMinification())`)
+  const probeModule = `/@fs/${path.resolve('tests/probe-lighting-browser-cases.js').replaceAll('\\', '/')}`
+  report.probeEnvironment = await evaluate(`import(${JSON.stringify(probeModule)}).then(module=>module.checkProbeEnvironment())`)
   report.updates = await evaluate('__PIPELINE_CASES__.checkRuntimeUpdates(__RANGE_ROOM__)')
   report.cycles = await evaluate('__PIPELINE_CASES__.checkResourceCycles(__RANGE_ROOM__)')
   report.aoQuality = await evaluate('__PIPELINE_CASES__.compareAOQuality(__RANGE_ROOM__)')
@@ -76,6 +78,7 @@ finally {
     normals: report.normals,
     lightmapMaterial: report.lightmapMaterial,
     pixelArtMinification: report.pixelArtMinification,
+    probeEnvironment: report.probeEnvironment,
     aoQuality: report.aoQuality,
     resourceCycles: report.cycles?.cycles,
     benchmark: report.benchmark?.map(({ effects, samples, gpuMs, cpuSubmitMs, passes }) => ({

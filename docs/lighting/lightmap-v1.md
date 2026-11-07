@@ -123,3 +123,35 @@ node tools/check-pipeline-browser.mjs "http://localhost:5173/"
 - `comparison/reference-{nearest,filtered}.png`、`comparison/grazing-{nearest,filtered}.png`、`comparison/near-{nearest,filtered}.png`：同一场景、同一机位切换底色采样的对照。
 - `pipeline-browser/report.json`：GPU 采样夹具及渲染回归。
 - `browser-lightmap/report.json`、`browser-appearance/report.json`：两套方案的生产回归与走廊移除检查。
+
+## 模型同步更新 · 2026-11-07
+
+同步 Blender 最新模型的六个变更对象：`Bricks`、`Jungle_Slab`、`Oak_Slab`、`Stone_Brick_Stairs`、`Block_of_Quartz`，以及用户确认一并纳入的恢复会话修改 `Smooth_Stone`。默认 Lightmap 版本重新导出，并按新几何更新五页 Lightmap 和空间探针数据。
+
+新 `Block_of_Quartz` 的 face 113 复制了 face 110 的 BakeUV，在 B02 造成 4,050 个重叠 texel。导出副本仅对 face 113 的 BakeUV 做平移，保持岛的大小与方向，使用空闲区域及 12 texel margin；几何和 UV0 不变。平移量为 `[-0.5683403611183167, 0.09379959478974342]`。准备后 1,830 个面通过 UV 占用检查，重叠为 0。
+
+导出 scope 的可选 `bakeUVTranslations` 记录对象、面号、atlas、原 UV 与平移量；烘焙工具先核对原 UV，再应用平移并重新校验全部页。记录随 `manifest.bake.uvTranslations` 保存。`geometryAndUVUnchanged` 表示准备完成后的**烘焙阶段**未改变网格；准备前后的指纹分别为 `sourceGeometryUVHashes` 和 `geometryUVHashes`。
+
+`LightProbeVolumes` 中的规划 Box 在后台烘焙时排除，防止封闭 Box 参与遮挡。同步将探针默认总强度设为 **1.21**、天空漫反射倍率设为 **0.52**。
+
+烘焙工具改为逐页处理以限制内存峰值，每页仍使用 2048²、512 samples 和完整房间的遮挡／反弹；同一对象属于其他页的材质槽写入临时 1×1 接收图，完成后恢复全部正式绑定。后台副本移除已脱离有效 PBR 分支的旧预览 atlas 节点和图像，已保存的页释放解码缓冲，并禁用全局撤销和渲染持久缓存。`--reuse-pages B01 B02` 可显式复用**相同快照、scope、采样配置**及工作目录中已完成的原始 EXR。
+
+本轮临时快照、scope、UV 平移计划、旧资源备份、后台日志与浏览器记录存放在 `D:/opencode-temp/opencode/room-model-update-20261107/`。确认后的恢复版本使用其中 `recovered-update/source-snapshot.blend` 和 `recovered-update/scope.json`，恢复会话另有独立备份 `recovered-session.blend`。
+
+### 同步结果与验证
+
+- 正式模型已替换为恢复版本：**135 mesh、199 primitive、47,644 triangles**，分类为 18 lightmap／178 realtime／3 fixture-emissive。SHA-256：`bdbf53dcf30bffc8130f8c7c11e8fed2e2632c21ad9ec45db0366a4b974a8bc8`。
+- 六个对象的实际 GLB 差异与批准快照一致；其他对象保持原几何／UV。五页均从恢复快照重新烘焙，未复用先前五对象版本的页面。
+- 从恢复快照核验三个探针 Box 定义一致；按新模型与 Lightmap 重捕获 **282** 个探针，正式缓存 **23,520 bytes**。生产页面确认从 `precomputed` 加载，Panel 初始值为天空漫反射 **0.52**、探针总强度 **1.21**。
+- Node **34/34**、修改文件 ESLint、生产构建、diff 检查、默认 Lightmap 页面与探针专项浏览器回归通过，浏览器错误为 0。捕获／上传失败回滚、重复捕获与释放检查通过；50 个 Lightmap 采样点的探针开关差为 0。
+- 前台临时切换的视图已恢复为材质预览。验证记录位于 `recovered-update/model-validation.json`、`verification-summary.json`、`production-room-lightmap/`、`production-probes/`；后两个目录包含页面截图。
+
+### 后续仅模型导出 · 复用光照
+
+用户要求不重烘时，使用 `tools/bake_range_room_lightmaps.py --reuse-lightmaps <现有 manifest.json>`，其余 `--project`、`--scope`、`--work` 参数保持原流程；输出仍使用独立暂存目录。该路径核对保留的接收者几何／BakeUV，应用已有页绑定与 UV 平移，然后在 Cycles 初始化前转入导出。五页 EXR 按原始字节复制，不重烘也不重新编码。
+
+本次同步 `Jungle_Slab`、`Stone_Brick_Stairs`、`White_Carpet` 的修改，以及场景中 `Stone_Slab.001` 的删除。保留的 **10 个预烘焙对象**在实际 GLB 中的几何、法线、UV、索引、变换和图集绑定均与上一版本一致。当前为 **134 mesh、197 primitive、47,318 triangles**，其中 16 lightmap／178 realtime／3 fixture-emissive；模型 SHA-256 为 `d3d7fa8e109dede3d4166ae7f0614f7f9510d7cb917f89388d2610fcf87413a4`。
+
+`manifest.bake` 保留原烘焙记录；`verification.rebake=false`、`reusedLightmapsFrom` 和 `modelOnlyUpdate` 记录本次复用与模型变更。五页 Lightmap 和 **23,520 bytes** 的探针数据逐字节复用；探针缓存只更新模型匹配签名，并用 `capturedSourceKey` 保留实际采样来源，避免页面自动重捕获。
+
+Node **34/34**、修改测试文件 ESLint、资源校验与浏览器加载检查通过。浏览器确认加载新模型，探针来源为 `precomputed`、`lastBakeMs=null`，实际加载的 SH 数据哈希与原缓存一致。记录及截图：`D:/opencode-temp/opencode/room-model-export-only-20261107/`。
