@@ -1,10 +1,10 @@
 # renderer V1 · 练枪房 · Three.js WebGPU
 
-本轮运行时渲染器暂定为 **renderer V1**；房间资产仍沿用 `range-room-v3` 标识，设计文档的 V3 修订号不变。
+本轮运行时渲染器暂定为 **renderer V1**；房间资产仍沿用 `range-room-v3` 标识。
 
 单房间渲染入口：五张线性 EXR 烘焙外观、像素风未烘焙物体 PBR、三排矩形顶灯、日间天空环境、走廊补光、GTAO + 空间去噪、Reinhard（曝光强度 1.2）、LUT 与 SMAA。
 
-[当前计划](docs/superpowers/specs/2026-11-06-range-room-render-plan.md)。正式资源在 `public/model/range-room.glb` 与 `public/lighting/range-room/`，由带 SHA-256 的 manifest 绑定。不会回退到旧整图。
+实施与验证见 [练枪房实施与验证记录](docs/lighting/range-room-v3-implementation.md)。正式资源在 `public/model/range-room.glb` 与 `public/lighting/range-room/`，由带 SHA-256 的 manifest 绑定。不会回退到旧整图。
 
 ## 开发
 
