@@ -9,9 +9,12 @@ import { createRoomLights } from '../src/world/room-lights.js'
 import { createEnvironmentProxy } from '../src/world/sky-environment.js'
 import { buildAtlasMips, createTextureSampling } from '../src/world/texture-sampling.js'
 
-test('Reinhard exposure 1.2 and 16x anisotropy are the requested defaults', () => {
+test('Reinhard exposure 1.11 and 16x anisotropy are the requested defaults', () => {
   assert.equal(renderConfig.toneMapping, 'reinhard')
-  assert.equal(renderConfig.toneMappingExposure, 1.2)
+  assert.equal(renderConfig.toneMappingExposure, 1.11)
+  assert.equal(renderConfig.aoStrength, 2.22)
+  assert.equal(renderConfig.aoRadius, 3)
+  assert.equal(renderConfig.aoThickness, 3)
   assert.equal(rangeRoomConfig.textureAnisotropy, 16)
   assert.doesNotThrow(() => validateEffects(renderConfig))
   assert.throws(() => validateEffects({ ...renderConfig, aoRadius: Number.NaN }))
@@ -97,6 +100,16 @@ test('neutral 33³ half-float LUT is identity; warm preset and grading are real 
   const index = ((16 * 33 + 16) * 33 + 16) * 4
   assert.equal(grading.texture.colorSpace, THREE.NoColorSpace)
   assert.equal(grading.texture.type, THREE.HalfFloatType)
+  assert.equal(grading.params.preset, 'cool')
+  assert.equal(grading.params.contrast, 1.03)
+  assert.equal(grading.params.saturation, 1.07)
+  grading.update({
+    preset: 'neutral',
+    contrast: 1,
+    saturation: 1,
+    temperature: 0,
+    tint: 0,
+  })
   assert.equal(THREE.DataUtils.fromHalfFloat(grading.texture.image.data[index]), 0.5)
   grading.update({ preset: 'warm' })
   const red = THREE.DataUtils.fromHalfFloat(grading.texture.image.data[index])
@@ -104,7 +117,8 @@ test('neutral 33³ half-float LUT is identity; warm preset and grading are real 
   assert.ok(red > 0.5 && blue < 0.5)
   assert.throws(() => grading.update({ saturation: Number.NaN }))
   grading.reset()
-  assert.equal(THREE.DataUtils.fromHalfFloat(grading.texture.image.data[index]), 0.5)
+  assert.equal(grading.params.preset, 'cool')
+  assert.notEqual(THREE.DataUtils.fromHalfFloat(grading.texture.image.data[index]), 0.5)
   grading.dispose()
 })
 

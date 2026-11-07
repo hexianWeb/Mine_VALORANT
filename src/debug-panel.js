@@ -157,7 +157,7 @@ export function createDebugPanel(render, container, lightingMode = 'lightmap') {
   lut.addButton({ title: '导入 .cube LUT' }).on('click', () => file.click())
   lut.addButton({ title: '重置调色' }).on('click', () => safely(() => {
     render.resetColorGrading()
-    render.setEffects({ lutEnabled: true, lutIntensity: 1, toneMappingExposure: 1.2 })
+    render.setEffects({ lutEnabled: true, lutIntensity: 1, toneMappingExposure: renderConfig.toneMappingExposure })
   }))
   const onFile = async () => {
     const selected = file.files[0]

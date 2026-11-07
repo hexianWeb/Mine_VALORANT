@@ -199,6 +199,15 @@ export async function checkRuntimeUpdates(app) {
   render.resetColorGrading()
   render.setEffects({ lutEnabled: true })
   await frame()
+  check(!render.snapshot().pipeline.lutBypassed, 'Authored cool grade was bypassed')
+  render.setColorGrading({
+    preset: 'neutral',
+    contrast: 1,
+    saturation: 1,
+    temperature: 0,
+    tint: 0,
+  })
+  await frame()
   check(render.snapshot().pipeline.lutBypassed, 'Neutral identity LUT must be bypassed')
   const timing = await render.measureGpu()
   check(timing && timing.totalMs > 0 && timing.passes.length >= 8, 'Missing GPU pass timings')

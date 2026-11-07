@@ -2,12 +2,12 @@
 export const renderConfig = Object.freeze({
   maxPixelRatio: 1,
   toneMapping: 'reinhard',
-  toneMappingExposure: 1.2,
+  toneMappingExposure: 1.11,
   ao: true,
   aoResolutionScale: 0.5,
-  aoRadius: 0.5,
-  aoThickness: 0.5,
-  aoStrength: 1,
+  aoRadius: 3,
+  aoThickness: 3,
+  aoStrength: 2.22,
   aoSamples: 16,
   denoise: true,
   denoiseResolutionScale: null, // null follows GTAO; an explicit scale overrides it.

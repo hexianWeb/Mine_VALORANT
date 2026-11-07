@@ -2,9 +2,9 @@ import { LUTCubeLoader } from 'three/addons/loaders/LUTCubeLoader.js'
 import * as THREE from 'three/webgpu'
 
 export const gradingDefaults = Object.freeze({
-  preset: 'neutral',
-  contrast: 1,
-  saturation: 1,
+  preset: 'cool',
+  contrast: 1.03,
+  saturation: 1.07,
   temperature: 0,
   tint: 0,
 })
