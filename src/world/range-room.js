@@ -9,7 +9,6 @@ export const rangeRoomConfig = Object.freeze({
   atlasMaxMipLevel: 2,
   skyboxUrl: '/hdr/skybox-day.png',
   environmentIntensity: 0.35,
-  corridorLighting: true,
 })
 
 /** Owns room content and loading; register dispose before awaiting load(). */
@@ -71,10 +70,8 @@ export function createRangeRoom({ scene, camera, resources, maxAnisotropy = 16, 
         scene.environment = environmentProxy
         scene.environmentIntensity = settings.environmentIntensity
         skyLoaded = true
-        lights = createRoomLights(room.manifest, { corridorLighting: settings.corridorLighting, environmentLoaded: skyLoaded })
+        lights = createRoomLights(room.manifest, { environmentLoaded: skyLoaded })
         scene.add(lights.root)
-        if (lights.corridor.points.length)
-          room.enableCorridorLighting(lights.corridor)
         return room
       }
       catch (error) {
@@ -84,11 +81,6 @@ export function createRangeRoom({ scene, camera, resources, maxAnisotropy = 16, 
       finally {
         loading = false
       }
-    },
-    setCorridorLighting(enabled) {
-      if (!lights || disposed)
-        throw new Error('[Range room] Room is not ready')
-      lights.setCorridorEnabled(enabled)
     },
     setRuntimeLighting(enabled) {
       if (!lights || disposed)

@@ -50,8 +50,8 @@ try {
     throw new Error('Atlas decode/mip generation must run in Workers')
   if (report.baseline.pipeline.denoise.depthBuffer || report.baseline.pipeline.aaInput.depthBuffer)
     throw new Error('Fullscreen effect targets must not allocate depth')
-  if (report.baseline.environmentSize[0] > 1024 || report.baseline.lights.filter(light => light.type === 'PointLight').length !== 3)
-    throw new Error('Expected bounded sky lighting and three corridor lights')
+  if (report.baseline.environmentSize[0] > 1024 || report.baseline.lights.some(light => light.type === 'PointLight'))
+    throw new Error('Expected bounded sky lighting and no corridor fill lights')
   report.surfaceSampling = await evaluate(`(()=>{
     const samplers=__RANGE_ROOM__.room.samplers.snapshot();
     const surfaces=samplers.filter(texture=>texture.role==='voxel-surface');
@@ -287,30 +287,18 @@ try {
     document.querySelector('.debug-panel').hidden=true;
   })()`)
   await frames(10)
-  await screenshot('room-corridor-lit.png')
-  report.corridor = await evaluate(`(async()=>{
-    const app=__RANGE_ROOM__;const points=[];
-    for(let y=80;y<1080;y+=140)for(let x=80;x<1920;x+=160){
-      const pick=app.pickPixel(x,y);if(pick)points.push({x,y,...pick});
-    }
-    const sample=async()=>{const result=[];for(const p of points)result.push(await app.render.readLinearPixel(p.x,p.y));return result};
-    globalThis.__CORRIDOR_CHECK__={points,sample,lit:await sample()};
-    app.world.setCorridorLighting(false);return {sampleCount:points.length};
-  })()`)
-  await frames(8)
-  await screenshot('room-corridor-unlit.png')
-  report.corridor.results = await evaluate(`(async()=>{
-    const state=__CORRIDOR_CHECK__;const unlit=await state.sample();
-    const result={bakedDelta:0,realtimeDelta:0,bakedChanged:0,realtimeChanged:0};
-    state.points.forEach((point,i)=>{
-      const delta=Math.max(...state.lit[i].slice(0,3).map((v,c)=>v-unlit[i][c]));
-       const key=['baked-appearance','lightmap'].includes(point.mode)?'baked':point.mode==='realtime'?'realtime':null;
-      if(key){result[key+'Delta']=Math.max(result[key+'Delta'],delta);if(delta>0.001)result[key+'Changed']++;}
+  await screenshot('room-corridor.png')
+  report.corridor = await evaluate(`(()=>{
+    const fills=[];const pointLights=[];const helpers=[];
+    __RANGE_ROOM__.scene.traverse(object=>{
+      if(object.userData.role==='corridor-fill'||object.name.includes('走廊顶棚补光'))fills.push(object.name);
+      if(object.isPointLight)pointLights.push(object.name);
+      if(object.userData.role==='light-helper')helpers.push(object.name);
     });
-    __RANGE_ROOM__.world.setCorridorLighting(true);delete globalThis.__CORRIDOR_CHECK__;return result;
+    return {fills,pointLights,helpers};
   })()`)
-  if (report.corridor.results.bakedDelta < 0.001 || report.corridor.results.realtimeDelta < 0.001)
-    throw new Error('Corridor point lights must brighten baked and realtime receivers')
+  if (report.corridor.fills.length || report.corridor.pointLights.length || report.corridor.helpers.length)
+    throw new Error('Corridor lights and their helpers must be removed from the scene')
   await evaluate(`(()=>{
     const app=__RANGE_ROOM__;app.camera.position.fromArray(__ROOM_POSE__.position);app.controls.target.fromArray(__ROOM_POSE__.target);app.controls.update();
     document.querySelector('.debug-panel').hidden=false;delete globalThis.__ROOM_POSE__;delete globalThis.__ROOM_UI_CHANGE__;delete globalThis.__ROOM_UI_BUTTON__;

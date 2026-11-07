@@ -82,7 +82,6 @@ export async function loadRoomAssets({ resources, manifestUrl, signal, sampling 
     if (manifest.schemaVersion === 4)
       counts.lightmap = 0
     const materialCache = new Map()
-    const recipes = new Map()
     root.traverse((object) => {
       if (object.isLight) {
         object.visible = false
@@ -108,7 +107,6 @@ export async function loadRoomAssets({ resources, manifestUrl, signal, sampling 
         const replacement = createRoomMaterial(object.material, binding, atlases)
         samplers.material(replacement)
         materialCache.set(cacheKey, replacement)
-        recipes.set(cacheKey, { source: object.material, binding })
         materials.add(replacement)
       }
       object.material = materialCache.get(cacheKey)
@@ -128,27 +126,6 @@ export async function loadRoomAssets({ resources, manifestUrl, signal, sampling 
       bounds,
       atlases,
       samplers,
-      enableCorridorLighting(corridor) {
-        const replacements = new Map()
-        for (const [key, recipe] of recipes) {
-          if (!['baked-appearance', 'lightmap'].includes(recipe.binding.mode))
-            continue
-          const old = materialCache.get(key)
-          const material = createRoomMaterial(recipe.source, recipe.binding, atlases, corridor)
-          samplers.material(material)
-          materials.add(material)
-          replacements.set(old, material)
-          materialCache.set(key, material)
-        }
-        root.traverse((object) => {
-          if (object.isMesh && replacements.has(object.material))
-            object.material = replacements.get(object.material)
-        })
-        for (const old of replacements.keys()) {
-          materials.delete(old)
-          old.dispose()
-        }
-      },
       dispose() {
         signal?.removeEventListener('abort', dispose)
         dispose()

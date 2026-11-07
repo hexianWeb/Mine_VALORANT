@@ -129,7 +129,7 @@ test('cube imports validate size, data count and display domain without replacin
   grading.dispose()
 })
 
-test('new corridor lights are localized and can explicitly illuminate baked receivers without old lights/AO', () => {
+test('baked appearance is unlit and the room creates no corridor fill lights', () => {
   const manifest = {
     lights: [],
     environment: {
@@ -137,8 +137,8 @@ test('new corridor lights are localized and can explicitly illuminate baked rece
       intensity: 0.35,
     },
   }
-  const lighting = createRoomLights(manifest, { corridorLighting: true, environmentLoaded: true })
-  assert.equal(lighting.corridor.points.length, 3)
+  const lighting = createRoomLights(manifest, { environmentLoaded: true })
+  assert.equal(lighting.root.children.length, 1)
   assert.equal(lighting.root.children[0].intensity, 0)
   const source = new THREE.MeshStandardMaterial()
   const atlas = new THREE.Texture()
@@ -149,15 +149,11 @@ test('new corridor lights are localized and can explicitly illuminate baked rece
     sourceMaterial: 'wall',
     atlasId: 'B01',
     uvChannel: 1,
-  }, atlases, lighting.corridor)
-  assert.equal(material.isMeshLambertNodeMaterial, true)
+  }, atlases)
+  assert.equal(material.isMeshBasicNodeMaterial, true)
   assert.equal(material.lights, false)
-  assert.ok(material.lightsNode && material.emissiveNode)
-  assert.equal(material.userData.corridorLightOnly, true)
-  lighting.setCorridorEnabled(false)
-  assert.ok(lighting.corridor.points.every(light => light.intensity === 0))
-  lighting.setCorridorEnabled(true)
-  assert.ok(lighting.corridor.points.every(light => light.intensity === 55))
+  assert.equal(material.lightsNode, null)
+  assert.equal(material.emissiveNode, undefined)
   lighting.dispose()
   material.dispose()
   source.dispose()

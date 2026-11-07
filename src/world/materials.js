@@ -1,8 +1,8 @@
-import { materialColor, positionWorld, lights as selectiveLights, smoothstep, texture, uv } from 'three/tsl'
+import { lights as selectiveLights, texture, uv } from 'three/tsl'
 import * as THREE from 'three/webgpu'
 
 /** Replacement materials are instance-owned; source maps and geometry remain ResourceManager-owned. */
-export function createRoomMaterial(source, binding, atlases, corridor = null) {
+export function createRoomMaterial(source, binding, atlases) {
   let material
   if (binding.mode === 'lightmap') {
     const atlas = atlases.get(binding.atlasId)
@@ -21,7 +21,7 @@ export function createRoomMaterial(source, binding, atlases, corridor = null) {
     material.lightMapIntensity = binding.lightMapIntensity
     // lights=true retains built-in lightMap and GTAO; the explicit list excludes
     // original lights already baked into the map. Lambert has no scene IBL diffuse.
-    material.lightsNode = selectiveLights(corridor?.points ?? [])
+    material.lightsNode = selectiveLights([])
     material.transparent = false
     material.depthWrite = true
     material.toneMapped = true
@@ -34,27 +34,9 @@ export function createRoomMaterial(source, binding, atlases, corridor = null) {
     // glTF exports V-flipped mesh UVs; EXRLoader's typed scanlines retain the
     // opposite image origin. Normalize once here, keeping texture.flipY=false.
     const bakedColor = texture(atlas, uv(binding.uvChannel).flipY()).rgb
-    if (corridor?.points.length) {
-      // Only the NEW corridor lights may add direct light to baked radiance.
-      // lights=false skips scene environment/AO/original ceiling lights.
-      material = new THREE.MeshLambertNodeMaterial()
-      material.lights = false
-      material.lightsNode = selectiveLights(corridor.points)
-      material.emissiveNode = bakedColor
-      material.color.copy(source.color)
-      material.map = source.map
-      const { min, max, fade } = corridor.bounds
-      let mask = smoothstep(min[0], min[0] + fade, positionWorld.x).mul(smoothstep(max[0] - fade, max[0], positionWorld.x).oneMinus())
-      mask = mask.mul(smoothstep(min[1], min[1] + fade, positionWorld.y)).mul(smoothstep(max[1] - fade, max[1], positionWorld.y).oneMinus())
-      mask = mask.mul(smoothstep(min[2], min[2] + fade, positionWorld.z)).mul(smoothstep(max[2] - fade, max[2], positionWorld.z).oneMinus())
-      material.colorNode = materialColor.rgb.mul(mask)
-      material.userData.corridorLightOnly = true
-    }
-    else {
-      material = new THREE.MeshBasicNodeMaterial()
-      material.lights = false
-      material.colorNode = bakedColor
-    }
+    material = new THREE.MeshBasicNodeMaterial()
+    material.lights = false
+    material.colorNode = bakedColor
     material.side = source.side
     // These atlas receivers are opaque baked walls, even when an old GLB
     // incorrectly tagged the source material as BLEND/depthWrite=false.

@@ -41,14 +41,15 @@ async function startRoom() {
     return
   }
   engine.addSystem('render', render)
+  const roomConfig = {}
+  if (parameters.get('lighting') === 'appearance')
+    roomConfig.manifestUrl = '/lighting/range-room/manifest.json'
   const world = engine.disposer.add(createRangeRoom({
     scene,
     camera,
     resources,
     maxAnisotropy: render.renderer.getMaxAnisotropy(),
-    config: parameters.get('lighting') === 'appearance'
-      ? { manifestUrl: '/lighting/range-room/manifest.json' }
-      : {},
+    config: roomConfig,
   }))
   const room = await world.load()
   if (cancelled)
