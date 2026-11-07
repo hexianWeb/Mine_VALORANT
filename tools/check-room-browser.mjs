@@ -36,6 +36,8 @@ try {
     check();
   })`)
   const frames = count => evaluate(`new Promise(resolve => { let n=${count}; function tick(){ if(--n<=0) resolve(true); else requestAnimationFrame(tick); } requestAnimationFrame(tick); })`)
+  // Renderer-only image comparisons exclude animated props and colored HUD pixels.
+  await evaluate('__RANGE_ROOM__.inspection.setPaused(true);document.querySelector(".room-inspection").hidden=true')
   await frames(35)
   report.baseline = await evaluate('globalThis.__RANGE_ROOM__.snapshot()')
   report.lightingMode = report.baseline.lightingMode

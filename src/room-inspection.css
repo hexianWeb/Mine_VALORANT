@@ -1,0 +1,54 @@
+.room-inspection {
+  position: fixed;
+  z-index: 2;
+  bottom: 16px;
+  left: 16px;
+  width: min(430px, calc(100vw - 32px));
+  padding: 12px 14px;
+  color: #dbe5ef;
+  background: rgb(20 26 34 / 92%);
+  border: 1px solid #3b4654;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.inspection-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inspection-speed {
+  color: #e8b679;
+  font-variant-numeric: tabular-nums;
+}
+
+.inspection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.inspection-actions button {
+  padding: 4px 8px;
+  border: 1px solid #526072;
+  border-radius: 4px;
+  color: inherit;
+  background: #293442;
+  cursor: pointer;
+  font: inherit;
+}
+
+.inspection-actions button:hover,
+.inspection-actions button:focus-visible {
+  background: #3b4b5f;
+  outline: 1px solid #e8b679;
+}
+
+.inspection-help {
+  color: #aab9c9;
+  font-size: 11px;
+}

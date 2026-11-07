@@ -1,9 +1,9 @@
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import * as THREE from 'three/webgpu'
 import { createDebugPanel } from './debug-panel.js'
 import { Engine, ResourceManager } from './engine/index.js'
 import { renderConfig } from './engine/systems/render/config.js'
 import { createRenderSystem } from './engine/systems/render/index.js'
+import { createRoomInspection } from './room-inspection.js'
 import { createRangeRoom } from './world/range-room.js'
 import './style.css'
 
@@ -53,24 +53,23 @@ async function startRoom() {
   const room = await world.load()
   if (cancelled)
     return
-  const forward = camera.getWorldDirection(new THREE.Vector3())
-  const controls = engine.disposer.add(new OrbitControls(camera, canvas))
-  controls.target.copy(camera.position).addScaledVector(forward, 6)
-  controls.enableDamping = true
-  controls.maxDistance = 60
-  controls.minDistance = 0.2
-  controls.update()
+  const inspection = engine.disposer.add(createRoomInspection({
+    engine,
+    scene,
+    camera,
+    canvas,
+    renderer: render.renderer,
+    room,
+  }))
+  const controls = inspection.orbit
   const panel = engine.disposer.add(createDebugPanel(render, document.querySelector('.debug-panel'), world.snapshot().lightingMode))
-  engine.addSystem('input', {
-    name: 'inspection-camera',
-    update: () => controls.update(),
-  })
   const snapshot = () => {
     const renderState = render.snapshot()
     const worldState = world.snapshot()
     return {
       ...renderState,
       ...worldState,
+      inspection: inspection.snapshot(),
       ready: renderState.ready && worldState.ready,
       config: {
         ...renderState.config,
@@ -78,7 +77,7 @@ async function startRoom() {
       },
     }
   }
-  // Inspection/test surface, not a GUI or a gameplay controller.
+  // Runtime inspection/test surface.
   globalThis.__RANGE_ROOM__ = {
     engine,
     render,
@@ -87,13 +86,14 @@ async function startRoom() {
     scene,
     camera,
     controls,
+    inspection,
     panel,
     ready: true,
     snapshot,
     pickPixel(x, y) {
       const ray = new THREE.Raycaster()
       ray.setFromCamera(new THREE.Vector2(x / canvas.width * 2 - 1, 1 - y / canvas.height * 2), camera)
-      const hit = ray.intersectObject(room.root, true)[0]
+      const hit = ray.intersectObjects(scene.children, true)[0]
       return hit
         ? { mode: hit.object.material.userData.roomMode, name: hit.object.name }
         : null
