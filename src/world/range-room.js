@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { createProbeLighting } from './probe-lighting.js'
 import { loadRoomAssets } from './room-assets.js'
+import { createRoomGround, roomGroundTextures } from './room-ground.js'
 import { createRoomLights } from './room-lights.js'
 import { createEnvironmentProxy } from './sky-environment.js'
 
@@ -26,6 +27,7 @@ export function createRangeRoom({ scene, camera, resources, maxAnisotropy = 16, 
   const controller = new AbortController()
   let room = null
   let lights = null
+  let ground = null
   let probes = null
   let probesLoading = false
   let skyLoaded = false
@@ -35,6 +37,7 @@ export function createRangeRoom({ scene, camera, resources, maxAnisotropy = 16, 
 
   const world = {
     get probes() { return probes },
+    get ground() { return ground },
     async load() {
       if (loading || room || disposed)
         throw new Error('[Range room] Already loaded/loading or disposed; create a new room instance to reload')
@@ -64,6 +67,7 @@ export function createRangeRoom({ scene, camera, resources, maxAnisotropy = 16, 
             type: 'texture',
             url: settings.skyboxUrl,
           },
+          ...roomGroundTextures,
         ])
         controller.signal.throwIfAborted()
         const sky = resources.get(skyName, 'texture')
@@ -76,6 +80,16 @@ export function createRangeRoom({ scene, camera, resources, maxAnisotropy = 16, 
         skyLoaded = true
         lights = createRoomLights(room.manifest, { environmentLoaded: skyLoaded })
         scene.add(lights.root)
+        ground = createRoomGround({
+          bounds: room.bounds,
+          quartzTexture: resources.get(roomGroundTextures[0].name, 'texture'),
+          grassTexture: resources.get(roomGroundTextures[1].name, 'texture'),
+          environment: environmentProxy,
+          anisotropy: settings.textureAnisotropy,
+        })
+        scene.add(ground.root)
+        camera.far = Math.max(camera.far, ground.viewDistance)
+        camera.updateProjectionMatrix()
         return room
       }
       catch (error) {
@@ -116,6 +130,7 @@ export function createRangeRoom({ scene, camera, resources, maxAnisotropy = 16, 
         throw new Error('[Range room] Room is not ready')
       lights.setEnabled(enabled)
       probes?.setRuntimeEnabled(enabled)
+      ground?.setLightingEnabled(enabled)
       scene.environmentIntensity = enabled ? settings.environmentIntensity : 0
     },
     snapshot() {
@@ -160,6 +175,7 @@ export function createRangeRoom({ scene, camera, resources, maxAnisotropy = 16, 
           : null,
         lightCalibration: 'initial fit; RectAreaLight shadows/Spread unavailable; visual acceptance required',
         probes: probes?.getDebugState() ?? null,
+        ground: ground?.snapshot() ?? null,
       }
     },
     dispose() {
@@ -168,12 +184,15 @@ export function createRangeRoom({ scene, camera, resources, maxAnisotropy = 16, 
       disposed = true
       controller.abort()
       probes?.dispose()
+      ground?.dispose()
       lights?.dispose()
       room?.dispose()
       scene.background = previousBackground
       scene.environment = previousEnvironment
       scene.environmentIntensity = previousEnvironmentIntensity
       resources.unload(skyName)
+      for (const texture of roomGroundTextures)
+        resources.unload(texture.name)
       environmentProxy?.dispose()
     },
   }

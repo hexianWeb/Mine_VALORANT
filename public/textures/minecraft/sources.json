@@ -1,0 +1,36 @@
+{
+  "edition": "Minecraft Java Edition",
+  "version": "1.21.1",
+  "owner": "Mojang Studios",
+  "mirror": "https://github.com/Faithful-Pack/Default-Java/tree/1.21.1",
+  "revision": "a07b741ff5c3d79f5aef81d7d05e637c5549bbf4",
+  "downloaded": "2026-11-07",
+  "notes": "Unmodified vanilla 16x16 PNG assets. Grass uses the vanilla plains biome tint at runtime.",
+  "files": [
+    {
+      "file": "quartz_bricks.png",
+      "url": "https://raw.githubusercontent.com/Faithful-Pack/Default-Java/a07b741ff5c3d79f5aef81d7d05e637c5549bbf4/assets/minecraft/textures/block/quartz_bricks.png",
+      "width": 16,
+      "height": 16,
+      "bytes": 194,
+      "sha256": "67ab2f8008fcb67b2fa465c7c7a3aa3f284389e8ed96ef1796dd93e1dc4a3d7d"
+    },
+    {
+      "file": "grass_block_top.png",
+      "url": "https://raw.githubusercontent.com/Faithful-Pack/Default-Java/a07b741ff5c3d79f5aef81d7d05e637c5549bbf4/assets/minecraft/textures/block/grass_block_top.png",
+      "width": 16,
+      "height": 16,
+      "bytes": 298,
+      "sha256": "52f44b64ce884a13dfe35e4b4da2e35898b790dd4d7a5ea536f1b0c0d56d29b4"
+    }
+  ],
+  "grassTint": {
+    "biome": "minecraft:plains",
+    "temperature": 0.8,
+    "downfall": 0.4,
+    "colormapPixel": [51, 173],
+    "srgb": "#91bd59",
+    "colormapUrl": "https://raw.githubusercontent.com/Faithful-Pack/Default-Java/a07b741ff5c3d79f5aef81d7d05e637c5549bbf4/assets/minecraft/textures/colormap/grass.png",
+    "colormapSha256": "d55308b1c707bc239b4be80ea81dad927827b9010d62f23f34297a99bc1ea4d6"
+  }
+}

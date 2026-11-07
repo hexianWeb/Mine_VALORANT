@@ -10,6 +10,8 @@
 
 [室内 LightProbeGrid](docs/lighting/light-probes.md) 使用 Blender `LightProbeVolumes` 的三个 Box，共 282 个预计算探针，为实时物体和漂浮茶壶提供局部间接光。右侧 Panel 可分别调节探针、天空漫反射/镜面反射、顶灯，并配置捕获与查看边界。`?probes=0` 跳过探针模块。
 
+[超平坦外部地面](docs/lighting/superflat-ground.md) 按模型实际包围盒自动生成石英砖基底，外围延伸原版平原草皮。原版 16×16 纹理按 1 m/格重复，结合像素锐度、mip 与各向异性过滤；飞出练枪房即可观察。
+
 ## 开发
 
 ``` bash
@@ -37,6 +39,7 @@ node tools/check-room-browser.mjs "http://localhost:4173/"
 npm run dev
 node tools/check-pipeline-browser.mjs "http://localhost:5173/"
 node tools/check-probes-browser.mjs "http://localhost:5173/"
+node tools/check-ground-browser.mjs "http://localhost:5173/"
 ```
 
 专项测试覆盖法线预通道的透明裁剪/顶点变形、像素贴图的近处锐度与远处缩小过滤、参数原地更新、分辨率联动、效果循环释放，以及 1080p 分 pass GPU 计时。浏览器脚本自动添加 `?profile=1`。
