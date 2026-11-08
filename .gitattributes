@@ -1,0 +1,15 @@
+# Keep source and delivery binaries in Git LFS without changing existing app assets.
+/skin_work_folder/**/*.blend filter=lfs diff=lfs merge=lfs -text
+/skin_work_folder/**/*.glb filter=lfs diff=lfs merge=lfs -text
+/skin_work_folder/**/*.png filter=lfs diff=lfs merge=lfs -text
+/skin_work_folder/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+/skin_work_folder/**/*.webp filter=lfs diff=lfs merge=lfs -text
+/deliverables/**/*.blend filter=lfs diff=lfs merge=lfs -text
+/deliverables/**/*.glb filter=lfs diff=lfs merge=lfs -text
+/deliverables/**/*.png filter=lfs diff=lfs merge=lfs -text
+/deliverables/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+/deliverables/**/*.webp filter=lfs diff=lfs merge=lfs -text
+
+# Keep delivery checksums stable across platforms.
+/deliverables/**/*.md text eol=lf
+/deliverables/**/*.txt text eol=lf
