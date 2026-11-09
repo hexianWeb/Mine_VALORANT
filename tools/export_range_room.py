@@ -63,6 +63,7 @@ def main():
     parser.add_argument('--reference-dir')
     parser.add_argument('--lightmap-report', help='Export completed light-only bake as a separate asset version')
     parser.add_argument('--reuse-atlases', help='Copy exact lightmap files and metadata from an existing manifest without encoding images')
+    parser.add_argument('--allow-new-atlases', action='store_true', help='Permit additional newly baked pages alongside the exact reused pages')
     args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:])
     project = Path(args.project).resolve()
     scope = json.loads(Path(args.scope).read_text(encoding='utf-8'))
@@ -70,6 +71,8 @@ def main():
     reused = json.loads(Path(args.reuse_atlases).read_text(encoding='utf-8')) if args.reuse_atlases is not None else None
     if args.reuse_atlases is not None and (not lightmap or not isinstance(reused, dict) or reused.get('schemaVersion') != 4):
         raise ValueError('Atlas reuse requires an existing lightmap manifest and bake report')
+    if args.allow_new_atlases and reused is None:
+        raise ValueError('Additional pages require an existing lightmap manifest')
     asset_name = 'range-room-lightmap' if lightmap else 'range-room'
     out = project / 'public' / 'lighting' / asset_name
     atlas_dir = out / 'atlases'
@@ -113,17 +116,25 @@ def main():
     settings.exr_codec = choose_enum(settings, 'exr_codec', 'ZIP')
     image_prefix = 'LIGHTMAP_HDR__B' if lightmap else 'DENOISED_HDR__B'
     atlas_images = sorted((i for i in bpy.data.images if i.name.startswith(image_prefix)), key=lambda i: i.name)
-    if len(atlas_images) != 5:
-        raise ValueError(f'Expected exactly 5 denoised atlases, found {len(atlas_images)}')
+    page_ids = [image.name.split('__', 1)[1].split('_', 1)[0] for image in atlas_images]
+    expected_pages = set(lightmap['pages']) if lightmap else None
+    if not atlas_images or len(set(page_ids)) != len(page_ids) or (not lightmap and len(atlas_images) != 5):
+        raise ValueError(f'Invalid or duplicate atlas pages: {page_ids}')
+    if expected_pages is not None and set(page_ids) != expected_pages:
+        raise ValueError(f'Atlas images do not match the bake report: {page_ids} vs {sorted(expected_pages)}')
+    reusable_pages = {page['id']: page for page in reused['atlases']} if reused is not None else {}
+    if reused is not None and not set(reusable_pages).issubset(page_ids):
+        raise ValueError('Every previous atlas must be retained during reuse')
     pages = []
     image_page = {}
+    new_pages = []
     for image in atlas_images:
         page_id = image.name.split('__', 1)[1].split('_', 1)[0]
         target = atlas_dir / f'{page_id}.exr'
         if target.exists():
             raise FileExistsError(target)
-        if reused is not None:
-            page = next(entry for entry in reused['atlases'] if entry['id'] == page_id)
+        if page_id in reusable_pages:
+            page = reusable_pages[page_id]
             source = (Path(args.reuse_atlases).parent / page['url']).resolve()
             if digest(source) != page['sha256'] or list(image.size) != [page['width'], page['height']]:
                 raise ValueError(f'{page_id}: reusable atlas hash or dimensions do not match')
@@ -131,6 +142,9 @@ def main():
             pages.append(page)
             image_page[image.name] = page_id
             continue
+        if reused is not None and not args.allow_new_atlases:
+            raise ValueError(f'{page_id}: new atlas requires --allow-new-atlases')
+        new_pages.append(page_id)
         image.save_render(str(target), scene=scene)
         check = bpy.data.images.load(str(target), check_existing=False)
         pixels = np.empty(len(check.pixels), dtype=np.float32)
@@ -258,12 +272,14 @@ def main():
     }
     if lightmap:
         manifest['bake'] = lightmap
-        manifest['verification']['rebake'] = reused is None
+        manifest['verification']['rebake'] = reused is None or bool(new_pages)
     if reused is not None:
         manifest['verification']['reusedLightmapsFrom'] = {
             'modelSha256': reused['model']['sha256'],
             'manifestSha256': digest(args.reuse_atlases),
         }
+        if new_pages:
+            manifest['verification']['newAtlasPages'] = new_pages
     manifest['verification']['sourceTriangles'] = sum(len(face.vertices) - 2 for obj in objects for face in obj.data.polygons)
     if 'modelUpdate' in scope:
         manifest['verification']['modelUpdate'] = scope['modelUpdate']

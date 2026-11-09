@@ -77,33 +77,48 @@ def main():
     if not collection:
         raise ValueError('Missing explicitly requested collection')
     receivers = sorted((o for o in collection.all_objects if o.type == 'MESH' and len(o.data.polygons)), key=lambda o: o.name)
-    if not receivers or any(not o.data.uv_layers.get('BakeUV') for o in receivers):
-        raise ValueError('Every receiver must already have BakeUV')
+    if not receivers:
+        raise ValueError('The receiver collection is empty')
     exported = [scene.objects[name] for name in scope['objects']]
     # Authoring-only probe boxes are not room occluders, even if visible in Blender.
     probe_collection = bpy.data.collections.get('LightProbeVolumes')
     excluded_probe_boxes = []
     if probe_collection:
-        for obj in probe_collection.all_objects:
-            if obj.type != 'MESH':
+        for obj in list(probe_collection.all_objects):
+            if not obj or obj.type != 'MESH':
                 continue
             if obj in exported:
                 raise ValueError(f'{obj.name}: probe volume cannot be part of the room export scope')
             obj.hide_render = True
             excluded_probe_boxes.append(obj.name)
     before = geometry_hash(exported)
+    source_geometry = before
+    supplemental_plans = reused['bake'].get('supplemental', []) if reused is not None else []
+    supplemental_names = set()
     if reused is not None:
         existing = {binding['sourceObject'] for binding in reused['bindings'] if binding['mode'] == 'lightmap'}
         previous_source = reused['verification'].get('sourceGeometryUVHashes', reused['bake'].get('sourceGeometryUVHashes', reused['bake']['geometryUVHashes']))
         for obj in receivers:
             if obj.name not in existing or before[obj.name] != previous_source.get(obj.name):
                 raise ValueError(f'{obj.name}: receiver geometry or UV changed; lightmap reuse cannot proceed')
+        atlas_sizes = {page['id']: (page['width'], page['height']) for page in reused['atlases']}
+        for plan in supplemental_plans:
+            names = {entry['name'] for entry in plan['objects']}
+            if (supplemental_names & names or not names.issubset({obj.name for obj in receivers})
+                    or atlas_sizes.get(plan['atlasId']) != (plan['width'], plan['height'])):
+                raise ValueError('Supplemental UV plan does not match the receivers or atlas')
+            load_tool('supplemental_lightmap_uv').apply_plan(scene, plan)
+            supplemental_names.update(names)
+    if any(not obj.data.uv_layers.get('BakeUV') for obj in receivers):
+        raise ValueError('Every receiver must have BakeUV after preparation')
     # The embedded material history shows these two top slots originally used
     # smooth_stone and were packed into B05. Later albedo edits reused materials
     # from B02/B03 without repacking BakeUV. Route by their existing islands.
     page_overrides = {'Double_Stone_Slab': {0: 'B05'}, 'Stone_Slab.001': {0: 'B05'}}
     override_records = []
     for obj in receivers:
+        if obj.name in supplemental_names:
+            continue
         for slot, page in page_overrides.get(obj.name, {}).items():
             source = obj.data.materials[slot]
             material = source.copy()
@@ -118,14 +133,17 @@ def main():
     pages = {}
     material_pages = {}
     bake_targets = {}
+    supplemental_sizes = {plan['atlasId']: (plan['width'], plan['height']) for plan in supplemental_plans}
     for material in sorted(source_materials, key=lambda item: item.name):
         old_images = {n.image for n in material.node_tree.nodes if n.type == 'TEX_IMAGE' and n.image and n.image.name.startswith('DENOISED_HDR__B')}
-        if len(old_images) != 1:
+        page_override = material.get('lightmapPage')
+        if page_override not in supplemental_sizes and len(old_images) != 1:
             raise ValueError(f'{material.name}: expected one existing atlas binding')
-        old = next(iter(old_images))
-        page = material.get('lightmapPage', old.name.split('__', 1)[1].split('_', 1)[0])
+        old = next(iter(old_images), None)
+        page = page_override or old.name.split('__', 1)[1].split('_', 1)[0]
         if page not in pages:
-            image = bpy.data.images.new('LIGHTMAP_HDR__' + page, width=old.size[0], height=old.size[1], alpha=True, float_buffer=True)
+            width, height = supplemental_sizes.get(page, tuple(old.size) if old else (0, 0))
+            image = bpy.data.images.new('LIGHTMAP_HDR__' + page, width=width, height=height, alpha=True, float_buffer=True)
             image.generated_color = (0, 0, 0, 0)
             image.alpha_mode = enum(image, 'alpha_mode', 'STRAIGHT')
             pages[page] = image
@@ -145,7 +163,6 @@ def main():
     # Explicit, source-checked island translations support newly duplicated faces
     # without repacking existing charts or editing albedo UVs / the live scene.
     translations = scope.get('bakeUVTranslations', [])
-    source_geometry = before
     for entry in translations:
         obj = scene.objects[entry['object']]
         if obj not in receivers:
@@ -162,7 +179,7 @@ def main():
             raise ValueError('BakeUV translation must contain two finite values')
         for loop, value in zip(face.loop_indices, current + delta):
             uv.data[loop].uv = value
-    if translations:
+    if translations or supplemental_plans:
         before = geometry_hash(exported)
     ownership = load_tool('lightmap_uv').validate_uv_ownership(receivers, material_pages, {page: tuple(image.size) for page, image in pages.items()})
     print('LIGHTMAP_UV_VALIDATED ' + json.dumps({'ownership': ownership, 'pageOverrides': override_records, 'uvTranslations': translations}), flush=True)

@@ -26,7 +26,10 @@ export function validateManifest(manifest) {
   requireValue(typeof manifest.id === 'string' && manifest.id.length > 0, 'missing room id')
   requireValue(manifest.coordinates?.up === 'Y' && manifest.coordinates.rootTransform === 'identity', 'expected exported Y-up coordinates with identity root')
   requireValue(typeof manifest.model?.url === 'string' && hashPattern.test(manifest.model.sha256), 'model URL/hash required')
-  requireValue(Array.isArray(manifest.atlases) && manifest.atlases.length === 5, 'exactly five atlases required')
+  const validAtlasCount = Array.isArray(manifest.atlases) && (lightmap
+    ? manifest.atlases.length > 0
+    : manifest.atlases.length === 5)
+  requireValue(validAtlasCount, lightmap ? 'at least one lightmap atlas required' : 'exactly five appearance atlases required')
   const pages = new Map()
   for (const page of manifest.atlases) {
     requireValue(typeof page.id === 'string' && !pages.has(page.id), `duplicate/invalid atlas id ${page.id}`)

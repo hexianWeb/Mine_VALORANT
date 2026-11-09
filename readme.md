@@ -2,11 +2,11 @@
 
 运行时渲染器为 **renderer V2**；默认房间资产为 `range-room-lightmap-v1`，保留 `range-room-v3` 完整烘焙外观方案。
 
-单房间渲染入口：五张线性 EXR lightmap 与原始像素贴图、未烘焙物体 PBR、三排矩形顶灯、日间天空环境、半分辨率 GTAO/去噪与边缘重建、Reinhard（曝光强度 1.2）、线性 SMAA 与显示域 LUT。
+单房间渲染入口：六张线性 EXR lightmap（五张 2048² 与一张 1024² 补烘图）与原始像素贴图、未烘焙物体 PBR、三排矩形顶灯、日间天空环境、半分辨率 GTAO/去噪与边缘重建、Reinhard（曝光强度 1.2）、线性 SMAA 与显示域 LUT。
 
 本轮改造见 [renderer V2 优化与验证](docs/lighting/renderer-v2-optimization.md)，首版接入见 [练枪房实施与验证记录](docs/lighting/range-room-v3-implementation.md)。正式资源在 `public/model/range-room.glb` 与 `public/lighting/range-room/`，由带 SHA-256 的 manifest 绑定。
 
-最新 [Lightmap 重烘与接入](docs/lighting/lightmap-v1.md) 仅覆盖“预烘焙”集合的 11 个对象、18 个分区。新资源在 `public/model/range-room-lightmap.glb` 与 `public/lighting/range-room-lightmap/`。右上角 **切回原版** 或 `?lighting=appearance` 可回退；`?lighting=lightmap` 使用新方案。
+最新 [Lightmap 重烘与接入](docs/lighting/lightmap-v1.md) 覆盖“预烘焙”集合的 12 个对象、19 个分区；`Stone_Slab.001` 与 `wall` 使用单独的紧凑补烘图。新资源在 `public/model/range-room-lightmap.glb` 与 `public/lighting/range-room-lightmap/`。右上角 **切回原版** 或 `?lighting=appearance` 可回退；`?lighting=lightmap` 使用新方案。
 
 [室内 LightProbeGrid](docs/lighting/light-probes.md) 使用 Blender `LightProbeVolumes` 的三个 Box，共 282 个预计算探针，为实时物体和漂浮茶壶提供局部间接光。右侧 Panel 可分别调节探针、天空漫反射/镜面反射、顶灯，并配置捕获与查看边界。`?probes=0` 跳过探针模块。
 

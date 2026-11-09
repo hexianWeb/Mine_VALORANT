@@ -1,5 +1,7 @@
 # Lightmap v1 · 预烘焙集合重烘
 
+下文保留首版和历次交付记录。当前版本额外包含末尾所述的 **B06 增量补烘**。
+
 ## 使用与回退
 
 - 默认首页加载 `/lighting/range-room-lightmap/manifest.json`。
@@ -155,3 +157,31 @@ node tools/check-pipeline-browser.mjs "http://localhost:5173/"
 `manifest.bake` 保留原烘焙记录；`verification.rebake=false`、`reusedLightmapsFrom` 和 `modelOnlyUpdate` 记录本次复用与模型变更。五页 Lightmap 和 **23,520 bytes** 的探针数据逐字节复用；探针缓存只更新模型匹配签名，并用 `capturedSourceKey` 保留实际采样来源，避免页面自动重捕获。
 
 Node **34/34**、修改测试文件 ESLint、资源校验与浏览器加载检查通过。浏览器确认加载新模型，探针来源为 `precomputed`、`lastBakeMs=null`，实际加载的 SH 数据哈希与原缓存一致。记录及截图：`D:/opencode-temp/opencode/room-model-export-only-20261107/`。
+
+## 增量补烘：Stone_Slab.001 与 wall · 2026-11-09
+
+两个对象单独打包到 `B06.exr`，**不重烘整个房间**：
+
+- B06 为 **1024×1024** scene-linear Rec.709、half-float RGBA EXR；面积为原 2048² 页的四分之一。
+- 两者重新整理 `BakeUV`，保持原始底色 UV0 不变；共 79 个 UV 岛，约 22.7 texel/m，0 重叠，12 texel 扩展边距检查通过。
+- Blender `wall` 具有非均匀缩放：仅在后台副本中应用缩放以正确统一 UV 密度，校验世界空间顶点位置不变。它的共享材质被复制，并显式将底色绑定到原始 UV0，避免随活动 BakeUV 改变。
+- `Stone_Slab.001` 的一处材质输出处于纹理直连预览状态；仅对后台副本恢复原 Principled 分支，再按已有 **Diffuse Direct + Indirect、Color off、512 samples、12 texel margin** 烘焙。
+- 烘焙时两者为唯一接收者，完整原房间仍参与遮挡和反弹；探针规划 Box 全部排除。B01～B05 按原始字节复用，旧页面未重烘。
+- 基于当前网页模型的场景快照，仅从当前 Blender 快照加入这两个对象；其余 134 个可见对象的 GLB 几何、法线、UV、索引、变换、材质和绑定均与前版一致。
+- 探针 SH 数据不重捕获，保留实际采样来源 `capturedSourceKey`，仅更新资源匹配签名；如新增墙体使相邻表面遮挡发生变化，旧 Lightmap 和探针不会自动反映这一变化。
+
+B06 文件为 **3,149,369 bytes**，两对象的 356 个三角形中心均有烘焙覆盖；生产构建的浏览器实际上传为 1024²、3 级 mip，底色使用 UV0、光照使用 UV1。生产浏览器房间回归和 23 项相关 Node 测试通过；再次执行 `--reuse-lightmaps` 得到与本次交付逐字节相同的 GLB 与六页 EXR，移动 `wall` 后复用会被拒绝。完整 Node 测试为 67/70，通过以外的 3 项是下述既有碰撞数据断言。
+
+`wall` 在检查机位较暗；对其室内侧中心的三条顶灯射线均命中 `Polished_Basalt`，此处遮挡来自现有场景，未人为抬亮。可参考 `production-targets/wall-interior.png` 并由使用者确认视觉效果。
+
+`tools/bake_range_room_supplement.py` 在后台场景中追加指定对象、紧凑打包 UV、只烘焙新页，并通过导出器复用旧 EXR；必须提供源快照、材质清单、旧 manifest、包含全部对象的 scope、独立输出目录和工作目录。`--validate-only` 只执行准备与 UV 验证。`manifest.bake.supplemental` 保存原始变换、材质槽和逐 loop BakeUV，以便后续 `--reuse-lightmaps` 在后台副本中重放相同 UV 和绑定；源几何、UV 或目标变换改变时会拒绝复用。
+
+本轮快照、旧资源备份、补烘记录、验证报告及截图保存在 `D:/opencode-temp/opencode/range-room-additional-lightmap-20261109/`。当前分支原有的碰撞层测试仍断言 390 个 box，而现有数据为 399 个；与本次 Lightmap 修改无关。
+
+### wall 尺寸调整：仅导出 · 2026-11-09
+
+根据 Blender 当前 `wall` 的调整，仅同步该对象的四个顶部顶点。Three.js 坐标中墙体底部仍为 `Y=8.5`，顶部从 **21.990150** 降至 **18.990150**；拓扑、变换、原始 UV0、B06 的 BakeUV 和材质均未改变。其他 135 个可见对象的 GLB 几何与变换保持不变。
+
+按用户要求未重烘 Lightmap、未重新捕获探针：B01～B06 和 SH 二进制均逐字节复用。墙体当前几何与原 B06 烘焙来源不同，`verification.modelOnlyUpdate.staleLightmapReceivers` 和 `verification.explicitStaleLightmapOverride` 明确记录这一点；探针缓存保留实际 `capturedSourceKey`，仅更新资源匹配签名。后续再次执行 `--reuse-lightmaps` 已验证可复用同一 GLB 和六页资源。碰撞层未改动。
+
+独立资源校验、24 项相关 Node 测试和浏览器无渲染资源加载检查通过；后者确认新包围盒及 UV0/B06 绑定。两次实际 WebGPU 渲染检查均因系统内存不足失败，未关闭用户程序，画面仍需用户确认。快照、前版备份和检查记录位于 `D:/opencode-temp/opencode/wall-model-export-20261109/`。
