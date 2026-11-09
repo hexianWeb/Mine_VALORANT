@@ -28,7 +28,7 @@
 - 玩家以第一人称在练枪房内行走：重力、跑/静步/下蹲、跳跃、贴墙滑动、自动上台阶（半砖、楼梯）。
 - 场景碰撞来自 Blender 中单独制作的简化碰撞盒层，导出为 JSON。
 - Pointer Lock 鼠标视角，灵敏度与无畏契约数值一致。
-- 出生点；掉出地图（低于 `killY`）自动回到出生点。
+- 室外无限地形可行走（运行时地面碰撞盒）；出生点；踩穿地板或掉出地形（低于 `killY`）自动回到出生点。
 - 保留飞行模式作为 noclip 调试，V 键切换。
 - 碰撞盒线框可视化，默认关闭。
 
@@ -61,12 +61,12 @@
 | 文件 | 职责 | 依赖 |
 |---|---|---|
 | `src/engine/systems/input/index.js` | Pointer Lock 与键鼠事件；每帧输出意图 `{ moveX, moveZ, walk, crouch, jump, lookDX, lookDY }`；监听器经 `Disposer` 释放 | DOM |
-| `src/engine/systems/physics/collision-world.js` | 静态 AABB 列表；`queryAABB(box)` 返回相交盒子（暴力遍历） | 无 |
+| `src/engine/systems/physics/collision-world.js` | 静态 AABB 列表（碰撞层 JSON + 运行时地面盒）；`queryAABB(box)` 返回相交盒子（暴力遍历） | 无 |
 | `src/engine/systems/physics/character-controller.js` | 纯函数 `moveAABB(world, box, displacement, { stepHeight, snapDown })`，返回 `{ grounded, hitX, hitY, hitZ }`；不依赖 three/DOM | `collision-world` |
 | `src/engine/systems/physics/index.js` | 物理系统；`fixedUpdate` 中以 `time.fixedDelta` 推进玩家 | 上述两者 |
 | `src/world/player.js` | 玩家对象（transform、移动状态、碰撞盒组件）；意图 → 期望速度；出生点/重置；相机跟随；移动参数配置 | `engine` |
 | `src/world/collision-debug.js` | 碰撞盒 `LineSegments` 线框，可开关，`dispose()` 释放几何 | three |
-| `tools/export_collision.py` | 后台 Blender 副本中导出 `Collision` 集合与 `Spawn` | Blender |
+| `tools/export_collision.py` | 只读导出 `COLLISION_PracticeRoom` 与 `Spawn` | Blender |
 
 ### 4.4 每帧数据流
 
@@ -97,22 +97,24 @@
   "units": "metres",
   "up": "Y",
   "spawn": { "position": [0, 0, 0], "yawDeg": 0 },
-  "killY": -10,
   "boxes": [
-    { "name": "Wall_N_01", "min": [-8, 0, -12], "max": [8, 4, -11.5] }
+    { "name": "Wall_N_01", "group": "Wall", "min": [-8, 0, -12], "max": [8, 4, -11.5] }
   ]
 }
 ```
 
 - `spawn.position` 为玩家碰撞盒底面中心。
-- 室外超平坦地面不写入文件：运行时根据房间包围盒自动加入一个地面盒，顶面与超平坦地面对齐。
+- 地面与 `killY` 不写入文件，运行时由 `world.ground.snapshot()` 派生，与超平坦地面画面同源：
+  - 地面碰撞盒：水平范围 = `outer`（房间中心 ±8192 m，含房间正下方），顶面 = `height`（模型最低点 − 0.01 m，当前 7.865 m，与模型底部齐平），厚 1 m。
+  - `killY` = `height` − 10 m，兜底穿过地面碰撞盒的情况。
+- 踩穿地板重置：名称含 `_Floor_` 的盒子为地板盒（当前 50 个，顶面 7.5–9.0 m）。每个固定步检查：玩家脚底低于某地板盒底面且水平投影与其重叠，即判定在地板下方，回到出生点。正常行走无法到达该状态。
 
 ### 5.2 Blender 约定
 
-- 碰撞体统一放在 `Collision` 集合，每个对象为立方体；旋转只允许 0° 或 90° 的倍数，导出时不符合直接报错。
+- 碰撞体放在 `COLLISION_PracticeRoom` 的 `COLLISION_*` 子集合中（子集合名写入盒子的 `group`），每个对象为立方体；旋转只允许 0° 或 90° 的倍数，导出时不符合直接报错。
 - 楼梯每级一个盒子，单级高度不超过 0.5 m。
-- 名为 `Spawn` 的 Empty 标记出生点位置与朝向。
-- `tools/export_collision.py` 只在后台 Blender 副本中运行，不改源 `.blend`，坐标按 manifest 的 `x,z,-y` 规则转换。
+- 名为 `Spawn` 的 Empty 标记出生点位置（脚底）与朝向（局部 -Y 为前方）；缺失时用场景相机水平位置落到下方碰撞盒顶面。
+- `tools/export_collision.py` 只读不改场景，可在当前 Blender（MCP）或后台命令行运行，坐标按 manifest 的 `x,z,-y` 规则转换。导出结果与说明见 [碰撞层 v1](../../physics/collision-layer.md)。
 
 ### 5.3 初稿生成（Blender MCP）
 
@@ -162,10 +164,10 @@
 
 ## 8. 验收标准
 
-1. 单元测试（`node --test`）覆盖：落地、贴墙滑动、墙角不卡住、上 0.5 m 台阶、被 1.0 m 方块挡住、头顶遮挡不能站起、50 m/s 下落不穿透、下楼梯贴地。
+1. 单元测试（`node --test`）覆盖：落地、贴墙滑动、墙角不卡住、上 0.5 m 台阶、被 1.0 m 方块挡住、头顶遮挡不能站起、50 m/s 下落不穿透、下楼梯贴地、脚底低于地板盒底面时触发重置、站在地面碰撞盒上不误触发重置。
 2. 碰撞层校验通过（第 5.4 节）。
 3. 浏览器脚本 `tools/check-player-browser.mjs`：模拟输入撞墙、上楼梯、掉出地图，断言位置并截图。
-4. 人工验收：房间内完整走一圈不被卡住；楼梯正常上下；无法穿墙离开房间；掉出地图回到出生点；反向急停手感可接受。
+4. 人工验收：房间内完整走一圈不被卡住；楼梯正常上下；无法穿墙离开房间；可走出房间在室外地面行走；noclip 钻到地板下切回玩家模式即回到出生点；反向急停手感可接受。
 5. 性能：单个物理步 < 0.2 ms。
 
 ## 9. 风险

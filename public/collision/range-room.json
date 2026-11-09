@@ -1,0 +1,5505 @@
+{
+ "schemaVersion": 1,
+ "id": "range-room-collision-v1",
+ "units": "metres",
+ "up": "Y",
+ "source": {
+  "blend": "07_已烘焙贴图_降噪预览_透明修复.blend",
+  "collection": "COLLISION_PracticeRoom",
+  "conversion": "x,z,-y"
+ },
+ "spawn": {
+  "position": [
+   0.567,
+   9.0011,
+   -4.1754
+  ],
+  "yawDeg": -180.0,
+  "source": "empty \"Spawn \""
+ },
+ "bounds": {
+  "min": [
+   -25.0776,
+   7.0,
+   -20.3238
+  ],
+  "max": [
+   26.0,
+   19.0,
+   21.0
+  ]
+ },
+ "counts": {
+  "boxes": 390,
+  "groups": {
+   "Column": 30,
+   "Corridor": 29,
+   "Floor": 40,
+   "Forgetbox": 1,
+   "Props": 106,
+   "Wall": 184
+  }
+ },
+ "boxes": [
+  {
+   "name": "COL_Practice_Column_Rear_01",
+   "group": "Column",
+   "min": [
+    -11.0,
+    9.0,
+    18.0
+   ],
+   "max": [
+    -10.0,
+    18.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_Rear_02",
+   "group": "Column",
+   "min": [
+    0.0,
+    9.0,
+    18.0
+   ],
+   "max": [
+    1.0,
+    18.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_Rear_03",
+   "group": "Column",
+   "min": [
+    11.0,
+    9.0,
+    18.0
+   ],
+   "max": [
+    12.0,
+    18.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_Rear_04",
+   "group": "Column",
+   "min": [
+    21.0,
+    9.0,
+    18.0
+   ],
+   "max": [
+    22.0,
+    18.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStoneLink_001",
+   "group": "Column",
+   "min": [
+    -14.25,
+    9.0,
+    17.3125
+   ],
+   "max": [
+    -13.75,
+    13.875,
+    17.6875
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStoneLink_002",
+   "group": "Column",
+   "min": [
+    -13.25,
+    9.0,
+    17.3125
+   ],
+   "max": [
+    -13.0,
+    11.875,
+    17.6875
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStoneLink_003",
+   "group": "Column",
+   "min": [
+    -14.6875,
+    9.0,
+    17.75
+   ],
+   "max": [
+    -14.3125,
+    13.875,
+    18.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStoneLink_004",
+   "group": "Column",
+   "min": [
+    -13.6875,
+    9.0,
+    17.75
+   ],
+   "max": [
+    -13.3125,
+    12.875,
+    18.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStoneLink_005",
+   "group": "Column",
+   "min": [
+    -13.6875,
+    9.0,
+    16.75
+   ],
+   "max": [
+    -13.3125,
+    11.875,
+    17.25
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStoneLink_006",
+   "group": "Column",
+   "min": [
+    -13.6875,
+    9.0,
+    15.75
+   ],
+   "max": [
+    -13.3125,
+    10.875,
+    16.25
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStoneLink_007",
+   "group": "Column",
+   "min": [
+    -13.6875,
+    9.0,
+    14.75
+   ],
+   "max": [
+    -13.3125,
+    9.875,
+    15.25
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStoneLink_008",
+   "group": "Column",
+   "min": [
+    -13.25,
+    9.0,
+    15.3125
+   ],
+   "max": [
+    -13.0,
+    10.0,
+    15.6875
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStoneLink_009",
+   "group": "Column",
+   "min": [
+    -13.25,
+    9.0,
+    16.3125
+   ],
+   "max": [
+    -13.0,
+    10.875,
+    16.6875
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStoneLink_010",
+   "group": "Column",
+   "min": [
+    -11.6875,
+    9.0,
+    17.75
+   ],
+   "max": [
+    -11.3125,
+    12.875,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStoneLink_011",
+   "group": "Column",
+   "min": [
+    -11.6875,
+    9.0,
+    16.75
+   ],
+   "max": [
+    -11.3125,
+    11.875,
+    17.25
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStoneLink_012",
+   "group": "Column",
+   "min": [
+    -11.6875,
+    9.0,
+    15.75
+   ],
+   "max": [
+    -11.3125,
+    10.875,
+    16.25
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStoneLink_013",
+   "group": "Column",
+   "min": [
+    -11.6875,
+    9.0,
+    14.75
+   ],
+   "max": [
+    -11.3125,
+    9.875,
+    15.25
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStoneLink_014",
+   "group": "Column",
+   "min": [
+    -12.0,
+    9.0,
+    15.3125
+   ],
+   "max": [
+    -11.75,
+    9.875,
+    15.6875
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStoneLink_015",
+   "group": "Column",
+   "min": [
+    -12.0,
+    9.0,
+    16.3125
+   ],
+   "max": [
+    -11.75,
+    11.0,
+    16.6875
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStoneLink_016",
+   "group": "Column",
+   "min": [
+    -12.0,
+    9.0,
+    17.3125
+   ],
+   "max": [
+    -11.75,
+    12.0,
+    17.6875
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStoneLink_017",
+   "group": "Column",
+   "min": [
+    -12.0,
+    9.0,
+    18.3125
+   ],
+   "max": [
+    -11.0,
+    12.875,
+    18.6875
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStonePost_001",
+   "group": "Column",
+   "min": [
+    -14.75,
+    9.0,
+    17.25
+   ],
+   "max": [
+    -14.25,
+    14.0,
+    17.75
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStonePost_002",
+   "group": "Column",
+   "min": [
+    -13.75,
+    9.0,
+    14.25
+   ],
+   "max": [
+    -13.25,
+    10.0,
+    14.75
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStonePost_003",
+   "group": "Column",
+   "min": [
+    -13.75,
+    9.0,
+    15.25
+   ],
+   "max": [
+    -13.25,
+    11.0,
+    15.75
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStonePost_004",
+   "group": "Column",
+   "min": [
+    -13.75,
+    9.0,
+    16.25
+   ],
+   "max": [
+    -13.25,
+    12.0,
+    16.75
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStonePost_005",
+   "group": "Column",
+   "min": [
+    -13.75,
+    9.0,
+    17.25
+   ],
+   "max": [
+    -13.25,
+    14.0,
+    17.75
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStonePost_006",
+   "group": "Column",
+   "min": [
+    -11.75,
+    9.0,
+    14.25
+   ],
+   "max": [
+    -11.25,
+    10.0,
+    14.75
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStonePost_007",
+   "group": "Column",
+   "min": [
+    -11.75,
+    9.0,
+    15.25
+   ],
+   "max": [
+    -11.25,
+    11.0,
+    15.75
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStonePost_008",
+   "group": "Column",
+   "min": [
+    -11.75,
+    9.0,
+    16.25
+   ],
+   "max": [
+    -11.25,
+    12.0,
+    16.75
+   ]
+  },
+  {
+   "name": "COL_Practice_Column_StairStonePost_009",
+   "group": "Column",
+   "min": [
+    -11.75,
+    9.0,
+    17.25
+   ],
+   "max": [
+    -11.25,
+    13.0,
+    17.75
+   ]
+  },
+  {
+   "name": "COL_Corridor_Floor_Corridor_Main",
+   "group": "Corridor",
+   "min": [
+    -5.0,
+    7.5,
+    -19.0
+   ],
+   "max": [
+    26.0,
+    8.0,
+    -14.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Floor_Entrance_LeftLower",
+   "group": "Corridor",
+   "min": [
+    -5.0,
+    8.0,
+    -12.0
+   ],
+   "max": [
+    -4.0,
+    8.5,
+    -8.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Floor_Entrance_Main",
+   "group": "Corridor",
+   "min": [
+    -4.0,
+    8.5,
+    -12.0
+   ],
+   "max": [
+    6.0,
+    9.0,
+    -8.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Floor_NorthDoor_Lower",
+   "group": "Corridor",
+   "min": [
+    -4.0,
+    7.0,
+    -20.0
+   ],
+   "max": [
+    -1.0,
+    7.5,
+    -19.5
+   ]
+  },
+  {
+   "name": "COL_Corridor_Floor_NorthDoor_Upper",
+   "group": "Corridor",
+   "min": [
+    -4.0,
+    7.5,
+    -19.5
+   ],
+   "max": [
+    -1.0,
+    8.0,
+    -19.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Floor_Stair_Lower",
+   "group": "Corridor",
+   "min": [
+    -2.0,
+    7.5,
+    -13.5
+   ],
+   "max": [
+    3.0,
+    8.0,
+    -13.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Floor_Stair_Middle",
+   "group": "Corridor",
+   "min": [
+    -2.0,
+    8.0,
+    -13.0
+   ],
+   "max": [
+    3.0,
+    8.5,
+    -12.5
+   ]
+  },
+  {
+   "name": "COL_Corridor_Floor_Stair_Recess",
+   "group": "Corridor",
+   "min": [
+    -2.0,
+    7.0,
+    -14.0
+   ],
+   "max": [
+    3.0,
+    7.5,
+    -13.5
+   ]
+  },
+  {
+   "name": "COL_Corridor_Floor_Stair_Upper",
+   "group": "Corridor",
+   "min": [
+    -2.0,
+    8.5,
+    -12.5
+   ],
+   "max": [
+    3.0,
+    9.0,
+    -12.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Floor_West_Platform",
+   "group": "Corridor",
+   "min": [
+    -8.5,
+    7.5,
+    -18.0
+   ],
+   "max": [
+    -5.0,
+    8.0,
+    -15.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_EastArch_Lintel",
+   "group": "Corridor",
+   "min": [
+    19.0,
+    12.0,
+    -18.0
+   ],
+   "max": [
+    20.0,
+    13.5,
+    -15.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_EastArch_North",
+   "group": "Corridor",
+   "min": [
+    19.0,
+    8.0,
+    -19.0
+   ],
+   "max": [
+    20.0,
+    12.0,
+    -18.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_EastArch_South",
+   "group": "Corridor",
+   "min": [
+    19.0,
+    8.0,
+    -15.0
+   ],
+   "max": [
+    20.0,
+    12.0,
+    -13.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_Entry_CurbLeft",
+   "group": "Corridor",
+   "min": [
+    -3.0,
+    8.0,
+    -13.0
+   ],
+   "max": [
+    -2.0,
+    9.5,
+    -12.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_Entry_CurbLeftLow",
+   "group": "Corridor",
+   "min": [
+    -3.0,
+    7.5,
+    -14.0
+   ],
+   "max": [
+    -2.0,
+    8.5,
+    -13.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_Entry_CurbRight",
+   "group": "Corridor",
+   "min": [
+    3.0,
+    8.0,
+    -13.0
+   ],
+   "max": [
+    4.0,
+    9.5,
+    -12.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_Entry_CurbRightLow",
+   "group": "Corridor",
+   "min": [
+    3.0,
+    7.5,
+    -14.0
+   ],
+   "max": [
+    4.0,
+    9.0,
+    -13.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_Entry_Left",
+   "group": "Corridor",
+   "min": [
+    -6.0,
+    9.0,
+    -12.0
+   ],
+   "max": [
+    -5.0,
+    13.5,
+    -8.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_Entry_Right",
+   "group": "Corridor",
+   "min": [
+    6.0,
+    9.0,
+    -12.0
+   ],
+   "max": [
+    7.0,
+    13.5,
+    -8.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_North_LeftPost",
+   "group": "Corridor",
+   "min": [
+    -5.0,
+    8.0,
+    -20.0
+   ],
+   "max": [
+    -4.0,
+    14.0,
+    -19.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_North_Lintel",
+   "group": "Corridor",
+   "min": [
+    -4.0,
+    12.0,
+    -20.0
+   ],
+   "max": [
+    -1.0,
+    13.5,
+    -19.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_North_Main",
+   "group": "Corridor",
+   "min": [
+    -1.0,
+    8.0,
+    -20.0
+   ],
+   "max": [
+    19.0,
+    14.0,
+    -19.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_South_East",
+   "group": "Corridor",
+   "min": [
+    6.0,
+    8.0,
+    -13.0
+   ],
+   "max": [
+    24.0,
+    15.0,
+    -12.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_South_Lintel",
+   "group": "Corridor",
+   "min": [
+    -4.0,
+    14.5,
+    -13.0
+   ],
+   "max": [
+    6.0,
+    15.0,
+    -12.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_South_West",
+   "group": "Corridor",
+   "min": [
+    -9.0,
+    8.0,
+    -13.0
+   ],
+   "max": [
+    -4.0,
+    15.0,
+    -12.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_WestArch_Lintel",
+   "group": "Corridor",
+   "min": [
+    -6.0,
+    12.0,
+    -18.0
+   ],
+   "max": [
+    -5.0,
+    13.5,
+    -15.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_WestArch_North",
+   "group": "Corridor",
+   "min": [
+    -6.0,
+    8.0,
+    -19.0
+   ],
+   "max": [
+    -5.0,
+    12.0,
+    -18.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_WestArch_South",
+   "group": "Corridor",
+   "min": [
+    -6.0,
+    8.0,
+    -15.0
+   ],
+   "max": [
+    -5.0,
+    12.0,
+    -13.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_WestDeck_Rail",
+   "group": "Corridor",
+   "min": [
+    -8.5625,
+    8.0,
+    -18.0
+   ],
+   "max": [
+    -8.4375,
+    9.0,
+    -15.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_ForgetFloor",
+   "group": "Floor",
+   "min": [
+    12.0,
+    8.5,
+    -11.0
+   ],
+   "max": [
+    22.0,
+    9.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_Main",
+   "group": "Floor",
+   "min": [
+    -21.0,
+    8.5,
+    -0.0
+   ],
+   "max": [
+    22.0,
+    9.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_001",
+   "group": "Floor",
+   "min": [
+    -21.0,
+    8.5,
+    -1.0
+   ],
+   "max": [
+    -8.0,
+    9.0,
+    -0.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_002",
+   "group": "Floor",
+   "min": [
+    -5.0,
+    8.5,
+    -6.5
+   ],
+   "max": [
+    -3.0,
+    9.0,
+    -0.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_003",
+   "group": "Floor",
+   "min": [
+    4.0,
+    8.5,
+    -6.5
+   ],
+   "max": [
+    6.0,
+    9.0,
+    -0.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_004",
+   "group": "Floor",
+   "min": [
+    9.0,
+    8.5,
+    -1.0
+   ],
+   "max": [
+    22.0,
+    9.0,
+    -0.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_005",
+   "group": "Floor",
+   "min": [
+    -15.0,
+    8.5,
+    -7.0
+   ],
+   "max": [
+    -14.0,
+    9.0,
+    -1.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_006",
+   "group": "Floor",
+   "min": [
+    -11.0,
+    8.5,
+    -7.0
+   ],
+   "max": [
+    -5.0,
+    9.0,
+    -1.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_007",
+   "group": "Floor",
+   "min": [
+    -3.0,
+    8.5,
+    -6.5
+   ],
+   "max": [
+    -2.0,
+    9.0,
+    -1.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_008",
+   "group": "Floor",
+   "min": [
+    3.0,
+    8.5,
+    -6.5
+   ],
+   "max": [
+    4.0,
+    9.0,
+    -1.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_009",
+   "group": "Floor",
+   "min": [
+    6.0,
+    8.5,
+    -2.0
+   ],
+   "max": [
+    12.0,
+    9.0,
+    -1.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_010",
+   "group": "Floor",
+   "min": [
+    15.0,
+    8.5,
+    -7.0
+   ],
+   "max": [
+    22.0,
+    9.0,
+    -1.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_011",
+   "group": "Floor",
+   "min": [
+    -20.0,
+    8.5,
+    -3.0
+   ],
+   "max": [
+    -15.0,
+    9.0,
+    -2.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_012",
+   "group": "Floor",
+   "min": [
+    -14.0,
+    8.5,
+    -7.0
+   ],
+   "max": [
+    -11.0,
+    9.0,
+    -2.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_013",
+   "group": "Floor",
+   "min": [
+    -2.0,
+    8.5,
+    -2.5
+   ],
+   "max": [
+    3.0,
+    9.0,
+    -2.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_014",
+   "group": "Floor",
+   "min": [
+    6.0,
+    8.5,
+    -3.0
+   ],
+   "max": [
+    8.0,
+    9.0,
+    -2.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_015",
+   "group": "Floor",
+   "min": [
+    9.0,
+    8.5,
+    -3.0
+   ],
+   "max": [
+    15.0,
+    9.0,
+    -2.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_016",
+   "group": "Floor",
+   "min": [
+    -2.0,
+    8.5,
+    -8.0
+   ],
+   "max": [
+    -1.5,
+    9.0,
+    -2.5
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_017",
+   "group": "Floor",
+   "min": [
+    2.5,
+    8.5,
+    -8.0
+   ],
+   "max": [
+    3.0,
+    9.0,
+    -2.5
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_018",
+   "group": "Floor",
+   "min": [
+    -20.0,
+    8.5,
+    -5.0
+   ],
+   "max": [
+    -16.0,
+    9.0,
+    -3.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_019",
+   "group": "Floor",
+   "min": [
+    -1.0,
+    8.5,
+    -8.0
+   ],
+   "max": [
+    2.0,
+    9.0,
+    -3.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_020",
+   "group": "Floor",
+   "min": [
+    6.0,
+    8.5,
+    -5.0
+   ],
+   "max": [
+    7.0,
+    9.0,
+    -3.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_021",
+   "group": "Floor",
+   "min": [
+    8.0,
+    8.5,
+    -4.0
+   ],
+   "max": [
+    9.0,
+    9.0,
+    -3.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_022",
+   "group": "Floor",
+   "min": [
+    10.0,
+    8.5,
+    -5.0
+   ],
+   "max": [
+    15.0,
+    9.0,
+    -3.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_023",
+   "group": "Floor",
+   "min": [
+    -21.0,
+    8.5,
+    -5.0
+   ],
+   "max": [
+    -20.0,
+    9.0,
+    -4.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_024",
+   "group": "Floor",
+   "min": [
+    7.0,
+    8.5,
+    -5.0
+   ],
+   "max": [
+    8.0,
+    9.0,
+    -4.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_025",
+   "group": "Floor",
+   "min": [
+    -20.0,
+    8.5,
+    -6.0
+   ],
+   "max": [
+    -17.0,
+    9.0,
+    -5.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_026",
+   "group": "Floor",
+   "min": [
+    8.0,
+    8.5,
+    -6.0
+   ],
+   "max": [
+    10.0,
+    9.0,
+    -5.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_027",
+   "group": "Floor",
+   "min": [
+    11.0,
+    8.5,
+    -7.0
+   ],
+   "max": [
+    15.0,
+    9.0,
+    -5.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_028",
+   "group": "Floor",
+   "min": [
+    -19.0,
+    8.5,
+    -7.0
+   ],
+   "max": [
+    -18.0,
+    9.0,
+    -6.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_029",
+   "group": "Floor",
+   "min": [
+    6.0,
+    8.5,
+    -7.0
+   ],
+   "max": [
+    7.0,
+    9.0,
+    -6.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_030",
+   "group": "Floor",
+   "min": [
+    10.0,
+    8.5,
+    -7.0
+   ],
+   "max": [
+    11.0,
+    9.0,
+    -6.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_031",
+   "group": "Floor",
+   "min": [
+    -5.0,
+    8.5,
+    -8.0
+   ],
+   "max": [
+    -4.5,
+    9.0,
+    -6.5
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_032",
+   "group": "Floor",
+   "min": [
+    5.5,
+    8.5,
+    -8.0
+   ],
+   "max": [
+    6.0,
+    9.0,
+    -6.5
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_033",
+   "group": "Floor",
+   "min": [
+    -4.0,
+    8.5,
+    -8.0
+   ],
+   "max": [
+    -2.0,
+    9.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_North_034",
+   "group": "Floor",
+   "min": [
+    3.0,
+    8.5,
+    -8.0
+   ],
+   "max": [
+    5.0,
+    9.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_ThresholdStep_001",
+   "group": "Floor",
+   "min": [
+    -5.0,
+    8.2,
+    -8.0
+   ],
+   "max": [
+    -4.0,
+    8.5,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_ThresholdStep_002",
+   "group": "Floor",
+   "min": [
+    -2.0,
+    8.2,
+    -8.0
+   ],
+   "max": [
+    -1.0,
+    8.5,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_ThresholdStep_003",
+   "group": "Floor",
+   "min": [
+    2.0,
+    8.2,
+    -8.0
+   ],
+   "max": [
+    3.0,
+    8.5,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Floor_ThresholdStep_004",
+   "group": "Floor",
+   "min": [
+    5.0,
+    8.2,
+    -8.0
+   ],
+   "max": [
+    6.0,
+    8.5,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Forgetbox",
+   "group": "Forgetbox",
+   "min": [
+    -25.0776,
+    7.0007,
+    -20.3238
+   ],
+   "max": [
+    -9.6917,
+    13.883,
+    -14.108
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Anvil_001",
+   "group": "Props",
+   "min": [
+    21.125,
+    10.0,
+    7.0
+   ],
+   "max": [
+    21.875,
+    11.0,
+    8.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Anvil_002",
+   "group": "Props",
+   "min": [
+    21.0,
+    9.0,
+    6.125
+   ],
+   "max": [
+    22.0,
+    10.0,
+    6.875
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Bed_10_001",
+   "group": "Props",
+   "min": [
+    19.0,
+    10.0,
+    17.0
+   ],
+   "max": [
+    21.0,
+    10.5625,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Bed_10_002",
+   "group": "Props",
+   "min": [
+    21.0,
+    10.0,
+    16.0
+   ],
+   "max": [
+    22.0,
+    10.5625,
+    18.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Bed_11_001",
+   "group": "Props",
+   "min": [
+    21.0,
+    11.0,
+    15.0
+   ],
+   "max": [
+    22.0,
+    11.5625,
+    17.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Bed_9_001",
+   "group": "Props",
+   "min": [
+    17.0,
+    9.0,
+    16.0
+   ],
+   "max": [
+    19.0,
+    9.5625,
+    17.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_001",
+   "group": "Props",
+   "min": [
+    -21.0,
+    11.0,
+    18.0
+   ],
+   "max": [
+    -20.0,
+    12.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_002",
+   "group": "Props",
+   "min": [
+    -21.0,
+    9.0,
+    17.0
+   ],
+   "max": [
+    -19.0,
+    11.0,
+    18.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_003",
+   "group": "Props",
+   "min": [
+    -21.0,
+    9.0,
+    11.0
+   ],
+   "max": [
+    -20.0,
+    10.0,
+    14.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_004",
+   "group": "Props",
+   "min": [
+    -21.0,
+    10.0,
+    12.0
+   ],
+   "max": [
+    -20.0,
+    11.0,
+    14.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_005",
+   "group": "Props",
+   "min": [
+    -21.0,
+    11.0,
+    12.0
+   ],
+   "max": [
+    -20.0,
+    12.0,
+    13.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_006",
+   "group": "Props",
+   "min": [
+    -21.0,
+    9.0,
+    5.0
+   ],
+   "max": [
+    -20.0,
+    10.0,
+    10.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_007",
+   "group": "Props",
+   "min": [
+    -21.0,
+    9.0,
+    -4.0
+   ],
+   "max": [
+    -20.0,
+    10.0,
+    -3.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_008",
+   "group": "Props",
+   "min": [
+    -21.0,
+    9.0,
+    -7.0
+   ],
+   "max": [
+    -20.0,
+    10.0,
+    -5.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_009",
+   "group": "Props",
+   "min": [
+    -20.0,
+    9.0,
+    18.0
+   ],
+   "max": [
+    -19.0,
+    11.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_010",
+   "group": "Props",
+   "min": [
+    -20.0,
+    9.0,
+    15.0
+   ],
+   "max": [
+    -19.0,
+    10.0,
+    16.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_011",
+   "group": "Props",
+   "min": [
+    -20.0,
+    9.0,
+    7.0
+   ],
+   "max": [
+    -19.0,
+    10.0,
+    9.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_012",
+   "group": "Props",
+   "min": [
+    -19.0,
+    9.0,
+    14.0
+   ],
+   "max": [
+    -18.0,
+    10.0,
+    15.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_013",
+   "group": "Props",
+   "min": [
+    -18.0,
+    9.0,
+    17.0
+   ],
+   "max": [
+    -16.0,
+    11.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_014",
+   "group": "Props",
+   "min": [
+    -18.0,
+    10.0,
+    -7.0
+   ],
+   "max": [
+    -17.0,
+    11.0,
+    -6.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_015",
+   "group": "Props",
+   "min": [
+    -17.0,
+    9.0,
+    16.0
+   ],
+   "max": [
+    -16.0,
+    10.0,
+    17.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_016",
+   "group": "Props",
+   "min": [
+    -17.0,
+    9.0,
+    -6.0
+   ],
+   "max": [
+    -16.0,
+    11.0,
+    -5.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_017",
+   "group": "Props",
+   "min": [
+    -17.0,
+    11.0,
+    -7.0
+   ],
+   "max": [
+    -16.0,
+    12.0,
+    -6.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_018",
+   "group": "Props",
+   "min": [
+    -3.0,
+    9.0,
+    -1.0
+   ],
+   "max": [
+    -2.0,
+    10.0,
+    -0.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_019",
+   "group": "Props",
+   "min": [
+    3.0,
+    9.0,
+    -1.0
+   ],
+   "max": [
+    4.0,
+    10.0,
+    -0.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_020",
+   "group": "Props",
+   "min": [
+    6.0,
+    9.0,
+    -6.0
+   ],
+   "max": [
+    8.0,
+    10.0,
+    -5.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_021",
+   "group": "Props",
+   "min": [
+    7.0,
+    9.0,
+    -4.0
+   ],
+   "max": [
+    8.0,
+    10.0,
+    -3.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_022",
+   "group": "Props",
+   "min": [
+    7.0,
+    9.0,
+    -7.0
+   ],
+   "max": [
+    10.0,
+    10.0,
+    -6.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_023",
+   "group": "Props",
+   "min": [
+    8.0,
+    9.0,
+    -3.0
+   ],
+   "max": [
+    9.0,
+    10.0,
+    -2.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_024",
+   "group": "Props",
+   "min": [
+    8.0,
+    9.0,
+    -5.0
+   ],
+   "max": [
+    10.0,
+    10.0,
+    -4.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_025",
+   "group": "Props",
+   "min": [
+    8.0,
+    10.0,
+    -7.0
+   ],
+   "max": [
+    9.0,
+    11.0,
+    -6.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_026",
+   "group": "Props",
+   "min": [
+    9.0,
+    9.0,
+    -4.0
+   ],
+   "max": [
+    10.0,
+    10.0,
+    -3.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_027",
+   "group": "Props",
+   "min": [
+    10.0,
+    9.0,
+    -6.0
+   ],
+   "max": [
+    11.0,
+    10.0,
+    -5.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_028",
+   "group": "Props",
+   "min": [
+    13.0,
+    9.0,
+    -10.0
+   ],
+   "max": [
+    14.0,
+    13.0,
+    -9.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_029",
+   "group": "Props",
+   "min": [
+    13.0,
+    12.0,
+    -11.0
+   ],
+   "max": [
+    15.0,
+    13.0,
+    -10.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_030",
+   "group": "Props",
+   "min": [
+    14.0,
+    9.0,
+    -9.0
+   ],
+   "max": [
+    16.0,
+    13.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_031",
+   "group": "Props",
+   "min": [
+    14.0,
+    12.0,
+    -10.0
+   ],
+   "max": [
+    17.0,
+    13.0,
+    -9.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_032",
+   "group": "Props",
+   "min": [
+    14.0,
+    11.0,
+    -11.0
+   ],
+   "max": [
+    15.0,
+    12.0,
+    -10.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_033",
+   "group": "Props",
+   "min": [
+    14.0,
+    13.0,
+    -11.0
+   ],
+   "max": [
+    16.0,
+    14.0,
+    -10.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_034",
+   "group": "Props",
+   "min": [
+    15.0,
+    9.0,
+    17.0
+   ],
+   "max": [
+    16.0,
+    11.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_035",
+   "group": "Props",
+   "min": [
+    15.0,
+    11.0,
+    18.0
+   ],
+   "max": [
+    16.0,
+    12.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_036",
+   "group": "Props",
+   "min": [
+    16.0,
+    10.0,
+    18.0
+   ],
+   "max": [
+    18.0,
+    11.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_037",
+   "group": "Props",
+   "min": [
+    16.0,
+    9.0,
+    17.0
+   ],
+   "max": [
+    19.0,
+    10.0,
+    18.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_038",
+   "group": "Props",
+   "min": [
+    16.0,
+    10.0,
+    17.0
+   ],
+   "max": [
+    17.0,
+    11.0,
+    18.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_039",
+   "group": "Props",
+   "min": [
+    16.0,
+    9.0,
+    -11.0
+   ],
+   "max": [
+    17.0,
+    12.0,
+    -9.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_040",
+   "group": "Props",
+   "min": [
+    16.0,
+    12.0,
+    -11.0
+   ],
+   "max": [
+    17.0,
+    13.0,
+    -10.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_041",
+   "group": "Props",
+   "min": [
+    16.0,
+    11.0,
+    -12.0
+   ],
+   "max": [
+    17.0,
+    12.0,
+    -11.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_042",
+   "group": "Props",
+   "min": [
+    18.0,
+    9.0,
+    18.0
+   ],
+   "max": [
+    20.0,
+    10.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_043",
+   "group": "Props",
+   "min": [
+    18.0,
+    9.0,
+    12.0
+   ],
+   "max": [
+    19.0,
+    10.0,
+    14.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_044",
+   "group": "Props",
+   "min": [
+    18.0,
+    9.0,
+    5.0
+   ],
+   "max": [
+    20.0,
+    10.0,
+    6.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_045",
+   "group": "Props",
+   "min": [
+    18.0,
+    9.0,
+    -11.0
+   ],
+   "max": [
+    20.0,
+    11.0,
+    -9.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_046",
+   "group": "Props",
+   "min": [
+    19.0,
+    9.0,
+    15.0
+   ],
+   "max": [
+    20.0,
+    10.0,
+    16.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_047",
+   "group": "Props",
+   "min": [
+    19.0,
+    10.0,
+    10.0
+   ],
+   "max": [
+    22.0,
+    11.0,
+    14.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_048",
+   "group": "Props",
+   "min": [
+    19.0,
+    9.0,
+    12.0
+   ],
+   "max": [
+    20.0,
+    10.0,
+    13.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_049",
+   "group": "Props",
+   "min": [
+    19.0,
+    11.0,
+    10.0
+   ],
+   "max": [
+    21.0,
+    12.0,
+    12.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_050",
+   "group": "Props",
+   "min": [
+    19.0,
+    9.0,
+    9.0
+   ],
+   "max": [
+    20.0,
+    10.0,
+    10.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_051",
+   "group": "Props",
+   "min": [
+    20.0,
+    11.0,
+    12.0
+   ],
+   "max": [
+    22.0,
+    12.0,
+    14.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_052",
+   "group": "Props",
+   "min": [
+    21.0,
+    10.0,
+    9.0
+   ],
+   "max": [
+    22.0,
+    12.0,
+    10.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Block_053",
+   "group": "Props",
+   "min": [
+    21.0,
+    10.0,
+    6.0
+   ],
+   "max": [
+    22.0,
+    11.0,
+    7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Chest_001",
+   "group": "Props",
+   "min": [
+    -20.9375,
+    11.0,
+    17.0625
+   ],
+   "max": [
+    -20.0625,
+    11.875,
+    17.9375
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Chest_002",
+   "group": "Props",
+   "min": [
+    -19.9375,
+    9.0,
+    14.0625
+   ],
+   "max": [
+    -19.0625,
+    9.875,
+    14.9375
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Chest_003",
+   "group": "Props",
+   "min": [
+    -18.9375,
+    9.0,
+    18.0625
+   ],
+   "max": [
+    -18.0625,
+    9.875,
+    18.9375
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Chest_004",
+   "group": "Props",
+   "min": [
+    -17.9375,
+    11.0,
+    18.0625
+   ],
+   "max": [
+    -16.0625,
+    11.875,
+    18.9375
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Chest_005",
+   "group": "Props",
+   "min": [
+    13.0625,
+    9.0,
+    -8.9375
+   ],
+   "max": [
+    13.9375,
+    9.875,
+    -8.0625
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Chest_006",
+   "group": "Props",
+   "min": [
+    14.0625,
+    9.0,
+    18.0625
+   ],
+   "max": [
+    14.9375,
+    9.875,
+    18.9375
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Chest_007",
+   "group": "Props",
+   "min": [
+    14.0625,
+    10.0,
+    18.0625
+   ],
+   "max": [
+    14.9375,
+    10.875,
+    18.9375
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Chest_008",
+   "group": "Props",
+   "min": [
+    18.0625,
+    9.0,
+    11.0625
+   ],
+   "max": [
+    18.9375,
+    9.875,
+    11.9375
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Chest_009",
+   "group": "Props",
+   "min": [
+    20.0625,
+    10.0,
+    9.0625
+   ],
+   "max": [
+    20.9375,
+    10.875,
+    9.9375
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Chest_010",
+   "group": "Props",
+   "min": [
+    21.0625,
+    10.0,
+    8.0625
+   ],
+   "max": [
+    21.9375,
+    10.875,
+    8.9375
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Chest_011",
+   "group": "Props",
+   "min": [
+    21.0625,
+    12.0,
+    10.0625
+   ],
+   "max": [
+    21.9375,
+    12.875,
+    10.9375
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Chest_012",
+   "group": "Props",
+   "min": [
+    21.0625,
+    10.0,
+    14.0625
+   ],
+   "max": [
+    21.9375,
+    10.875,
+    14.9375
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Chest_013",
+   "group": "Props",
+   "min": [
+    21.0625,
+    11.0,
+    14.0625
+   ],
+   "max": [
+    21.9375,
+    11.875,
+    14.9375
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_10_0_001",
+   "group": "Props",
+   "min": [
+    20.0,
+    9.5,
+    14.0
+   ],
+   "max": [
+    21.0,
+    10.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_10_0_002",
+   "group": "Props",
+   "min": [
+    19.0,
+    9.5,
+    16.0
+   ],
+   "max": [
+    20.0,
+    10.0,
+    18.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_10_0_003",
+   "group": "Props",
+   "min": [
+    21.0,
+    9.5,
+    14.0
+   ],
+   "max": [
+    22.0,
+    10.0,
+    18.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_10_0_004",
+   "group": "Props",
+   "min": [
+    19.0,
+    9.5,
+    14.0
+   ],
+   "max": [
+    20.0,
+    10.0,
+    15.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_10_0_005",
+   "group": "Props",
+   "min": [
+    20.0,
+    9.5,
+    2.0
+   ],
+   "max": [
+    21.0,
+    10.0,
+    10.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_10_0_006",
+   "group": "Props",
+   "min": [
+    19.0,
+    9.5,
+    6.0
+   ],
+   "max": [
+    20.0,
+    10.0,
+    9.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_10_0_007",
+   "group": "Props",
+   "min": [
+    21.0,
+    9.5,
+    7.0
+   ],
+   "max": [
+    22.0,
+    10.0,
+    9.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_10_0_008",
+   "group": "Props",
+   "min": [
+    21.0,
+    9.5,
+    2.0
+   ],
+   "max": [
+    22.0,
+    10.0,
+    6.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_10_0_009",
+   "group": "Props",
+   "min": [
+    19.0,
+    9.5,
+    2.0
+   ],
+   "max": [
+    20.0,
+    10.0,
+    5.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_10_0_011",
+   "group": "Props",
+   "min": [
+    -2.0,
+    9.5,
+    -1.0
+   ],
+   "max": [
+    3.0,
+    10.0,
+    -0.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_10_5_001",
+   "group": "Props",
+   "min": [
+    7.0,
+    10.0,
+    -7.0
+   ],
+   "max": [
+    8.0,
+    10.5,
+    -6.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_9_5_001",
+   "group": "Props",
+   "min": [
+    19.0,
+    9.0,
+    -0.0
+   ],
+   "max": [
+    22.0,
+    9.5,
+    2.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_9_5_002",
+   "group": "Props",
+   "min": [
+    8.0,
+    9.0,
+    -2.0
+   ],
+   "max": [
+    10.0,
+    9.5,
+    -1.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_9_5_003",
+   "group": "Props",
+   "min": [
+    7.0,
+    9.0,
+    -3.0
+   ],
+   "max": [
+    8.0,
+    9.5,
+    -2.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_9_5_004",
+   "group": "Props",
+   "min": [
+    8.0,
+    9.0,
+    -4.0
+   ],
+   "max": [
+    9.0,
+    9.5,
+    -3.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_9_5_005",
+   "group": "Props",
+   "min": [
+    6.0,
+    9.0,
+    -5.0
+   ],
+   "max": [
+    8.0,
+    9.5,
+    -4.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_9_5_006",
+   "group": "Props",
+   "min": [
+    8.0,
+    9.0,
+    -6.0
+   ],
+   "max": [
+    10.0,
+    9.5,
+    -5.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_CounterSlab_9_5_007",
+   "group": "Props",
+   "min": [
+    6.0,
+    9.0,
+    -7.0
+   ],
+   "max": [
+    7.0,
+    9.5,
+    -6.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_MergedFixture_005",
+   "group": "Props",
+   "min": [
+    -9.0,
+    9.5,
+    -1.0
+   ],
+   "max": [
+    -4.0,
+    10.0,
+    -0.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_MergedFixture_006",
+   "group": "Props",
+   "min": [
+    5.0,
+    9.5,
+    -1.0
+   ],
+   "max": [
+    10.0,
+    10.0,
+    -0.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_MergedFixture_007",
+   "group": "Props",
+   "min": [
+    -15.0,
+    9.5,
+    -2.0
+   ],
+   "max": [
+    -10.0,
+    10.0,
+    -1.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_MergedFixture_008",
+   "group": "Props",
+   "min": [
+    11.0,
+    9.5,
+    -2.0
+   ],
+   "max": [
+    16.0,
+    10.0,
+    -1.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Step_Jungle_Stairs_10_0_001",
+   "group": "Props",
+   "min": [
+    -13.0,
+    9.5,
+    14.5
+   ],
+   "max": [
+    -12.0,
+    10.0,
+    15.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Step_Jungle_Stairs_10_5_001",
+   "group": "Props",
+   "min": [
+    -13.0,
+    10.0,
+    15.0
+   ],
+   "max": [
+    -12.0,
+    10.5,
+    16.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Step_Jungle_Stairs_11_0_001",
+   "group": "Props",
+   "min": [
+    -13.0,
+    10.5,
+    15.5
+   ],
+   "max": [
+    -12.0,
+    11.0,
+    16.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Step_Jungle_Stairs_11_5_001",
+   "group": "Props",
+   "min": [
+    -13.0,
+    11.0,
+    16.0
+   ],
+   "max": [
+    -12.0,
+    11.5,
+    17.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Step_Jungle_Stairs_12_0_001",
+   "group": "Props",
+   "min": [
+    -13.0,
+    11.5,
+    16.5
+   ],
+   "max": [
+    -12.0,
+    12.0,
+    17.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Step_Jungle_Stairs_12_5_001",
+   "group": "Props",
+   "min": [
+    -13.0,
+    12.0,
+    17.0
+   ],
+   "max": [
+    -12.0,
+    12.5,
+    18.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Step_Jungle_Stairs_13_0_001",
+   "group": "Props",
+   "min": [
+    -13.0,
+    12.5,
+    17.5
+   ],
+   "max": [
+    -12.0,
+    13.0,
+    18.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Step_Jungle_Stairs_13_5_001",
+   "group": "Props",
+   "min": [
+    -14.0,
+    13.0,
+    18.0
+   ],
+   "max": [
+    -13.0,
+    13.5,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Step_Jungle_Stairs_14_0_001",
+   "group": "Props",
+   "min": [
+    -14.0,
+    13.5,
+    18.0
+   ],
+   "max": [
+    -13.5,
+    14.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Step_Jungle_Stairs_14_5_001",
+   "group": "Props",
+   "min": [
+    -15.0,
+    14.0,
+    18.0
+   ],
+   "max": [
+    -14.0,
+    14.5,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Step_Jungle_Stairs_15_0_001",
+   "group": "Props",
+   "min": [
+    -15.0,
+    14.5,
+    18.0
+   ],
+   "max": [
+    -14.5,
+    15.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Step_Jungle_Stairs_9_5_001",
+   "group": "Props",
+   "min": [
+    -13.0,
+    9.0,
+    14.0
+   ],
+   "max": [
+    -12.0,
+    9.5,
+    15.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_EastOuter_001",
+   "group": "Wall",
+   "min": [
+    23.0,
+    10.0,
+    3.0
+   ],
+   "max": [
+    24.0,
+    12.0,
+    5.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_EastOuter_002",
+   "group": "Wall",
+   "min": [
+    23.0,
+    14.0,
+    11.0
+   ],
+   "max": [
+    24.0,
+    15.0,
+    12.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_EastOuter_003",
+   "group": "Wall",
+   "min": [
+    23.0,
+    14.0,
+    9.0
+   ],
+   "max": [
+    24.0,
+    15.0,
+    10.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_001",
+   "group": "Wall",
+   "min": [
+    22.0,
+    9.0,
+    14.0
+   ],
+   "max": [
+    23.0,
+    18.0,
+    18.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_002",
+   "group": "Wall",
+   "min": [
+    22.0,
+    9.0,
+    5.0
+   ],
+   "max": [
+    23.0,
+    10.0,
+    14.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_003",
+   "group": "Wall",
+   "min": [
+    22.0,
+    11.0,
+    13.0
+   ],
+   "max": [
+    23.0,
+    19.0,
+    14.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_004",
+   "group": "Wall",
+   "min": [
+    22.0,
+    12.0,
+    12.0
+   ],
+   "max": [
+    23.0,
+    18.0,
+    13.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_005",
+   "group": "Wall",
+   "min": [
+    22.0,
+    11.0,
+    10.0
+   ],
+   "max": [
+    23.0,
+    12.0,
+    12.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_006",
+   "group": "Wall",
+   "min": [
+    22.0,
+    15.0,
+    -7.0
+   ],
+   "max": [
+    23.0,
+    18.0,
+    12.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_007",
+   "group": "Wall",
+   "min": [
+    22.0,
+    12.0,
+    10.0
+   ],
+   "max": [
+    23.0,
+    15.0,
+    11.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_008",
+   "group": "Wall",
+   "min": [
+    22.0,
+    10.0,
+    7.0
+   ],
+   "max": [
+    23.0,
+    15.0,
+    9.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_009",
+   "group": "Wall",
+   "min": [
+    22.0,
+    18.0,
+    7.0
+   ],
+   "max": [
+    23.0,
+    19.0,
+    8.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_010",
+   "group": "Wall",
+   "min": [
+    22.0,
+    11.0,
+    5.0
+   ],
+   "max": [
+    23.0,
+    15.0,
+    7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_011",
+   "group": "Wall",
+   "min": [
+    22.0,
+    10.0,
+    5.0
+   ],
+   "max": [
+    23.0,
+    11.0,
+    6.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_012",
+   "group": "Wall",
+   "min": [
+    22.0,
+    12.0,
+    -7.0
+   ],
+   "max": [
+    23.0,
+    15.0,
+    5.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_013",
+   "group": "Wall",
+   "min": [
+    22.0,
+    9.0,
+    -11.0
+   ],
+   "max": [
+    23.0,
+    12.0,
+    3.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_014",
+   "group": "Wall",
+   "min": [
+    22.0,
+    18.0,
+    -0.0
+   ],
+   "max": [
+    23.0,
+    19.0,
+    1.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_015",
+   "group": "Wall",
+   "min": [
+    22.0,
+    18.0,
+    -6.0
+   ],
+   "max": [
+    23.0,
+    19.0,
+    -5.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_016",
+   "group": "Wall",
+   "min": [
+    22.0,
+    15.0,
+    -11.0
+   ],
+   "max": [
+    23.0,
+    16.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_017",
+   "group": "Wall",
+   "min": [
+    22.0,
+    12.0,
+    -9.0
+   ],
+   "max": [
+    23.0,
+    15.0,
+    -8.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_East_018",
+   "group": "Wall",
+   "min": [
+    22.0,
+    12.0,
+    -11.0
+   ],
+   "max": [
+    23.0,
+    15.0,
+    -10.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_AndesitePost_001",
+   "group": "Wall",
+   "min": [
+    17.25,
+    9.0,
+    -7.75
+   ],
+   "max": [
+    17.75,
+    15.0,
+    -7.25
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_BackY11_001",
+   "group": "Wall",
+   "min": [
+    17.0,
+    9.0,
+    -12.0
+   ],
+   "max": [
+    18.0,
+    16.0,
+    -11.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_BackY11_002",
+   "group": "Wall",
+   "min": [
+    20.0,
+    9.0,
+    -12.0
+   ],
+   "max": [
+    22.0,
+    16.0,
+    -11.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_BackY11_003",
+   "group": "Wall",
+   "min": [
+    18.0,
+    11.0,
+    -12.0
+   ],
+   "max": [
+    20.0,
+    16.0,
+    -11.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_BackY11_004",
+   "group": "Wall",
+   "min": [
+    13.0,
+    13.0,
+    -12.0
+   ],
+   "max": [
+    14.0,
+    16.0,
+    -11.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_BackY11_005",
+   "group": "Wall",
+   "min": [
+    14.0,
+    14.0,
+    -12.0
+   ],
+   "max": [
+    17.0,
+    16.0,
+    -11.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_WestX13_001",
+   "group": "Wall",
+   "min": [
+    12.0,
+    9.0,
+    -9.0
+   ],
+   "max": [
+    13.0,
+    16.0,
+    -8.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_WestX13_002",
+   "group": "Wall",
+   "min": [
+    12.0,
+    13.0,
+    -11.0
+   ],
+   "max": [
+    13.0,
+    16.0,
+    -9.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_WindowFence_001",
+   "group": "Wall",
+   "min": [
+    22.375,
+    12.0,
+    -7.625
+   ],
+   "max": [
+    22.625,
+    15.0,
+    -7.375
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_WindowFence_002",
+   "group": "Wall",
+   "min": [
+    22.375,
+    12.0,
+    -9.625
+   ],
+   "max": [
+    22.625,
+    15.0,
+    -9.375
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_WindowFence_003",
+   "group": "Wall",
+   "min": [
+    22.4375,
+    12.375,
+    -8.0
+   ],
+   "max": [
+    22.5625,
+    12.5625,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_WindowFence_004",
+   "group": "Wall",
+   "min": [
+    22.4375,
+    12.75,
+    -8.0
+   ],
+   "max": [
+    22.5625,
+    12.9375,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_WindowFence_005",
+   "group": "Wall",
+   "min": [
+    22.4375,
+    13.375,
+    -8.0
+   ],
+   "max": [
+    22.5625,
+    13.5625,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_WindowFence_006",
+   "group": "Wall",
+   "min": [
+    22.4375,
+    13.75,
+    -8.0
+   ],
+   "max": [
+    22.5625,
+    13.9375,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_WindowFence_007",
+   "group": "Wall",
+   "min": [
+    22.4375,
+    14.375,
+    -8.0
+   ],
+   "max": [
+    22.5625,
+    14.5625,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_WindowFence_008",
+   "group": "Wall",
+   "min": [
+    22.4375,
+    14.75,
+    -8.0
+   ],
+   "max": [
+    22.5625,
+    14.9375,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_WindowFence_009",
+   "group": "Wall",
+   "min": [
+    22.4375,
+    12.375,
+    -10.0
+   ],
+   "max": [
+    22.5625,
+    12.5625,
+    -9.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_WindowFence_010",
+   "group": "Wall",
+   "min": [
+    22.4375,
+    12.75,
+    -10.0
+   ],
+   "max": [
+    22.5625,
+    12.9375,
+    -9.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_WindowFence_011",
+   "group": "Wall",
+   "min": [
+    22.4375,
+    13.375,
+    -10.0
+   ],
+   "max": [
+    22.5625,
+    13.5625,
+    -9.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_WindowFence_012",
+   "group": "Wall",
+   "min": [
+    22.4375,
+    13.75,
+    -10.0
+   ],
+   "max": [
+    22.5625,
+    13.9375,
+    -9.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_WindowFence_013",
+   "group": "Wall",
+   "min": [
+    22.4375,
+    14.375,
+    -10.0
+   ],
+   "max": [
+    22.5625,
+    14.5625,
+    -9.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Forget_WindowFence_014",
+   "group": "Wall",
+   "min": [
+    22.4375,
+    14.75,
+    -10.0
+   ],
+   "max": [
+    22.5625,
+    14.9375,
+    -9.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_NorthArchHalfMinus_001",
+   "group": "Wall",
+   "min": [
+    -6.0,
+    12.5,
+    -8.0
+   ],
+   "max": [
+    -5.0,
+    13.0,
+    -7.5
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_NorthArchHalfMinus_002",
+   "group": "Wall",
+   "min": [
+    6.0,
+    12.5,
+    -8.0
+   ],
+   "max": [
+    7.0,
+    13.0,
+    -7.5
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_001",
+   "group": "Wall",
+   "min": [
+    -21.0,
+    10.0,
+    -8.0
+   ],
+   "max": [
+    -20.0,
+    14.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_002",
+   "group": "Wall",
+   "min": [
+    -20.0,
+    10.0,
+    -8.0
+   ],
+   "max": [
+    -18.0,
+    12.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_003",
+   "group": "Wall",
+   "min": [
+    -20.0,
+    13.0,
+    -8.0
+   ],
+   "max": [
+    -16.0,
+    14.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_004",
+   "group": "Wall",
+   "min": [
+    -20.0,
+    18.0,
+    -8.0
+   ],
+   "max": [
+    -11.0,
+    19.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_005",
+   "group": "Wall",
+   "min": [
+    -19.0,
+    9.0,
+    -8.0
+   ],
+   "max": [
+    -18.0,
+    10.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_006",
+   "group": "Wall",
+   "min": [
+    -19.0,
+    12.0,
+    -8.0
+   ],
+   "max": [
+    -6.0,
+    13.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_007",
+   "group": "Wall",
+   "min": [
+    -18.0,
+    11.0,
+    -8.0
+   ],
+   "max": [
+    -17.0,
+    12.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_008",
+   "group": "Wall",
+   "min": [
+    -15.0,
+    9.0,
+    -8.0
+   ],
+   "max": [
+    -5.0,
+    12.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_009",
+   "group": "Wall",
+   "min": [
+    -15.0,
+    13.0,
+    -8.0
+   ],
+   "max": [
+    -5.0,
+    18.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_010",
+   "group": "Wall",
+   "min": [
+    -10.0,
+    18.0,
+    -8.0
+   ],
+   "max": [
+    0.0,
+    19.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_011",
+   "group": "Wall",
+   "min": [
+    -6.0,
+    12.0,
+    -8.0
+   ],
+   "max": [
+    -5.0,
+    12.5,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_012",
+   "group": "Wall",
+   "min": [
+    -5.0,
+    14.0,
+    -8.0
+   ],
+   "max": [
+    -4.0,
+    18.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_013",
+   "group": "Wall",
+   "min": [
+    -4.0,
+    15.0,
+    -8.0
+   ],
+   "max": [
+    -3.0,
+    18.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_014",
+   "group": "Wall",
+   "min": [
+    -3.0,
+    16.0,
+    -8.0
+   ],
+   "max": [
+    -2.0,
+    18.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_015",
+   "group": "Wall",
+   "min": [
+    -2.0,
+    17.0,
+    -8.0
+   ],
+   "max": [
+    22.0,
+    18.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_016",
+   "group": "Wall",
+   "min": [
+    1.0,
+    18.0,
+    -8.0
+   ],
+   "max": [
+    7.0,
+    19.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_017",
+   "group": "Wall",
+   "min": [
+    3.0,
+    16.0,
+    -8.0
+   ],
+   "max": [
+    22.0,
+    17.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_018",
+   "group": "Wall",
+   "min": [
+    4.0,
+    15.0,
+    -8.0
+   ],
+   "max": [
+    12.0,
+    16.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_019",
+   "group": "Wall",
+   "min": [
+    5.0,
+    14.0,
+    -8.0
+   ],
+   "max": [
+    12.0,
+    15.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_020",
+   "group": "Wall",
+   "min": [
+    6.0,
+    9.0,
+    -8.0
+   ],
+   "max": [
+    12.0,
+    12.5,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_021",
+   "group": "Wall",
+   "min": [
+    6.0,
+    13.0,
+    -8.0
+   ],
+   "max": [
+    12.0,
+    14.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_022",
+   "group": "Wall",
+   "min": [
+    7.0,
+    12.5,
+    -8.0
+   ],
+   "max": [
+    12.0,
+    13.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_023",
+   "group": "Wall",
+   "min": [
+    8.0,
+    18.0,
+    -8.0
+   ],
+   "max": [
+    11.0,
+    19.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_024",
+   "group": "Wall",
+   "min": [
+    12.0,
+    15.5,
+    -8.0
+   ],
+   "max": [
+    13.0,
+    16.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_025",
+   "group": "Wall",
+   "min": [
+    12.0,
+    18.0,
+    -8.0
+   ],
+   "max": [
+    21.0,
+    19.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_026",
+   "group": "Wall",
+   "min": [
+    16.0,
+    15.5,
+    -8.0
+   ],
+   "max": [
+    19.0,
+    16.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_027",
+   "group": "Wall",
+   "min": [
+    17.0,
+    15.0,
+    -8.0
+   ],
+   "max": [
+    18.0,
+    15.5,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_North_028",
+   "group": "Wall",
+   "min": [
+    21.0,
+    15.5,
+    -8.0
+   ],
+   "max": [
+    22.0,
+    16.0,
+    -7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Partition_001",
+   "group": "Wall",
+   "min": [
+    -16.0,
+    14.0,
+    13.0
+   ],
+   "max": [
+    -15.0,
+    19.0,
+    16.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Partition_002",
+   "group": "Wall",
+   "min": [
+    -16.0,
+    13.5,
+    -7.0
+   ],
+   "max": [
+    -15.0,
+    14.0,
+    14.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Partition_003",
+   "group": "Wall",
+   "min": [
+    -16.0,
+    14.0,
+    -7.0
+   ],
+   "max": [
+    -15.0,
+    16.0,
+    13.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Partition_004",
+   "group": "Wall",
+   "min": [
+    -16.0,
+    18.0,
+    -7.0
+   ],
+   "max": [
+    -15.0,
+    19.0,
+    13.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Partition_005",
+   "group": "Wall",
+   "min": [
+    -16.0,
+    16.0,
+    5.0
+   ],
+   "max": [
+    -15.0,
+    18.0,
+    10.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Partition_006",
+   "group": "Wall",
+   "min": [
+    -16.0,
+    16.0,
+    -3.0
+   ],
+   "max": [
+    -15.0,
+    18.0,
+    2.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Partition_007",
+   "group": "Wall",
+   "min": [
+    -16.0,
+    9.0,
+    -2.0
+   ],
+   "max": [
+    -15.0,
+    13.5,
+    -1.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Partition_008",
+   "group": "Wall",
+   "min": [
+    -16.0,
+    11.0,
+    -4.0
+   ],
+   "max": [
+    -15.0,
+    13.5,
+    -2.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Partition_009",
+   "group": "Wall",
+   "min": [
+    -16.0,
+    9.0,
+    -7.0
+   ],
+   "max": [
+    -15.0,
+    11.0,
+    -3.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Partition_010",
+   "group": "Wall",
+   "min": [
+    -16.0,
+    11.0,
+    -7.0
+   ],
+   "max": [
+    -15.0,
+    12.0,
+    -4.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Partition_011",
+   "group": "Wall",
+   "min": [
+    -16.0,
+    13.0,
+    -7.0
+   ],
+   "max": [
+    -15.0,
+    13.5,
+    -4.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Partition_012",
+   "group": "Wall",
+   "min": [
+    -16.0,
+    16.0,
+    -7.0
+   ],
+   "max": [
+    -15.0,
+    18.0,
+    -6.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_001",
+   "group": "Wall",
+   "min": [
+    -21.0,
+    12.0,
+    19.0
+   ],
+   "max": [
+    -14.0,
+    14.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_002",
+   "group": "Wall",
+   "min": [
+    -21.0,
+    15.0,
+    19.0
+   ],
+   "max": [
+    -11.0,
+    19.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_003",
+   "group": "Wall",
+   "min": [
+    -20.0,
+    11.0,
+    19.0
+   ],
+   "max": [
+    -15.0,
+    12.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_004",
+   "group": "Wall",
+   "min": [
+    -19.0,
+    9.0,
+    19.0
+   ],
+   "max": [
+    -18.0,
+    11.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_005",
+   "group": "Wall",
+   "min": [
+    -19.0,
+    14.0,
+    19.0
+   ],
+   "max": [
+    -17.0,
+    15.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_006",
+   "group": "Wall",
+   "min": [
+    -16.0,
+    9.0,
+    19.0
+   ],
+   "max": [
+    -15.0,
+    11.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_007",
+   "group": "Wall",
+   "min": [
+    -16.0,
+    14.0,
+    19.0
+   ],
+   "max": [
+    -11.0,
+    15.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_008",
+   "group": "Wall",
+   "min": [
+    -14.0,
+    13.0,
+    19.0
+   ],
+   "max": [
+    -11.0,
+    14.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_009",
+   "group": "Wall",
+   "min": [
+    -12.0,
+    9.0,
+    19.0
+   ],
+   "max": [
+    -11.0,
+    13.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_010",
+   "group": "Wall",
+   "min": [
+    -10.0,
+    9.0,
+    19.0
+   ],
+   "max": [
+    0.0,
+    11.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_011",
+   "group": "Wall",
+   "min": [
+    -10.0,
+    12.0,
+    19.0
+   ],
+   "max": [
+    -7.0,
+    17.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_012",
+   "group": "Wall",
+   "min": [
+    -9.0,
+    11.0,
+    19.0
+   ],
+   "max": [
+    0.0,
+    12.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_013",
+   "group": "Wall",
+   "min": [
+    -7.0,
+    15.0,
+    19.0
+   ],
+   "max": [
+    -6.0,
+    19.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_014",
+   "group": "Wall",
+   "min": [
+    -6.0,
+    16.0,
+    19.0
+   ],
+   "max": [
+    0.0,
+    19.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_015",
+   "group": "Wall",
+   "min": [
+    -4.0,
+    15.0,
+    19.0
+   ],
+   "max": [
+    0.0,
+    16.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_016",
+   "group": "Wall",
+   "min": [
+    -3.0,
+    12.0,
+    19.0
+   ],
+   "max": [
+    0.0,
+    15.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_017",
+   "group": "Wall",
+   "min": [
+    1.0,
+    9.0,
+    19.0
+   ],
+   "max": [
+    4.0,
+    19.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_018",
+   "group": "Wall",
+   "min": [
+    4.0,
+    9.0,
+    19.0
+   ],
+   "max": [
+    11.0,
+    12.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_019",
+   "group": "Wall",
+   "min": [
+    4.0,
+    15.0,
+    19.0
+   ],
+   "max": [
+    5.0,
+    19.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_020",
+   "group": "Wall",
+   "min": [
+    5.0,
+    16.0,
+    19.0
+   ],
+   "max": [
+    11.0,
+    19.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_021",
+   "group": "Wall",
+   "min": [
+    7.0,
+    15.0,
+    19.0
+   ],
+   "max": [
+    11.0,
+    16.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_022",
+   "group": "Wall",
+   "min": [
+    8.0,
+    12.0,
+    19.0
+   ],
+   "max": [
+    11.0,
+    15.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_023",
+   "group": "Wall",
+   "min": [
+    12.0,
+    9.0,
+    19.0
+   ],
+   "max": [
+    15.0,
+    19.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_024",
+   "group": "Wall",
+   "min": [
+    15.0,
+    16.0,
+    19.0
+   ],
+   "max": [
+    21.0,
+    19.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_025",
+   "group": "Wall",
+   "min": [
+    16.0,
+    11.0,
+    19.0
+   ],
+   "max": [
+    21.0,
+    12.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_026",
+   "group": "Wall",
+   "min": [
+    17.0,
+    12.0,
+    19.0
+   ],
+   "max": [
+    18.0,
+    16.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_027",
+   "group": "Wall",
+   "min": [
+    18.0,
+    10.0,
+    19.0
+   ],
+   "max": [
+    21.0,
+    11.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_028",
+   "group": "Wall",
+   "min": [
+    20.0,
+    9.0,
+    19.0
+   ],
+   "max": [
+    21.0,
+    10.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearInner_029",
+   "group": "Wall",
+   "min": [
+    20.0,
+    12.0,
+    19.0
+   ],
+   "max": [
+    21.0,
+    16.0,
+    20.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_001",
+   "group": "Wall",
+   "min": [
+    -21.0,
+    9.0,
+    20.0
+   ],
+   "max": [
+    -19.0,
+    19.0,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_002",
+   "group": "Wall",
+   "min": [
+    -19.0,
+    9.0,
+    20.0
+   ],
+   "max": [
+    22.0,
+    12.0,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_003",
+   "group": "Wall",
+   "min": [
+    -19.0,
+    15.0,
+    20.0
+   ],
+   "max": [
+    -18.5,
+    19.0,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_004",
+   "group": "Wall",
+   "min": [
+    -18.5,
+    15.5,
+    20.0
+   ],
+   "max": [
+    22.0,
+    19.0,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_005",
+   "group": "Wall",
+   "min": [
+    -17.5,
+    15.0,
+    20.0
+   ],
+   "max": [
+    -15.5,
+    15.5,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_006",
+   "group": "Wall",
+   "min": [
+    -17.0,
+    12.0,
+    20.0
+   ],
+   "max": [
+    -16.0,
+    15.0,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_007",
+   "group": "Wall",
+   "min": [
+    -14.5,
+    15.0,
+    20.0
+   ],
+   "max": [
+    -6.5,
+    15.5,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_008",
+   "group": "Wall",
+   "min": [
+    -14.0,
+    12.0,
+    20.0
+   ],
+   "max": [
+    -7.0,
+    15.0,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_009",
+   "group": "Wall",
+   "min": [
+    -6.0,
+    15.0,
+    20.0
+   ],
+   "max": [
+    4.5,
+    15.5,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_010",
+   "group": "Wall",
+   "min": [
+    -5.0,
+    14.0,
+    20.0
+   ],
+   "max": [
+    4.0,
+    15.0,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_011",
+   "group": "Wall",
+   "min": [
+    -4.0,
+    13.0,
+    20.0
+   ],
+   "max": [
+    4.0,
+    14.0,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_012",
+   "group": "Wall",
+   "min": [
+    -3.0,
+    12.0,
+    20.0
+   ],
+   "max": [
+    4.0,
+    13.0,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_013",
+   "group": "Wall",
+   "min": [
+    5.5,
+    15.0,
+    20.0
+   ],
+   "max": [
+    6.5,
+    15.5,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_014",
+   "group": "Wall",
+   "min": [
+    7.5,
+    15.0,
+    20.0
+   ],
+   "max": [
+    15.5,
+    15.5,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_015",
+   "group": "Wall",
+   "min": [
+    8.0,
+    12.0,
+    20.0
+   ],
+   "max": [
+    15.0,
+    15.0,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_016",
+   "group": "Wall",
+   "min": [
+    16.5,
+    15.0,
+    20.0
+   ],
+   "max": [
+    18.5,
+    15.5,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_017",
+   "group": "Wall",
+   "min": [
+    17.0,
+    12.0,
+    20.0
+   ],
+   "max": [
+    18.0,
+    15.0,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_018",
+   "group": "Wall",
+   "min": [
+    19.5,
+    15.0,
+    20.0
+   ],
+   "max": [
+    22.0,
+    15.5,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearOuter_019",
+   "group": "Wall",
+   "min": [
+    20.0,
+    12.0,
+    20.0
+   ],
+   "max": [
+    22.0,
+    15.0,
+    21.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearWindow_M20_25_001",
+   "group": "Wall",
+   "min": [
+    -5.75,
+    12.0,
+    20.25
+   ],
+   "max": [
+    -5.25,
+    13.0,
+    20.375
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearWindow_M20_25_002",
+   "group": "Wall",
+   "min": [
+    -4.75,
+    12.0,
+    20.25
+   ],
+   "max": [
+    -4.25,
+    13.0,
+    20.375
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearWindow_M20_3125_001",
+   "group": "Wall",
+   "min": [
+    -7.0,
+    12.0,
+    20.3125
+   ],
+   "max": [
+    -5.75,
+    14.0,
+    20.4375
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearWindow_M20_3125_002",
+   "group": "Wall",
+   "min": [
+    -6.0,
+    14.0,
+    20.3125
+   ],
+   "max": [
+    -5.0,
+    15.0,
+    20.4375
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearWindow_M20_3125_003",
+   "group": "Wall",
+   "min": [
+    -5.75,
+    13.0,
+    20.3125
+   ],
+   "max": [
+    -4.0,
+    14.0,
+    20.4375
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearWindow_M20_3125_004",
+   "group": "Wall",
+   "min": [
+    -5.25,
+    12.0,
+    20.3125
+   ],
+   "max": [
+    -4.75,
+    13.0,
+    20.4375
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearWindow_M20_3125_005",
+   "group": "Wall",
+   "min": [
+    -4.25,
+    12.0,
+    20.3125
+   ],
+   "max": [
+    -3.0,
+    13.0,
+    20.4375
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_RearWindow_M20_3125_006",
+   "group": "Wall",
+   "min": [
+    4.0,
+    12.0,
+    20.3125
+   ],
+   "max": [
+    8.0,
+    14.0,
+    20.4375
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_001",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    12.0,
+    12.0
+   ],
+   "max": [
+    -21.0,
+    14.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_002",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    15.0,
+    16.0
+   ],
+   "max": [
+    -21.0,
+    19.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_003",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    11.0,
+    13.0
+   ],
+   "max": [
+    -21.0,
+    12.0,
+    18.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_004",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    9.0,
+    13.0
+   ],
+   "max": [
+    -21.0,
+    11.0,
+    17.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_005",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    15.0,
+    15.0
+   ],
+   "max": [
+    -21.0,
+    16.0,
+    16.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_006",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    16.0,
+    14.0
+   ],
+   "max": [
+    -21.0,
+    19.0,
+    15.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_007",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    14.0,
+    13.0
+   ],
+   "max": [
+    -21.0,
+    15.0,
+    14.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_008",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    16.5,
+    13.0
+   ],
+   "max": [
+    -21.0,
+    19.0,
+    14.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_009",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    17.0,
+    9.0
+   ],
+   "max": [
+    -21.0,
+    19.0,
+    13.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_010",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    10.0,
+    -1.0
+   ],
+   "max": [
+    -21.0,
+    13.0,
+    12.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_011",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    16.0,
+    9.0
+   ],
+   "max": [
+    -21.0,
+    17.0,
+    12.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_012",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    9.0,
+    10.0
+   ],
+   "max": [
+    -21.0,
+    10.0,
+    11.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_013",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    15.0,
+    5.0
+   ],
+   "max": [
+    -21.0,
+    16.0,
+    11.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_014",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    18.0,
+    -6.0
+   ],
+   "max": [
+    -21.0,
+    19.0,
+    9.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_015",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    9.0,
+    7.0
+   ],
+   "max": [
+    -21.0,
+    10.0,
+    8.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_016",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    13.0,
+    7.0
+   ],
+   "max": [
+    -21.0,
+    15.0,
+    8.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_017",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    16.0,
+    5.0
+   ],
+   "max": [
+    -21.0,
+    18.0,
+    8.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_018",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    9.0,
+    -1.0
+   ],
+   "max": [
+    -21.0,
+    10.0,
+    5.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_019",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    17.0,
+    -6.0
+   ],
+   "max": [
+    -21.0,
+    18.0,
+    5.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_020",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    13.0,
+    -0.0
+   ],
+   "max": [
+    -21.0,
+    17.0,
+    1.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_021",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    13.0,
+    -1.0
+   ],
+   "max": [
+    -21.0,
+    14.0,
+    -0.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_022",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    15.0,
+    -6.0
+   ],
+   "max": [
+    -21.0,
+    17.0,
+    -0.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_023",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    9.0,
+    -3.0
+   ],
+   "max": [
+    -21.0,
+    14.0,
+    -2.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_024",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    10.0,
+    -7.0
+   ],
+   "max": [
+    -21.0,
+    14.0,
+    -3.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_025",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    9.0,
+    -6.0
+   ],
+   "max": [
+    -21.0,
+    10.0,
+    -4.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestInner_026",
+   "group": "Wall",
+   "min": [
+    -22.0,
+    14.0,
+    -6.0
+   ],
+   "max": [
+    -21.0,
+    15.0,
+    -5.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestOuter_001",
+   "group": "Wall",
+   "min": [
+    -23.0,
+    9.0,
+    14.0
+   ],
+   "max": [
+    -22.0,
+    15.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestOuter_002",
+   "group": "Wall",
+   "min": [
+    -23.0,
+    9.0,
+    8.0
+   ],
+   "max": [
+    -22.0,
+    15.0,
+    13.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestOuter_003",
+   "group": "Wall",
+   "min": [
+    -23.0,
+    9.0,
+    1.0
+   ],
+   "max": [
+    -22.0,
+    19.0,
+    7.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestOuter_004",
+   "group": "Wall",
+   "min": [
+    -23.0,
+    9.0,
+    -5.0
+   ],
+   "max": [
+    -22.0,
+    19.0,
+    -0.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestOuter_005",
+   "group": "Wall",
+   "min": [
+    -23.0,
+    9.0,
+    -7.0
+   ],
+   "max": [
+    -22.0,
+    19.0,
+    -6.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestOuter_006",
+   "group": "Wall",
+   "min": [
+    -23.0,
+    13.0,
+    13.0
+   ],
+   "max": [
+    -22.0,
+    14.5,
+    14.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestOuter_007",
+   "group": "Wall",
+   "min": [
+    -23.0,
+    15.0,
+    15.0
+   ],
+   "max": [
+    -22.0,
+    15.5,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestOuter_008",
+   "group": "Wall",
+   "min": [
+    -23.0,
+    15.0,
+    8.0
+   ],
+   "max": [
+    -22.0,
+    15.5,
+    12.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestOuter_009",
+   "group": "Wall",
+   "min": [
+    -23.0,
+    15.5,
+    16.0
+   ],
+   "max": [
+    -22.0,
+    19.0,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestOuter_010",
+   "group": "Wall",
+   "min": [
+    -23.0,
+    15.5,
+    8.0
+   ],
+   "max": [
+    -22.0,
+    16.0,
+    11.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestOuter_011",
+   "group": "Wall",
+   "min": [
+    -23.0,
+    16.0,
+    15.0
+   ],
+   "max": [
+    -22.0,
+    19.0,
+    16.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestOuter_012",
+   "group": "Wall",
+   "min": [
+    -23.0,
+    16.0,
+    9.0
+   ],
+   "max": [
+    -22.0,
+    19.0,
+    11.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestOuter_013",
+   "group": "Wall",
+   "min": [
+    -23.0,
+    16.5,
+    11.0
+   ],
+   "max": [
+    -22.0,
+    19.0,
+    12.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestOuter_014",
+   "group": "Wall",
+   "min": [
+    -23.0,
+    17.0,
+    14.0
+   ],
+   "max": [
+    -22.0,
+    19.0,
+    15.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestOuter_015",
+   "group": "Wall",
+   "min": [
+    -23.0,
+    17.0,
+    7.0
+   ],
+   "max": [
+    -22.0,
+    19.0,
+    8.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestOuter_016",
+   "group": "Wall",
+   "min": [
+    -23.0,
+    18.0,
+    12.0
+   ],
+   "max": [
+    -22.0,
+    19.0,
+    13.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_WestOuter_017",
+   "group": "Wall",
+   "min": [
+    -23.0,
+    18.0,
+    8.0
+   ],
+   "max": [
+    -22.0,
+    19.0,
+    9.0
+   ]
+  }
+ ]
+}
