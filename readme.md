@@ -19,7 +19,7 @@ npm ci
 npm run dev
 ```
 
-使用支持 WebGPU 的最新版 Chrome / Edge。加载后保持 Blender 参考机位，默认启用飞行观察：点击画面后 WASD 移动、Q/E 升降、右键拖动视角、Shift 加速、滚轮调速。F 定位浮动茶壶，R 复位。左下角可切换轨道模式、暂停漂浮及切换动态阴影，右上角提供 AO 和 LUT 调试面板。模块与操作见 [茶壶与飞行观察](docs/lighting/room-inspection.md)。
+使用支持 WebGPU 的最新版 Chrome / Edge。加载后默认进入**玩家模式**，站在碰撞层出生点：点击画面锁定鼠标，WASD 移动、Shift 静步、C 下蹲、空格跳跃，R 回到出生点，Esc 释放鼠标。V 在玩家与飞行（noclip）之间切换；飞行模式下 WASD 移动、Q/E 升降、右键拖动视角、Shift 加速、滚轮调速，F 定位浮动茶壶，R 复位。左下角可切换轨道模式、碰撞线框、暂停漂浮及动态阴影，右上角提供 AO 和 LUT 调试面板。`?player=0` 启动时保持 Blender 参考机位与飞行模式。碰撞层见 [练枪房碰撞层](docs/physics/collision-layer.md)，模块与操作见 [茶壶与飞行观察](docs/lighting/room-inspection.md)。
 
 当前 `package-lock.json` 与 r187 依赖一致，已验证 `npm ci --dry-run --ignore-scripts`。保留现有 pnpm 锁文件，不删除或自动互相转换；安装时选择一种包管理器。部分 ESLint 开发依赖要求 Node 22.22.2+ 或 24.15+。
 
@@ -40,6 +40,7 @@ npm run dev
 node tools/check-pipeline-browser.mjs "http://localhost:5173/"
 node tools/check-probes-browser.mjs "http://localhost:5173/"
 node tools/check-ground-browser.mjs "http://localhost:5173/"
+node tools/check-player-browser.mjs "http://localhost:5173/"
 ```
 
 专项测试覆盖法线预通道的透明裁剪/顶点变形、像素贴图的近处锐度与远处缩小过滤、参数原地更新、分辨率联动、效果循环释放，以及 1080p 分 pass GPU 计时。浏览器脚本自动添加 `?profile=1`。
