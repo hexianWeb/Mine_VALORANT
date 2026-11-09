@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import test from 'node:test'
+import * as THREE from 'three/webgpu'
 import { overlaps } from '../src/engine/systems/physics/collision-world.js'
+import { createCollisionDebug } from '../src/world/collision-debug.js'
 import { createCollisionLayer, validateCollisionData } from '../src/world/collision-layer.js'
 
 const data = JSON.parse(fs.readFileSync(new URL('../public/collision/range-room.json', import.meta.url)))
@@ -125,4 +127,20 @@ test('validation rejects broken data', () => {
       },
     ],
   }), /Invalid box a/)
+})
+
+test('collision debug draws 12 edges per room box, skips the ground and never intercepts picking', () => {
+  const layer = createCollisionLayer(data, GROUND)
+  const debug = createCollisionDebug(layer.world.boxes)
+  assert.equal(debug.visible, false)
+  assert.deepEqual(debug.snapshot(), { visible: false, boxes: 390, segments: 390 * 12 })
+  assert.equal(debug.root.geometry.getAttribute('position').count, 390 * 24)
+  debug.setVisible(true)
+  assert.equal(debug.root.visible, true)
+  const scene = new THREE.Scene()
+  scene.add(debug.root)
+  const raycaster = new THREE.Raycaster(new THREE.Vector3(0, 10, -30), new THREE.Vector3(0, 0, 1))
+  assert.deepEqual(raycaster.intersectObjects(scene.children, true), [])
+  debug.dispose()
+  assert.equal(scene.children.length, 0)
 })

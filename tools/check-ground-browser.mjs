@@ -7,6 +7,9 @@ import { openBrowser } from './browser-session.mjs'
 
 const output = path.resolve(process.env.ROOM_TEST_OUTPUT ?? 'D:/opencode-temp/opencode/superflat-ground-browser')
 const report = { url: process.argv[2] ?? process.env.ROOM_TEST_URL ?? 'http://127.0.0.1:5173/', errors: [], messages: [] }
+const target = new URL(report.url)
+target.searchParams.set('player', '0')
+report.url = target.href
 const session = await openBrowser({ output, errors: report.errors, messages: report.messages })
 try {
   const { evaluate, send, frames } = session

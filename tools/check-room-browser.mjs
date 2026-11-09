@@ -13,6 +13,7 @@ const messages = []
 const report = { url: process.argv[2] ?? process.env.ROOM_TEST_URL ?? 'http://127.0.0.1:5173/', errors }
 const url = new URL(report.url)
 url.searchParams.set('profile', '1')
+url.searchParams.set('player', '0')
 report.url = url.href
 try {
   session = await openBrowser({ output, errors, messages })

@@ -4,6 +4,7 @@ import { Engine, ResourceManager } from './engine/index.js'
 import { renderConfig } from './engine/systems/render/config.js'
 import { createRenderSystem } from './engine/systems/render/index.js'
 import { createRoomInspection } from './room-inspection.js'
+import { loadCollisionLayer } from './world/collision-layer.js'
 import { createRangeRoom } from './world/range-room.js'
 import './style.css'
 
@@ -63,6 +64,14 @@ async function startRoom() {
   }
   if (cancelled)
     return
+  const collision = await loadCollisionLayer({
+    ground: world.ground.snapshot(),
+  }).catch((error) => {
+    console.error('[Range room] Collision layer unavailable; staying in fly mode', error)
+    return null
+  })
+  if (cancelled)
+    return
   const inspection = engine.disposer.add(createRoomInspection({
     engine,
     scene,
@@ -70,6 +79,10 @@ async function startRoom() {
     canvas,
     renderer: render.renderer,
     room,
+    collision,
+    startMode: parameters.get('player') === '0'
+      ? 'fly'
+      : 'player',
   }))
   const controls = inspection.orbit
   world.probes?.bindRoot(inspection.teapot.mesh)
@@ -77,10 +90,12 @@ async function startRoom() {
   const snapshot = () => {
     const renderState = render.snapshot()
     const worldState = world.snapshot()
+    const inspectionState = inspection.snapshot()
     return {
       ...renderState,
       ...worldState,
-      inspection: inspection.snapshot(),
+      inspection: inspectionState,
+      player: inspectionState.player,
       ready: renderState.ready && worldState.ready,
       config: {
         ...renderState.config,
