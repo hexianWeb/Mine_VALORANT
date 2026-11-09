@@ -4,7 +4,7 @@
  "units": "metres",
  "up": "Y",
  "source": {
-  "blend": "07_已烘焙贴图_降噪预览_透明修复.blend",
+  "blend": "碰撞体.blend",
   "collection": "COLLISION_PracticeRoom",
   "conversion": "x,z,-y"
  },
@@ -30,14 +30,14 @@
   ]
  },
  "counts": {
-  "boxes": 390,
+  "boxes": 399,
   "groups": {
    "Column": 30,
-   "Corridor": 29,
+   "Corridor": 31,
    "Floor": 40,
    "Forgetbox": 1,
-   "Props": 106,
-   "Wall": 184
+   "Props": 109,
+   "Wall": 188
   }
  },
  "boxes": [
@@ -472,7 +472,7 @@
    "max": [
     26.0,
     8.0,
-    -14.0
+    -13.0
    ]
   },
   {
@@ -635,7 +635,7 @@
    "min": [
     19.0,
     8.0,
-    -15.0
+    -18.0
    ],
    "max": [
     20.0,
@@ -680,8 +680,36 @@
     -13.0
    ],
    "max": [
-    4.0,
+    4.4878,
     9.5,
+    -12.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_Entry_CurbRight.001",
+   "group": "Corridor",
+   "min": [
+    5.0,
+    9.0,
+    -13.0
+   ],
+   "max": [
+    6.0,
+    10.5,
+    -12.0
+   ]
+  },
+  {
+   "name": "COL_Corridor_Wall_Entry_CurbRight.002",
+   "group": "Corridor",
+   "min": [
+    4.0,
+    7.0,
+    -13.0
+   ],
+   "max": [
+    6.0,
+    8.5,
     -12.0
    ]
   },
@@ -759,7 +787,7 @@
    "name": "COL_Corridor_Wall_North_Main",
    "group": "Corridor",
    "min": [
-    -1.0,
+    -4.0,
     8.0,
     -20.0
    ],
@@ -836,7 +864,7 @@
    "max": [
     -5.0,
     12.0,
-    -18.0
+    -15.0
    ]
   },
   {
@@ -904,7 +932,7 @@
     -1.0
    ],
    "max": [
-    -8.0,
+    -5.0,
     9.0,
     -0.0
    ]
@@ -990,7 +1018,7 @@
    "max": [
     -2.0,
     9.0,
-    -1.0
+    -0.0
    ]
   },
   {
@@ -1004,7 +1032,7 @@
    "max": [
     4.0,
     9.0,
-    -1.0
+    -0.0
    ]
   },
   {
@@ -1074,7 +1102,7 @@
    "max": [
     3.0,
     9.0,
-    -2.0
+    -0.0
    ]
   },
   {
@@ -1151,14 +1179,14 @@
    "name": "COL_Practice_Floor_North_019",
    "group": "Floor",
    "min": [
-    -1.0,
+    -1.5,
     8.5,
     -8.0
    ],
    "max": [
-    2.0,
+    2.5,
     9.0,
-    -3.0
+    -2.5
    ]
   },
   {
@@ -2852,7 +2880,7 @@
    "max": [
     -12.0,
     13.0,
-    18.0
+    19.0
    ]
   },
   {
@@ -2898,6 +2926,48 @@
    ]
   },
   {
+   "name": "COL_Practice_Prop_Step_Jungle_Stairs_14_5_001.001",
+   "group": "Props",
+   "min": [
+    -15.5074,
+    14.502,
+    18.0
+   ],
+   "max": [
+    -14.5074,
+    15.002,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Step_Jungle_Stairs_14_5_001.002",
+   "group": "Props",
+   "min": [
+    -21.0359,
+    14.502,
+    15.984
+   ],
+   "max": [
+    -15.001,
+    15.002,
+    19.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Prop_Step_Jungle_Stairs_14_5_001.003",
+   "group": "Props",
+   "min": [
+    -21.0359,
+    14.452,
+    15.55
+   ],
+   "max": [
+    -15.001,
+    17.468,
+    16.05
+   ]
+  },
+  {
    "name": "COL_Practice_Prop_Step_Jungle_Stairs_15_0_001",
    "group": "Props",
    "min": [
@@ -2929,12 +2999,12 @@
    "name": "COL_Practice_Wall_EastOuter_001",
    "group": "Wall",
    "min": [
-    23.0,
-    10.0,
+    22.0,
+    9.0,
     3.0
    ],
    "max": [
-    24.0,
+    23.0,
     12.0,
     5.0
    ]
@@ -3217,6 +3287,62 @@
     23.0,
     15.0,
     -10.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Fence_001",
+   "group": "Wall",
+   "min": [
+    21.8245,
+    10.0,
+    9.0
+   ],
+   "max": [
+    22.1755,
+    14.0,
+    10.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Fence_002",
+   "group": "Wall",
+   "min": [
+    21.8245,
+    10.0,
+    11.0
+   ],
+   "max": [
+    22.1755,
+    14.0,
+    12.0
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Fence_003",
+   "group": "Wall",
+   "min": [
+    18.08,
+    11.5,
+    19.3245
+   ],
+   "max": [
+    19.92,
+    15.5,
+    19.6755
+   ]
+  },
+  {
+   "name": "COL_Practice_Wall_Fence_003.001",
+   "group": "Wall",
+   "min": [
+    15.08,
+    11.5,
+    19.3245
+   ],
+   "max": [
+    16.92,
+    15.5,
+    19.6755
    ]
   },
   {
@@ -4035,7 +4161,7 @@
    "name": "COL_Practice_Wall_Partition_007",
    "group": "Wall",
    "min": [
-    -16.0,
+    -21.0,
     9.0,
     -2.0
    ],
@@ -5274,7 +5400,7 @@
    "max": [
     -22.0,
     15.0,
-    19.0
+    21.0
    ]
   },
   {
