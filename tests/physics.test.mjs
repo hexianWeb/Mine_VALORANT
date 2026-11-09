@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { moveAABB } from '../src/engine/systems/physics/character-controller.js'
 import { CollisionWorld, overlaps } from '../src/engine/systems/physics/collision-world.js'
+import { createPhysicsSystem } from '../src/engine/systems/physics/index.js'
 
 function player(x, y, z, height = 1.8) {
   return {
@@ -165,4 +166,28 @@ test('jumping up is never grounded and a ceiling stops the rise', () => {
   near(box.max[1], 2, 'head at ceiling')
   assert.equal(result.hitY, true)
   assert.equal(result.grounded, false)
+})
+
+test('physics system steps bodies with the fixed delta and records step time', () => {
+  const physics = createPhysicsSystem()
+  const steps = []
+  const remove = physics.add({
+    fixedUpdate: dt => steps.push(dt),
+  })
+  const engine = {
+    time: { fixedDelta: 1 / 60 },
+  }
+  physics.fixedUpdate(engine)
+  physics.fixedUpdate(engine)
+  assert.deepEqual(steps, [1 / 60, 1 / 60])
+  assert.ok(physics.lastStepMs >= 0)
+  remove()
+  physics.fixedUpdate(engine)
+  assert.equal(steps.length, 2)
+  physics.add({
+    fixedUpdate: () => steps.push(0),
+  })
+  physics.dispose()
+  physics.fixedUpdate(engine)
+  assert.equal(steps.length, 2)
 })
