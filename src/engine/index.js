@@ -1,11 +1,14 @@
 // @ts-check
 /**
- * Mini engine public API. Import from here, not from inner files.
+ * Mini engine foundation API. Feature APIs live in function/<feature>/index.js.
  *
  * Layers:
- * - core/       lifecycle, time, size, update order, events, cleanup (no three.js rendering logic)
- * - resources/  asset loading, cache, GPU release
- * - systems/    feature modules plugged into Scheduler phases (input, physics, animation, render)
+ * - core/       lifecycle, time, size, update order, events, cleanup (no rendering pipeline)
+ * - resources/  asset loading, cache, GPU release; depends only on core
+ * - function/   reusable runtime features; depends on core/resources, never world or app UI
+ *
+ * Systems and phases describe scheduling, not directory layers. The application
+ * composes features and registers their systems; the kernel never imports them.
  */
 export { disposeObject3D, Disposer } from './core/disposer.js'
 export { Engine } from './core/engine.js'

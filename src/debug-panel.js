@@ -1,6 +1,5 @@
 import { Pane } from 'tweakpane'
-import { gradingPresets } from './engine/systems/render/color-grading.js'
-import { renderConfig } from './engine/systems/render/config.js'
+import { gradingPresets, renderConfig } from './engine/function/render/index.js'
 import { addProbePanel } from './probe-panel.js'
 
 /** Scene lighting, AO and LUT controls. */

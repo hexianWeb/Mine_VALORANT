@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createInputSystem } from '../src/engine/systems/input/index.js'
+import { createInputSystem } from '../src/engine/function/input/index.js'
 
 function setup() {
   const window = new EventTarget()

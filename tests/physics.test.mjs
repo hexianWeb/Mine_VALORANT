@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { moveAABB } from '../src/engine/systems/physics/character-controller.js'
-import { CollisionWorld, overlaps } from '../src/engine/systems/physics/collision-world.js'
-import { createPhysicsSystem } from '../src/engine/systems/physics/index.js'
+import { CollisionWorld, createPhysicsSystem, moveAABB, overlaps } from '../src/engine/function/physics/index.js'
 
 function player(x, y, z, height = 1.8) {
   return {

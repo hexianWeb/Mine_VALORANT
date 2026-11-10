@@ -14,7 +14,7 @@
 
 - `src/world/floating-teapot.js`：几何、PBR 材质、自转/环绕/漂浮；调用 `update(deltaSeconds)` 驱动。
 - `src/world/room-shadows.js`：室内 SpotLight + 2048² PCF 阴影；开启传入物体的投射/接收阴影。
-- `src/engine/controls/fly-controller.js`：通用 `FlyController(camera, element, options)`，无房间或 UI 依赖。
+- `src/engine/function/fly-controller/index.js`：功能层的飞行控制模块，提供通用 `FlyController(camera, element, options)`，无房间或 UI 依赖。整体边界见 [运行时代码分层](../architecture.md)。
 - `src/room-inspection.js` / `.css`：组装上述模块、观察面板、调度和释放；`main.js` 只创建并接入快照。
 
 矩形顶灯不支持阴影，因此增加独立室内聚光灯。实时 PBR 物体使用标准光照阴影；烘焙材质通过同一张阴影图的 visibility 遮罩接收动态阴影，保留 lightmap/原烘焙外观与 GTAO。烘焙接收材质按实例克隆，释放时恢复原材质和 renderer 设置。发光灯面不参与投影。

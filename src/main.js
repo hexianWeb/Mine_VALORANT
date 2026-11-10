@@ -1,8 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { createDebugPanel } from './debug-panel.js'
+import { createRenderSystem, renderConfig } from './engine/function/render/index.js'
 import { Engine, ResourceManager } from './engine/index.js'
-import { renderConfig } from './engine/systems/render/config.js'
-import { createRenderSystem } from './engine/systems/render/index.js'
 import { createRoomInspection } from './room-inspection.js'
 import { loadCollisionLayer } from './world/collision-layer.js'
 import { createRangeRoom } from './world/range-room.js'
@@ -16,7 +15,7 @@ let cancelled = false
 
 async function startRoom() {
   if (!navigator.gpu)
-    throw new Error('当前浏览器不支持 WebGPU，请使用最新版 Chrome 或 Edge。')
+    throw new Error('当前浏览器不支持 WebGPU，请使用113+版 Chrome 或 Edge。')
   engine = new Engine({ maxPixelRatio: renderConfig.maxPixelRatio })
   const resources = engine.disposer.add(new ResourceManager())
   const scene = new THREE.Scene()

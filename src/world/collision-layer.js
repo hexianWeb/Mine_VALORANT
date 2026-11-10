@@ -1,4 +1,4 @@
-import { CollisionWorld } from '../engine/systems/physics/collision-world.js'
+import { CollisionWorld } from '../engine/function/physics/index.js'
 
 export const collisionLayerConfig = Object.freeze({
   url: '/collision/range-room.json',

@@ -53,9 +53,13 @@ EXR 解码和 alpha 加权 mip 生成在独立 Worker 中完成，通过 transfe
 
 ## 代码分层
 
-- `src/engine/`：通用生命周期、资源管理与渲染管线。`createRenderSystem()` 创建完成即具备 pipeline，负责后处理、调色、性能分析、resize 与逐帧渲染。
+- `src/engine/core/`：通用生命周期、时间、调度、事件与清理；不依赖具体功能。
+- `src/engine/resources/`：资源加载、缓存、解码与释放；只向下依赖 core。
+- `src/engine/function/`：统一的功能层，下设 `fly-controller/`、`input/`、`physics/`、`render/` 与尚未实现的 `animation/`。原 `controls/` 和 `systems/` 均归入这一层；生产调用方使用各模块的 `index.js`。`createRenderSystem()` 创建完成即具备 pipeline，负责后处理、调色、性能分析、resize 与逐帧渲染。
 - `src/world/`：平铺的练枪房内容。`range-room.js` 编排资产加载、参考相机、天空环境与灯光；房间默认配置也在这里。依赖方向为 `world → engine`。
 - `src/main.js`：先创建渲染系统，再创建、注册清理并加载房间；合并渲染和房间快照。`src/debug-panel.js` 是应用层 UI。
+
+完整目录、职责边界、依赖方向及旧路径对照见 [运行时代码分层](docs/architecture.md)。`System` / phase 仍是调度概念，不再作为目录层级；`npm test` 包含分层依赖检查。
 
 检查接口：`__RANGE_ROOM__.render` 管理渲染效果，`__RANGE_ROOM__.world` 提供 `setRuntimeLighting()` 和房间快照，`__RANGE_ROOM__.room` 是加载后的资产实例。整体状态继续通过 `__RANGE_ROOM__.snapshot()` 获取。
 

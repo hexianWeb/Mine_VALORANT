@@ -40,6 +40,11 @@ function sweepAxis(world, box, axis, delta) {
   return { moved: allowed, hit: allowed !== delta }
 }
 
+/**
+ * Copy the min and max values from `source` to `target`.
+ * @param {{ min: number[], max: number[] }} target
+ * @param {{ min: number[], max: number[] }} source
+ */
 function copyInto(target, source) {
   for (let i = 0; i < 3; i++) {
     target.min[i] = source.min[i]
@@ -47,6 +52,12 @@ function copyInto(target, source) {
   }
 }
 
+/**
+ * Calculate the horizontal progress of `box` from `start`.
+ * @param {{ min: number[], max: number[] }} box
+ * @param {{ min: number[], max: number[] }} start
+ * @returns {number}
+ */
 function horizontalProgress(box, start) {
   return Math.hypot(box.min[0] - start.min[0], box.min[2] - start.min[2])
 }

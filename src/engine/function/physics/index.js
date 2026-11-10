@@ -1,5 +1,8 @@
 // @ts-check
 
+export { moveAABB } from './character-controller.js'
+export { CollisionWorld, overlaps } from './collision-world.js'
+
 /** @typedef {{ fixedUpdate: (dt: number) => void }} Body */
 
 /** Phase 'physics': steps registered bodies at `time.fixedDelta`. */

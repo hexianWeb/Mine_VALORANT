@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import test from 'node:test'
 import * as THREE from 'three/webgpu'
-import { overlaps } from '../src/engine/systems/physics/collision-world.js'
+import { overlaps } from '../src/engine/function/physics/index.js'
 import { createCollisionDebug } from '../src/world/collision-debug.js'
 import { createCollisionLayer, validateCollisionData } from '../src/world/collision-layer.js'
 

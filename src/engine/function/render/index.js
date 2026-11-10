@@ -4,6 +4,9 @@ import { renderConfig, validateEffects } from './config.js'
 import { buildPipeline } from './pipeline.js'
 import { FrameStatistics, PipelineProfiler } from './profiling.js'
 
+export { gradingPresets } from './color-grading.js'
+export { renderConfig } from './config.js'
+
 export async function createRenderSystem({ engine, canvas, scene, camera, config = {} }) {
   let settings = {
     ...renderConfig,

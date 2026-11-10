@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu'
-import { Disposer } from '../core/disposer.js'
+import { Disposer } from '../../core/disposer.js'
 
 const movementKeys = new Set([
   'KeyW',

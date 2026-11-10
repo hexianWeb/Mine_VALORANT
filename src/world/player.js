@@ -1,5 +1,5 @@
 import * as THREE from 'three/webgpu'
-import { moveAABB } from '../engine/systems/physics/character-controller.js'
+import { moveAABB } from '../engine/function/physics/index.js'
 
 /** Speeds follow published Valorant values as a starting point; body size and step height fit Minecraft blocks. */
 export const playerConfig = Object.freeze({
