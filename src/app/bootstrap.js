@@ -5,6 +5,7 @@ import { Disposer, RuntimeContext } from '../engine/runtime/index.js'
 import { RangeRoomLevel } from '../game/range-room/level.js'
 import { readAppConfig } from './config.js'
 import { createTeapotInspection, installDiagnostics } from './diagnostics.js'
+import { mountWeaponHud } from './weapon-hud.js'
 
 /**
  * 标准 `Navigator` 尚未包含 WebGPU 入口。浏览器不支持时没有 `gpu`。
@@ -150,6 +151,10 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
         }))
       : null
     const inspection = editor?.inspection ?? bindInspection()
+    if (level.player)
+      levelTools.add(mountWeaponHud({ canvas, player: level.player, engine: runtime.engine }))
+    levelTools.add(runtime.engine.events.on('pause', () => level.player?.setPaused(true)))
+    levelTools.add(runtime.engine.events.on('resume', () => level.player?.setPaused(false)))
     if (editor) {
       levelTools.add(runtime.engine.events.on('input', editor.updateInput))
       levelTools.add(runtime.engine.events.on('frame', editor.update))
@@ -262,7 +267,7 @@ function createInspection({ level, canvas, controls, collisionDebug, physics, st
       pause: '暂停漂浮',
       resume: '继续漂浮',
       help: {
-        player: '点击画面锁定鼠标 · WASD 移动 · Shift 静步 · C 下蹲 · 空格跳跃 · V 切换飞行 · R 回出生点 · Esc 释放',
+        player: '点击锁定 · 左键开火 · 右键瞄准 · 1/2/滚轮切枪 · R 换弹 · T 检视 · WASD 移动 · Home 重生 · V 飞行 · Esc 释放',
         fly: '点击画面激活 · 右键拖动视角 · WASD 移动 · Q/E 降/升 · Shift 加速 · 滚轮调速 · Esc 释放',
         orbit: '左键环绕 · 右键平移 · 滚轮缩放 · F 定位茶壶 · R 恢复初始机位',
       },
@@ -305,7 +310,7 @@ function createInspection({ level, canvas, controls, collisionDebug, physics, st
       canvas.focus({ preventScroll: true })
     },
     /**
-     * 玩家模式下排队重生命令，下一 input tick 执行；否则恢复观察相机初始机位。随后聚焦画布。
+     * 玩家模式下排队重生命令，下一固定步执行；否则恢复观察相机初始机位。随后聚焦画布。
      *
      * @returns {void}
      */

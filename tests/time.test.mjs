@@ -78,3 +78,83 @@ test('millisecond 60 Hz timestamps do not lose fixed steps to floating-point bou
   assert.equal(time.fixedTick, 600)
   assert.equal(time.fixedElapsed, 10)
 })
+
+test('presentation time starts at zero and interpolates only the history of committed fixed steps', () => {
+  const time = new Time({ fixedDelta: 0.02 })
+  time.tick(0)
+  assert.equal(time.snapshot().presentationTime, 0)
+  time.tick(15)
+  assert.equal(time.fixedSteps, 0)
+  assert.equal(time.snapshot().presentationTime, 0, 'startup cannot expose a negative or uncommitted interval')
+  time.tick(25)
+  const candidate = time.snapshot(0)
+  assert.equal(candidate.fixedElapsed, 0.02)
+  assert.equal(candidate.presentationTime, 0, 'a planned fixed step must not advance presentation history')
+  time.completeFixedStep(0)
+  const first = time.snapshot()
+  assert.ok(Math.abs(first.presentationTime - 0.005) < 1e-12)
+  assert.ok(Object.isFrozen(first))
+  time.tick(30)
+  assert.equal(time.fixedSteps, 0)
+  assert.ok(Math.abs(time.snapshot().presentationTime - 0.01) < 1e-12, 'zero-step render frames still move through the completed interpolation interval')
+  time.tick(40)
+  time.completeFixedStep(0)
+  assert.ok(Math.abs(time.snapshot().presentationTime - 0.02) < 1e-12)
+  assert.equal(candidate.presentationTime, 0, 'published snapshots cannot change when the clock commits')
+  assert.ok(Math.abs(first.presentationTime - 0.005) < 1e-12)
+})
+
+test('presentation time after capped catch-up excludes dropped simulation time and the newest event boundary', () => {
+  const time = new Time({ fixedDelta: 0.02, maxDelta: 1, maxFixedSteps: 5 })
+  time.tick(0)
+  time.tick(17)
+  time.tick(157)
+  assert.equal(time.fixedSteps, 5)
+  assert.ok(Math.abs(time.droppedSimulationTime - 0.04) < 1e-12)
+  const committed = []
+  for (let index = 0; index < time.fixedSteps; index++) {
+    const before = time.snapshot()
+    const candidate = time.snapshot(index)
+    assert.equal(candidate.presentationTime, before.presentationTime, 'candidate snapshots must not present the fixed step before postPhysics commits it')
+    time.completeFixedStep(index)
+    committed.push(time.snapshot().presentationTime)
+  }
+  assert.ok(committed.every((at, index) => index === 0 || at >= committed[index - 1]))
+  const afterCatchUp = time.snapshot()
+  assert.ok(Math.abs(afterCatchUp.presentationTime - 0.097) < 1e-12)
+  assert.ok(afterCatchUp.presentationTime < 0.1, 'facts at the newest completed tick remain queued for presentation')
+  assert.ok(Math.abs(afterCatchUp.elapsed - afterCatchUp.presentationTime - 0.06) < 1e-12, 'the display delay includes one fixed step plus the discarded whole steps')
+  time.tick(160)
+  assert.equal(time.fixedSteps, 1)
+  time.completeFixedStep(0)
+  assert.ok(Math.abs(time.snapshot().presentationTime - 0.1) < 1e-12, 'the queued event becomes visible exactly at its simulation timestamp')
+})
+
+test('presentation time freezes across pause and visibility reset, then advances with scaled simulation time', () => {
+  const time = new Time({ fixedDelta: 0.02 })
+  time.timeScale = 0.5
+  time.tick(0)
+  time.tick(60)
+  assert.equal(time.fixedSteps, 1)
+  time.completeFixedStep(0)
+  const pausedAt = time.snapshot().presentationTime
+  assert.ok(Math.abs(pausedAt - 0.01) < 1e-12)
+  time.timeScale = 0
+  for (const now of [100, 200, 5000]) {
+    time.tick(now)
+    assert.equal(time.fixedSteps, 0)
+    assert.equal(time.snapshot().presentationTime, pausedAt)
+  }
+  time.resetDelta()
+  time.timeScale = 2
+  time.tick(10000)
+  assert.equal(time.rawDelta, 0)
+  assert.equal(time.snapshot().presentationTime, pausedAt, 'the first visible frame must preserve the paused interpolation remainder')
+  time.tick(10005)
+  assert.equal(time.fixedSteps, 1)
+  time.completeFixedStep(0)
+  assert.ok(Math.abs(time.snapshot().presentationTime - 0.02) < 1e-12)
+  time.tick(10007)
+  assert.equal(time.fixedSteps, 0)
+  assert.ok(Math.abs(time.snapshot().presentationTime - 0.024) < 1e-12)
+})

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import * as THREE from 'three/webgpu'
+import { Time } from '../src/engine/runtime/core/time.js'
 import { Engine } from '../src/engine/runtime/engine.js'
 import { CameraComponent, Level, MotorComponent, TransformComponent } from '../src/engine/runtime/function/framework/index.js'
 import { createPhysicsSystem } from '../src/engine/runtime/function/physics/index.js'
@@ -66,14 +67,23 @@ function setup(boxes = [], spawn = [0, 0, 0], groundHeight = 0) {
   const object = level.addObject(createPlayer({ camera, collision, input, physics }))
   const player = object.requireComponent(PlayerComponent)
   player.setEnabled(true)
+  const time = new Time()
+  time.tick(0)
+  let frameIndex = 0
   const step = (count = 1) => {
     for (let i = 0; i < count; i++) {
-      const frame = {
-        time: { delta: 1 / 60, fixedDelta: 1 / 60 },
+      time.tick(++frameIndex * 1000 / 60)
+      level.tickComponents('input', {
+        time: time.snapshot(),
+      })
+      for (let index = 0; index < time.fixedSteps; index++) {
+        const context = {
+          time: time.snapshot(index),
+        }
+        level.tickComponents('fixed', context)
+        level.tickComponents('postPhysics', context)
+        time.completeFixedStep(index)
       }
-      level.tickComponents('input', frame)
-      level.tickComponents('fixed', frame)
-      level.tickComponents('postPhysics', frame)
     }
   }
   return {
@@ -83,10 +93,20 @@ function setup(boxes = [], spawn = [0, 0, 0], groundHeight = 0) {
     intent,
     camera,
     step,
+    time,
     collision,
-    present: (alpha, rawDelta) => level.tickComponents('presentation', {
-      time: { alpha, rawDelta },
-    }),
+    present(alpha, rawDelta) {
+      const context = {
+        time: {
+          ...time.snapshot(),
+          alpha,
+          rawDelta,
+          presentationTime: Math.max(0, time.fixedElapsed - time.fixedDelta + alpha * time.fixedDelta),
+        },
+      }
+      level.tickComponents('motion', context)
+      level.tickComponents('presentation', context)
+    },
     pressJump: () => { jump = true },
   }
 }
@@ -197,11 +217,14 @@ test('falling below killY respawns', () => {
   near(player.position.y, 0, 1e-9, 'back at spawn')
 })
 
-test('look uses Valorant scale and clamps pitch', () => {
-  const { player } = setup()
+test('look commits the Valorant scale and pitch clamp on the next fixed step', () => {
+  const { player, step } = setup()
   player.look(100, 0)
+  assert.equal(player.yaw, 0, 'queued look does not modify the published fixed view')
+  step()
   near(player.yaw, THREE.MathUtils.degToRad(-100 * playerConfig.degreesPerCount * playerConfig.sensitivity), 1e-12, 'yaw')
   player.look(0, -1e7)
+  step()
   near(player.pitch, THREE.MathUtils.degToRad(playerConfig.maxPitchDeg), 1e-12, 'pitch clamp')
 })
 
@@ -274,7 +297,7 @@ test('smooths the view in both directions on the corridor stairs at full run spe
 })
 
 test('reverses the camera step direction without a rebound or residual offset on corridor stairs', () => {
-  const { player, intent, camera, step, present } = setupCorridor()
+  const { player, intent, camera, step, present, time } = setupCorridor()
   const motor = player.owner.requireComponent(MotorComponent)
   const dt = 1 / 60
   const halfTurn = 180 / (playerConfig.degreesPerCount * playerConfig.sensitivity)
@@ -285,6 +308,9 @@ test('reverses the camera step direction without a rebound or residual offset on
 
   const corrections = []
   const landings = []
+  const directions = [
+    { at: time.fixedElapsed, direction: 0 },
+  ]
   let previousTotal = 0
   let previousEyeY = camera.position.y
   for (let tick = 1; tick <= 90; tick++) {
@@ -301,8 +327,15 @@ test('reverses the camera step direction without a rebound or residual offset on
       else if (corrections.length === 4)
         intent.moveZ = 0
     }
-    const eyeChange = (camera.position.y - previousEyeY) * Math.sign(corrections.at(-1) ?? 0)
-    assert.ok(eyeChange >= -1e-9 && eyeChange < 0.2, `camera follows the latest step at tick ${tick}`)
+    directions.push({
+      at: time.fixedElapsed,
+      direction: Math.sign(corrections.at(-1) ?? 0),
+    })
+    // alpha=0 shows the preceding completed step; do not compare that eye with a future reversal.
+    const presentationTime = time.fixedElapsed - time.fixedDelta
+    const displayedDirection = directions.findLast(entry => entry.at <= presentationTime + 1e-10).direction
+    const eyeChange = (camera.position.y - previousEyeY) * displayedDirection
+    assert.ok(eyeChange >= -1e-9 && eyeChange < 0.2, `camera follows the displayed step at tick ${tick}`)
     previousTotal = total
     previousEyeY = camera.position.y
   }
@@ -379,7 +412,7 @@ test('placeAtCamera keeps a free pose and falls back to spawn when blocked', () 
   near(player.pitch, 0, 1e-12, 'blocked placement resets pitch')
 })
 
-test('look is consumed once per frame before Motor, while only Camera publishes the view', (t) => {
+test('look is collected once per frame and committed by fixed motion, while only Camera publishes the view', (t) => {
   const { player, level, input, intent, camera } = setup()
   t.after(() => level.dispose())
   const view = player.owner.requireComponent(CameraComponent)
@@ -405,12 +438,14 @@ test('look is consumed once per frame before Motor, while only Camera publishes 
   engine.step(1)
   assert.equal(engine.time.fixedSteps, 0)
   assert.equal(reads, 2)
-  near(player.yaw, -Math.PI / 2, 1e-12, 'look works on a zero-step frame')
-  near(player.pitch, THREE.MathUtils.degToRad(2.8), 1e-12, 'local pitch')
+  near(player.yaw, 0, 1e-12, 'zero-step frames retain pending yaw')
+  near(player.pitch, 0, 1e-12, 'zero-step frames retain pending pitch')
   intent.moveZ = 1
   engine.step(101)
   assert.equal(engine.time.fixedSteps, 5)
   assert.equal(reads, 3, 'five fixed steps do not consume input five times')
+  near(player.yaw, -Math.PI / 2, 1e-12, 'the first fixed step commits the queued yaw once')
+  near(player.pitch, THREE.MathUtils.degToRad(2.8), 1e-12, 'the first fixed step commits the queued pitch once')
   assert.ok(player.position.x > 0, 'fixed motion uses the updated heading')
   near(player.position.z, 0, 1e-12, 'yaw rotates the movement plane')
   const published = camera.position.clone()
@@ -434,15 +469,16 @@ test('camera follows resolved crouch state under a ceiling and respawn resets vi
   t.after(() => level.dispose())
   const view = player.cameraComponent
   intent.crouch = true
-  step()
+  step(3)
   present(1, 0.05)
   const expected = playerConfig.crouchEye + (playerConfig.standEye - playerConfig.crouchEye) * Math.exp(-playerConfig.eyeSmoothing * 0.05)
   near(camera.position.y, expected, 1e-12, 'eye smoothly approaches crouch height')
   intent.crouch = false
-  step()
+  step(3)
   present(1, 0.05)
   assert.equal(player.crouched, true)
-  assert.equal(view.verticalOffset, playerConfig.crouchEye, 'blocked stand-up retains crouch view')
+  const blockedEye = playerConfig.crouchEye + (playerConfig.standEye - playerConfig.crouchEye) * Math.exp(-playerConfig.eyeSmoothing * 0.1)
+  near(camera.position.y, blockedEye, 1e-12, 'blocked stand-up continues toward the resolved crouch eye height')
   player.teleport([10, 0, 10], 0.5, 0.2)
   present(0, 0)
   assert.deepEqual(camera.position.toArray(), [10, playerConfig.standEye, 10])
@@ -473,4 +509,73 @@ test('disabling player releases camera output and re-enabling adopts the observe
   level.dispose()
   assert.equal(player.cameraComponent.disposed, true)
   assert.equal(player.cameraComponent.enabled, false)
+})
+
+test('Editor return anchors the first fixed interval at its left boundary and preserves new look', (t) => {
+  const { player, level, camera } = setup()
+  const engine = new Engine({ world: level })
+  t.after(() => engine.destroy())
+  engine.step(0)
+  engine.step(20)
+  player.setEnabled(false)
+  for (let frame = 1; frame <= 10; frame++) engine.step(20 + frame * 100)
+  camera.position.set(10, playerConfig.standEye, 5)
+  camera.quaternion.setFromEuler(new THREE.Euler(0.1, 0.4, 0, 'YXZ'))
+  const observerPosition = camera.position.clone()
+  const observerRotation = camera.quaternion.clone()
+  player.setEnabled(true)
+  player.placeAtCamera()
+  player.look(-90 / (playerConfig.degreesPerCount * playerConfig.sensitivity), 0)
+  engine.step(1021)
+  assert.equal(engine.time.fixedSteps, 0)
+  assert.ok(camera.position.equals(observerPosition))
+  assert.ok(camera.quaternion.angleTo(observerRotation) < 1e-7, 'zero-step return keeps the adopted view')
+  engine.step(1037)
+  assert.equal(engine.time.fixedSteps, 1)
+  const time = engine.time.snapshot()
+  const view = player.snapshot().view
+  near(player.yaw, 0.4 + Math.PI / 2, 1e-10, 'the new look commits once')
+  near(view.baseYaw, 0.4 + Math.PI / 2 * time.alpha, 1e-10, 'the first presentation samples its own fixed interval')
+  assert.ok(camera.position.equals(observerPosition), 'reanchoring time does not move the adopted eye')
+  engine.step(1054)
+  near(player.yaw, 0.4 + Math.PI / 2, 1e-10, 'later steps do not replay pending look')
+})
+
+test('enable after skipped global ticks also rebases when no placement reset was requested', (t) => {
+  const { player, level, camera } = setup()
+  const engine = new Engine({ world: level })
+  t.after(() => engine.destroy())
+  engine.step(0)
+  engine.step(20)
+  const pose = camera.position.clone()
+  player.setEnabled(false)
+  for (let frame = 1; frame <= 10; frame++) engine.step(20 + frame * 100)
+  player.setEnabled(true)
+  assert.doesNotThrow(() => engine.step(1037))
+  assert.ok(camera.position.equals(pose))
+})
+
+test('timeScale pause preserves the existing view clock rather than creating an Editor history boundary', (t) => {
+  const { player, level, camera } = setup()
+  const engine = new Engine({ world: level })
+  t.after(() => engine.destroy())
+  engine.step(0)
+  player.look(-20, -10)
+  engine.step(20)
+  const view = player.snapshot().view
+  const elapsed = engine.time.fixedElapsed
+  const position = camera.position.clone()
+  const rotation = camera.quaternion.clone()
+  engine.time.timeScale = 0
+  engine.step(120)
+  engine.step(220)
+  assert.equal(engine.time.fixedElapsed, elapsed)
+  assert.deepEqual(player.snapshot().view, view)
+  assert.ok(camera.position.equals(position) && camera.quaternion.equals(rotation))
+  engine.time.timeScale = 1
+  engine.step(221)
+  assert.equal(engine.time.fixedElapsed, elapsed)
+  assert.equal(player.snapshot().view.at, engine.time.snapshot().presentationTime)
+  engine.step(237)
+  near(player.yaw, THREE.MathUtils.degToRad(20 * playerConfig.degreesPerCount * playerConfig.sensitivity), 1e-12, 'pause does not reset heading')
 })

@@ -15,6 +15,7 @@ export class CameraComponent extends Component {
   #limitStepOffset
   #stepSmoothingRate
   #smoothedStepDeltaY = 0
+  #sampleViewPose
   #euler = new Euler(0, 0, 0, 'YXZ')
 
   constructor({
@@ -25,6 +26,7 @@ export class CameraComponent extends Component {
     limitStepOffset = null,
     stepSmoothingTime = 0,
     maxPitch = MathUtils.degToRad(89),
+    sampleViewPose = null,
   }) {
     super()
     if (!camera?.isCamera)
@@ -38,6 +40,8 @@ export class CameraComponent extends Component {
       || (limitStepOffset !== null && typeof limitStepOffset !== 'function')) {
       throw new Error('[CameraComponent] Expected a nonnegative step smoothing time and optional step callbacks')
     }
+    if (sampleViewPose !== null && typeof sampleViewPose !== 'function')
+      throw new TypeError('[CameraComponent] Expected an optional view pose sampler')
     // Borrowed output, owned by the runtime. Projection and viewport setup belong to that owner.
     this.camera = camera
     this.verticalOffset = verticalOffset
@@ -45,6 +49,7 @@ export class CameraComponent extends Component {
     this.maxPitch = maxPitch
     this.#currentVerticalOffset = verticalOffset
     this.#sampleStepDeltaY = sampleStepDeltaY
+    this.#sampleViewPose = sampleViewPose
     this.#limitStepOffset = limitStepOffset
     this.#stepSmoothingRate = stepSmoothingTime > 0
       ? Math.LN10 / stepSmoothingTime
@@ -79,7 +84,9 @@ export class CameraComponent extends Component {
   }
 
   resetStepSmoothing() {
-    this.#smoothedStepDeltaY = this.#sampleStepDeltaY?.(1) ?? 0
+    this.#smoothedStepDeltaY = this.#sampleViewPose
+      ? 0
+      : this.#sampleStepDeltaY?.(1) ?? 0
   }
 
   /** Read a candidate body pose from the shared camera; placement rules belong to the caller. */
@@ -93,6 +100,18 @@ export class CameraComponent extends Component {
   }
 
   tick({ time }) {
+    if (this.#sampleViewPose) {
+      const pose = this.#sampleViewPose(time.presentationTime)
+      this.camera.position.fromArray(pose.position)
+      this.camera.quaternion.fromArray(pose.quaternion)
+      this.#pitch = pose.pitch
+      this.#currentVerticalOffset = pose.verticalOffset
+      if (this.camera.isPerspectiveCamera && this.camera.fov !== pose.worldFov) {
+        this.camera.fov = pose.worldFov
+        this.camera.updateProjectionMatrix()
+      }
+      return
+    }
     const blend = this.offsetSmoothing > 0
       ? 1 - Math.exp(-this.offsetSmoothing * time.rawDelta)
       : 1

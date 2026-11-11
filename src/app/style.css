@@ -82,3 +82,12 @@ body {
   text-align: center;
   transform: translate(-50%, -50%);
 }
+.weapon-hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; color: #fff; font: 14px system-ui; text-shadow: 0 1px 3px #000; }
+.weapon-hud[hidden] { display: none; }
+.weapon-crosshair { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font: 24px monospace; }
+.weapon-hit { color: #ffdf8b; }
+.weapon-readout { position: absolute; right: 28px; bottom: 24px; display: grid; gap: 5px; text-align: right; }
+.weapon-readout strong { letter-spacing: 2px; font-size: 16px; }
+.weapon-readout > span { font-size: 26px; }
+.weapon-readout small { opacity: .75; }
+.weapon-hud.with-editor .weapon-readout { right: 50%; transform: translateX(50%); text-align: center; }

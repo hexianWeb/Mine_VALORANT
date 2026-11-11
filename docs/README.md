@@ -11,7 +11,9 @@
 | [运行时架构](architecture.md) | 当前目录、依赖、tick、对象组合、生命周期和公共接口 |
 | [阶段优先组件 Tick](superpowers/specs/2026-11-11-phase-first-component-tick.md) | 当前更新契约：Engine 编排阶段，Level 扫描对象，组件承载行为 |
 | [function 层结构](superpowers/specs/2026-11-11-function-layer-layout.md) | `component / level / object / world` 与 `function/global` 的目录迁移 |
-| [CameraComponent](superpowers/specs/2026-11-11-camera-component.md) | 第一人称相机独立组件；Player 保留输入、站蹲和出生规则 |
+| [CameraComponent](superpowers/specs/2026-11-11-camera-component.md) | 相机组件提取时的记录；当前玩家固定 AimState 历史接线以运行时架构为准 |
+| [武器玩法模块](weapons/gameplay.md) | Classic/Phantom 游戏闭环、控件、装备事务、固定瞄准、延迟 HUD 与生命周期 |
+| [武器发布与动画播放](weapons/animation-and-assets.md) | 发布包、AnimationPlayer、WeaponAssets、独立视模 pass、预览与主游戏验收 |
 
 ### 光照与场景
 
@@ -31,6 +33,12 @@
 | [Blender → Three.js 导出](blender-to-threejs-export-workflow.md) | 房间资源成套导出。文内范围写于 2026-11-07，以 appearance 资源套件为主 |
 | [Alpha 缺面修复](blender-alpha-repair.md) | 已完成的透明模式修复；后续导出沿用修复后的源文件 |
 | [tools 脚本](../tools/README.md) | `tools/` 里每个 `.py` / `.mjs` 何时跑、命令和不要单独运行的库 |
+
+## 待实施设计
+
+| 文档 | 范围 | 状态 |
+| --- | --- | --- |
+| [动画运行时与多枪切换](superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md) | animation 层、武器实例与背包、切换事务、资源发布、换肤、音频与验收 | 阶段 1—3 的双枪闭环已接入；运行时音频、换肤 UI 与其余枪型尚待实施 |
 
 ## 设计过程
 

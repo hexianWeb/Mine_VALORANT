@@ -18,7 +18,9 @@ export function characterMotion(motor, dt) {
 
   // 身体朝向取自权威四元数，包括非玩家控制。
   const { y, w } = transform.quaternion
-  const yaw = 2 * Math.atan2(y, w)
+  const yaw = Number.isFinite(command.headingYaw)
+    ? command.headingYaw
+    : 2 * Math.atan2(y, w)
   const sin = Math.sin(yaw)
   const cos = Math.cos(yaw)
   const moveX = command.moveX ?? 0

@@ -43,11 +43,29 @@ export function setupInput(options = {}) {
     window.dispatchEvent(event)
     return event
   }
+  const mouse = (type, button = 0, extra = {}) => {
+    const event = Object.assign(new Event(type, { cancelable: true }), { button, ...extra })
+    document.dispatchEvent(event)
+    return event
+  }
+  const wheel = (deltaY, extra = {}) => {
+    const event = Object.assign(new Event('wheel', { cancelable: true }), { deltaY, deltaX: 0, ...extra })
+    document.dispatchEvent(event)
+    return event
+  }
+  const click = (button = 0) => {
+    mouse('mousedown', button)
+    mouse('mouseup', button)
+    element.dispatchEvent(Object.assign(new Event('click'), { button }))
+  }
   return {
     window,
     document,
     element,
     key,
+    mouse,
+    wheel,
+    click,
     move: (x, y) => document.dispatchEvent(Object.assign(new Event('mousemove'), { movementX: x, movementY: y })),
     input: createInputSystem({ element, ...options }),
   }

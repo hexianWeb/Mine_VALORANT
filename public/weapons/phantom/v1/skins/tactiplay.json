@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "phantom",
+  "assetVersion": "v1",
+  "skinId": "tactiplay",
+  "compatibility": {
+    "rig": "a67ea3ce6c74d3fce223d736f080bd43a16ef408e6ae330a647c19f5a56dea8e",
+    "geometryUV": "c3b1c9462e910f80577e72c8d3b4e5b0b6082cf9de811faf2be5a01fb811f5e8",
+    "clipSet": "0296ab5257b15414bef1c57b883f9de41980564cce27af1b41658a00f4bbb514"
+  },
+  "materials": {
+    "weapon": {
+      "map": {
+        "url": "../textures/018027b89253bd77f7cafe717a3d44de4f0ac86a9b2dd88b9a2d52f706645a75.png",
+        "sha256": "018027b89253bd77f7cafe717a3d44de4f0ac86a9b2dd88b9a2d52f706645a75",
+        "bytes": 350051,
+        "width": 2048,
+        "height": 2048,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    }
+  }
+}

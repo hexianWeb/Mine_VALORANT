@@ -28,6 +28,9 @@ export function createInspectionPanel({ canvas, inspection }) {
   const refresh = () => {
     const state = inspection.snapshot()
     const mode = state.cameraMode
+    button('reset').textContent = mode === 'player'
+      ? '重生 Home'
+      : '复位 R'
     button('mode').textContent = mode === 'orbit'
       ? '切换飞行'
       : '切换轨道'

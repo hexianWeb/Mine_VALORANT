@@ -99,6 +99,7 @@ export class Time {
       completedFixedSteps: this.completedFixedSteps,
       fixedTick,
       fixedElapsed: fixedTick * this.fixedDelta,
+      presentationTime: Math.max(0, this.fixedElapsed - this.fixedDelta + this.alpha * this.fixedDelta),
       fixedStepIndex: stepIndex,
       droppedSimulationTime: this.droppedSimulationTime,
       alpha: this.alpha,

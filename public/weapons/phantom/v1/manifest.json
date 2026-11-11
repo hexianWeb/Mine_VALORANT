@@ -1,0 +1,300 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "phantom",
+  "assetVersion": "v1",
+  "model": {
+    "url": "model.glb",
+    "sha256": "5b4d94dfc68a9cb238167dd9eef1e06c15a3d93c0d0f3de8a78102f923bd1494",
+    "bytes": 1379452
+  },
+  "compatibility": {
+    "rig": "a67ea3ce6c74d3fce223d736f080bd43a16ef408e6ae330a647c19f5a56dea8e",
+    "geometryUV": "c3b1c9462e910f80577e72c8d3b4e5b0b6082cf9de811faf2be5a01fb811f5e8",
+    "clipSet": "0296ab5257b15414bef1c57b883f9de41980564cce27af1b41658a00f4bbb514"
+  },
+  "clips": [
+    {
+      "name": "static_idle",
+      "duration": 0.0417,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "idle",
+      "duration": 7.2667,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "draw",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "shoot",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "shoot_aim",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "reload_tactical",
+      "duration": 2.5,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "reload_empty",
+      "duration": 2.5,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "inspect",
+      "duration": 4,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim_start",
+      "duration": 0.2083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim",
+      "duration": 0.25,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim_end",
+      "duration": 0.2083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_forward",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_backward",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_sideway",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_aiming",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_start",
+      "duration": 0.3,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run",
+      "duration": 0.8,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_hold",
+      "duration": 0.2917,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_end",
+      "duration": 0.65,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "put_away",
+      "duration": 0.016666666666666666,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "ADS_up",
+      "duration": 0.6333,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "ADS_down",
+      "duration": 0.6,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_1",
+      "duration": 0.8,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_2",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_3",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide",
+      "duration": 0.75,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide_back",
+      "duration": 0.85,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide_idle",
+      "duration": 7.3333,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_push",
+      "duration": 0.7083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_stock",
+      "duration": 0.7083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    }
+  ],
+  "actions": {
+    "idle": "static_idle",
+    "draw": "draw",
+    "holster": "put_away",
+    "fire": "shoot",
+    "fireAds": "shoot_aim",
+    "reloadTactical": "reload_tactical",
+    "reloadEmpty": "reload_empty",
+    "inspect": "inspect",
+    "aimStart": "aim_start",
+    "aim": "aim",
+    "aimEnd": "aim_end"
+  },
+  "requiredActions": [
+    "idle",
+    "draw",
+    "holster",
+    "fire",
+    "reloadTactical",
+    "reloadEmpty",
+    "inspect"
+  ],
+  "materials": {
+    "weapon": [
+      "Weapon_Skin"
+    ],
+    "armsLeft": [
+      "Character_Left"
+    ],
+    "armsRight": [
+      "Character_Right"
+    ]
+  },
+  "meshes": [
+    "Arms_Left",
+    "Arms_Right",
+    "Weapon_Body",
+    "Weapon_Magazine",
+    "Weapon_SpareMagazine"
+  ],
+  "sockets": {
+    "muzzle": "muzzle_flash",
+    "shell": "shell"
+  },
+  "defaultSkinId": "tactiplay",
+  "skins": {
+    "tactiplay": {
+      "url": "skins/tactiplay.json",
+      "sha256": "c3161fd4dcfe3c1fc41cfb489d3b0af740ebf1dabc5c683a250755922a1e00d1",
+      "bytes": 847
+    }
+  },
+  "view": {
+    "unitsPerMeter": 1,
+    "up": "Y",
+    "forward": "-Z",
+    "mountOffset": [
+      0.256875,
+      -0.76125,
+      -0.778125
+    ],
+    "verticalFov": 70,
+    "aimVerticalFov": 45,
+    "adsAlignmentBaked": true
+  },
+  "provenance": {
+    "sourceBlend": "skin_work_folder/phantom_skin_work/Phantom_Tactiplay_Animated.blend",
+    "sourceBlendSha256": "a41e65d997e2b668502d86bb9263b7f04e3859da8685ad47e797ff41c5c650fd",
+    "sourceManifestSha256": "6cdc2ebc4502a04642787ed58b6b2c9fde938a384f8b9d2b5ad5590b5a033021",
+    "sourceTextureSha256": "018027b89253bd77f7cafe717a3d44de4f0ac86a9b2dd88b9a2d52f706645a75",
+    "exportScene": "80_ThreeJS_Export",
+    "blenderVersion": "5.3.0"
+  }
+}

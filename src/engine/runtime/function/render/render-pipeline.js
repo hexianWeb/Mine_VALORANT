@@ -6,9 +6,10 @@ import { builtinAOContext, convertToTexture, Fn, If, pass, renderOutput, texture
 import * as THREE from 'three/webgpu'
 import { upsampleAO } from './passes/ao-upsample.js'
 import { NormalPrepass } from './passes/normal-prepass.js'
+import { compositeViewModel, ViewModelPass } from './passes/viewmodel-pass.js'
 
 /** AO 调制材质的间接光（含 lightMap），从不调制最终图像。 */
-export function buildPipeline(renderer, scene, camera, config, grading = null) {
+export function buildPipeline(renderer, scene, camera, config, grading = null, viewmodel = null) {
   if (!['smaa', 'none'].includes(config.aa))
     throw new Error(`[Render pipeline] Unsupported AA mode: ${config.aa}`)
   const owned = new Set()
@@ -59,8 +60,20 @@ export function buildPipeline(renderer, scene, camera, config, grading = null) {
     aoNode = upsampleAO(aoTexture, depth, normals, camera, reconstructionScale)
     scenePass.contextNode = builtinAOContext(aoNode)
   }
-  // 色调映射在线性空间。SMAA 的邻域混合必须发生在 sRGB 编码之前。
-  let outputNode = renderOutput(scenePass, null, THREE.LinearSRGBColorSpace)
+  const viewmodelPass = viewmodel
+    ? own(new ViewModelPass(viewmodel))
+    : null
+  const composite = viewmodelPass
+    ? own(convertToTexture(compositeViewModel(scenePass.getTextureNode(), viewmodelPass.getTextureNode()), null, null, {
+        depthBuffer: false,
+        type: THREE.HalfFloatType,
+      }))
+    : null
+  if (composite)
+    composite.name = 'WorldViewmodelHDR'
+  // 世界 AO 已在材质间接光计算中生效，视模先以独立深度合成 HDR，再共同色调映射。
+  // SMAA 的邻域混合必须发生在 sRGB 编码之前。
+  let outputNode = renderOutput(composite ?? scenePass, null, THREE.LinearSRGBColorSpace)
   if (config.aa === 'smaa' && config.aoView !== 'ao') {
     aaInput = own(convertToTexture(outputNode, null, null, { depthBuffer: false }))
     aaInput.name = 'Tone mapping (linear)'
@@ -138,10 +151,12 @@ export function buildPipeline(renderer, scene, camera, config, grading = null) {
           }
         : null
       return {
-        displayOrder: 'HDR → tone mapping (linear) → SMAA → sRGB → display LUT',
+        displayOrder: 'world HDR + viewmodel HDR → premultiplied composite → tone mapping (linear) → SMAA → sRGB → display LUT',
         normals: targetInfo(prePass?.renderTarget),
         normalMaterials: prePass?.materials.size ?? 0,
         scene: targetInfo(scenePass.renderTarget),
+        viewmodel: targetInfo(viewmodelPass?.renderTarget),
+        composite: targetInfo(composite?.renderTarget),
         ao: aoPass
           ? {
               width: aoPass.getTextureNode().value.image.width,
@@ -154,21 +169,33 @@ export function buildPipeline(renderer, scene, camera, config, grading = null) {
         lutBypassed: lutIntensity.value === 0,
       }
     },
-    async readLinearPixel(x, y) {
-      if (config.aoView === 'ao')
-        throw new Error('AO-only view does not render a scene HDR target')
-      const values = await renderer.readRenderTargetPixelsAsync(scenePass.renderTarget, x, y, 1, 1)
-      const result = Array.from(values, value => scenePass.renderTarget.texture.type === THREE.HalfFloatType
-        ? THREE.DataUtils.fromHalfFloat(value)
-        : value)
-      if (!result.every(Number.isFinite))
-        throw new Error('[Render pipeline] Non-finite HDR readback')
-      return result
+    readLinearPixel(x, y) {
+      return readTarget(scenePass.renderTarget, x, y)
+    },
+    readViewModelPixel(x, y) {
+      if (!viewmodelPass)
+        throw new Error('Viewmodel pass is unavailable')
+      return readTarget(viewmodelPass.renderTarget, x, y)
+    },
+    readCompositePixel(x, y) {
+      return readTarget(composite?.renderTarget ?? scenePass.renderTarget, x, y)
     },
     dispose() {
       for (const node of [...owned].reverse())
         node.dispose?.()
       owned.clear()
     },
+  }
+
+  async function readTarget(target, x, y) {
+    if (config.aoView === 'ao')
+      throw new Error('AO-only view does not render a scene HDR target')
+    const values = await renderer.readRenderTargetPixelsAsync(target, x, y, 1, 1)
+    const result = Array.from(values, value => target.texture.type === THREE.HalfFloatType
+      ? THREE.DataUtils.fromHalfFloat(value)
+      : value)
+    if (!result.every(Number.isFinite))
+      throw new Error('[Render pipeline] Non-finite HDR readback')
+    return result
   }
 }

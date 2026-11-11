@@ -3,6 +3,7 @@ import { Disposer } from '../../engine/runtime/core/disposer.js'
 import { GameObject, Level, MeshComponent, TransformComponent } from '../../engine/runtime/function/framework/index.js'
 import { createEnvironmentProxy } from '../../engine/runtime/function/render/sky-environment.js'
 import { createPlayer, PlayerComponent } from '../player/player.js'
+import { WeaponAssets } from '../weapons/assets/weapon-assets.js'
 import { loadRoomAssets } from './assets/room-assets.js'
 import { loadCollisionLayer } from './collision.js'
 import { rangeRoomConfig } from './config.js'
@@ -120,11 +121,23 @@ export class RangeRoomLevel extends Level {
         }
         token.throwIfAborted()
         if (this.collision) {
+          let weapons = null
+          if (this.render?.viewmodel) {
+            const assets = this.disposer.add(new WeaponAssets({ resources, scopeId: 'range-room-weapons', signal: token }))
+            weapons = { assets, layer: this.render.viewmodel }
+            // Prewarm shared data only. VisualPrepared requires motion ticks after load completes.
+            await assets.load({ weaponId: 'classic', assetVersion: 'v1', skinId: 'smite' }).catch((error) => {
+              token.throwIfAborted()
+              console.error('[Range room] Initial weapon unavailable; select its slot to retry', error)
+            })
+            token.throwIfAborted()
+          }
           const playerObject = this.addObject(createPlayer({
             camera,
             collision: this.collision,
             input: this.input,
             physics: this.physics,
+            weapons,
           }))
           this.player = playerObject.requireComponent(PlayerComponent)
           this.setPlayerEnabled(true)

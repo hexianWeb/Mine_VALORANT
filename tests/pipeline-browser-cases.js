@@ -81,6 +81,151 @@ export async function checkStandaloneRenderSystem() {
   }
 }
 
+/** Real GPU contract: independent depth, premultiplied HDR composition, and stable view ownership. */
+export async function checkViewModelComposition() {
+  const size = Object.assign(new EventEmitter(), {
+    width: 64,
+    height: 64,
+    aspect: 1,
+    pixelRatio: 1,
+  })
+  const scene = new THREE.Scene()
+  const camera = new THREE.PerspectiveCamera(70, 1, 0.005, 10)
+  const geometry = new THREE.PlaneGeometry(2, 2)
+  const blue = new THREE.MeshBasicNodeMaterial({ color: 0x0000FF })
+  const red = new THREE.MeshBasicNodeMaterial({
+    color: 0xFF0000,
+    transparent: true,
+    opacity: 0.5,
+    depthWrite: false,
+  })
+  const premultipliedRed = new THREE.MeshBasicNodeMaterial({
+    color: 0xFF0000,
+    transparent: true,
+    opacity: 0.5,
+    depthWrite: false,
+    premultipliedAlpha: true,
+  })
+  const green = new THREE.MeshBasicNodeMaterial({ color: 0x00FF00 })
+  const backRed = new THREE.MeshBasicNodeMaterial({ color: 0xFF0000 })
+  const world = new THREE.Mesh(geometry, blue)
+  world.position.z = -0.1
+  scene.add(world)
+  const canvas = document.createElement('canvas')
+  const render = await createRenderSystem({
+    size,
+    canvas,
+    scene,
+    camera,
+    config: {
+      ao: false,
+      aa: 'none',
+      toneMappingExposure: 1,
+      lutEnabled: false,
+    },
+  })
+  const layer = render.viewmodel
+  const viewScene = layer.scene
+  const viewCamera = layer.camera
+  const view = new THREE.Mesh(geometry, red)
+  view.position.z = -1
+  const near = new THREE.Mesh(geometry, green)
+  near.position.z = -0.5
+  near.visible = false
+  viewScene.add(near, view)
+  layer.setEnabled(true)
+  const closePixel = (actual, expected, label) => check(
+    actual.length === expected.length && actual.every((value, index) => Math.abs(value - expected[index]) < 0.015),
+    `${label}: expected ${expected}, got ${actual}`,
+  )
+  const frame = async () => {
+    await new Promise(requestAnimationFrame)
+    render.update()
+  }
+  try {
+    await frame()
+    const worldPixel = await render.readLinearPixel(32, 32)
+    const viewPixel = await render.readViewModelPixel(32, 32)
+    const compositePixel = await render.readCompositePixel(32, 32)
+    closePixel(worldPixel, [0, 0, 1, 1], 'World HDR')
+    closePixel(viewPixel, [0.5, 0, 0, 0.5], 'Straight-alpha material must accumulate premultiplied HDR')
+    closePixel(compositePixel, [0.5, 0, 0.5, 1], 'View must composite once and ignore nearer world depth')
+    const output = document.createElement('canvas')
+    output.width = output.height = 64
+    const context = output.getContext('2d')
+    context.drawImage(canvas, 0, 0)
+    const displayPixel = Array.from(context.getImageData(32, 32, 1, 1).data)
+    const expectedDisplay = new THREE.Color(0.5 / 1.5, 0, 0.5 / 1.5).convertLinearToSRGB()
+    check(Math.abs(displayPixel[0] - expectedDisplay.r * 255) <= 2
+      && Math.abs(displayPixel[2] - expectedDisplay.b * 255) <= 2, `Tone mapping must run once after HDR composition: ${displayPixel}`)
+
+    view.material = premultipliedRed
+    await frame()
+    closePixel(await render.readViewModelPixel(32, 32), viewPixel, 'Premultiplied-alpha material compatibility')
+
+    near.visible = true
+    view.material = backRed
+    await frame()
+    const depthPixel = await render.readViewModelPixel(32, 32)
+    closePixel(depthPixel, [0, 1, 0, 1], 'View geometry must retain its own depth ordering')
+    near.visible = false
+    view.material = red
+
+    layer.setEnabled(false)
+    await frame()
+    const disabledPixel = await render.readViewModelPixel(32, 32)
+    closePixel(disabledPixel, [0, 0, 0, 0], 'Disabled view target must clear transparent')
+    closePixel(await render.readCompositePixel(32, 32), worldPixel, 'Disabled view must leave world HDR intact')
+    check(view.parent === viewScene, 'Disabling the view detached its visual root')
+    layer.setEnabled(true)
+
+    render.setEffects({ ao: true, aa: 'smaa' })
+    await frame()
+    closePixel(await render.readViewModelPixel(32, 32), viewPixel, 'World AO must not affect the view pass')
+    closePixel(await render.readCompositePixel(32, 32), compositePixel, 'AO/SMAA pipeline replacement changed HDR composition')
+    check(render.viewmodel === layer && layer.scene === viewScene && layer.camera === viewCamera && view.parent === viewScene, 'Pipeline replacement changed viewmodel ownership')
+    layer.setFov(55)
+    size.emit('resize', {
+      width: 96,
+      height: 48,
+      aspect: 2,
+      pixelRatio: 1,
+    })
+    await frame()
+    const snapshot = render.snapshot()
+    check(viewCamera.aspect === 2 && camera.aspect === 2 && viewCamera.fov === 55 && camera.fov === 70, 'Resize/FOV must update the independent projection without changing world FOV')
+    for (const name of ['scene', 'viewmodel', 'composite']) {
+      check(snapshot.pipeline[name].width === 96 && snapshot.pipeline[name].height === 48, `${name} target did not resize`)
+    }
+    check(snapshot.pipeline.scene.id !== snapshot.pipeline.viewmodel.id
+      && snapshot.pipeline.viewmodel.depthBuffer && !snapshot.pipeline.composite.depthBuffer, 'World and view must have distinct depth targets; composite needs no depth')
+    render.dispose()
+    check(view.parent === null && !layer.enabled, 'Render disposal must detach visual roots and disable the layer')
+    return {
+      worldPixel,
+      viewPixel,
+      compositePixel,
+      displayPixel,
+      depthPixel,
+      disabledPixel,
+      stableOwnership: true,
+      resized: [snapshot.pipeline.viewmodel.width, snapshot.pipeline.viewmodel.height],
+    }
+  }
+  finally {
+    render.dispose()
+    geometry.dispose()
+    for (const material of [
+      blue,
+      red,
+      premultipliedRed,
+      green,
+      backRed,
+    ])
+      material.dispose()
+  }
+}
+
 /** GPU readback fixture: a cutout with a distinct normal in front of an opaque surface and behind glass. */
 export async function checkNormalPrepass() {
   const renderer = new THREE.WebGPURenderer({

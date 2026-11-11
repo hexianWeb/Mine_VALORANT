@@ -1,6 +1,22 @@
 # tools 秒懂
 
-`tools/` 里的脚本只服务练枪房这条资产和验收链路。表按重要程度从上到下：先是每次改完都该跑的检查，然后是改模型、光照、碰撞时才跑的导出，最后是被别的脚本调用的库。
+`tools/` 里的脚本服务练枪房与武器的资产和验收链路。表按重要程度从上到下：先是每次改完都该跑的检查，然后是改模型、光照、碰撞时才跑的导出，最后是被别的脚本调用的库。
+
+## 武器发布
+
+`weapons/publish.mjs` 使用 `weapons/recipes.mjs` 中的显式配方，从当前 Classic Smite / Phantom Tactiplay 制作文件导出。使用全新后台 Blender，不连接用户的 Blender、不保存或重写源 `.blend`。源文件路径相对项目根；原动作元数据来自 `--source-pack`。首次发布输出 `public/weapons/<weaponId>/v1/`；只有全部校验通过才复制资源，最后写入口 manifest。已经存在的版本必须逐文件字节一致，否则拒绝覆盖，变更需更新配方的 assetVersion。
+
+```powershell
+node tools/weapons/publish.mjs --blender 'D:/game/steamapps/common/Blender/blender.exe' --source-pack 'D:/Projects/vandal-roundtrip/valorant-first-person-pack'
+node tools/weapons/publish.mjs --verify-only
+node --test tests/weapon-publication.test.mjs
+```
+
+可在末尾指定 `classic` 或 `phantom`；省略则发布两枪。`BLENDER_PATH` 可代替 `--blender`，`--out-root` 可指定独立候选目录。原包默认位置为相邻 `vandal-roundtrip/valorant-first-person-pack`。官方 glTF Validator 必须可用：默认读取原包旁 `first-person/work/gltf-validator/node_modules/gltf-validator`，其他安装位置用 `--validator-module` 指向模块目录。已验证导出环境为 Blender 5.3.0；其他版本需重新通过校验，不假定产物字节相同。
+
+导出只选择配方列出的运行时网格与四套动画 Armature，排除 Icosphere 自定义骨形和预览摄像机。保留多对象 Action、STEP 可见性和原有 SourceUV；规范化时间原点、skinned mesh 根节点、材质 UV 及重复节点名。材质角色区分 weapon / armsLeft / armsRight，皮肤只覆盖 weapon。GLB 内含初始贴图；皮肤 JSON 的纹理 URL 相对皮肤 JSON，其他资源 URL 相对 manifest。挂载位置在 `view.mountOffset`，单位为米，写到 Mixer 根节点外的 anchor，GLB 不再缩放。
+
+发布门槛包括源文件前后 SHA256 一致、packed 皮肤与显式 PNG 一致、完整 clip/mesh/material/socket 绑定、时间原点、循环端点、有限骨骼矩阵、刚性权重、每枪九个 Blender/Three.js 变形包围盒比较，以及 glTF Validator 零 error/零 warning。`source-audit.json` 保存源姿态证据，`validation.json` 保存检查结果。Node 贴图检查读取 PNG 尺寸，不代替真实浏览器的像素解码和 WebGPU 画面验收。普通动作零时刻音效不重复导入为 marker；Classic salvo 等独立 cue 保留。已发布两枪接入主游戏，操作与时钟契约见[武器玩法](../docs/weapons/gameplay.md)；运行时音频尚未接入。
 
 在项目根目录执行。浏览器脚本默认找 `C:/Program Files/Google/Chrome/Application/chrome.exe`，换路径时设 `CHROME_PATH`。截图和 `report.json` 写到 `D:/opencode-temp/opencode/...`，换目录时设 `ROOM_TEST_OUTPUT`。失败时进程退出码为 1，先看终端里的 `passed` / `failure`。
 
@@ -13,6 +29,8 @@
 | `check-player-browser.mjs` | 出生、撞墙、跳跃、掉出地图 | `pnpm dev` 后跑，会自己设 `probes=0` |
 | `check-pipeline-browser.mjs` | 法线预通道、lightmap 材质、AO、分辨率 | **必须**开发服务器 `http://localhost:5173/` |
 | `check-runtime-browser.mjs` | 有 / 无 Editor 重载、独立渲染 | 同上，必须开发服务器 |
+| `check-weapons-browser.mjs` | Classic/Phantom 真实皮肤、动作采样、实例隔离与释放 | `npm run dev` 后 `node tools/check-weapons-browser.mjs http://localhost:5173/weapon-preview.html`；输出目录用 `WEAPON_TEST_OUTPUT` |
+| `check-weapon-gameplay-browser.mjs` | 主游戏真实输入、切枪／打断、射击／ADS、统一表现时间与生命周期 | `npm run dev` 后 `node tools/check-weapon-gameplay-browser.mjs http://localhost:5173/`；输出目录用 `WEAPON_GAME_TEST_OUTPUT` |
 
 ```powershell
 pnpm test
@@ -29,9 +47,12 @@ pnpm dev
 node tools/check-player-browser.mjs "http://localhost:5173/"
 node tools/check-pipeline-browser.mjs "http://localhost:5173/"
 node tools/check-runtime-browser.mjs "http://localhost:5173/"
+node tools/check-weapon-gameplay-browser.mjs "http://localhost:5173/"
 ```
 
 `check-room` 会加上 `profile=1` 和 `player=0`。`check-pipeline` 和 `check-runtime` 会从开发服务器加载 `tests/*-browser-cases.js`，把 `pnpm preview` 的地址喂给它们会失败。
+
+`check-weapons-browser` 使用独立资产预览页；`check-weapon-gameplay-browser` 使用默认启用 Player 与 Editor 的主游戏页面，并设置 `probes=0`。后者通过可信鼠标点击捕获 Pointer Lock，检查首击不开火、Classic 半自动、Phantom 自动射速与 ADS、换弹／检视打断、切枪、世界相机与 AimState 采样一致、武器公共表现时间、Editor 交接、暂停输入丢弃、Home 重生和销毁。默认输出为 `D:/opencode-temp/opencode/weapon-gameplay-browser/`，包含截图和 `report.json`；通过状态以本次报告为准。
 
 `validate-room-assets.mjs` 默认读 `public/lighting/range-room-lightmap/manifest.json`。查另一套资源时把 manifest 路径放在后面，例如 `node tools/validate-room-assets.mjs public/lighting/range-room/manifest.json`。
 

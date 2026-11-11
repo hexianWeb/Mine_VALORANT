@@ -36,6 +36,7 @@ try {
   const modulePath = `/@fs/${path.resolve('tests/pipeline-browser-cases.js').replaceAll('\\', '/')}`
   await evaluate(`import(${JSON.stringify(modulePath)}).then(module=>{globalThis.__PIPELINE_CASES__=module;return true})`)
   report.standalone = await evaluate('__PIPELINE_CASES__.checkStandaloneRenderSystem()')
+  report.viewmodel = await evaluate('__PIPELINE_CASES__.checkViewModelComposition()')
   report.normals = await evaluate('__PIPELINE_CASES__.checkNormalPrepass()')
   const lightmapModule = `/@fs/${path.resolve('tests/lightmap-browser-cases.js').replaceAll('\\', '/')}`
   report.lightmapMaterial = await evaluate(`import(${JSON.stringify(lightmapModule)}).then(module=>module.checkLightmapMaterial())`)
@@ -75,6 +76,7 @@ finally {
     errors: report.errors,
     failure: report.failure,
     standalone: report.standalone,
+    viewmodel: report.viewmodel,
     normals: report.normals,
     lightmapMaterial: report.lightmapMaterial,
     pixelArtMinification: report.pixelArtMinification,

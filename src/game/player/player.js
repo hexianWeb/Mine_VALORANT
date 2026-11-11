@@ -1,21 +1,29 @@
 import * as THREE from 'three/webgpu'
 import { characterBox, characterMotion } from '../../engine/runtime/function/character/character-motion.js'
 import { CameraComponent, Component, GameObject, MotorComponent, TransformComponent } from '../../engine/runtime/function/framework/index.js'
+import { PlayerWeapons } from '../weapons/player-weapons.js'
+import { AimState } from './aim-state.js'
 import { playerConfig } from './config.js'
 
 /** Player input, posture targets and spawn rules. Motion and view live in dependencies. */
 export class PlayerComponent extends Component {
   static requires = [TransformComponent, MotorComponent, CameraComponent]
-  static phases = ['input', 'postPhysics']
+  static phases = ['input', 'postPhysics', 'motion']
   respawns = 0
   enabled = false
   #respawnQueued = false
+  #at = 0
+  #presentationAt = 0
+  #paused = false
+  #rebaseViewOnNextStep = false
 
-  constructor({ collision, input, config = playerConfig }) {
+  constructor({ collision, input, aim, weapons = null, config = playerConfig }) {
     super()
     this.collision = collision
     this.input = input
     this.settings = config
+    this.aim = aim
+    this.weapons = weapons
   }
 
   onAttach() {
@@ -31,14 +39,19 @@ export class PlayerComponent extends Component {
   get velocity() { return this.motor.velocity }
   get grounded() { return this.motor.grounded }
   get crouched() { return this.motor.crouched }
-  get yaw() { return this.cameraComponent.yaw }
-  get pitch() { return this.cameraComponent.pitch }
+  get yaw() { return this.aim.yaw }
+  get pitch() { return this.aim.pitch }
 
   setEnabled(value) {
-    this.enabled = !!value && !this.disposed
+    const enabled = !!value && !this.disposed
+    if (enabled === this.enabled)
+      return
+    this.enabled = enabled
     this.motor.enabled = this.enabled
     this.cameraComponent.enabled = this.enabled
     if (!this.enabled) {
+      this.weapons?.suspend()
+      this.aim.clearInput()
       this.#respawnQueued = false
       this.motor.resetMotion()
       this.cameraComponent.verticalOffset = this.settings.standEye
@@ -47,20 +60,32 @@ export class PlayerComponent extends Component {
       this.input.consumePressed('jump')
       this.input.consumePressed('respawn')
     }
+    else {
+      this.#rebaseViewOnNextStep = true
+      this.weapons?.resume()
+    }
   }
 
   teleport(feet, yaw, pitch = 0) {
     this.#respawnQueued = false
     this.motor.teleport(new THREE.Vector3().fromArray(feet))
-    this.cameraComponent.reset({ yaw, pitch, verticalOffset: this.settings.standEye })
+    this.transform.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw)
+    this.aim.reset({
+      feet,
+      yaw,
+      pitch,
+      verticalOffset: this.settings.standEye,
+      at: this.#at,
+    })
   }
 
   respawn() {
     this.teleport(this.collision.spawn.position, this.collision.spawn.yaw)
+    this.weapons?.reset()
     this.respawns++
   }
 
-  /** UI and tools enqueue the same command as the gameplay action; input tick applies it. */
+  /** UI and tools enqueue the same command as the gameplay action; the next fixed step applies it. */
   requestRespawn() {
     if (this.enabled && !this.disposed)
       this.#respawnQueued = true
@@ -77,14 +102,31 @@ export class PlayerComponent extends Component {
 
   look(dx, dy) {
     const radiansPerCount = THREE.MathUtils.degToRad(this.settings.degreesPerCount) * this.settings.sensitivity
-    this.cameraComponent.look(-dx * radiansPerCount, -dy * radiansPerCount)
+    this.aim.queueLook(-dx * radiansPerCount, -dy * radiansPerCount)
   }
 
-  readInput() {
+  setPaused(value) {
+    if (value === this.#paused)
+      return
+    if (!value) {
+      const respawn = this.input.consumePressed('respawn')
+      this.#respawnQueued ||= this.enabled && respawn
+      this.weapons?.collectInput(this.input, true)
+    }
+    this.#paused = value
+    this.input.clear?.()
+    this.aim.clearInput()
+    this.motor.command.jump = false
+    this.weapons?.setPaused(value)
+  }
+
+  readInput(time) {
+    this.setPaused(time.timeScale === 0)
     const respawn = this.input.consumePressed('respawn')
-    if (respawn || this.#respawnQueued)
-      this.respawn()
-    this.look(...this.input.consumeLook())
+    this.#respawnQueued ||= respawn
+    const look = this.input.consumeLook()
+    if (!this.#paused)
+      this.look(...look)
     const jump = this.input.consumePressed('jump')
     Object.assign(this.motor.command, {
       moveX: Number(this.input.isDown('right')) - Number(this.input.isDown('left')),
@@ -92,17 +134,43 @@ export class PlayerComponent extends Component {
       walk: this.input.isDown('walk'),
       crouch: this.input.isDown('crouch'),
       jump: this.motor.command.jump || jump,
+      headingYaw: this.aim.headingYaw,
     })
+    this.weapons?.collectInput(this.input, this.#paused)
   }
 
-  tick({ phase }) {
+  tick(context) {
+    const { phase, time } = context
     if (phase === 'input') {
-      this.readInput()
+      this.readInput(time)
     }
     else if (phase === 'postPhysics') {
-      if (this.collision.isOutOfBounds(characterBox(this.position, this.settings, this.crouched)))
+      if (this.#rebaseViewOnNextStep) {
+        this.aim.rebase((time.fixedTick - 1) * time.fixedDelta)
+        this.#rebaseViewOnNextStep = false
+      }
+      this.#at = time.fixedElapsed
+      if (this.#respawnQueued || this.collision.isOutOfBounds(characterBox(this.position, this.settings, this.crouched)))
         this.respawn()
-      this.cameraComponent.verticalOffset = this.crouched ? this.settings.crouchEye : this.settings.standEye
+      const pose = {
+        feet: this.position,
+        verticalOffset: this.crouched ? this.settings.crouchEye : this.settings.standEye,
+        stepDeltaY: this.motor.sampleStepDeltaY(1),
+        moving: Math.hypot(this.velocity.x, this.velocity.z) > 0.1,
+        crouched: this.crouched,
+      }
+      if (this.weapons) {
+        this.weapons.fixed(context, pose)
+      }
+      else {
+        this.aim.beginStep({ ...pose, at: time.fixedElapsed, delta: time.fixedDelta })
+        this.aim.endStep()
+      }
+      this.transform.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.aim.yaw)
+    }
+    else if (phase === 'motion') {
+      this.#presentationAt = time.presentationTime
+      this.weapons?.motion(time)
     }
   }
 
@@ -115,6 +183,8 @@ export class PlayerComponent extends Component {
       yawDeg: THREE.MathUtils.radToDeg(this.yaw),
       pitchDeg: THREE.MathUtils.radToDeg(this.pitch),
       respawns: this.respawns,
+      view: this.aim.sample(this.#presentationAt),
+      weapons: this.weapons?.snapshot() ?? null,
     }
   }
 
@@ -124,6 +194,7 @@ export class PlayerComponent extends Component {
     super.dispose()
     if (this.motor)
       this.setEnabled(false)
+    this.weapons?.dispose()
     this.input.setEnabled(false)
   }
 }
@@ -164,7 +235,7 @@ function createStepOffsetLimiter(world) {
 }
 
 /** Object assembly only; the Level schedules these same types across all objects. */
-export function createPlayer({ camera, collision, input, physics, config = {} }) {
+export function createPlayer({ camera, collision, input, physics, weapons = null, config = {} }) {
   const settings = {
     ...playerConfig,
     ...config,
@@ -179,6 +250,26 @@ export function createPlayer({ camera, collision, input, physics, config = {} })
     world: collision.world,
   }))
   motor.enabled = false
+  const limiter = createStepOffsetLimiter(collision.world)
+  const poseCamera = new THREE.PerspectiveCamera()
+  const aim = new AimState({
+    verticalOffset: settings.standEye,
+    offsetSmoothing: settings.eyeSmoothing,
+    stepSmoothingTime: settings.stepSmoothingTime,
+    maxPitch: THREE.MathUtils.degToRad(settings.maxPitchDeg),
+    worldFov: camera.fov,
+    limitStepOffset: (pose, offset) => {
+      poseCamera.fov = pose.worldFov
+      poseCamera.aspect = camera.aspect
+      poseCamera.near = camera.near
+      poseCamera.far = camera.far
+      poseCamera.coordinateSystem = camera.coordinateSystem
+      poseCamera.updateProjectionMatrix()
+      poseCamera.position.fromArray(pose.position)
+      poseCamera.quaternion.fromArray(pose.quaternion)
+      return limiter(poseCamera, offset)
+    },
+  })
   const view = object.addComponent(new CameraComponent({
     camera,
     verticalOffset: settings.standEye,
@@ -187,11 +278,16 @@ export function createPlayer({ camera, collision, input, physics, config = {} })
     limitStepOffset: createStepOffsetLimiter(collision.world),
     stepSmoothingTime: settings.stepSmoothingTime,
     maxPitch: THREE.MathUtils.degToRad(settings.maxPitchDeg),
+    sampleViewPose: at => aim.sample(at),
   }))
   view.enabled = false
   object.addComponent(new PlayerComponent({
     collision,
     input,
+    aim,
+    weapons: weapons
+      ? new PlayerWeapons({ ...weapons, aim, world: collision.world })
+      : null,
     config: settings,
   }))
   return object

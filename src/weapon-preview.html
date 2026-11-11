@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <title>武器资源预览</title>
+    <style>
+      body { margin: 0; color: #e6edf5; background: #1c2230; font: 14px system-ui; }
+      header { position: absolute; inset: 18px 24px auto; display: flex; gap: 12px; align-items: center; }
+      select, button { padding: 7px; color: inherit; background: #303b50; border: 1px solid #647189; border-radius: 4px; }
+      canvas { display: block; width: 100vw; height: 100vh; }
+      #status { color: #b5c5db; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>武器资源预览</strong>
+      <select id="weapon"><option value="classic">Classic · Smite</option><option value="phantom">Phantom · Tactiplay</option></select>
+      <select id="action"><option value="idle">待机</option><option value="draw">掏枪</option><option value="fire">开火</option><option value="reloadTactical">战术换弹</option><option value="reloadEmpty">空仓换弹</option><option value="inspect">检视</option></select>
+      <button id="play">播放</button><span id="status">加载中…</span>
+    </header>
+    <canvas></canvas>
+    <script type="module" src="./dev/weapon-preview.js"></script>
+  </body>
+</html>

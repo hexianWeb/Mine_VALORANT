@@ -17,6 +17,7 @@ export const renderConfig = Object.freeze({
   lutIntensity: 1,
   aa: 'smaa',
   trackTimestamp: false, // 用 ?profile=1 开启，或在创建性能分析实例时开启。
+  viewmodelLightIntensity: 3, // 独立视模光照，不复用世界 AO 或房间灯光。
 })
 
 export function validateEffects(config) {
@@ -34,6 +35,7 @@ export function validateEffects(config) {
     aoResolutionScale: [0.25, 1],
     denoiseRadius: [1, 16],
     lutIntensity: [0, 1],
+    viewmodelLightIntensity: [0, 32],
   }
   for (const [key, [min, max]] of Object.entries(ranges)) {
     if (!Number.isFinite(config[key]) || config[key] < min || config[key] > max)

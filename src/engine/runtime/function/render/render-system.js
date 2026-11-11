@@ -1,5 +1,6 @@
 import * as THREE from 'three/webgpu'
 import { createColorGrading } from './color-grading.js'
+import { createViewModelLayer } from './passes/viewmodel-pass.js'
 import { renderConfig, validateEffects } from './render-config.js'
 import { buildPipeline } from './render-pipeline.js'
 import { FrameStatistics, PipelineProfiler } from './render-profiler.js'
@@ -37,10 +38,12 @@ export async function createRenderSystem({ size, canvas, scene, camera, config =
   let pipeline = null
   let pipelineGeneration = 0
   const grading = createColorGrading()
+  const viewmodel = createViewModelLayer({ aspect: size.aspect, lightIntensity: settings.viewmodelLightIntensity })
   let disposed = false
   const resize = ({ width, height, pixelRatio, aspect }) => {
     camera.aspect = aspect
     camera.updateProjectionMatrix()
+    viewmodel.resize(aspect)
     renderer.setPixelRatio(Math.min(pixelRatio, settings.maxPixelRatio))
     renderer.setSize(width, height)
     cpuTimes.reset()
@@ -50,6 +53,7 @@ export async function createRenderSystem({ size, canvas, scene, camera, config =
   const system = {
     name: 'render',
     renderer,
+    viewmodel,
     setEffects(changes) {
       if (!pipeline || disposed)
         throw new Error('[Render] Pipeline is not ready')
@@ -65,7 +69,7 @@ export async function createRenderSystem({ size, canvas, scene, camera, config =
         'aoView',
       ]
       if (structural.some(key => next[key] !== settings[key])) {
-        const replacement = buildPipeline(renderer, scene, camera, next, grading)
+        const replacement = buildPipeline(renderer, scene, camera, next, grading, viewmodel)
         pipeline.dispose()
         pipeline = replacement
         pipelineGeneration++
@@ -74,6 +78,7 @@ export async function createRenderSystem({ size, canvas, scene, camera, config =
         pipeline.updateConfig(next)
       }
       renderer.toneMappingExposure = next.toneMappingExposure
+      viewmodel.setLightIntensity(next.viewmodelLightIntensity)
       settings = next
       cpuTimes.reset()
       profiler.invalidate()
@@ -101,6 +106,16 @@ export async function createRenderSystem({ size, canvas, scene, camera, config =
       if (!pipeline || disposed)
         throw new Error('[Render] Pipeline is not ready')
       return pipeline.readLinearPixel(x, y)
+    },
+    readViewModelPixel(x, y) {
+      if (!pipeline || disposed)
+        throw new Error('[Render] Pipeline is not ready')
+      return pipeline.readViewModelPixel(x, y)
+    },
+    readCompositePixel(x, y) {
+      if (!pipeline || disposed)
+        throw new Error('[Render] Pipeline is not ready')
+      return pipeline.readCompositePixel(x, y)
     },
     measureGpu() {
       if (!pipeline || disposed)
@@ -135,6 +150,13 @@ export async function createRenderSystem({ size, canvas, scene, camera, config =
           dpr: renderer.getPixelRatio(),
         },
         render: { ...renderer.info.render },
+        viewmodel: {
+          enabled: viewmodel.enabled,
+          fov: viewmodel.camera.fov,
+          aspect: viewmodel.camera.aspect,
+          near: viewmodel.camera.near,
+          far: viewmodel.camera.far,
+        },
         memory: { ...renderer.info.memory },
         cpuSubmitMs: cpuTimes.snapshot(),
         gpuTiming: {
@@ -151,13 +173,14 @@ export async function createRenderSystem({ size, canvas, scene, camera, config =
       disposed = true
       offResize()
       pipeline?.dispose()
+      viewmodel.dispose()
       grading.dispose()
       renderer.dispose()
     },
   }
   try {
     resize(size)
-    pipeline = buildPipeline(renderer, scene, camera, settings, grading)
+    pipeline = buildPipeline(renderer, scene, camera, settings, grading, viewmodel)
     pipelineGeneration++
     return system
   }

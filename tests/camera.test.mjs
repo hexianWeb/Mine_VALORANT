@@ -140,3 +140,37 @@ test('camera handoff reads a candidate body pose without moving it or overwritin
   assert.ok(camera.position.equals(position))
   assert.ok(camera.quaternion.angleTo(quaternion) < 1e-7)
 })
+
+test('an injected view history owns camera pose and FOV without presentation-time smoothing', (t) => {
+  const calls = []
+  const rotation = new Quaternion().setFromEuler(new Euler(0.1, 0.2, 0, 'YXZ')).toArray()
+  const f = setup(t, {
+    offsetSmoothing: 12,
+    stepSmoothingTime: 0.1,
+    sampleStepDeltaY() { throw new Error('legacy step sampler must not run') },
+    sampleViewPose(at) {
+      calls.push(at)
+      return {
+        position: [1, 2, 3],
+        quaternion: rotation,
+        pitch: 0.1,
+        verticalOffset: 1.5,
+        worldFov: 45,
+      }
+    },
+  })
+  const present = () => f.level.tickComponents('presentation', {
+    time: { presentationTime: 0.25, rawDelta: 20, alpha: 0.9 },
+  })
+  f.transform.position.set(20, 30, 40)
+  const bodyRotation = f.transform.quaternion.clone()
+  present()
+  present()
+  assert.deepEqual(calls, [0.25, 0.25])
+  assert.deepEqual(f.camera.position.toArray(), [1, 2, 3])
+  assert.ok(f.camera.quaternion.angleTo(new Quaternion().fromArray(rotation)) < 1e-7)
+  assert.equal(f.camera.fov, 45)
+  assert.equal(f.view.currentVerticalOffset, 1.5)
+  assert.deepEqual(f.transform.position.toArray(), [20, 30, 40])
+  assert.ok(f.transform.quaternion.equals(bodyRotation))
+})
