@@ -30,7 +30,7 @@ function standing([x, y, z]) {
 
 test('exported collision layer is valid and inside the room bounds', () => {
   assert.doesNotThrow(() => validateCollisionData(data))
-  assert.equal(data.boxes.length, 390)
+  assert.equal(data.boxes.length, 399)
   for (const box of data.boxes) {
     for (let i = 0; i < 3; i++) {
       assert.ok(box.min[i] < box.max[i], `${box.name} degenerate on axis ${i}`)
@@ -58,7 +58,7 @@ test('runtime layer adds the ground box, killY and converts spawn yaw to radians
   assert.ok(Math.abs(layer.spawn.yaw - data.spawn.yawDeg * Math.PI / 180) < 1e-12)
   assert.deepEqual(layer.snapshot(), {
     id: data.id,
-    boxes: 390,
+    boxes: 399,
     floors: 50,
     groundHeight: GROUND.height,
     killY: layer.killY,
@@ -133,8 +133,8 @@ test('collision debug draws 12 edges per room box, skips the ground and never in
   const layer = createCollisionLayer(data, GROUND)
   const debug = createCollisionDebug(layer.world.boxes)
   assert.equal(debug.visible, false)
-  assert.deepEqual(debug.snapshot(), { visible: false, boxes: 390, segments: 390 * 12 })
-  assert.equal(debug.root.geometry.getAttribute('position').count, 390 * 24)
+  assert.deepEqual(debug.snapshot(), { visible: false, boxes: 399, segments: 399 * 12 })
+  assert.equal(debug.root.geometry.getAttribute('position').count, 399 * 24)
   debug.setVisible(true)
   assert.equal(debug.root.visible, true)
   const scene = new THREE.Scene()
