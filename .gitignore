@@ -4,5 +4,6 @@ dist
 .vercel
 .superpowers/
 static/
+deliverables/
 *.blend
 *.blend1
