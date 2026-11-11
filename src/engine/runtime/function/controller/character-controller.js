@@ -7,7 +7,7 @@ const GROUND_PROBE = 0.01
 const hits = []
 
 /**
- * 沿单轴移动 `box`，直到碰到前方最近的盒子。
+ * 沿单轴移动 `box`，返回截断这次移动的盒子。
  * 已经重叠的盒子会被忽略，这样一开始嵌在几何体里的物体仍能离开。
  * @param {import('../physics/collision-world.js').CollisionWorld} world
  * @param {{ min: number[], max: number[] }} box
@@ -16,28 +16,28 @@ const hits = []
  */
 function sweepAxis(world, box, axis, delta) {
   if (delta === 0)
-    return { moved: 0, hit: false }
+    return null
   const swept = cloneBox(box)
-  if (delta > 0)
+  const forward = delta > 0
+  if (forward)
     swept.max[axis] += delta
   else
     swept.min[axis] += delta
-  let allowed = delta
+  let allowed = Math.abs(delta)
+  let obstacle = null
   for (const other of world.queryAABB(swept, hits)) {
-    if (delta > 0) {
-      const gap = other.min[axis] - box.max[axis]
-      if (gap >= -EPSILON && gap < allowed)
-        allowed = Math.max(gap, 0)
-    }
-    else {
-      const gap = other.max[axis] - box.min[axis]
-      if (gap <= EPSILON && gap > allowed)
-        allowed = Math.min(gap, 0)
+    const gap = forward
+      ? other.min[axis] - box.max[axis]
+      : box.min[axis] - other.max[axis]
+    if (gap >= -EPSILON && gap < allowed) {
+      allowed = Math.max(gap, 0)
+      obstacle = other
     }
   }
-  box.min[axis] += allowed
-  box.max[axis] += allowed
-  return { moved: allowed, hit: allowed !== delta }
+  const moved = Math.sign(delta) * allowed
+  box.min[axis] += moved
+  box.max[axis] += moved
+  return obstacle
 }
 
 /**
@@ -56,52 +56,88 @@ function copyInto(target, source) {
  * 计算 `box` 相对 `start` 的水平位移量。
  * @param {{ min: number[], max: number[] }} box
  * @param {{ min: number[], max: number[] }} start
- * @returns {number}
  */
 function horizontalProgress(box, start) {
   return Math.hypot(box.min[0] - start.min[0], box.min[2] - start.min[2])
 }
 
 /**
+ * 检查脚下支撑。启用 snapDown 时将 `box` 贴到探到的表面。
+ * @param {import('../physics/collision-world.js').CollisionWorld} world
+ * @param {import('../physics/collision-world.js').Box} box
+ * @param {number} snapDown
+ */
+function probeGround(world, box, snapDown) {
+  const probe = cloneBox(box)
+  const distance = snapDown > 0
+    ? snapDown
+    : GROUND_PROBE
+  const support = sweepAxis(world, probe, 1, -distance)
+  if (support && snapDown > 0)
+    copyInto(box, probe)
+  return support !== null
+}
+
+/**
  * 分轴运动学移动：先 Y，再 X，再 Z。会修改 `box`。
  * 上台阶只从有支撑的姿态开始；`snapDown` 让行走中的物体贴住下台阶。
+ * `stepDeltaY` 是主 Y 扫掠之后，踏步或贴地造成的有符号高度变化。
  * @param {import('../physics/collision-world.js').CollisionWorld} world
  * @param {{ min: number[], max: number[] }} box
  * @param {number[]} displacement
  * @param {{ stepHeight?: number, snapDown?: number }} [options]
  */
 export function moveAABB(world, box, [dx, dy, dz], { stepHeight = 0, snapDown = 0 } = {}) {
-  const y = sweepAxis(world, box, 1, dy)
-  const supported = dy <= 0 && y.hit
+  const hitY = sweepAxis(world, box, 1, dy) !== null
+  const supported = dy <= 0 && hitY
   const start = cloneBox(box)
-  let hitX = sweepAxis(world, box, 0, dx).hit
-  let hitZ = sweepAxis(world, box, 2, dz).hit
+  let blockX = sweepAxis(world, box, 0, dx)
+  let blockZ = sweepAxis(world, box, 2, dz)
   let stepped = false
-  if ((hitX || hitZ) && supported && stepHeight > 0) {
-    const trial = cloneBox(start)
-    const lift = sweepAxis(world, trial, 1, stepHeight)
-    const trialX = sweepAxis(world, trial, 0, dx).hit
-    const trialZ = sweepAxis(world, trial, 2, dz).hit
-    sweepAxis(world, trial, 1, -lift.moved)
-    if (horizontalProgress(trial, start) > horizontalProgress(box, start) + EPSILON) {
+  if ((blockX || blockZ) && supported && stepHeight > 0) {
+    const heights = new Set()
+    /** @param {import('../physics/collision-world.js').Box | null} obstacle */
+    const addHeight = (obstacle) => {
+      if (!obstacle)
+        return
+      const height = obstacle.max[1] - start.min[1]
+      if (height > EPSILON && height <= stepHeight + EPSILON)
+        heights.add(height)
+    }
+    addHeight(blockX)
+    addHeight(blockZ)
+
+    let bestProgress = horizontalProgress(box, start)
+    for (const height of heights) {
+      const trial = cloneBox(start)
+      if (sweepAxis(world, trial, 1, height))
+        continue
+      const trialX = sweepAxis(world, trial, 0, dx)
+      const trialZ = sweepAxis(world, trial, 2, dz)
+      // 抬升后的水平路径可能遇到同一步位移内的下一道立面。
+      addHeight(trialX)
+      addHeight(trialZ)
+      const progress = horizontalProgress(trial, start)
+      if (progress <= bestProgress + EPSILON)
+        continue
+
+      sweepAxis(world, trial, 1, -height)
+      if (!probeGround(world, trial, snapDown) || world.queryAABB(trial, hits).length > 0)
+        continue
       copyInto(box, trial)
-      hitX = trialX
-      hitZ = trialZ
+      blockX = trialX
+      blockZ = trialZ
+      bestProgress = progress
       stepped = true
     }
   }
-  const probe = cloneBox(box)
-  const ground = sweepAxis(world, probe, 1, -(snapDown > 0
-    ? snapDown
-    : GROUND_PROBE))
-  const grounded = dy <= 0 && ground.hit
-  if (grounded && snapDown > 0)
-    copyInto(box, probe)
+  const grounded = stepped || (dy <= 0 && probeGround(world, box, snapDown))
   return {
     grounded,
-    hitX,
-    hitY: y.hit,
-    hitZ,
+    hitX: blockX !== null,
+    hitY,
+    hitZ: blockZ !== null,
     stepped,
+    stepDeltaY: box.min[1] - start.min[1],
   }
 }

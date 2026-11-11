@@ -42,6 +42,7 @@ export class PlayerComponent extends Component {
       this.#respawnQueued = false
       this.motor.resetMotion()
       this.cameraComponent.verticalOffset = this.settings.standEye
+      this.cameraComponent.resetStepSmoothing()
       this.input.consumeLook()
       this.input.consumePressed('jump')
       this.input.consumePressed('respawn')
@@ -127,6 +128,41 @@ export class PlayerComponent extends Component {
   }
 }
 
+function createStepOffsetLimiter(world) {
+  const bounds = new THREE.Box3()
+  const corner = new THREE.Vector3()
+  const sweep = { min: [], max: [] }
+  const hits = []
+
+  return (camera, offset) => {
+    const clipMinZ = camera.coordinateSystem === THREE.WebGPUCoordinateSystem
+      ? 0
+      : -1
+    const nearZ = camera.reversedDepth ? 1 : clipMinZ
+    // Bound the eye and the near plane at the sampled camera pose.
+    bounds.set(camera.position, camera.position)
+    for (const x of [-1, 1]) {
+      for (const y of [-1, 1]) {
+        corner.set(x, y, nearZ)
+          .applyMatrix4(camera.projectionMatrixInverse)
+          .applyQuaternion(camera.quaternion)
+          .add(camera.position)
+        bounds.expandByPoint(corner)
+      }
+    }
+    bounds.expandByScalar(1e-5)
+    const top = bounds.max.y
+    bounds.max.y += offset
+    bounds.min.toArray(sweep.min)
+    bounds.max.toArray(sweep.max)
+
+    let clearance = offset
+    for (const hit of world.queryAABB(sweep, hits))
+      clearance = Math.min(clearance, Math.max(0, hit.min[1] - top))
+    return clearance
+  }
+}
+
 /** Object assembly only; the Level schedules these same types across all objects. */
 export function createPlayer({ camera, collision, input, physics, config = {} }) {
   const settings = {
@@ -147,6 +183,9 @@ export function createPlayer({ camera, collision, input, physics, config = {} })
     camera,
     verticalOffset: settings.standEye,
     offsetSmoothing: settings.eyeSmoothing,
+    sampleStepDeltaY: alpha => motor.sampleStepDeltaY(alpha),
+    limitStepOffset: createStepOffsetLimiter(collision.world),
+    stepSmoothingTime: settings.stepSmoothingTime,
     maxPitch: THREE.MathUtils.degToRad(settings.maxPitchDeg),
   }))
   view.enabled = false

@@ -18,4 +18,5 @@ export const playerConfig = Object.freeze({
   degreesPerCount: 0.07,
   maxPitchDeg: 89,
   eyeSmoothing: 12,
+  stepSmoothingTime: 0.1, // Seconds to reach 90% of a step height change.
 })

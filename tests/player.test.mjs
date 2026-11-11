@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import * as THREE from 'three/webgpu'
 import { Engine } from '../src/engine/runtime/engine.js'
@@ -10,7 +11,7 @@ import { createCollisionLayer } from '../src/game/range-room/collision.js'
 
 const near = (actual, expected, tolerance, message) => assert.ok(Math.abs(actual - expected) <= tolerance, `${message}: ${actual} vs ${expected}`)
 
-function setup(boxes = [], spawn = [0, 0, 0]) {
+function setup(boxes = [], spawn = [0, 0, 0], groundHeight = 0) {
   const collision = createCollisionLayer({
     schemaVersion: 1,
     spawn: { position: spawn, yawDeg: 0 },
@@ -23,7 +24,7 @@ function setup(boxes = [], spawn = [0, 0, 0]) {
       },
     ],
   }, {
-    height: 0,
+    height: groundHeight,
     outer: {
       minX: -100,
       maxX: 100,
@@ -91,6 +92,15 @@ function setup(boxes = [], spawn = [0, 0, 0]) {
 }
 
 const horizontalSpeed = player => Math.hypot(player.velocity.x, player.velocity.z)
+
+function setupCorridor(extraBoxes = []) {
+  const { boxes, spawn } = JSON.parse(readFileSync(new URL('../public/collision/range-room.json', import.meta.url), 'utf8'))
+  const corridorBoxes = [
+    ...boxes,
+    ...extraBoxes,
+  ]
+  return setup(corridorBoxes, spawn.position, 7.865)
+}
 
 test('settles on the runtime ground at the spawn', () => {
   const { player, step } = setup()
@@ -206,6 +216,145 @@ test('camera interpolates between fixed steps at eye height', () => {
   present(0.5, 10)
   near(camera.position.z, (before.z + after.z) / 2, 1e-9, 'interpolated z')
   near(camera.position.y, after.y + playerConfig.standEye, 1e-6, 'eye height')
+})
+
+test('smooths the view in both directions on the corridor stairs at full run speed', () => {
+  const dt = 1 / 60
+  const routes = [
+    {
+      start: [0, 8, -14.2],
+      yaw: Math.PI,
+      stepTicks: [10, 15],
+      landings: [8.5, 9],
+    },
+    {
+      start: [0, 9, -11.2],
+      yaw: 0,
+      stepTicks: [17, 21],
+      landings: [8.5, 8],
+    },
+  ]
+  for (const { start, yaw, stepTicks, landings } of routes) {
+    const { player, intent, camera, step, present, collision } = setupCorridor()
+    const [firstStep, lastStep] = stepTicks
+    const direction = Math.sign(landings[0] - start[1])
+    player.teleport(start, yaw)
+    step()
+    present(0, dt)
+    intent.moveZ = 1
+
+    const actualStepTicks = []
+    const actualLandings = []
+    const eyeHeights = [camera.position.y]
+    for (let tick = 1; tick <= lastStep + 6; tick++) {
+      const before = player.position.clone()
+      step()
+      present(0, dt)
+      if (Math.abs(player.position.y - before.y) > 1e-9) {
+        actualStepTicks.push(tick)
+        actualLandings.push(player.position.y)
+        near(Math.abs(player.position.z - before.z), playerConfig.runSpeed * dt, 1e-9, 'full run displacement on a step')
+        assert.equal(player.grounded, true)
+      }
+      const eyeChange = (camera.position.y - eyeHeights.at(-1)) * direction
+      assert.ok(eyeChange >= -1e-9 && eyeChange < 0.2, 'the eye moves smoothly across both stairs')
+      eyeHeights.push(camera.position.y)
+    }
+
+    assert.deepEqual(actualStepTicks, stepTicks)
+    assert.deepEqual(actualLandings, landings)
+    near(eyeHeights[firstStep], start[1] + playerConfig.standEye, 1e-9, 'the first step follows the fixed-step interpolation')
+    const targetEye = landings.at(-1) + playerConfig.standEye
+    near(eyeHeights[lastStep + 6], targetEye - (targetEye - eyeHeights[lastStep]) * 0.1, 1e-9, '90% catch-up after 100 ms')
+
+    player.respawn()
+    present(0, 0)
+    near(camera.position.y, collision.spawn.position[1] + playerConfig.standEye, 1e-9, 'respawn clears the remaining step offset')
+  }
+})
+
+test('reverses the camera step direction without a rebound or residual offset on corridor stairs', () => {
+  const { player, intent, camera, step, present } = setupCorridor()
+  const motor = player.owner.requireComponent(MotorComponent)
+  const dt = 1 / 60
+  const halfTurn = 180 / (playerConfig.degreesPerCount * playerConfig.sensitivity)
+  player.teleport([0, 8, -14.2], Math.PI)
+  step()
+  present(0, dt)
+  intent.moveZ = 1
+
+  const corrections = []
+  const landings = []
+  let previousTotal = 0
+  let previousEyeY = camera.position.y
+  for (let tick = 1; tick <= 90; tick++) {
+    step()
+    present(0, dt)
+    const total = motor.sampleStepDeltaY(1)
+    if (total !== previousTotal) {
+      corrections.push(total - previousTotal)
+      landings.push(player.position.y)
+      if (corrections.length === 1)
+        player.look(halfTurn, 0)
+      else if (corrections.length === 2)
+        player.look(-halfTurn, 0)
+      else if (corrections.length === 4)
+        intent.moveZ = 0
+    }
+    const eyeChange = (camera.position.y - previousEyeY) * Math.sign(corrections.at(-1) ?? 0)
+    assert.ok(eyeChange >= -1e-9 && eyeChange < 0.2, `camera follows the latest step at tick ${tick}`)
+    previousTotal = total
+    previousEyeY = camera.position.y
+  }
+
+  assert.deepEqual(corrections, [0.5, -0.5, 0.5, 0.5])
+  assert.deepEqual(landings, [8.5, 8, 8.5, 9])
+  assert.equal(horizontalSpeed(player), 0)
+  assert.equal(camera.position.y, player.position.y + playerConfig.standEye)
+})
+
+test('keeps the eye and near plane clear when running down into a low entrance', () => {
+  const roof = {
+    name: 'COL_Test_LowEntrance',
+    min: [-1, 9.8005, -14.35],
+    max: [1, 10.2, -13.65],
+  }
+  const { player, intent, camera, step, present } = setupCorridor([roof])
+  camera.aspect = 16 / 9
+  camera.near = 0.05
+  camera.updateProjectionMatrix()
+  const dt = 1 / 60
+  player.teleport([0, 9, -11.2], 0, THREE.MathUtils.degToRad(65))
+  step()
+  present(0, dt)
+  intent.moveZ = 1
+
+  const roofBounds = new THREE.Box3(new THREE.Vector3(...roof.min), new THREE.Vector3(...roof.max))
+  const cameraBounds = new THREE.Box3()
+  const corner = new THREE.Vector3()
+  let clearance = Infinity
+  let previousEyeY = camera.position.y
+  for (let tick = 1; tick <= 36; tick++) {
+    step()
+    present(0, dt)
+    camera.updateMatrixWorld()
+    cameraBounds.set(camera.position, camera.position)
+    for (const x of [-1, 1]) {
+      for (const y of [-1, 1]) {
+        cameraBounds.expandByPoint(corner.set(x, y, -1).unproject(camera))
+      }
+    }
+    assert.equal(cameraBounds.intersectsBox(roofBounds), false, 'the camera and near plane clear the roof')
+    if (cameraBounds.min.z < roofBounds.max.z && cameraBounds.max.z > roofBounds.min.z)
+      clearance = Math.min(clearance, roofBounds.min.y - cameraBounds.max.y)
+    assert.ok(camera.position.y <= previousEyeY + 1e-9, 'the camera does not rebound after the ceiling')
+    previousEyeY = camera.position.y
+  }
+  assert.ok(clearance > 0 && clearance < 0.001, 'the roof actively limited the step offset')
+  assert.ok(player.position.z < roof.min[2], 'the player ran through the low entrance')
+  near(player.position.y, 8, 1e-9, 'feet on the lower floor')
+  near(horizontalSpeed(player), playerConfig.runSpeed, 1e-9, 'full run speed through the entrance')
+  assert.equal(player.respawns, 0)
 })
 
 test('placeAtCamera keeps a free pose and falls back to spawn when blocked', () => {

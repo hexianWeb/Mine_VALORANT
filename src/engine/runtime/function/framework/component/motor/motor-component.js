@@ -1,4 +1,4 @@
-import { Vector3 } from 'three/webgpu'
+import { MathUtils, Vector3 } from 'three/webgpu'
 import { Component } from '../component.js'
 import { TransformComponent } from '../transform/transform-component.js'
 
@@ -7,6 +7,8 @@ export class MotorComponent extends Component {
   static requires = [TransformComponent]
   #clock
   #phases
+  #stepDeltaY = 0
+  #previousStepDeltaY = 0
   elapsed = 0
   velocity = new Vector3()
   grounded = false
@@ -32,6 +34,13 @@ export class MotorComponent extends Component {
   get clock() { return this.#clock }
   get phases() { return this.#phases }
 
+  /** 与脚底位置使用同一固定步插值，采样累计踏步高度变化。 */
+  sampleStepDeltaY(alpha) {
+    return this.clock === 'fixed'
+      ? MathUtils.lerp(this.#previousStepDeltaY, this.#stepDeltaY, alpha)
+      : this.#stepDeltaY
+  }
+
   onAttach() {
     this.transform = this.owner.requireComponent(TransformComponent)
     this.transform.interpolate = this.clock === 'fixed'
@@ -41,8 +50,10 @@ export class MotorComponent extends Component {
   tick({ delta }) {
     if (delta <= 0)
       return
-    if (this.clock === 'fixed')
+    if (this.clock === 'fixed') {
       this.transform.capturePosition()
+      this.#previousStepDeltaY = this.#stepDeltaY
+    }
     this.elapsed += delta
     const motion = this.motion(this, delta)
     if (!motion)
@@ -52,6 +63,7 @@ export class MotorComponent extends Component {
       this.transform.position.x += result.displacement[0]
       this.transform.position.y += result.displacement[1]
       this.transform.position.z += result.displacement[2]
+      this.#stepDeltaY += result.stepDeltaY ?? 0
       if (result.hitX)
         this.velocity.x = 0
       if (result.hitZ)
@@ -77,6 +89,8 @@ export class MotorComponent extends Component {
     this.grounded = false
     this.crouched = false
     this.command = {}
+    this.#stepDeltaY = 0
+    this.#previousStepDeltaY = 0
     this.transform?.capturePosition()
   }
 
