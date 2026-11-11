@@ -1,6 +1,6 @@
 # 单张 Lightmap 试验记录（方案已否决）
 
-状态：2026-11-05 用户检查导出 atlas 后否决此方案。以下只保留试验过程。当前渲染以 [练枪房实施与验证记录](./range-room-v3-implementation.md) 为准。
+状态：2026-11-05 用户检查导出 atlas 后否决此方案。以下只保留试验过程。现行渲染见 [renderer V2](../../lighting/renderer-v2-optimization.md) 与 [Lightmap v1](../../lighting/lightmap-v1.md)。本试验之后的首版实施记录见 [练枪房实施与验证记录](./range-room-v3-implementation.md)。
 
 复核结果：97 个地块、约 40,224 m² 表面积、43,871 个 UV 岛；2048² atlas 的实际表面覆盖率仅 14.65%，面积加权光照密度约 3.91 texel/m。文件格式、亮度换算和单视角预览验证不足以证明整图画质合格。本资源集仅作为失败试验及亮度/坐标协议的参考。
 

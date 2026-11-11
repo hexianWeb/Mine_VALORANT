@@ -1,6 +1,6 @@
 # 练枪房离线探针接入与验证
 
-> 历史小样。这条离线探针路线没有进入当前练枪房渲染。实施记录见 [练枪房实施与验证记录](../../lighting/range-room-v3-implementation.md)。
+> 归档。历史小样。这条离线探针路线没有进入当前练枪房渲染。实施记录见 [练枪房实施与验证记录](../lighting/range-room-v3-implementation.md)。文档索引见 [docs/README.md](../../README.md)。
 
 本文记录此前用练枪房、门口和长廊的三份离线探针完成的路线小样。Three.js r187 的 WebGPU 小样里，同一朝向的人偶经过门口时逐渐变暗，进入长廊后回亮。门口前后紧邻的 GPU 读数一致。
 

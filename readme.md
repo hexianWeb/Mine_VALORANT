@@ -4,7 +4,7 @@
 
 单房间渲染入口：六张线性 EXR lightmap（五张 2048² 与一张 1024² 补烘图）与原始像素贴图、未烘焙物体 PBR、三排矩形顶灯、日间天空环境、半分辨率 GTAO/去噪与边缘重建、Reinhard（曝光强度 1.2）、线性 SMAA 与显示域 LUT。
 
-本轮改造见 [renderer V2 优化与验证](docs/lighting/renderer-v2-optimization.md)，首版接入见 [练枪房实施与验证记录](docs/lighting/range-room-v3-implementation.md)。正式资源在 `public/model/range-room.glb` 与 `public/lighting/range-room/`，由带 SHA-256 的 manifest 绑定。
+本轮改造见 [renderer V2 优化与验证](docs/lighting/renderer-v2-optimization.md)，首版接入见 [练枪房实施与验证记录](docs/archive/lighting/range-room-v3-implementation.md)。正式资源在 `public/model/range-room.glb` 与 `public/lighting/range-room/`，由带 SHA-256 的 manifest 绑定。
 
 最新 [Lightmap 重烘与接入](docs/lighting/lightmap-v1.md) 覆盖“预烘焙”集合的 12 个对象、19 个分区；`Stone_Slab.001` 与 `wall` 使用单独的紧凑补烘图。新资源在 `public/model/range-room-lightmap.glb` 与 `public/lighting/range-room-lightmap/`。右上角 **切回原版** 或 `?lighting=appearance` 可回退；`?lighting=lightmap` 使用新方案。
 
@@ -65,7 +65,7 @@ EXR 解码和 alpha 加权 mip 生成在独立 Worker 中完成，通过 transfe
 - `src/app/`：选择关卡、连接游戏与 Editor、URL 配置及诊断接口。`main.js` 只启动应用并接入 HMR。
 - `src/configs/input-bindings.js`：练枪房玩法键位，由 app 经 RuntimeContext 注入输入系统。可替换映射；runtime 不内置玩法按键，省略 bindings 时不绑定键盘动作。
 
-完整目录、tick 调用链、生命周期、公共 API 与验收见 [运行时架构](docs/architecture.md)，最新调度契约见[阶段优先组件 Tick](docs/superpowers/specs/2026-11-11-phase-first-component-tick.md)，目录映射见[function 结构重构](docs/superpowers/specs/2026-11-11-function-layer-layout.md)，组件粒度取舍见[消融 Spec](docs/superpowers/specs/2026-11-10-component-based-game-objects.md)。runtime 不反向依赖 game/editor/app，game 与 editor 由 app 连接。`?editor=0` 可验证无工具界面的玩家与关卡运行。`npm test` 包含分层、阶段扫描、固定步与重入防护、运动数值、初始化回滚、关卡取消和资源归属检查。
+文档索引见 [docs/README.md](docs/README.md)。完整目录、tick 调用链、生命周期、公共 API 与验收见 [运行时架构](docs/architecture.md)，最新调度契约见[阶段优先组件 Tick](docs/superpowers/specs/2026-11-11-phase-first-component-tick.md)，目录映射见[function 结构重构](docs/superpowers/specs/2026-11-11-function-layer-layout.md)，组件粒度取舍见[消融 Spec](docs/superpowers/specs/2026-11-10-component-based-game-objects.md)。runtime 不反向依赖 game/editor/app，game 与 editor 由 app 连接。`?editor=0` 可验证无工具界面的玩家与关卡运行。`npm test` 包含分层、阶段扫描、固定步与重入防护、运动数值、初始化回滚、关卡取消和资源归属检查。
 
 检查接口：`__RANGE_ROOM__.render` 管理渲染效果，`__RANGE_ROOM__.world` 提供 `setRuntimeLighting()` 和房间快照，`__RANGE_ROOM__.room` 是加载后的资产实例。整体状态继续通过 `__RANGE_ROOM__.snapshot()` 获取。
 

@@ -299,6 +299,6 @@ node tools/check-room-browser.mjs http://127.0.0.1:4173/
 - [资源校验 CLI](../tools/validate-room-assets.mjs)
 - [Three.js 房间加载与绑定](../src/game/range-room/assets/room-assets.js)
 - [透明模式问题与已完成修复](blender-alpha-repair.md)
-- [renderer V1 实施与验证记录](lighting/range-room-v3-implementation.md)
+- [renderer V1 实施与验证记录](archive/lighting/range-room-v3-implementation.md)
 
 **原则：保留制作成果，在副本中规范化导出；模型、图集和 manifest 配套；通过实际校验与画面检查后再发布。**

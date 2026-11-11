@@ -1,6 +1,6 @@
 # renderer V1 · 练枪房实施与验证记录
 
-> 本文保留 V1 历史记录。2026-11-07 的管线优化及最新验证见 [renderer V2 优化与验证](renderer-v2-optimization.md)。
+> 归档。本文保留 V1 历史记录。2026-11-07 的管线优化及最新验证见 [renderer V2 优化与验证](../../lighting/renderer-v2-optimization.md)。文档索引见 [docs/README.md](../../README.md)。
 
 日期：2026-11-06。练枪房渲染计划已在首版落地后从仓库移除；本文保留该轮的实施与验证记录。
 

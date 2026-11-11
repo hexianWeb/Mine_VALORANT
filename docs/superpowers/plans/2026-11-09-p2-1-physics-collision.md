@@ -1,6 +1,6 @@
 # P2.1 物理与体积碰撞 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> 状态：计划已执行，不要再按文中勾选框实现。`src/world/`、`src/engine/systems/` 和未勾选的步骤没有随后续运行时重构更新。现行说明见 [运行时架构](../../architecture.md) 与 [碰撞层 v1](../../physics/collision-layer.md)。文中的 checkbox 只保留当时的任务记录。
 
 **Goal:** 玩家以第一人称在练枪房内外行走（重力、跑/静步/下蹲、跳跃、贴墙滑动、上台阶），碰撞来自已导出的 `public/collision/range-room.json`。
 
