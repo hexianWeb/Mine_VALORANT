@@ -86,7 +86,11 @@ try {
 
   report.animation = await evaluate(`(() => {
     const { teapot } = __RANGE_ROOM__.inspection;
-    const before = teapot.snapshot(); teapot.setPaused(false); teapot.update(8); teapot.setPaused(true);
+    const before = teapot.snapshot(); teapot.setPaused(false);
+    const frame = { time: { delta: 8, alpha: 0, rawDelta: 0 } };
+    __RANGE_ROOM__.runtime.world.tickComponents('motion', frame);
+    __RANGE_ROOM__.runtime.world.tickComponents('presentation', frame);
+    teapot.setPaused(true);
     return { before, after: teapot.snapshot() };
   })()`)
   assert.notDeepEqual(report.animation.before.position, report.animation.after.position)

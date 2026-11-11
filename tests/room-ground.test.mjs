@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import test from 'node:test'
 import * as THREE from 'three/webgpu'
-import { createRoomGround } from '../src/world/room-ground.js'
+import { createRoomGround } from '../src/game/range-room/ground.js'
 
 function fixture(t) {
   const bounds = new THREE.Box3(new THREE.Vector3(-25, 7.875, -22), new THREE.Vector3(26, 30.125, 23))

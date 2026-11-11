@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import * as THREE from 'three/webgpu'
-import { createColorGrading } from '../src/engine/function/render/color-grading.js'
-import { renderConfig, validateEffects } from '../src/engine/function/render/config.js'
-import { createRoomMaterial } from '../src/world/materials.js'
-import { rangeRoomConfig } from '../src/world/range-room.js'
-import { createRoomLights } from '../src/world/room-lights.js'
-import { createEnvironmentProxy } from '../src/world/sky-environment.js'
-import { buildAtlasMips, createTextureSampling } from '../src/world/texture-sampling.js'
+import { createColorGrading } from '../src/engine/runtime/function/render/color-grading.js'
+import { buildAtlasMips, createTextureSampling } from '../src/engine/runtime/function/render/material/texture-sampling.js'
+import { renderConfig, validateEffects } from '../src/engine/runtime/function/render/render-config.js'
+import { createEnvironmentProxy } from '../src/engine/runtime/function/render/sky-environment.js'
+import { createRoomMaterial } from '../src/game/range-room/assets/materials.js'
+import { rangeRoomConfig } from '../src/game/range-room/config.js'
+import { createRoomLights } from '../src/game/range-room/lighting/room-lights.js'
 
 test('Reinhard exposure 1.11 and 16x anisotropy are the requested defaults', () => {
   assert.equal(renderConfig.toneMapping, 'reinhard')

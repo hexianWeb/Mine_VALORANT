@@ -3,12 +3,12 @@ import fs from 'node:fs'
 import test from 'node:test'
 import { float, positionLocal } from 'three/tsl'
 import * as THREE from 'three/webgpu'
-import { renderConfig, validateEffects } from '../src/engine/function/render/config.js'
-import { NormalPrepass } from '../src/engine/function/render/normal-prepass.js'
-import { FrameStatistics } from '../src/engine/function/render/profiling.js'
-import { decodeEXR } from '../src/engine/resources/decode-exr.js'
-import { parseEXRData } from '../src/engine/resources/exr-data.js'
-import { createTextureSampling } from '../src/world/texture-sampling.js'
+import { createTextureSampling } from '../src/engine/runtime/function/render/material/texture-sampling.js'
+import { NormalPrepass } from '../src/engine/runtime/function/render/passes/normal-prepass.js'
+import { renderConfig, validateEffects } from '../src/engine/runtime/function/render/render-config.js'
+import { FrameStatistics } from '../src/engine/runtime/function/render/render-profiler.js'
+import { decodeEXR } from '../src/engine/runtime/resource/loader/decode-exr.js'
+import { parseEXRData } from '../src/engine/runtime/resource/loader/exr-data.js'
 
 test('normal prepass retains cutouts, normals and deformation without changing source PBR materials', () => {
   const source = new THREE.MeshStandardNodeMaterial({ alphaTest: 0.5, side: THREE.DoubleSide })

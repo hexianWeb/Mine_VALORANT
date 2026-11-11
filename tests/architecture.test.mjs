@@ -37,69 +37,105 @@ const edges = files.flatMap(file => references(file).map(target => ({
   to: relative(target),
 })))
 
-test('source and test references resolve without legacy controls/systems paths', () => {
-  for (const legacy of ['controls', 'systems'])
-    assert.equal(fs.existsSync(path.join(sourceRoot, 'engine', legacy)), false, `engine/${legacy} must not return`)
+test('source and test references resolve without legacy engine/world paths', () => {
   for (const file of [
     ...files,
     ...modules(testRoot),
   ]) {
     for (const target of references(file)) {
       assert.ok(fs.existsSync(target), `${relative(file)} -> ${relative(target)} does not exist`)
-      assert.doesNotMatch(relative(target), /^engine\/(?:controls|systems)\//)
+      assert.doesNotMatch(relative(target), /^(?:world\/|engine\/(?:core|resources|function|controls|systems)\/)/)
     }
   }
 })
 
-test('engine dependency direction is function -> resources -> core, never world/application', () => {
+test('runtime dependencies point inward and never import editor/game/app', () => {
   const allowed = {
-    'index.js': ['core', 'resources'],
+    'global': [
+      'core',
+      'platform',
+      'resource',
+      'function',
+      'engine.js',
+    ],
     'core': ['core'],
-    'resources': ['resources', 'core'],
-    'function': ['function', 'resources', 'core'],
+    'platform': ['platform', 'core'],
+    'resource': ['resource', 'platform', 'core'],
+    'function': [
+      'function',
+      'resource',
+      'platform',
+      'core',
+    ],
+    'engine.js': ['core', 'platform'],
   }
-  for (const { from, to } of edges.filter(edge => edge.from.startsWith('engine/'))) {
-    const layer = from.split('/')[1]
-    assert.ok(to.startsWith('engine/'), `${from} must not depend on application/world module ${to}`)
-    assert.ok(allowed[layer]?.includes(to.split('/')[1]), `${from} must not depend on ${to}`)
+  for (const { from, to } of edges.filter(edge => edge.from.startsWith('engine/runtime/'))) {
+    const layer = from.startsWith('engine/runtime/function/global/')
+      ? 'global'
+      : from.split('/')[2]
+    assert.ok(to.startsWith('engine/runtime/'), `${from} must not depend on ${to}`)
+    if (to.startsWith('engine/runtime/function/global/'))
+      assert.ok(layer === 'global' || from === 'engine/runtime/index.js', `${from} must receive services rather than import ${to}`)
+    if (allowed[layer])
+      assert.ok(allowed[layer].includes(to.split('/')[2]), `${from} must not depend on ${to}`)
   }
 })
 
-test('production callers use feature index.js instead of feature internals', () => {
+test('game and editor stay independent and only app connects them', () => {
   for (const { from, to } of edges) {
-    const target = to.match(/^engine\/function\/([^/]+)\/(.+)$/)
-    if (!target || from.startsWith(`engine/function/${target[1]}/`))
-      continue
-    assert.equal(target[2], 'index.js', `${from} must use the public entry of ${target[1]}`)
+    if (from.startsWith('game/'))
+      assert.ok(to.startsWith('game/') || to.startsWith('engine/runtime/'), `${from} must not depend on ${to}`)
+    if (from.startsWith('engine/editor/'))
+      assert.ok(to.startsWith('engine/editor/') || to.startsWith('engine/runtime/'), `${from} must not depend on ${to}`)
   }
 })
 
-test('world content never depends on application composition or UI', () => {
-  for (const { from, to } of edges.filter(edge => edge.from.startsWith('world/')))
-    assert.ok(to.startsWith('world/') || to.startsWith('engine/'), `${from} must not depend on ${to}`)
+test('source dependency graph is acyclic', () => {
+  const complete = new Set()
+  function visit(file, stack = new Set()) {
+    if (complete.has(file))
+      return
+    assert.ok(!stack.has(file), `Circular dependency: ${[...stack, file].join(' -> ')}`)
+    const next = new Set([...stack, file])
+    for (const edge of edges.filter(edge => edge.from === file)) visit(edge.to, next)
+    complete.add(file)
+  }
+  for (const file of files) visit(relative(file))
 })
 
-test('function features are directories with importable public entries', async () => {
-  const directory = path.join(sourceRoot, 'engine/function')
+test('runtime public APIs import without a browser or game initialization', async () => {
   const expected = {
-    'fly-controller': ['FlyController'],
-    'input': ['createInputSystem'],
-    'physics': [
+    'index.js': [
+      'Engine',
+      'RuntimeContext',
+      'Time',
+      'Disposer',
+    ],
+    'function/global/runtime-context.js': ['RuntimeContext'],
+    'function/input/input-system.js': ['createInputSystem'],
+    'function/character/character-motion.js': ['characterBox', 'characterMotion'],
+    'function/controller/character-controller.js': ['moveAABB'],
+    'function/framework/index.js': [
+      'WorldManager',
+      'Level',
+      'GameObject',
+      'Component',
+      'TransformComponent',
+      'MeshComponent',
+      'MotorComponent',
+      'CameraComponent',
+    ],
+    'function/physics/index.js': [
       'CollisionWorld',
       'createPhysicsSystem',
-      'moveAABB',
       'overlaps',
     ],
-    'render': ['createRenderSystem', 'gradingPresets', 'renderConfig'],
-    'animation': [], // Contract-only placeholder, not an implemented runtime system.
+    'function/render/index.js': ['createRenderSystem', 'gradingPresets', 'renderConfig'],
+    'resource/index.js': ['ResourceManager', 'disposeObject3D'],
   }
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    assert.ok(entry.isDirectory(), `function/${entry.name} must be a feature directory`)
-    assert.ok(fs.existsSync(path.join(directory, entry.name, 'index.js')))
-  }
-  for (const [feature, names] of Object.entries(expected)) {
-    const api = await import(pathToFileURL(path.join(directory, feature, 'index.js')).href)
+  for (const [entry, names] of Object.entries(expected)) {
+    const api = await import(pathToFileURL(path.join(sourceRoot, 'engine/runtime', entry)).href)
     for (const name of names)
-      assert.ok(api[name], `function/${feature}/index.js must export ${name}`)
+      assert.ok(api[name], `${entry} must export ${name}`)
   }
 })

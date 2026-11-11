@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { CollisionWorld, createPhysicsSystem, moveAABB, overlaps } from '../src/engine/function/physics/index.js'
+import { moveAABB } from '../src/engine/runtime/function/controller/character-controller.js'
+import { CollisionWorld, createPhysicsSystem, overlaps } from '../src/engine/runtime/function/physics/index.js'
 
 function player(x, y, z, height = 1.8) {
   return {
@@ -166,26 +167,28 @@ test('jumping up is never grounded and a ceiling stops the rise', () => {
   assert.equal(result.grounded, false)
 })
 
-test('physics system steps bodies with the fixed delta and records step time', () => {
+test('physics service synchronously returns displacement/contacts and records solve time', () => {
   const physics = createPhysicsSystem()
-  const steps = []
-  const remove = physics.add({
-    fixedUpdate: dt => steps.push(dt),
-  })
-  const engine = {
-    time: { fixedDelta: 1 / 60 },
-  }
-  physics.fixedUpdate(engine)
-  physics.fixedUpdate(engine)
-  assert.deepEqual(steps, [1 / 60, 1 / 60])
+  const world = new CollisionWorld([
+    {
+      min: [-10, -1, -10],
+      max: [10, 0, 10],
+    },
+  ])
+  const box = player(0, 1, 0)
+  const before = structuredClone(box)
+  const result = physics.move(world, box, [0, -2, 0])
+  assert.deepEqual(result.displacement, [0, -1, 0])
+  assert.equal(result.grounded, true)
+  assert.equal(result.hitY, true)
+  assert.deepEqual(box, before)
   assert.ok(physics.lastStepMs >= 0)
-  remove()
-  physics.fixedUpdate(engine)
-  assert.equal(steps.length, 2)
-  physics.add({
-    fixedUpdate: () => steps.push(0),
-  })
+  assert.equal(physics.overlaps(world, box), false)
+  assert.equal(physics.overlaps(world, {
+    min: [-1, -0.5, -1],
+    max: [1, 1, 1],
+  }), true)
   physics.dispose()
-  physics.fixedUpdate(engine)
-  assert.equal(steps.length, 2)
+  physics.dispose()
+  assert.throws(() => physics.move(world, box, [0, -1, 0]), /Disposed/)
 })

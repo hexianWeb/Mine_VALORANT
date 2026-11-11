@@ -14,7 +14,12 @@ let session
 try {
   session = await openBrowser({ output, errors: report.errors, messages: report.messages })
   const { evaluate, send, frames, navigate } = session
-  await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false })
+  await send('Emulation.setDeviceMetricsOverride', {
+    width: 1280,
+    height: 720,
+    deviceScaleFactor: 1,
+    mobile: false,
+  })
   const screenshot = async (name) => {
     const image = await send('Page.captureScreenshot', { format: 'png' })
     fs.writeFileSync(path.join(output, name), Buffer.from(image.data, 'base64'))
@@ -125,6 +130,15 @@ catch (error) {
 finally {
   fs.mkdirSync(output, { recursive: true })
   fs.writeFileSync(path.join(output, 'report.json'), JSON.stringify(report, null, 2))
-  console.log(JSON.stringify({ passed: report.passed, failure: report.failure, errors: report.errors, spawn: report.spawn, wall: report.wall, jump: report.jump, underFloor: report.underFloor, report: path.join(output, 'report.json') }, null, 2))
+  console.log(JSON.stringify({
+    passed: report.passed,
+    failure: report.failure,
+    errors: report.errors,
+    spawn: report.spawn,
+    wall: report.wall,
+    jump: report.jump,
+    underFloor: report.underFloor,
+    report: path.join(output, 'report.json'),
+  }, null, 2))
   session?.close()
 }

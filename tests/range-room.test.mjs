@@ -2,14 +2,15 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import test from 'node:test'
 import * as THREE from 'three/webgpu'
-import { loaders } from '../src/engine/resources/loaders.js'
-import { ResourceManager } from '../src/engine/resources/resources.js'
-import { createRangeRoom } from '../src/world/range-room.js'
-import { roomGroundConfig, roomGroundTextures } from '../src/world/room-ground.js'
+import { MeshComponent, TransformComponent } from '../src/engine/runtime/function/framework/index.js'
+import { loaders } from '../src/engine/runtime/resource/loader/loaders.js'
+import { ResourceManager } from '../src/engine/runtime/resource/resource-manager.js'
+import { roomGroundConfig, roomGroundTextures } from '../src/game/range-room/ground.js'
+import { RangeRoomLevel } from '../src/game/range-room/level.js'
 
 const exportedManifest = JSON.parse(fs.readFileSync(new URL('../public/lighting/range-room/manifest.json', import.meta.url)))
 
-function fixture(t, loadSky, loadGround) {
+function fixture(t, loadSky, loadGround, maxAnisotropy = 16) {
   const manifest = structuredClone(exportedManifest)
   manifest.atlases = manifest.atlases.map(page => ({ ...page, width: 1, height: 1 }))
   manifest.bindings = manifest.atlases.map((page, index) => ({
@@ -69,11 +70,11 @@ function fixture(t, loadSky, loadGround) {
   scene.environmentIntensity = 0.7
   const camera = new THREE.PerspectiveCamera()
   const resources = new ResourceManager()
-  const world = createRangeRoom({
+  const world = new RangeRoomLevel({
     scene,
     camera,
     resources,
-    maxAnisotropy: 8,
+    maxAnisotropy,
   })
   t.after(() => {
     world.dispose()
@@ -123,7 +124,12 @@ test('room owns camera setup, lighting, environment and cleanup independently of
   assert.equal(camera.far, Math.max(manifest.camera.far, roomGroundConfig.viewDistance))
   assert.equal(scene.background, sky)
   assert.equal(world.snapshot().ready, true)
-  assert.equal(world.snapshot().sampling.anisotropy, 8)
+  assert.equal(world.objects.size, 2, 'room and ground are GO; lighting belongs to Level')
+  for (const object of world.objects.values()) {
+    assert.ok(object.getComponent(TransformComponent))
+    assert.ok(object.getComponent(MeshComponent))
+  }
+  assert.equal(world.snapshot().sampling.anisotropy, 16)
   assert.deepEqual(world.snapshot().environmentSize, [1024, 512])
   assert.equal(world.snapshot().lights.filter(light => light.type === 'PointLight').length, 0)
   assert.equal(world.ground.root.parent, scene)
@@ -148,6 +154,32 @@ test('room owns camera setup, lighting, environment and cleanup independently of
   assert.equal(proxyDisposals, 1)
   assert.throws(() => world.setRuntimeLighting(true), /Room is not ready/)
   await assert.rejects(world.load(), /disposed/)
+})
+
+test('room sampling respects a device limit below the configured 16x default', async (t) => {
+  const { world } = fixture(t, undefined, undefined, 8)
+  await world.load()
+  assert.equal(world.snapshot().sampling.anisotropy, 8)
+})
+
+test('completed room transfers release ownership from loading cancellation to its Mesh', async (t) => {
+  const { world, scene, assertRestored } = fixture(t)
+  const controller = new AbortController()
+  const room = await world.load({ signal: controller.signal })
+  let mesh
+  room.root.traverse((object) => {
+    if (object.isMesh)
+      mesh ??= object
+  })
+  let releases = 0
+  mesh.material.addEventListener('dispose', () => releases++)
+  controller.abort()
+  assert.equal(releases, 0, 'a completed instance is no longer owned by the loading signal')
+  assert.equal(room.root.parent, scene)
+  world.dispose()
+  world.dispose()
+  assert.equal(releases, 1)
+  assertRestored()
 })
 
 test('sky load failure releases the already loaded room and restores the scene', async (t) => {

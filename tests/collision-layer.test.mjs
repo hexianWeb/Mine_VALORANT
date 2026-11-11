@@ -2,9 +2,9 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import test from 'node:test'
 import * as THREE from 'three/webgpu'
-import { overlaps } from '../src/engine/function/physics/index.js'
-import { createCollisionDebug } from '../src/world/collision-debug.js'
-import { createCollisionLayer, validateCollisionData } from '../src/world/collision-layer.js'
+import { overlaps } from '../src/engine/runtime/function/physics/index.js'
+import { createCollisionDebug } from '../src/engine/runtime/function/render/debugdraw/collision-debug.js'
+import { createCollisionLayer, validateCollisionData } from '../src/game/range-room/collision.js'
 
 const data = JSON.parse(fs.readFileSync(new URL('../public/collision/range-room.json', import.meta.url)))
 // Runtime model bounds measured in the browser (`__RANGE_ROOM__.world.snapshot().bounds`).

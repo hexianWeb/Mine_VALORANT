@@ -1,8 +1,8 @@
 import { positionLocal, vec3 } from 'three/tsl'
 import * as THREE from 'three/webgpu'
-import { EventEmitter } from '../src/engine/core/events.js'
-import { createRenderSystem } from '../src/engine/function/render/index.js'
-import { NormalPrepass } from '../src/engine/function/render/normal-prepass.js'
+import { EventEmitter } from '../src/engine/runtime/core/events.js'
+import { createRenderSystem } from '../src/engine/runtime/function/render/index.js'
+import { NormalPrepass } from '../src/engine/runtime/function/render/passes/normal-prepass.js'
 
 function check(condition, message) {
   if (!condition)
@@ -22,7 +22,7 @@ export async function checkStandaloneRenderSystem() {
   const camera = new THREE.PerspectiveCamera()
   camera.position.set(1, 2, 3)
   const render = await createRenderSystem({
-    engine: { size },
+    size,
     canvas: document.createElement('canvas'),
     scene,
     camera,

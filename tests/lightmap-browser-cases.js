@@ -1,7 +1,7 @@
 import { builtinAOContext, pass, uniform } from 'three/tsl'
 import * as THREE from 'three/webgpu'
-import { createRoomMaterial } from '../src/world/materials.js'
-import { createTextureSampling } from '../src/world/texture-sampling.js'
+import { createTextureSampling } from '../src/engine/runtime/function/render/material/texture-sampling.js'
+import { createRoomMaterial } from '../src/game/range-room/assets/materials.js'
 
 /** Verify actual shader energy, independent UV1 + EXR V flip, AO and light isolation. */
 export async function checkLightmapMaterial() {

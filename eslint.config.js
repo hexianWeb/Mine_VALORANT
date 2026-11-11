@@ -53,15 +53,50 @@ export default antfu({
     ],
   },
 }, {
-  files: ['src/engine/**/*.js'],
+  files: ['src/engine/runtime/**/*.js'],
   rules: {
     'no-restricted-imports': [
       'error',
       {
         patterns: [
           {
-            group: ['**/world/**', '**/main.js', '**/debug-panel.js'],
-            message: 'Engine modules must not depend on world content or application UI.',
+            group: [
+              '**/game/**',
+              '**/editor/**',
+              '**/app/**',
+              '**/main.js',
+            ],
+            message: 'Runtime modules must not depend on game, editor or app.',
+          },
+        ],
+      },
+    ],
+  },
+}, {
+  files: ['src/engine/editor/**/*.js'],
+  rules: {
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: ['**/game/**', '**/app/**'],
+            message: 'App injects game operations into editor.',
+          },
+        ],
+      },
+    ],
+  },
+}, {
+  files: ['src/game/**/*.js'],
+  rules: {
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: ['**/editor/**', '**/app/**'],
+            message: 'Game content must run independently of editor/app.',
           },
         ],
       },

@@ -3,8 +3,8 @@ import fs from 'node:fs'
 import test from 'node:test'
 import { EXRLoader } from 'three/addons/loaders/EXRLoader.js'
 import * as THREE from 'three/webgpu'
-import { validateManifest } from '../src/world/manifest.js'
-import { createRoomMaterial } from '../src/world/materials.js'
+import { validateManifest } from '../src/game/range-room/assets/manifest.js'
+import { createRoomMaterial } from '../src/game/range-room/assets/materials.js'
 import { validateRoomFiles } from '../tools/validate-room-assets.mjs'
 
 const previous = JSON.parse(fs.readFileSync(new URL('../public/lighting/range-room/manifest.json', import.meta.url)))

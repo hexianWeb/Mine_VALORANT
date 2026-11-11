@@ -1,7 +1,7 @@
 import { LightProbeGrid } from 'three/addons/lighting/LightProbeGrid.js'
 import * as THREE from 'three/webgpu'
-import { atlasLayout, uploadProbeAtlas } from '../src/world/probe-data.js'
-import { createProbeEnvironment } from '../src/world/probe-environment.js'
+import { atlasLayout, uploadProbeAtlas } from '../src/game/range-room/lighting/probe-data.js'
+import { createProbeEnvironment } from '../src/game/range-room/lighting/probe-environment.js'
 
 function check(value, message) {
   if (!value)

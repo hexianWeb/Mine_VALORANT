@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import test from 'node:test'
 import * as THREE from 'three/webgpu'
-import { atlasLayout, probeCaptureDefaults, probeSourceKey, sha256, validateCapture, validateProbeVolumes } from '../src/world/probe-data.js'
-import { createRoomLights } from '../src/world/room-lights.js'
+import { atlasLayout, probeCaptureDefaults, probeSourceKey, sha256, validateCapture, validateProbeVolumes } from '../src/game/range-room/lighting/probe-data.js'
+import { createRoomLights } from '../src/game/range-room/lighting/room-lights.js'
 
 const read = file => JSON.parse(fs.readFileSync(new URL(file, import.meta.url)))
 const definitions = read('../public/lighting/range-room-probes/volumes.json')

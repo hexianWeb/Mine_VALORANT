@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import * as THREE from 'three/webgpu'
-import { createCollisionLayer } from '../src/world/collision-layer.js'
-import { createPlayer, playerConfig } from '../src/world/player.js'
+import { Engine } from '../src/engine/runtime/engine.js'
+import { CameraComponent, Level, MotorComponent, TransformComponent } from '../src/engine/runtime/function/framework/index.js'
+import { createPhysicsSystem } from '../src/engine/runtime/function/physics/index.js'
+import { playerConfig } from '../src/game/player/config.js'
+import { createPlayer, PlayerComponent } from '../src/game/player/player.js'
+import { createCollisionLayer } from '../src/game/range-room/collision.js'
 
 const near = (actual, expected, tolerance, message) => assert.ok(Math.abs(actual - expected) <= tolerance, `${message}: ${actual} vs ${expected}`)
 
@@ -36,6 +40,8 @@ function setup(boxes = [], spawn = [0, 0, 0]) {
   let jump = false
   const input = {
     intent,
+    consumeLook: () => [0, 0],
+    setEnabled() {},
     consumeJump() {
       const queued = jump
       jump = false
@@ -43,17 +49,34 @@ function setup(boxes = [], spawn = [0, 0, 0]) {
     },
   }
   const camera = new THREE.PerspectiveCamera()
-  const player = createPlayer({ camera, collision, input })
+  const level = new Level({
+    scene: new THREE.Scene(),
+  })
+  const physics = createPhysicsSystem()
+  const object = level.addObject(createPlayer({ camera, collision, input, physics }))
+  const player = object.requireComponent(PlayerComponent)
   player.setEnabled(true)
   const step = (count = 1) => {
-    for (let i = 0; i < count; i++) player.fixedUpdate(1 / 60)
+    for (let i = 0; i < count; i++) {
+      const frame = {
+        time: { delta: 1 / 60, fixedDelta: 1 / 60 },
+      }
+      level.tickComponents('input', frame)
+      level.tickComponents('fixed', frame)
+      level.tickComponents('postPhysics', frame)
+    }
   }
   return {
     player,
+    level,
+    input,
     intent,
     camera,
     step,
     collision,
+    present: (alpha, rawDelta) => level.tickComponents('presentation', {
+      time: { alpha, rawDelta },
+    }),
     pressJump: () => { jump = true },
   }
 }
@@ -164,14 +187,14 @@ test('look uses Valorant scale and clamps pitch', () => {
 })
 
 test('camera interpolates between fixed steps at eye height', () => {
-  const { player, intent, camera, step } = setup()
+  const { player, intent, camera, step, present } = setup()
   step(10)
   intent.moveZ = 1
   step(10)
   const before = player.position.clone()
   step()
   const after = player.position.clone()
-  player.updateCamera(0.5, 10)
+  present(0.5, 10)
   near(camera.position.z, (before.z + after.z) / 2, 1e-9, 'interpolated z')
   near(camera.position.y, after.y + playerConfig.standEye, 1e-6, 'eye height')
 })
@@ -185,11 +208,111 @@ test('placeAtCamera keeps a free pose and falls back to spawn when blocked', () 
     },
   ], [0, 0, 0])
   camera.position.set(10, 2 + playerConfig.standEye, 10)
+  camera.quaternion.setFromEuler(new THREE.Euler(0.25, -0.6, 0, 'YXZ'))
   player.placeAtCamera()
   player.position.toArray().forEach((value, i) => near(value, [10, 2, 10][i], 1e-9, `free pose axis ${i}`))
   assert.equal(player.respawns, 0)
+  near(player.yaw, -0.6, 1e-12, 'handoff yaw')
+  near(player.pitch, 0.25, 1e-12, 'handoff pitch')
   camera.position.set(5, playerConfig.standEye, 5)
   player.placeAtCamera()
   assert.deepEqual(player.position.toArray(), [0, 0, 0])
   assert.equal(player.respawns, 1)
+  near(player.pitch, 0, 1e-12, 'blocked placement resets pitch')
+})
+
+test('look is consumed once per frame before Motor, while only Camera publishes the view', (t) => {
+  const { player, level, input, intent, camera } = setup()
+  t.after(() => level.dispose())
+  const view = player.owner.requireComponent(CameraComponent)
+  assert.equal(view, player.cameraComponent)
+  assert.deepEqual(player.owner.components.map(component => component.constructor), [
+    TransformComponent,
+    MotorComponent,
+    CameraComponent,
+    PlayerComponent,
+  ])
+  const engine = new Engine({ world: level })
+  t.after(() => engine.destroy())
+  let reads = 0
+  let look = [0, 0]
+  input.consumeLook = () => {
+    reads++
+    const result = look
+    look = [0, 0]
+    return result
+  }
+  engine.step(0)
+  look = [90 / (playerConfig.degreesPerCount * playerConfig.sensitivity), -100]
+  engine.step(1)
+  assert.equal(engine.time.fixedSteps, 0)
+  assert.equal(reads, 2)
+  near(player.yaw, -Math.PI / 2, 1e-12, 'look works on a zero-step frame')
+  near(player.pitch, THREE.MathUtils.degToRad(2.8), 1e-12, 'local pitch')
+  intent.moveZ = 1
+  engine.step(101)
+  assert.equal(engine.time.fixedSteps, 5)
+  assert.equal(reads, 3, 'five fixed steps do not consume input five times')
+  assert.ok(player.position.x > 0, 'fixed motion uses the updated heading')
+  near(player.position.z, 0, 1e-12, 'yaw rotates the movement plane')
+  const published = camera.position.clone()
+  const quaternion = camera.quaternion.clone()
+  const eye = view.currentVerticalOffset
+  engine.rendererTick()
+  engine.rendererTick()
+  assert.ok(camera.position.equals(published) && camera.quaternion.equals(quaternion))
+  near(view.currentVerticalOffset, eye, 1e-12, 'render does not advance camera smoothing')
+  assert.throws(() => player.owner.removeComponent(CameraComponent), /required component/)
+})
+
+test('camera follows resolved crouch state under a ceiling and respawn resets view history', (t) => {
+  const { player, level, intent, camera, step, present } = setup([
+    {
+      name: 'COL_Ceiling',
+      min: [-5, 1.6, -5],
+      max: [5, 2, 5],
+    },
+  ])
+  t.after(() => level.dispose())
+  const view = player.cameraComponent
+  intent.crouch = true
+  step()
+  present(1, 0.05)
+  const expected = playerConfig.crouchEye + (playerConfig.standEye - playerConfig.crouchEye) * Math.exp(-playerConfig.eyeSmoothing * 0.05)
+  near(camera.position.y, expected, 1e-12, 'eye smoothly approaches crouch height')
+  intent.crouch = false
+  step()
+  present(1, 0.05)
+  assert.equal(player.crouched, true)
+  assert.equal(view.verticalOffset, playerConfig.crouchEye, 'blocked stand-up retains crouch view')
+  player.teleport([10, 0, 10], 0.5, 0.2)
+  present(0, 0)
+  assert.deepEqual(camera.position.toArray(), [10, playerConfig.standEye, 10])
+  assert.equal(view.currentVerticalOffset, playerConfig.standEye)
+  player.respawn()
+  present(0.5, 0)
+  assert.deepEqual(camera.position.toArray(), [0, playerConfig.standEye, 0])
+  assert.equal(player.pitch, 0)
+})
+
+test('disabling player releases camera output and re-enabling adopts the observer pose', (t) => {
+  const { player, level, camera, present } = setup()
+  t.after(() => level.dispose())
+  player.setEnabled(false)
+  assert.equal(player.cameraComponent.enabled, false)
+  camera.position.set(10, 3 + playerConfig.standEye, 10)
+  camera.quaternion.setFromEuler(new THREE.Euler(-0.2, 0.5, 0, 'YXZ'))
+  const position = camera.position.clone()
+  const quaternion = camera.quaternion.clone()
+  present(1, 0.1)
+  assert.ok(camera.position.equals(position) && camera.quaternion.equals(quaternion))
+  player.setEnabled(true)
+  player.placeAtCamera()
+  present(0, 0)
+  assert.equal(player.cameraComponent.enabled, true)
+  assert.ok(camera.position.equals(position))
+  assert.ok(camera.quaternion.angleTo(quaternion) < 1e-7)
+  level.dispose()
+  assert.equal(player.cameraComponent.disposed, true)
+  assert.equal(player.cameraComponent.enabled, false)
 })
