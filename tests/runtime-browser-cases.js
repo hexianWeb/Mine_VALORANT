@@ -55,6 +55,51 @@ function checkCameraOwnership(runtime, level, editorEnabled, advance) {
   }
 }
 
+function checkPlayerCommands(runtime, level, editorEnabled, canvas, advance) {
+  const { engine, camera } = runtime
+  const { player } = level
+  const inspection = globalThis.__RANGE_ROOM__.inspection
+  const pressReset = () => {
+    canvas.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', bubbles: true, cancelable: true }))
+    canvas.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyR', bubbles: true }))
+  }
+  const resumeTick = () => {
+    engine.resume()
+    advance()
+    engine.pause()
+  }
+  const position = player.position.clone()
+  const view = camera.position.clone()
+  const frame = engine.time.frame
+  const respawns = player.respawns
+  pressReset()
+  engine.rendererTick()
+  check(engine.state === 'paused' && engine.time.frame === frame, 'DOM input advanced a paused engine')
+  check(player.position.equals(position) && camera.position.equals(view) && player.respawns === respawns, 'R changed paused simulation or presentation')
+  resumeTick()
+  check(player.respawns === respawns + 1, 'R must work once, including without editor UI')
+  check(player.position.toArray().every((value, axis) => Math.abs(value - level.collision.spawn.position[axis]) < 1e-9), 'R did not return to the level spawn')
+  check(Math.abs(camera.position.x - player.position.x) < 1e-9 && Math.abs(camera.position.z - player.position.z) < 1e-9, 'Respawn did not publish the camera in the same resumed tick')
+  advance()
+  check(player.respawns === respawns + 1, 'R was delivered more than once')
+  if (editorEnabled)
+    document.querySelector('.room-inspection [data-action="reset"]').click()
+  else
+    inspection.resetCamera()
+  pressReset()
+  check(player.respawns === respawns + 1, 'Tool reset bypassed the input tick')
+  resumeTick()
+  check(player.respawns === respawns + 2, 'Tool and keyboard reset did not coalesce')
+  advance()
+  check(player.respawns === respawns + 2, 'A consumed reset leaked into another tick')
+  return {
+    keyboardRespawn: true,
+    pausedCommands: true,
+    toolsUseInputTick: true,
+    noDuplicateCommand: true,
+  }
+}
+
 /** Exercise real asset ownership, app tool rebinding and fixed-step control after reload. */
 export async function checkLevelReload(app, editorEnabled) {
   const { runtime } = app
@@ -117,7 +162,7 @@ export async function checkLevelReload(app, editorEnabled) {
     const canvas = document.querySelector('.webgl')
     canvas.focus()
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW', bubbles: true, cancelable: true }))
-    check(input.intent.moveZ === 1, 'Player input depends on editor focus setup')
+    check(input.isDown('forward'), 'Player input depends on editor focus setup')
     const start = level.player.position.clone()
     for (let frame = 0; frame < 30; frame++) engine.step(now += 1000 / 60)
     window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyW', bubbles: true }))
@@ -152,6 +197,7 @@ export async function checkLevelReload(app, editorEnabled) {
       fixedTick,
       propElapsed,
       repeatedLogicRejected,
+      input: checkPlayerCommands(runtime, level, editorEnabled, canvas, () => engine.step(now += 1000 / 60)),
       camera: checkCameraOwnership(runtime, level, editorEnabled, () => engine.step(now += 1000 / 60)),
     })
   }

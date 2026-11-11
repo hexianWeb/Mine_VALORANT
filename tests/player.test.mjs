@@ -39,10 +39,19 @@ function setup(boxes = [], spawn = [0, 0, 0]) {
   }
   let jump = false
   const input = {
-    intent,
+    isDown: action => ({
+      right: intent.moveX > 0,
+      left: intent.moveX < 0,
+      forward: intent.moveZ > 0,
+      back: intent.moveZ < 0,
+      walk: intent.walk,
+      crouch: intent.crouch,
+    })[action] ?? false,
     consumeLook: () => [0, 0],
     setEnabled() {},
-    consumeJump() {
+    consumePressed(action) {
+      if (action !== 'jump')
+        return false
       const queued = jump
       jump = false
       return queued

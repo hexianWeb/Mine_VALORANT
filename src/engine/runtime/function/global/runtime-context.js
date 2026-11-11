@@ -93,7 +93,12 @@ export class RuntimeContext {
       return this
     }
     catch (error) {
-      this.dispose()
+      try {
+        this.dispose()
+      }
+      catch (cleanupError) {
+        throw new AggregateError([error, cleanupError], '[RuntimeContext] Initialization and rollback failed')
+      }
       throw error
     }
   }
@@ -108,15 +113,29 @@ export class RuntimeContext {
     if (this.state === 'disposed')
       return
     this.state = 'disposed'
-    this.#controller.abort()
-    this.engine?.destroy()
+    const failures = []
+    try {
+      this.#controller.abort()
+      this.engine?.destroy()
+    }
+    catch (error) {
+      failures.push(error)
+    }
     try {
       // 应用自有的 editor 和诊断必须在关卡与渲染之前脱离。
       this.events.emit('dispose')
     }
+    catch (error) {
+      failures.push(error)
+    }
     finally {
+      // 扩展回调失败也必须完成逆序释放，再向调用者报告错误。
       this.#owned.dispose()
       this.events.clear()
     }
+    if (failures.length === 1)
+      throw failures[0]
+    if (failures.length > 1)
+      throw new AggregateError(failures, '[RuntimeContext] Shutdown observers failed')
   }
 }

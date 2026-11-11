@@ -9,6 +9,7 @@ export class PlayerComponent extends Component {
   static phases = ['input', 'postPhysics']
   respawns = 0
   enabled = false
+  #respawnQueued = false
 
   constructor({ collision, input, config = playerConfig }) {
     super()
@@ -38,14 +39,17 @@ export class PlayerComponent extends Component {
     this.motor.enabled = this.enabled
     this.cameraComponent.enabled = this.enabled
     if (!this.enabled) {
+      this.#respawnQueued = false
       this.motor.resetMotion()
       this.cameraComponent.verticalOffset = this.settings.standEye
       this.input.consumeLook()
-      this.input.consumeJump()
+      this.input.consumePressed('jump')
+      this.input.consumePressed('respawn')
     }
   }
 
   teleport(feet, yaw, pitch = 0) {
+    this.#respawnQueued = false
     this.motor.teleport(new THREE.Vector3().fromArray(feet))
     this.cameraComponent.reset({ yaw, pitch, verticalOffset: this.settings.standEye })
   }
@@ -53,6 +57,12 @@ export class PlayerComponent extends Component {
   respawn() {
     this.teleport(this.collision.spawn.position, this.collision.spawn.yaw)
     this.respawns++
+  }
+
+  /** UI and tools enqueue the same command as the gameplay action; input tick applies it. */
+  requestRespawn() {
+    if (this.enabled && !this.disposed)
+      this.#respawnQueued = true
   }
 
   /** Feet go standEye below the camera; blocked placement falls back to spawn. */
@@ -70,9 +80,18 @@ export class PlayerComponent extends Component {
   }
 
   readInput() {
+    const respawn = this.input.consumePressed('respawn')
+    if (respawn || this.#respawnQueued)
+      this.respawn()
     this.look(...this.input.consumeLook())
-    const jump = this.input.consumeJump()
-    Object.assign(this.motor.command, this.input.intent, { jump: this.motor.command.jump || jump })
+    const jump = this.input.consumePressed('jump')
+    Object.assign(this.motor.command, {
+      moveX: Number(this.input.isDown('right')) - Number(this.input.isDown('left')),
+      moveZ: Number(this.input.isDown('forward')) - Number(this.input.isDown('back')),
+      walk: this.input.isDown('walk'),
+      crouch: this.input.isDown('crouch'),
+      jump: this.motor.command.jump || jump,
+    })
   }
 
   tick({ phase }) {

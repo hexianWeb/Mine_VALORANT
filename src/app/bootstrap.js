@@ -305,13 +305,13 @@ function createInspection({ level, canvas, controls, collisionDebug, physics, st
       canvas.focus({ preventScroll: true })
     },
     /**
-     * 玩家模式下重生到出生点，否则把观察相机恢复到初始机位。完成后聚焦画布。
+     * 玩家模式下排队重生命令，下一 input tick 执行；否则恢复观察相机初始机位。随后聚焦画布。
      *
      * @returns {void}
      */
     resetCamera() {
       if (mode === 'player')
-        level.player.respawn()
+        level.player.requestRespawn()
       else
         controls?.reset()
       canvas.focus({ preventScroll: true })

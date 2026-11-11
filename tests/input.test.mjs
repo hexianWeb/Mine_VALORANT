@@ -1,174 +1,106 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { inputBindings } from '../src/configs/input-bindings.js'
-import { createInputSystem } from '../src/engine/runtime/function/input/input-system.js'
+import { setupInput } from './input-fixture.mjs'
 
-function setup(options = { bindings: inputBindings }) {
-  const window = new EventTarget()
-  const document = Object.assign(new EventTarget(), {
-    defaultView: window,
-    activeElement: null,
-    pointerLockElement: null,
-    exitPointerLock() {
-      this.pointerLockElement = null
-      this.dispatchEvent(new Event('pointerlockchange'))
-    },
-  })
-  const element = Object.assign(new EventTarget(), {
-    ownerDocument: document,
-    lockOptions: null,
-    focus() {
-      document.activeElement = element
-    },
-    blur() {
-      if (document.activeElement === element)
-        document.activeElement = null
-    },
-    requestPointerLock(options) {
-      element.lockOptions = options
-      document.pointerLockElement = element
-      document.dispatchEvent(new Event('pointerlockchange'))
-      return Promise.resolve()
-    },
-  })
-  const key = (type, code, extra = {}) => {
-    const event = Object.assign(new Event(type, { cancelable: true }), {
-      code,
-      repeat: false,
-      altKey: false,
-      metaKey: false,
-      ...extra,
-    })
-    window.dispatchEvent(event)
-    return event
-  }
-  const move = (x, y) => document.dispatchEvent(Object.assign(new Event('mousemove'), { movementX: x, movementY: y }))
-  return {
-    window,
-    document,
-    element,
-    key,
-    move,
-    input: createInputSystem({ element, ...options }),
-  }
-}
+const setup = (options = { bindings: inputBindings }) => setupInput(options)
 
-test('ignores keys while disabled or unfocused', () => {
+test('ignores keys while disabled, unfocused or modified by browser shortcuts', (t) => {
   const { input, element, key } = setup()
+  t.after(() => input.dispose())
   key('keydown', 'KeyW')
-  assert.equal(input.intent.moveZ, 0)
+  assert.equal(input.isDown('forward'), false)
   input.setEnabled(true)
   key('keydown', 'KeyW')
-  assert.equal(input.intent.moveZ, 0, 'canvas not focused')
+  assert.equal(input.isDown('forward'), false, 'canvas not focused')
   element.focus()
+  for (const modifier of ['ctrlKey', 'altKey', 'metaKey']) {
+    assert.equal(key('keydown', 'KeyW', { [modifier]: true }).defaultPrevented, false)
+    assert.equal(input.isDown('forward'), false)
+  }
   key('keydown', 'KeyW')
-  assert.equal(input.intent.moveZ, 1)
-  input.dispose()
+  assert.equal(input.isDown('forward'), true)
+  assert.equal(input.consumePressed('forward'), true)
 })
 
-test('maps WASD, walk and crouch; jump is consumed once and repeats are ignored', () => {
-  const { input, element, key } = setup()
-  input.setEnabled(true)
-  element.focus()
-  const event = key('keydown', 'KeyD')
-  assert.equal(event.defaultPrevented, true)
-  key('keydown', 'KeyS')
-  key('keydown', 'ShiftLeft')
-  key('keydown', 'KeyC')
-  assert.deepEqual({ ...input.intent }, {
-    moveX: 1,
-    moveZ: -1,
-    walk: true,
-    crouch: true,
-  })
-  key('keyup', 'KeyD')
-  key('keyup', 'ShiftLeft')
-  assert.equal(input.intent.moveX, 0)
-  assert.equal(input.intent.walk, false)
-  key('keydown', 'Space')
-  key('keydown', 'Space', { repeat: true })
-  assert.equal(input.consumeJump(), true)
-  assert.equal(input.consumeJump(), false)
-  input.dispose()
-})
-
-test('uses supplied bindings without retaining the game defaults', () => {
+test('arbitrary action names expose held state and consume each edge once', (t) => {
   const { input, element, key } = setup({
-    bindings: {
-      ArrowUp: 'forward',
-      ArrowDown: 'back',
-      ArrowLeft: 'left',
-      ArrowRight: 'right',
-      KeyX: 'walk',
-      KeyZ: 'crouch',
-      Enter: 'jump',
-    },
+    bindings: { KeyX: 'interact', KeyZ: 'reload' },
   })
+  t.after(() => input.dispose())
   input.setEnabled(true)
   element.focus()
-  for (const code of Object.keys(inputBindings))
-    assert.equal(key('keydown', code).defaultPrevented, false)
-  assert.deepEqual({ ...input.intent }, {
-    moveX: 0,
-    moveZ: 0,
-    walk: false,
-    crouch: false,
-  })
-  assert.equal(input.consumeJump(), false)
-
-  for (const code of ['ArrowUp', 'ArrowLeft', 'KeyX', 'KeyZ'])
-    assert.equal(key('keydown', code).defaultPrevented, true)
-  assert.deepEqual({ ...input.intent }, {
-    moveX: -1,
-    moveZ: 1,
-    walk: true,
-    crouch: true,
-  })
-  key('keyup', 'ArrowUp')
-  key('keyup', 'ArrowLeft')
-  key('keydown', 'ArrowDown')
-  key('keydown', 'ArrowRight')
-  assert.equal(input.intent.moveX, 1)
-  assert.equal(input.intent.moveZ, -1)
-  key('keydown', 'Enter')
-  assert.equal(input.consumeJump(), true)
-  assert.equal(input.consumeJump(), false)
-  key('keydown', 'Enter', { repeat: true })
-  assert.equal(input.consumeJump(), false)
-  input.dispose()
+  assert.equal(key('keydown', 'KeyW').defaultPrevented, false)
+  assert.equal(key('keydown', 'KeyX').defaultPrevented, true)
+  assert.equal(input.isDown('interact'), true)
+  assert.equal(input.consumePressed('interact'), true)
+  assert.equal(input.consumePressed('interact'), false)
+  key('keydown', 'KeyX', { repeat: true })
+  assert.equal(input.consumePressed('interact'), false)
+  key('keyup', 'KeyX')
+  assert.equal(input.isDown('interact'), false)
+  assert.equal(input.consumeReleased('interact'), true)
+  assert.equal(input.consumeReleased('interact'), false)
+  key('keydown', 'KeyZ')
+  key('keyup', 'KeyZ')
+  assert.equal(input.consumePressed('reload'), true, 'short taps survive until a tick consumes them')
+  assert.equal(input.consumeReleased('reload'), true)
+  assert.equal(input.intent, undefined, 'movement intent belongs to the game')
 })
 
-test('has no gameplay key defaults when bindings are omitted', () => {
+test('explicit control bindings allow simultaneous actions without reserving default Ctrl shortcuts', (t) => {
+  const { input, element, key } = setup({
+    bindings: { ControlLeft: 'modifier', KeyW: 'advance' },
+  })
+  t.after(() => input.dispose())
+  input.setEnabled(true)
+  element.focus()
+  key('keydown', 'ControlLeft', { ctrlKey: true })
+  key('keydown', 'KeyW', { ctrlKey: true })
+  assert.equal(input.isDown('modifier'), true)
+  assert.equal(input.isDown('advance'), true)
+  const defaults = setup()
+  t.after(() => defaults.input.dispose())
+  defaults.input.setEnabled(true)
+  defaults.element.focus()
+  assert.equal(defaults.key('keydown', 'KeyR', { ctrlKey: true }).defaultPrevented, false)
+  assert.equal(defaults.input.consumePressed('respawn'), false)
+})
+
+test('has no gameplay key defaults when bindings are omitted', (t) => {
   const { input, element, key } = setup({})
+  t.after(() => input.dispose())
   input.setEnabled(true)
   element.focus()
-  for (const code of Object.keys(inputBindings))
+  for (const [code, action] of Object.entries(inputBindings)) {
     assert.equal(key('keydown', code).defaultPrevented, false)
-  assert.deepEqual({ ...input.intent }, {
-    moveX: 0,
-    moveZ: 0,
-    walk: false,
-    crouch: false,
-  })
-  assert.equal(input.consumeJump(), false)
-  input.dispose()
+    assert.equal(input.isDown(action), false)
+    assert.equal(input.consumePressed(action), false)
+  }
 })
 
-test('multiple keys can hold the same action independently', () => {
-  const { input, element, key } = setup()
+test('multiple keys produce one action press and release only after the final key', (t) => {
+  const { input, element, key } = setup({
+    bindings: { KeyA: 'interact', KeyB: 'interact' },
+  })
+  t.after(() => input.dispose())
   input.setEnabled(true)
   element.focus()
-  key('keydown', 'ShiftLeft')
-  key('keydown', 'ShiftRight')
-  key('keyup', 'ShiftLeft')
-  assert.equal(input.intent.walk, true)
-  key('keyup', 'ShiftRight')
-  assert.equal(input.intent.walk, false)
-  input.dispose()
+  key('keydown', 'KeyA')
+  assert.equal(input.consumePressed('interact'), true)
+  key('keydown', 'KeyB')
+  assert.equal(input.consumePressed('interact'), false)
+  key('keyup', 'KeyA')
+  assert.equal(input.isDown('interact'), true)
+  assert.equal(input.consumeReleased('interact'), false)
+  key('keyup', 'KeyB')
+  assert.equal(input.isDown('interact'), false)
+  assert.equal(input.consumeReleased('interact'), true)
 })
 
-test('mouse look accumulates only while pointer-locked; click requests raw input lock', () => {
+test('mouse look accumulates only while pointer-locked; click requests raw input lock', (t) => {
   const { input, element, move } = setup()
+  t.after(() => input.dispose())
   input.setEnabled(true)
   move(5, 5)
   assert.deepEqual(input.consumeLook(), [0, 0])
@@ -179,24 +111,31 @@ test('mouse look accumulates only while pointer-locked; click requests raw input
   move(1, 1)
   assert.deepEqual(input.consumeLook(), [6, -1])
   assert.deepEqual(input.consumeLook(), [0, 0])
-  input.dispose()
 })
 
-test('unlocking, window blur and disabling clear held input', () => {
+test('unlocking, losing focus and disabling discard held and queued actions', (t) => {
   const { input, element, document, window, key } = setup()
-  input.setEnabled(true)
-  element.dispatchEvent(new Event('click'))
-  key('keydown', 'KeyW')
-  assert.equal(input.intent.moveZ, 1)
-  document.exitPointerLock()
-  assert.equal(input.intent.moveZ, 0)
-  assert.equal(document.activeElement, null, 'Esc releases keyboard too')
-  element.focus()
-  key('keydown', 'KeyA')
-  window.dispatchEvent(new Event('blur'))
-  assert.equal(input.intent.moveX, 0)
+  t.after(() => input.dispose())
+  const clearers = [
+    () => document.exitPointerLock(),
+    () => element.blur(),
+    () => window.dispatchEvent(new Event('blur')),
+    () => document.dispatchEvent(new Event('visibilitychange')),
+    () => input.setEnabled(false),
+  ]
+  for (const clear of clearers) {
+    input.setEnabled(true)
+    element.focus()
+    key('keydown', 'KeyW')
+    key('keydown', 'KeyR')
+    key('keyup', 'KeyR')
+    assert.equal(input.isDown('forward'), true)
+    clear()
+    assert.equal(input.isDown('forward'), false)
+    assert.equal(input.consumePressed('respawn'), false)
+    assert.equal(input.consumeReleased('respawn'), false)
+  }
   element.dispatchEvent(new Event('click'))
   input.setEnabled(false)
   assert.equal(document.pointerLockElement, null)
-  input.dispose()
 })

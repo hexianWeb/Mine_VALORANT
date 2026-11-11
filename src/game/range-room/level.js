@@ -83,7 +83,7 @@ export class RangeRoomLevel extends Level {
       await resources.load([
         { name: skyName, type: 'texture', url: settings.skyboxUrl },
         ...roomGroundTextures,
-      ])
+      ], { signal: token })
       token.throwIfAborted()
       const sky = resources.get(skyName, 'texture')
       sky.mapping = THREE.EquirectangularReflectionMapping

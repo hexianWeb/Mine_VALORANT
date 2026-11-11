@@ -15,7 +15,7 @@ import { loaders } from './loader/loaders.js'
  * @property {{ name: string, error: unknown }} error 真正的加载失败（取消的加载不触发）
  */
 
-/** @typedef {{ entry: AssetEntry, promise: Promise<any>, cancelled: boolean }} LoadTask */
+/** @typedef {{ entry: AssetEntry, promise: Promise<any>, controller: AbortController, manager: THREE.LoadingManager }} LoadTask */
 
 /**
  * 按名称加载、缓存并释放资源。
@@ -34,9 +34,11 @@ import { loaders } from './loader/loaders.js'
  *
  * 异步边界
  * - 加载中再次请求同一名称：复用同一个任务（一次网络请求）。
+ * - 取消作用于名称对应的整个 pending 任务：任一等待者的 signal 中止会取消所有等待者。
+ *   已缓存的资源不受后续 signal 影响；没有引用计数，资源仍由关卡显式卸载。
  * - 加载失败：不写入缓存，下一次 `load()` 会重试。
- * - 加载过程中调用 `unload(name)` 或 `dispose()`：迟到的结果在到达时被释放，
- *   `load()` 以名为 'AbortError' 的 DOMException 拒绝（不发 'error' 事件）。
+ * - signal 中止、`unload(name)` 或 `dispose()` 立即拒绝等待者并中止下载／解码。
+ *   不支持取消的扩展加载器返回迟到结果时仍会释放；取消不发 'error' 事件。
  *   因此 `await load()` 之后的代码不会对着已销毁的关卡继续执行。
  *
  * @extends {EventEmitter<ResourceEvents>}
@@ -56,20 +58,22 @@ export class ResourceManager extends EventEmitter {
   #cache = new Map()
   /** @type {Map<string, LoadTask>} */
   #pending = new Map()
-  #manager = new THREE.LoadingManager()
   #disposed = false
 
   /**
    * 并行加载条目。已加载或正在加载的名称会复用，不会重新加载。
    * 第一次失败即拒绝（其余条目继续加载并仍会缓存）。
    * @param {AssetEntry[]} entries
+   * @param {{ signal?: AbortSignal }} [options] 取消本批次仍在加载的命名任务。
    * @returns {Promise<void>}
    */
-  async load(entries) {
+  async load(entries, { signal } = {}) {
+    signal?.throwIfAborted()
     const total = entries.length
     let loaded = 0
     await Promise.all(entries.map(async (entry) => {
-      await this.#loadOne(entry)
+      await this.#loadOne(entry, signal)
+      signal?.throwIfAborted()
       loaded++
       this.emit('progress', { name: entry.name, loaded, total })
     }))
@@ -115,10 +119,8 @@ export class ResourceManager extends EventEmitter {
    */
   unload(name) {
     const task = this.#pending.get(name)
-    if (task) {
-      task.cancelled = true
-      this.#pending.delete(name)
-    }
+    if (task)
+      task.controller.abort(abortError(task.entry))
     const item = this.#cache.get(name)
     if (item) {
       this.#cache.delete(name)
@@ -138,36 +140,61 @@ export class ResourceManager extends EventEmitter {
 
   /**
    * @param {AssetEntry} entry
+   * @param {AbortSignal} [signal]
    * @returns {Promise<any>} asset
    */
-  async #loadOne(entry) {
+  async #loadOne(entry, signal) {
+    const signals = [signal, entry.options?.signal].filter(Boolean)
+    const token = signals.length
+      ? AbortSignal.any(signals)
+      : null
+    token?.throwIfAborted()
     if (this.#disposed)
       throw new Error(`[Resources] load "${entry.name}" after dispose`)
 
     const known = this.#cache.get(entry.name) ?? this.#pending.get(entry.name)
-    if (known && String(known.entry.url) !== String(entry.url))
+    if (known && (known.entry.type !== entry.type || String(known.entry.url) !== String(entry.url)))
       throw new Error(`[Resources] name "${entry.name}" already used by ${known.entry.url}`)
 
     const cached = this.#cache.get(entry.name)
     if (cached)
       return cached.asset
-    const pending = this.#pending.get(entry.name)
-    if (pending)
-      return pending.promise
-
-    const loader = loaders[entry.type]
-    if (!loader)
-      throw new Error(`[Resources] unknown type "${entry.type}" for "${entry.name}"`)
-
-    /** @type {LoadTask} */
-    const task = {
-      entry,
-      cancelled: false,
-      promise: Promise.resolve(),
+    let task = this.#pending.get(entry.name)
+    if (!task) {
+      const loader = loaders[entry.type]
+      if (!loader)
+        throw new Error(`[Resources] unknown type "${entry.type}" for "${entry.name}"`)
+      const done = Promise.withResolvers()
+      task = {
+        entry,
+        controller: new AbortController(),
+        manager: new THREE.LoadingManager(),
+        promise: done.promise,
+      }
+      const current = task
+      const onAbort = () => {
+        if (this.#pending.get(entry.name) === current)
+          this.#pending.delete(entry.name)
+        // 不调用 manager.abort()：它会重置 controller，让迟到的子请求逃过取消。
+        current.manager.abortController.abort(current.controller.signal.reason)
+        done.reject(current.controller.signal.reason)
+      }
+      current.controller.signal.addEventListener('abort', onAbort, { once: true })
+      this.#pending.set(entry.name, current)
+      this.#runTask(current, loader).then(done.resolve, done.reject).finally(() => {
+        current.controller.signal.removeEventListener('abort', onAbort)
+      })
     }
-    task.promise = this.#runTask(task, loader)
-    this.#pending.set(entry.name, task)
-    return task.promise
+    const onAbort = () => task.controller.abort(abortError(entry))
+    token?.addEventListener('abort', onAbort, { once: true })
+    if (token?.aborted)
+      onAbort()
+    try {
+      return await task.promise
+    }
+    finally {
+      token?.removeEventListener('abort', onAbort)
+    }
   }
 
   /**
@@ -178,10 +205,13 @@ export class ResourceManager extends EventEmitter {
     const { entry } = task
     let asset
     try {
-      asset = await loader(entry, this.#manager)
+      asset = await loader({
+        ...entry,
+        options: { ...entry.options, signal: task.controller.signal },
+      }, task.manager)
     }
     catch (error) {
-      if (task.cancelled)
+      if (task.controller.signal.aborted)
         throw abortError(entry)
       this.emit('error', { name: entry.name, error })
       const reason = error instanceof Error
@@ -194,7 +224,7 @@ export class ResourceManager extends EventEmitter {
         this.#pending.delete(entry.name)
     }
 
-    if (task.cancelled) {
+    if (task.controller.signal.aborted) {
       disposeAsset(entry.type, asset)
       throw abortError(entry)
     }

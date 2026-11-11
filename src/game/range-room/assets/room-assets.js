@@ -24,7 +24,7 @@ export async function loadRoomAssets({ resources, manifestUrl, signal, sampling 
       name: `${prefix}:${page.id}`,
       type: 'exr',
       url: new URL(page.url, base).href,
-      options: { sha256: page.sha256, atlasMaxMipLevel: sampling.atlasMaxMipLevel ?? 2, signal },
+      options: { sha256: page.sha256, atlasMaxMipLevel: sampling.atlasMaxMipLevel ?? 2 },
     })),
   ]
   const materials = new Set()
@@ -44,7 +44,7 @@ export async function loadRoomAssets({ resources, manifestUrl, signal, sampling 
   }
   signal?.addEventListener('abort', dispose, { once: true })
   try {
-    await resources.load(entries)
+    await resources.load(entries, { signal })
     signal?.throwIfAborted()
     const gltf = resources.get(modelName, 'gltf')
     // Stamp associations on the TEMPLATE before cloning: SkeletonUtils clones userData,

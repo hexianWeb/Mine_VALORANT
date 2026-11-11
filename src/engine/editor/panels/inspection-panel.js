@@ -73,7 +73,8 @@ export function createInspectionPanel({ canvas, inspection }) {
       return
     if (event.code === 'KeyF')
       perform('focus')
-    else if (event.code === 'KeyR')
+    // Player R is an application input action, also available without this panel.
+    else if (event.code === 'KeyR' && inspection.snapshot().cameraMode !== 'player')
       perform('reset')
     else if (event.code === 'KeyV' && hasPlayer)
       perform('player')

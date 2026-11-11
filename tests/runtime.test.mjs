@@ -305,6 +305,85 @@ test('engine destruction closes tools and levels before renderer/assets, exactly
   await assert.rejects(runtime.initialize(), /Cannot initialize/)
 })
 
+test('runtime shutdown still releases tools and systems when a destroy listener throws', async () => {
+  const { runtime, disposed } = runtimeFixture()
+  await runtime.initialize()
+  runtime.start()
+  const failure = new Error('destroy observer failed')
+  runtime.engine.events.on('destroy', () => {
+    throw failure
+  })
+  assert.throws(() => runtime.dispose(), error => error === failure)
+  assert.equal(runtime.state, 'disposed')
+  assert.equal(runtime.engine.state, 'destroyed')
+  assert.equal(runtime.engine.frameDriver.pending, 0)
+  assert.deepEqual(disposed, [
+    'editor',
+    'level',
+    'physics',
+    'input',
+    'render',
+    'resources',
+    'size',
+  ])
+  runtime.dispose()
+  runtime.engine.destroy()
+  assert.equal(disposed.length, 7, 'cleanup is not repeated after the failed observer')
+})
+
+test('shutdown reports both lifecycle failures after releasing owned systems', async () => {
+  const { runtime, disposed } = runtimeFixture()
+  await runtime.initialize()
+  const engineFailure = new Error('destroy observer failed')
+  const appFailure = new Error('application observer failed')
+  runtime.engine.events.on('destroy', () => {
+    throw engineFailure
+  })
+  runtime.events.on('dispose', () => {
+    throw appFailure
+  })
+  assert.throws(() => runtime.dispose(), (error) => {
+    assert.ok(error instanceof AggregateError)
+    assert.deepEqual(error.errors, [engineFailure, appFailure])
+    return true
+  })
+  assert.deepEqual(disposed, [
+    'editor',
+    'level',
+    'physics',
+    'input',
+    'render',
+    'resources',
+    'size',
+  ])
+  assert.doesNotThrow(() => runtime.events.emit('dispose'), 'lifecycle listeners are cleared')
+  runtime.dispose()
+  assert.equal(disposed.length, 7)
+})
+
+test('engine-initiated shutdown releases systems even when the application observer throws', async () => {
+  const { runtime, disposed } = runtimeFixture()
+  await runtime.initialize()
+  const failure = new Error('application observer failed')
+  runtime.events.on('dispose', () => {
+    throw failure
+  })
+  assert.throws(() => runtime.engine.destroy(), error => error === failure)
+  assert.equal(runtime.state, 'disposed')
+  assert.deepEqual(disposed, [
+    'editor',
+    'level',
+    'physics',
+    'input',
+    'render',
+    'resources',
+    'size',
+  ])
+  assert.doesNotThrow(() => runtime.engine.events.emit('destroy'))
+  runtime.dispose()
+  assert.equal(disposed.length, 7)
+})
+
 test('failed initialization rolls back completed systems in reverse dependency order', async () => {
   const { runtime, disposed } = runtimeFixture({
     input() { throw new Error('input failed') },
@@ -316,6 +395,30 @@ test('failed initialization rolls back completed systems in reverse dependency o
     'resources',
     'size',
   ])
+})
+
+test('failed initialization keeps its original error when rollback observers also fail', async () => {
+  const failure = new Error('input failed')
+  const cleanupFailure = new Error('application observer failed')
+  const { runtime, disposed } = runtimeFixture({
+    input() { throw failure },
+  })
+  runtime.events.on('dispose', () => {
+    throw cleanupFailure
+  })
+  await assert.rejects(runtime.initialize(), (error) => {
+    assert.ok(error instanceof AggregateError)
+    assert.deepEqual(error.errors, [failure, cleanupFailure])
+    return true
+  })
+  assert.deepEqual(disposed, [
+    'editor',
+    'render',
+    'resources',
+    'size',
+  ])
+  runtime.dispose()
+  assert.equal(disposed.length, 4)
 })
 
 test('destroying during renderer initialization releases the late result without starting input', async () => {

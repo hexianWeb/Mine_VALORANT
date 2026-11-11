@@ -43,31 +43,60 @@ import { decodeEXR } from './decode-exr.js'
  */
 export const loaders = {
   async texture(entry, manager) {
-    const texture = await new THREE.TextureLoader(manager).loadAsync(/** @type {string} */ (entry.url))
+    // HTMLImage keeps TextureLoader's pixel decoding and flipY semantics. Fetch owns cancellation.
+    const image = await loadImage(/** @type {string} */ (entry.url), manager, entry.options?.signal)
+    const texture = new THREE.Texture(image)
     texture.colorSpace = entry.options?.colorSpace ?? THREE.SRGBColorSpace
+    texture.needsUpdate = true
     return texture
   },
 
   async cubeTexture(entry, manager) {
     if (!Array.isArray(entry.url) || entry.url.length !== 6)
       throw new Error(`[Resources] cubeTexture "${entry.name}" needs 6 urls`)
-    const texture = await new THREE.CubeTextureLoader(manager).loadAsync(/** @type {any} */ (entry.url))
+    const controller = new AbortController()
+    const signal = entry.options?.signal
+      ? AbortSignal.any([entry.options.signal, controller.signal])
+      : controller.signal
+    let images
+    try {
+      images = await Promise.all(entry.url.map(url => loadImage(url, manager, signal)))
+    }
+    catch (error) {
+      controller.abort()
+      throw error
+    }
+    const texture = new THREE.CubeTexture(images)
     texture.colorSpace = THREE.SRGBColorSpace
+    texture.needsUpdate = true
     return texture
   },
 
   async hdr(entry, manager) {
-    const texture = await new HDRLoader(manager).loadAsync(/** @type {string} */ (entry.url))
+    const data = await loadCheckedBuffer(entry, manager)
+    const texture = new HDRLoader(manager).createDataTexture(data)
     texture.mapping = THREE.EquirectangularReflectionMapping
     return texture
   },
 
   async gltf(entry, manager) {
+    // FileLoader coalesces URLs globally, even across LoadingManagers. A fragment
+    // isolates external glTF dependencies for an immediate retry after abort,
+    // while leaving HTTP URLs/cache keys on the wire unchanged.
+    const namespace = THREE.MathUtils.generateUUID()
+    manager.setURLModifier((url) => {
+      if (/^(?:blob|data):/u.test(url))
+        return url
+      const resolved = new URL(url, globalThis.location?.href)
+      resolved.hash = `${resolved.hash.slice(1)}:resource-${namespace}`
+      return resolved.href
+    })
     const loader = new GLTFLoader(manager)
-    if (!entry.options?.sha256)
-      return loader.loadAsync(/** @type {string} */ (entry.url))
     const data = await loadCheckedBuffer(entry, manager)
-    const base = new URL('.', new URL(/** @type {string} */ (entry.url), globalThis.location.href)).href
+    const source = new URL(/** @type {string} */ (entry.url), globalThis.location?.href)
+    const base = ['blob:', 'data:'].includes(source.protocol)
+      ? globalThis.location?.href ?? ''
+      : new URL('.', source).href
     return loader.parseAsync(data, base)
   },
 
@@ -87,22 +116,74 @@ export const loaders = {
   },
 
   async json(entry, manager) {
-    const loader = new THREE.FileLoader(manager)
-    loader.setResponseType('json')
-    return loader.loadAsync(/** @type {string} */ (entry.url))
+    return download(/** @type {string} */ (entry.url), manager, entry.options?.signal, 'json')
   },
 }
 
 /** @param {AssetEntry} entry @param {THREE.LoadingManager} manager */
 async function loadCheckedBuffer(entry, manager) {
-  const data = /** @type {ArrayBuffer} */ (await new THREE.FileLoader(manager)
-    .setResponseType('arraybuffer')
-    .loadAsync(/** @type {string} */ (entry.url)))
+  const data = /** @type {ArrayBuffer} */ (await download(/** @type {string} */ (entry.url), manager, entry.options?.signal, 'arrayBuffer'))
   if (entry.options?.sha256) {
     const bytes = new Uint8Array(await crypto.subtle.digest('SHA-256', data))
     const hash = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')
     if (hash !== entry.options.sha256)
       throw new Error(`[Resources] SHA-256 mismatch for ${entry.url}: expected ${entry.options.sha256}, got ${hash}`)
   }
+  entry.options?.signal?.throwIfAborted()
   return data
+}
+
+/** @param {string} url @param {THREE.LoadingManager} manager @param {AbortSignal | undefined} signal @param {'arrayBuffer' | 'blob' | 'json'} type */
+async function download(url, manager, signal, type) {
+  signal?.throwIfAborted()
+  const resolved = manager.resolveURL(url)
+  manager.itemStart(resolved)
+  try {
+    const response = await fetch(resolved, { signal, credentials: 'same-origin' })
+    if (!response.ok && response.status !== 0)
+      throw new Error(`HTTP ${response.status}: ${url}`)
+    const data = await response[type]()
+    signal?.throwIfAborted()
+    return data
+  }
+  catch (error) {
+    manager.itemError(resolved)
+    throw error
+  }
+  finally {
+    manager.itemEnd(resolved)
+  }
+}
+
+/** @param {string} url @param {THREE.LoadingManager} manager @param {AbortSignal | undefined} signal */
+async function loadImage(url, manager, signal) {
+  const blob = await download(url, manager, signal, 'blob')
+  signal?.throwIfAborted()
+  return new Promise((resolve, reject) => {
+    const image = document.createElementNS('http://www.w3.org/1999/xhtml', 'img')
+    const objectURL = URL.createObjectURL(blob)
+    function cleanup() {
+      image.removeEventListener('load', onLoad)
+      image.removeEventListener('error', onError)
+      signal?.removeEventListener('abort', onAbort)
+      URL.revokeObjectURL(objectURL)
+    }
+    function onLoad() {
+      cleanup()
+      resolve(image)
+    }
+    function onError() {
+      cleanup()
+      reject(new Error(`[Resources] Image decode failed: ${url}`))
+    }
+    function onAbort() {
+      cleanup()
+      image.removeAttribute('src')
+      reject(signal.reason)
+    }
+    image.addEventListener('load', onLoad)
+    image.addEventListener('error', onError)
+    signal?.addEventListener('abort', onAbort, { once: true })
+    image.src = objectURL
+  })
 }

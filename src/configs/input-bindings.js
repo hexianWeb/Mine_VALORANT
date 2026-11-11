@@ -11,4 +11,5 @@ export const inputBindings = Object.freeze({
   ShiftRight: 'walk',
   KeyC: 'crouch',
   Space: 'jump',
+  KeyR: 'respawn',
 })

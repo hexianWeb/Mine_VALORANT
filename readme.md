@@ -63,7 +63,7 @@ EXR 解码和 alpha 加权 mip 生成在独立 Worker 中完成，通过 transfe
 - `src/engine/editor/`：自由／轨道相机、渲染面板、探针面板、观察 HUD 与碰撞辅助线。
 - `src/game/`：玩家规则与练枪房内容；RangeRoomLevel 直接组装房间、地面、玩家、茶壶、阴影和探针。
 - `src/app/`：选择关卡、连接游戏与 Editor、URL 配置及诊断接口。`main.js` 只启动应用并接入 HMR。
-- `src/configs/input-bindings.js`：练枪房玩法键位，由 app 经 RuntimeContext 注入输入系统。可替换映射；runtime 不内置玩法按键，省略 bindings 时不绑定键盘动作。
+- `src/configs/input-bindings.js`：练枪房玩法键位，由 app 经 RuntimeContext 注入输入系统。runtime 提供通用动作状态与按下／释放边沿，由 Player 映射为玩法命令；省略 bindings 时不绑定键盘动作。R 回出生点在 `?editor=0` 下同样可用，键盘与玩家复位按钮都在 Tick 中执行，暂停时只排队。
 
 文档索引见 [docs/README.md](docs/README.md)。完整目录、tick 调用链、生命周期、公共 API 与验收见 [运行时架构](docs/architecture.md)，最新调度契约见[阶段优先组件 Tick](docs/superpowers/specs/2026-11-11-phase-first-component-tick.md)，目录映射见[function 结构重构](docs/superpowers/specs/2026-11-11-function-layer-layout.md)，组件粒度取舍见[消融 Spec](docs/superpowers/specs/2026-11-10-component-based-game-objects.md)。runtime 不反向依赖 game/editor/app，game 与 editor 由 app 连接。`?editor=0` 可验证无工具界面的玩家与关卡运行。`npm test` 包含分层、阶段扫描、固定步与重入防护、运动数值、初始化回滚、关卡取消和资源归属检查。
 

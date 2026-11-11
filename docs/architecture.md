@@ -35,7 +35,7 @@ src/
 │  │     ├─ controller/           运动学扫掠、台阶与贴地解算
 │  │     ├─ framework/            component / level / object / world
 │  │     ├─ global/               RuntimeContext：系统装配与生命周期
-│  │     ├─ input/                键盘、Pointer Lock 与输入意图
+│  │     ├─ input/                通用动作状态、Pointer Lock 与鼠标增量
 │  │     ├─ physics/              同步碰撞服务与碰撞世界
 │  │     └─ render/               渲染系统、管线、passes、material、debugdraw
 │  └─ editor/
@@ -118,7 +118,9 @@ platform → core
 
 runtime 不导入 app、game、editor；game 与 editor 互不导入。只有 app 知道当前关卡与工具的具体组合。核心系统通过构造器／工厂获得窄依赖，例如 RenderSystem 接收 `size` 而非整个 Engine。
 
-玩法键位位于 `src/configs/input-bindings.js`，由 `readAppConfig()` 经 app 和 RuntimeContext 注入 InputSystem；runtime 不导入这份配置。`createInputSystem({ element, bindings })` 省略 bindings 时不绑定键盘动作，调用方可替换键位；同一动作的多个按键独立保持，释放一个不会清除另一个仍按住的按键。默认玩法保持 WASD、Shift、C 和空格。
+玩法键位位于 `src/configs/input-bindings.js`，由 `readAppConfig()` 经 app 和 RuntimeContext 注入 InputSystem；runtime 不导入这份配置。`createInputSystem({ element, bindings })` 省略 bindings 时不绑定键盘动作，动作名可自定义。输入系统提供 `isDown(action)`、`consumePressed(action)`、`consumeReleased(action)` 和 `consumeLook()`，不生成玩家移动意图；Player 在 input 阶段把动作映射到 Motor 命令。同一动作的多个按键独立保持，释放一个不会清除另一个仍按住的按键。默认玩法键位为 WASD、Shift、C、空格和 R。
+
+R 回出生点属于游戏输入，关闭 Editor 后仍可用。玩家复位按钮通过 `Player.requestRespawn()` 排队，和键盘动作一起在 Player 的 input 阶段消费；Engine 暂停时不立即修改 Transform，恢复更新后才执行。飞行／轨道观察相机复位仍由 Editor 处理。
 
 Context 每个应用实例独立持有。业务代码不使用全局服务查找；`__RANGE_ROOM__` 仅由 app 安装供诊断与浏览器测试使用。
 
@@ -203,9 +205,11 @@ level.addObject(object)
 4. 关卡完成房间、地面、可选探针、碰撞、玩家与茶壶加载后，才成为 activeLevel。
 5. WorldManager 发出 `load`，app 挂载当前关卡的工具与诊断；最后启动 Engine。
 
-关卡卸载：WorldManager 先清除活动引用并取消加载，发出 `unload` 让 app 释放当前工具与诊断，然后释放 Level。`await world.unloadLevel()` 会等待被取消的加载收尾；此期间拒绝新的加载，避免旧任务与新关卡争用资产名称。再次 load 会重新绑定工具，不复用旧玩家或监听器。
+关卡卸载：WorldManager 先清除活动引用并取消加载，发出 `unload` 让 app 释放当前工具与诊断，然后释放 Level。`await world.unloadLevel()` 会等待被取消的关卡加载 Promise 收尾；此期间拒绝新的加载。再次 load 会重新绑定工具，不复用旧玩家或监听器。
 
-整体销毁：停止 Engine → app 工具与诊断 → WorldManager / Level → Physics → Input → RenderSystem → ResourceManager → Size。关卡内部先还原阴影／探针材质绑定，再释放对象与资产。`loadRoomAssets` 完成后解除加载期的 abort 清理监听，把实例释放权交给 Mesh，避免取消先于材质解绑释放资源。`runtime.dispose()` 和既有 `engine.destroy()` 均进入同一幂等关闭流程。
+资源加载接受 `resources.load(entries, { signal })`。signal 中止、`unload(name)` 或 ResourceManager 销毁会立即拒绝等待者，并取消该任务的下载／解码，不必等待服务器返回。每个任务独立持有取消控制器；同名资源的并发加载共享任务，因此任一等待者取消都会让该任务的所有等待者收到 `AbortError`。已经缓存的资源仍由关卡显式卸载。取消后允许立即同名重试；不支持取消的扩展加载器若迟到返回，旧任务只释放自己的结果，不影响新缓存。探针捕获的逐帧等待也响应取消，不依赖隐藏页面继续触发 RAF。
+
+整体销毁：停止 Engine → app 工具与诊断 → WorldManager / Level → Physics → Input → RenderSystem → ResourceManager → Size。关卡内部先还原阴影／探针材质绑定，再释放对象与资产。`loadRoomAssets` 完成后解除加载期的 abort 清理监听，把实例释放权交给 Mesh，避免取消先于材质解绑释放资源。`runtime.dispose()` 和既有 `engine.destroy()` 均进入同一幂等关闭流程。Engine 的 destroy 监听器或应用的 dispose 监听器抛错时，仍会完成系统释放并清空监听器；随后抛回单个原始错误，或用 `AggregateError` 报告两个阶段的错误。初始化与回滚同时失败时，也保留两者的错误原因。
 
 Level 以活动对象集合拥有 GO，卸载时按逆装配顺序移除存活对象，然后清理其余关卡共享资源。提前移除的对象不会在 Disposer 中留下逐对象清理闭包。
 
@@ -235,12 +239,14 @@ import { createRenderSystem } from './engine/runtime/function/render/index.js'
 ## 验证
 
 - `tests/architecture.test.mjs`：引用有效、单向依赖、无循环、公共 API 可在 Node 导入。
-- `tests/input.test.mjs` / `tests/app-config.test.mjs`：玩法键位注入、自定义／空映射、同动作多键保持，以及应用配置接线；runtime 测试验证映射传给输入工厂。
-- `tests/runtime.test.mjs`：帧顺序、子步快照、重复／递归更新防护、失败帧、暂停、初始化失败、关卡取消／重载、工具卸载顺序。
+- `tests/input.test.mjs` / `tests/app-config.test.mjs`：玩法键位注入、自定义／空映射、通用动作边沿、同动作多键保持，以及应用配置接线；runtime 测试验证映射传给输入工厂。
+- `tests/runtime.test.mjs`：帧顺序、子步快照、重复／递归更新防护、失败帧、暂停、初始化失败、关卡取消／重载、工具卸载顺序，以及销毁监听器抛错后的资源释放和幂等性。
+- `tests/resource-loading.test.mjs`：各资源类型的真实 HTTP 取消、响应体中途取消、关卡立即重载、GLTF 外部依赖重试、迟到结果释放、共享任务取消、图像解码兼容和隐藏页面的 RAF 取消。
 - `tests/time.test.mjs`：限步余量、时间缩放、模拟编号提交、无效配置、60 Hz 浮点边界。
 - `tests/framework.test.mjs`：阶段扫描 GO、完整阶段快照、增删／停用、阶段声明、依赖／挂接回滚、Transform 插值、Mesh 资源归属。
 - `tests/camera.test.mjs`：独立装配、视角／身体分离、位置采样、rawDelta 平滑、重置、控制权与共享输出生命周期。
 - `tests/player.test.mjs`：玩家运动、视角输入一次消费、下蹲解算后的眼高目标、重生和相机交接。
+- `tests/player-input.test.mjs`：真实输入系统与 Player 集成，无 Editor 的 R 重生、暂停命令排队、恢复后单次执行及禁用清队列。
 - `tests/motion.test.mjs`：玩家／茶壶共享 Motor，0/1/5 固定步只解算对应次数，跨 GO 阶段屏障，零步 jump 排队，独立渲染／暂停与无 Player 的命令驱动。
 - `tools/check-runtime-browser.mjs`：真实关卡有／无 Editor 重载、输入、销毁、独立渲染与法线预通道。
 - 原有玩家、观察、探针、材质与渲染回归使用真实组件调度。碰撞盒为用户确认的 399，进入本次组件化前已修正断言并达到 89/89 基线。
@@ -324,3 +330,19 @@ runtime 在有／无 Editor 下各两次重载，均维持 4 个 GO、7／6 个�
 探针首轮在模型下载阶段出现 `net::ERR_ABORTED`，未进入功能断言；确认模型响应为 HTTP 200、5,049,560 字节后，独立复跑全套通过。保留首轮失败报告和复跑报告，未修改加载逻辑，也未认定请求中断的根因。
 
 快照、构建及报告位于 `D:/opencode-temp/opencode/mc-valorant-commits-5VKSak/`：构建在 `02-runtime/dist/`；玩家与观察报告在 `02-browser-player/`、`02-browser-inspection/`；运行时报告在 `03-browser-runtime/`；探针首轮与复跑报告分别在 `03-browser-probes/`、`03-browser-probes-retry/`。临时快照和浏览器资料不提交到仓库。
+
+### 2026-11-11 架构审查修复验收
+
+完成三项修复：游戏输入独立于 Editor 并在 Tick 消费；资源取消贯穿下载、解码和逐帧等待；销毁监听器异常不阻断系统释放。输入接口改为通用动作，Player 解释移动与重生，资源的同名并发加载采用任务级取消。
+
+| 检查 | 结果 |
+| --- | --- |
+| `npm test` | 138/138 通过，包含真实 HTTP 取消、旧任务迟到／立即重试、无 Editor 输入、暂停排队和销毁异常 |
+| ESLint（src、tests、tools 与配置） | 0 错误，6 项既有 JSDoc 警告 |
+| `npm run build` | 99 个模块，构建通过；保留既有大 chunk 提示 |
+| `npm run validate:room` | 通过，6 张 atlas、200 个 primitive 的绑定有效 |
+| runtime／player／probes 浏览器回归 | 三套最终均 `passed: true`、`errors: []` |
+
+runtime 在有／无 Editor 下各两次重载，确认 R 和玩家复位按钮在暂停时只排队，恢复后单次执行并同步相机。玩家跳高为 1.099972 m。探针重复捕获数据差异为 0，纹理数保持 193，取消捕获及失败回滚通过。
+
+报告与截图位于 `D:/opencode-temp/opencode/architecture-fixes-20261111/` 的 `runtime-final/`、`player/`、`probes/`。首次 runtime 运行被编辑期间的 Vite 热重载打断，保留在 `runtime/`；源码稳定后的完整回归通过。

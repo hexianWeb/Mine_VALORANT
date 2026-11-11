@@ -23,13 +23,10 @@ test('shared Motor clocks give 0/1/5 solves, queued jump once, pause and rendere
   }
   let jump = false
   const input = {
-    intent: {
-      moveX: 0,
-      moveZ: 0,
-      walk: false,
-      crouch: false,
-    },
-    consumeJump() {
+    isDown: () => false,
+    consumePressed(action) {
+      if (action !== 'jump')
+        return false
       const queued = jump
       jump = false
       return queued

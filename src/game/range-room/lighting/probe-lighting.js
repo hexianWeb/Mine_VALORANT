@@ -1,11 +1,11 @@
 import { LightProbeGridHelper } from 'three/addons/helpers/LightProbeGridHelper.js'
 import { LightProbeGrid } from 'three/addons/lighting/LightProbeGrid.js'
 import * as THREE from 'three/webgpu'
+import { nextFrame } from '../../../engine/runtime/platform/next-frame.js'
 import { atlasLayout, probeCaptureDefaults, probeLightingDefaults, probeSourceKey, readProbeAtlas, sha256, uploadProbeAtlas, validateCapture, validateProbeVolumes } from './probe-data.js'
 import { createProbeEnvironment } from './probe-environment.js'
 import { createRoomLights } from './room-lights.js'
 
-const nextFrame = () => new Promise(resolve => requestAnimationFrame(resolve))
 const sameCapture = (a, b) => !!a && Object.keys(probeCaptureDefaults).every(key => a[key] === b[key])
 
 function makeGrid(volume) {
@@ -259,7 +259,7 @@ export async function createProbeLighting({ scene, renderer, room, lights, skybo
           volume.bakeGrid ??= makeGrid(volume.definition)
           const count = volume.definition.resolution.reduce((a, b) => a * b, 1)
           for (let start = 0; start < count; start += 8) {
-            await nextFrame()
+            await nextFrame(controller.signal)
             controller.signal.throwIfAborted()
             const previous = { toneMapping: renderer.toneMapping, outputColorSpace: renderer.outputColorSpace }
             try {
