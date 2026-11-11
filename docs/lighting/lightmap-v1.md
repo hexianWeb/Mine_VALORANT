@@ -107,7 +107,7 @@ node tools/check-pipeline-browser.mjs "http://localhost:5173/"
 ### 当前处理
 
 - Lightmap 接收者的 14 张独立 Albedo 生成完整 mip 链，当前为 16→8→4→2→1；三线性 + 设备上限内的 16× 各向异性。
-- `src/world/pixel-art-sampling.js` 根据屏幕纹素覆盖范围重建近处像素边缘，内部保持原色。缩小时渐进恢复常规纹理坐标；使用原始变换后 UV 的 `dFdx/dFdy` 调用 `textureGrad`，保证 LOD 与斜视过滤不受像素对齐影响。UV repeat/offset 与 sRGB 解码均保留。
+- `src/engine/runtime/function/render/material/pixel-art-sampling.js` 根据屏幕纹素覆盖范围重建近处像素边缘，内部保持原色。缩小时渐进恢复常规纹理坐标；使用原始变换后 UV 的 `dFdx/dFdy` 调用 `textureGrad`，保证 LOD 与斜视过滤不受像素对齐影响。UV repeat/offset 与 sRGB 解码均保留。
 - EXR 继续使用已验证的 16×、0–2 级 mip，避免盲目加深 atlas mip 引入跨岛串色。本轮没有重烘或改动 GLB/EXR 文件。
 - 移除三盏走廊顶棚 `PointLight`、球形 helper、补光配置/开关与材质注入路径。矩形顶灯的调试 helper 也已移除。默认场景：0 个 helper、0 个走廊补光对象、0 个 PointLight。
 

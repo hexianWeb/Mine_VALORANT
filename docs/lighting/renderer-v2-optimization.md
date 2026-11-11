@@ -111,7 +111,7 @@ GPU 专项在开发页面完成多轮配置切换与 HDR 读回后采样 40 帧�
 
 ### `renderAsync()` 弃用提示复核
 
-- 当前项目源码没有 `renderAsync()` 调用。`src/engine/function/render/index.js` 在创建 renderer 后先 `await renderer.init()`，管线和预通道使用同步 `render()`。
+- 当前项目源码没有 `renderAsync()` 调用。`src/engine/runtime/function/render/render-system.js` 在创建 renderer 后先 `await renderer.init()`，管线和预通道使用同步 `render()`。
 - 对用户当前地址 `http://localhost:5173/` 使用独立 Chrome 会话运行完整回归，结果 `passed: true`、`errors: []`，未复现该提示；这不等同于已确定原有标签页中警告的调用来源。
 - `tools/browser-session.mjs` 已将 Three.js 弃用/重命名警告及 TSL 警告纳入失败条件，并保存 console 调用栈。若原标签页强制刷新后仍出现，可用展开的调用栈定位来源。
 

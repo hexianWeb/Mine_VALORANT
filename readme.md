@@ -41,6 +41,7 @@ node tools/check-pipeline-browser.mjs "http://localhost:5173/"
 node tools/check-probes-browser.mjs "http://localhost:5173/"
 node tools/check-ground-browser.mjs "http://localhost:5173/"
 node tools/check-player-browser.mjs "http://localhost:5173/"
+node tools/check-runtime-browser.mjs "http://localhost:5173/"
 ```
 
 专项测试覆盖法线预通道的透明裁剪/顶点变形、像素贴图的近处锐度与远处缩小过滤、参数原地更新、分辨率联动、效果循环释放，以及 1080p 分 pass GPU 计时。浏览器脚本自动添加 `?profile=1`。
@@ -53,15 +54,24 @@ EXR 解码和 alpha 加权 mip 生成在独立 Worker 中完成，通过 transfe
 
 ## 代码分层
 
-- `src/engine/core/`：通用生命周期、时间、调度、事件与清理；不依赖具体功能。
-- `src/engine/resources/`：资源加载、缓存、解码与释放；只向下依赖 core。
-- `src/engine/function/`：统一的功能层，下设 `fly-controller/`、`input/`、`physics/`、`render/` 与尚未实现的 `animation/`。原 `controls/` 和 `systems/` 均归入这一层；生产调用方使用各模块的 `index.js`。`createRenderSystem()` 创建完成即具备 pipeline，负责后处理、调色、性能分析、resize 与逐帧渲染。
-- `src/world/`：平铺的练枪房内容。`range-room.js` 编排资产加载、参考相机、天空环境与灯光；房间默认配置也在这里。依赖方向为 `world → engine`。
-- `src/main.js`：先创建渲染系统，再创建、注册清理并加载房间；合并渲染和房间快照。`src/debug-panel.js` 是应用层 UI。
+- `src/engine/runtime/`：Engine 显式执行 logicalTick / rendererTick；内部按 core、platform、resource、function 分层。
+- `src/engine/runtime/function/global/`：RuntimeContext 集中创建系统并显式注入依赖，管理初始化及关闭。
+- `src/engine/runtime/function/framework/`：按 component / level / object / world 组织。WorldManager 管理关卡加载／卸载；Level 按阶段扫描所有 GO，收集该阶段的组件快照后统一执行，行为位于组件中。
+- `framework/component/` 集中 Transform、Mesh、Motor、Camera；茶壶组合 Transform／Mesh／Motor，玩家组合 Transform／Motor／Camera 与游戏侧 Player。Transform 统一空间状态，Camera 独立负责第一人称视角与跟随表现。
+- `function/character/` 提供普通角色运动规则，`controller/` 提供扫掠／台阶算法，`physics/` 提供碰撞服务，`input/` 管理输入。Motor 在 fixed / motion 执行运动，Mesh 与 Camera 在 presentation 消费 Transform。
+- `function/render/` 按 render-system、render-pipeline、render-config、render-profiler 及 passes / material / debugdraw 组织。
+- `src/engine/editor/`：自由／轨道相机、渲染面板、探针面板、观察 HUD 与碰撞辅助线。
+- `src/game/`：玩家规则与练枪房内容；RangeRoomLevel 直接组装房间、地面、玩家、茶壶、阴影和探针。
+- `src/app/`：选择关卡、连接游戏与 Editor、URL 配置及诊断接口。`main.js` 只启动应用并接入 HMR。
+- `src/configs/input-bindings.js`：练枪房玩法键位，由 app 经 RuntimeContext 注入输入系统。可替换映射；runtime 不内置玩法按键，省略 bindings 时不绑定键盘动作。
 
-完整目录、职责边界、依赖方向及旧路径对照见 [运行时代码分层](docs/architecture.md)。`System` / phase 仍是调度概念，不再作为目录层级；`npm test` 包含分层依赖检查。
+完整目录、tick 调用链、生命周期、公共 API 与验收见 [运行时架构](docs/architecture.md)，最新调度契约见[阶段优先组件 Tick](docs/superpowers/specs/2026-11-11-phase-first-component-tick.md)，目录映射见[function 结构重构](docs/superpowers/specs/2026-11-11-function-layer-layout.md)，组件粒度取舍见[消融 Spec](docs/superpowers/specs/2026-11-10-component-based-game-objects.md)。runtime 不反向依赖 game/editor/app，game 与 editor 由 app 连接。`?editor=0` 可验证无工具界面的玩家与关卡运行。`npm test` 包含分层、阶段扫描、固定步与重入防护、运动数值、初始化回滚、关卡取消和资源归属检查。
 
 检查接口：`__RANGE_ROOM__.render` 管理渲染效果，`__RANGE_ROOM__.world` 提供 `setRuntimeLighting()` 和房间快照，`__RANGE_ROOM__.room` 是加载后的资产实例。整体状态继续通过 `__RANGE_ROOM__.snapshot()` 获取。
+
+`__RANGE_ROOM__.snapshot().time` 提供只读的帧／固定步时间与限步丢时。Time 统一累积缩放后的 delta，限步时保留插值余量；同帧重复 logicalTick 或递归阶段更新会抛错。茶壶使用 motion，玩家使用 fixed，presentation 只同步模型／相机，rendererTick 可独立重复绘制。
+
+[CameraComponent 实现记录](docs/superpowers/specs/2026-11-11-camera-component.md) 对照 Piccolo 的第一人称相机组件：Player 转交视角命令与眼高目标，Camera 管理俯仰限制、插值与眼高平滑。player／fly／orbit 切换同步交接共享相机控制权。
 
 ## 当前显示与调试配置
 

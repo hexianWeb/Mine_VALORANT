@@ -32,7 +32,7 @@
 
 ## 接入与光照
 
-`src/world/room-ground.js` 管理地面几何、材质及纹理采样实例，`range-room.js` 负责加载、接入场景和释放。`world.ground` 与 `world.snapshot().ground` 提供地面信息；房间包围盒单独用于房间定位。
+`src/game/range-room/ground.js` 管理地面几何、材质及纹理采样实例，`RangeRoomLevel` 负责加载、接入场景和释放。诊断入口的 `world.ground` 与 `world.snapshot().ground` 提供地面信息；房间包围盒单独用于房间定位。
 
 地面使用粗糙、非金属 PBR 和现有日间天空，室外天空强度为 1，参与正常深度／法线预通道和 GTAO。材质使用独立灯光列表，室内探针、天空分量和顶灯面板调整不影响草地及石英基底；全局运行时光照开关仍可控制地面受光。
 

@@ -204,7 +204,7 @@ if ($LASTEXITCODE -ne 0) {
 
 五页 EXR 已包含底色与烘焙照明，因此不能再乘一次原始底色、直接当成纯照明赋给 `material.lightMap`，或重复接受原静态灯与 AO。
 
-[`materials.js`](../src/world/materials.js) 根据分类重建运行时材质。走廊是明确设计的局部补光例外：保留 atlas 辐射，仅额外接受三盏新增点光的局部漫反射，不重复叠加原顶灯、环境或 AO。
+[`materials.js`](../src/game/range-room/assets/materials.js) 根据分类重建运行时材质。走廊是明确设计的局部补光例外：保留 atlas 辐射，仅额外接受三盏新增点光的局部漫反射，不重复叠加原顶灯、环境或 AO。
 
 ### UV 方向只修正一次
 
@@ -226,7 +226,7 @@ EXR 纹理本身保持 `flipY = false`。不要再翻转图像，也不要把这
 
 WebGPU 的各向异性要求线性过滤，因此最近邻原始贴图使用 anisotropy 1。不要为消除模糊而错误修改 PNG 色彩空间，也不要为减少远景闪烁而将所有像素贴图改成线性过滤。
 
-manifest 保留源资产的基础级采样协议；当前有限 mip 是 [`texture-sampling.js`](../src/world/texture-sampling.js) 创建的运行时包装，不修改源 EXR 或 UV。
+manifest 保留源资产的基础级采样协议；当前有限 mip 是 [`texture-sampling.js`](../src/engine/runtime/function/render/material/texture-sampling.js) 创建的运行时包装，不修改源 EXR 或 UV。
 
 ### 灯光与显示效果需要运行时重建
 
@@ -297,7 +297,7 @@ node tools/check-room-browser.mjs http://127.0.0.1:4173/
 - [房间导出脚本](../tools/export_range_room.py)
 - [Alpha 检查与修复工具](../tools/repair_blender_alpha.py)
 - [资源校验 CLI](../tools/validate-room-assets.mjs)
-- [Three.js 房间加载与绑定](../src/world/room-assets.js)
+- [Three.js 房间加载与绑定](../src/game/range-room/assets/room-assets.js)
 - [透明模式问题与已完成修复](blender-alpha-repair.md)
 - [renderer V1 实施与验证记录](lighting/range-room-v3-implementation.md)
 
