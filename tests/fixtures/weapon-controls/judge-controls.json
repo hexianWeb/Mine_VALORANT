@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "judge",
+  "source": "skin_work_folder/judge_skin_work/Judge_Smite_Animated.blend",
+  "sourceSha256": "3a580c0dbf5a55d7bfbe63216e1e7555647d8a9c957027afa247599abf308ac5",
+  "scene": "80_ThreeJS_Export",
+  "armature": "root",
+  "blenderVersion": "5.2.3 LTS",
+  "fps": 60.0,
+  "timeOriginFrame": 1,
+  "bones": [
+    {
+      "name": "root",
+      "parent": null
+    },
+    {
+      "name": "gun_and_righthand",
+      "parent": "root"
+    },
+    {
+      "name": "righthand",
+      "parent": "gun_and_righthand"
+    },
+    {
+      "name": "righthand_pos",
+      "parent": "righthand"
+    },
+    {
+      "name": "lefthand_and_mag",
+      "parent": "root"
+    },
+    {
+      "name": "mag_and_bullet",
+      "parent": "lefthand_and_mag"
+    },
+    {
+      "name": "magazine",
+      "parent": "mag_and_bullet"
+    },
+    {
+      "name": "mag_standard",
+      "parent": "magazine"
+    },
+    {
+      "name": "bullets",
+      "parent": "mag_standard"
+    },
+    {
+      "name": "bullet1",
+      "parent": "bullets"
+    },
+    {
+      "name": "bullet0",
+      "parent": "bullets"
+    },
+    {
+      "name": "bullet2",
+      "parent": "bullets"
+    },
+    {
+      "name": "bullet3",
+      "parent": "bullets"
+    },
+    {
+      "name": "bullet4",
+      "parent": "bullets"
+    }
+  ],
+  "clips": [
+    {
+      "name": "ammo_display",
+      "duration": 4.0,
+      "sourceCurveCount": 150,
+      "selectedSlotCurveCount": 140,
+      "tracks": [
+        {
+          "name": "bullet4.scale",
+          "interpolation": "LINEAR",
+          "sourceKeyCount": 241,
+          "keys": [
+            [1.0, 1.0, 1.0, 1.0],
+            [6.0, 1.0, 1.0, 1.0],
+            [7.0, 0.7997601628303528, 0.7997601628303528, 0.7997601628303528],
+            [8.0, 0.5999200344085693, 0.5999200344085693, 0.5999200344085693],
+            [9.0, 0.4000799357891083, 0.4000799357891083, 0.4000799357891083],
+            [10.0, 0.20023980736732483, 0.20023980736732483, 0.20023980736732483],
+            [11.0, 9.999999747378752e-06, 9.999999747378752e-06, 9.999999747378752e-06],
+            [241.0, 9.999999747378752e-06, 9.999999747378752e-06, 9.999999747378752e-06]
+          ]
+        },
+        {
+          "name": "bullet3.scale",
+          "interpolation": "LINEAR",
+          "sourceKeyCount": 241,
+          "keys": [
+            [1.0, 1.0, 1.0, 1.0],
+            [21.0, 1.0, 1.0, 1.0],
+            [22.0, 0.7997601628303528, 0.7997601628303528, 0.7997601628303528],
+            [23.0, 0.5999200344085693, 0.5999200344085693, 0.5999200344085693],
+            [24.0, 0.4000799357891083, 0.4000799357891083, 0.4000799357891083],
+            [25.0, 0.20023980736732483, 0.20023980736732483, 0.20023980736732483],
+            [26.0, 9.999999747378752e-06, 9.999999747378752e-06, 9.999999747378752e-06],
+            [241.0, 9.999999747378752e-06, 9.999999747378752e-06, 9.999999747378752e-06]
+          ]
+        },
+        {
+          "name": "bullet2.scale",
+          "interpolation": "LINEAR",
+          "sourceKeyCount": 241,
+          "keys": [
+            [1.0, 1.0, 1.0, 1.0],
+            [36.0, 1.0, 1.0, 1.0],
+            [37.0, 0.7997601628303528, 0.7997601628303528, 0.7997601628303528],
+            [38.0, 0.5999200344085693, 0.5999200344085693, 0.5999200344085693],
+            [39.0, 0.4000799357891083, 0.4000799357891083, 0.4000799357891083],
+            [40.0, 0.20023980736732483, 0.20023980736732483, 0.20023980736732483],
+            [41.0, 9.999999747378752e-06, 9.999999747378752e-06, 9.999999747378752e-06],
+            [241.0, 9.999999747378752e-06, 9.999999747378752e-06, 9.999999747378752e-06]
+          ]
+        },
+        {
+          "name": "bullet1.scale",
+          "interpolation": "LINEAR",
+          "sourceKeyCount": 241,
+          "keys": [
+            [1.0, 1.0, 1.0, 1.0],
+            [51.0, 1.0, 1.0, 1.0],
+            [52.0, 0.7997601628303528, 0.7997601628303528, 0.7997601628303528],
+            [53.0, 0.5999200344085693, 0.5999200344085693, 0.5999200344085693],
+            [54.0, 0.4000799357891083, 0.4000799357891083, 0.4000799357891083],
+            [55.0, 0.20023980736732483, 0.20023980736732483, 0.20023980736732483],
+            [56.0, 9.999999747378752e-06, 9.999999747378752e-06, 9.999999747378752e-06],
+            [241.0, 9.999999747378752e-06, 9.999999747378752e-06, 9.999999747378752e-06]
+          ]
+        },
+        {
+          "name": "bullet0.scale",
+          "interpolation": "LINEAR",
+          "sourceKeyCount": 241,
+          "keys": [
+            [1.0, 1.0, 1.0, 1.0],
+            [66.0, 1.0, 1.0, 1.0],
+            [67.0, 0.7997601628303528, 0.7997601628303528, 0.7997601628303528],
+            [68.0, 0.5999200344085693, 0.5999200344085693, 0.5999200344085693],
+            [69.0, 0.4000799357891083, 0.4000799357891083, 0.4000799357891083],
+            [70.0, 0.20023980736732483, 0.20023980736732483, 0.20023980736732483],
+            [71.0, 9.999999747378752e-06, 9.999999747378752e-06, 9.999999747378752e-06],
+            [241.0, 9.999999747378752e-06, 9.999999747378752e-06, 9.999999747378752e-06]
+          ]
+        },
+        {
+          "name": "righthand.scale",
+          "interpolation": "LINEAR",
+          "sourceKeyCount": 2,
+          "keys": [
+            [1.0, 1.0, 1.5, 1.0],
+            [241.0, 1.0, 1.5, 1.0]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "static_bolt_caught",
+      "duration": 0.05,
+      "sourceCurveCount": 150,
+      "selectedSlotCurveCount": 140,
+      "tracks": [
+        {
+          "name": "bullets.scale",
+          "interpolation": "LINEAR",
+          "sourceKeyCount": 2,
+          "keys": [
+            [1.0, 9.999999747378752e-06, 9.999999747378752e-06, 9.999999747378752e-06],
+            [4.0, 9.999999747378752e-06, 9.999999747378752e-06, 9.999999747378752e-06]
+          ]
+        },
+        {
+          "name": "righthand.scale",
+          "interpolation": "LINEAR",
+          "sourceKeyCount": 2,
+          "keys": [
+            [1.0, 1.0, 1.5, 1.0],
+            [4.0, 1.0, 1.5, 1.0]
+          ]
+        }
+      ]
+    }
+  ],
+  "runtimeControls": {
+    "ammoDisplay": {
+      "clip": "ammo_display",
+      "tracks": [
+        "bullet4.scale",
+        "bullet3.scale",
+        "bullet2.scale",
+        "bullet1.scale",
+        "bullet0.scale"
+      ]
+    },
+    "boltCaught": {
+      "clip": "static_bolt_caught",
+      "tracks": [
+        "bullets.scale"
+      ]
+    }
+  },
+  "displayPolicy": "visible-feed-window: min(magazine, authored indicator count), not total capacity",
+  "ammoDisplay": {
+    "control": "ammoDisplay",
+    "levels": [
+      {
+        "minimum": 0,
+        "time": 1.1666666269302368
+      },
+      {
+        "minimum": 1,
+        "time": 0.9166666865348816
+      },
+      {
+        "minimum": 2,
+        "time": 0.6666666865348816
+      },
+      {
+        "minimum": 3,
+        "time": 0.4166666567325592
+      },
+      {
+        "minimum": 4,
+        "time": 0.1666666716337204
+      },
+      {
+        "minimum": 5,
+        "time": 0.0
+      }
+    ]
+  },
+  "weightedDescendants": {
+    "bullet0": {
+      "Weapon_Magazine": {
+        "bullet0": 32
+      }
+    },
+    "bullet1": {
+      "Weapon_Magazine": {
+        "bullet1": 32
+      }
+    },
+    "bullet2": {
+      "Weapon_Magazine": {
+        "bullet2": 32
+      }
+    },
+    "bullet3": {
+      "Weapon_Magazine": {
+        "bullet3": 32
+      }
+    },
+    "bullet4": {
+      "Weapon_Magazine": {
+        "bullet4": 32
+      }
+    },
+    "bullets": {
+      "Weapon_Magazine": {
+        "bullet1": 32,
+        "bullet0": 32,
+        "bullet2": 32,
+        "bullet3": 32,
+        "bullet4": 32
+      }
+    },
+    "righthand": {
+      "Arms_Right": {
+        "righthand_pos": 24
+      }
+    }
+  }
+}

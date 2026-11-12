@@ -210,6 +210,59 @@ test('aborting one request rejects it promptly without cancelling another waiter
   assert.equal(f.calls.filter(entry => entry.type === 'gltf').length, 1)
 })
 
+test('a compatible skin swap is atomic and preserves the exact player, skeleton, materials and other instances', async (t) => {
+  const data = fixture()
+  data.manifest.skins.sakura = { url: 'skins/sakura.json' }
+  const f = setup(t, data, {
+    json(entry) {
+      if (entry.url.endsWith('manifest.json'))
+        return data.manifest
+      const skin = structuredClone(data.skin)
+      if (entry.url.endsWith('sakura.json')) {
+        skin.skinId = 'sakura'
+        skin.materials.weapon.map.url = '../textures/sakura.png'
+      }
+      return skin
+    },
+  })
+  const original = await f.assets.load(request)
+  const alternate = await f.assets.load({ ...request, skinId: 'sakura' })
+  const a = f.assets.instantiate(original)
+  const b = f.assets.instantiate(original)
+  const mesh = a.root.getObjectByName('WeaponMesh')
+  const material = mesh.material
+  const skeleton = mesh.skeleton
+  const arms = a.root.getObjectByName('Arms').material
+  a.player.play('idle', { fade: 0 })
+  a.player.advance(0.35)
+  const playback = a.player.snapshot()
+  f.assets.applySkin(a, alternate)
+  assert.equal(a.skinId, 'sakura')
+  assert.equal(mesh.material, material)
+  assert.equal(mesh.skeleton, skeleton)
+  assert.equal(a.root.getObjectByName('Arms').material, arms)
+  assert.equal(arms.map, null)
+  assert.deepEqual(a.player.snapshot(), playback)
+  assert.notEqual(mesh.material.map, b.root.getObjectByName('WeaponMesh').material.map)
+  assert.equal(b.skinId, 'smite')
+  assert.equal(b.root.getObjectByName('WeaponMesh').material.map, f.textures[0])
+  assert.throws(() => f.assets.applySkin(a, { ...alternate }), /this scope/)
+  assert.equal(a.skinId, 'sakura')
+  f.assets.applySkin(a, original)
+  assert.equal(material.map, f.textures[0])
+  a.dispose()
+  assert.throws(() => f.assets.applySkin(a, alternate), /live instance/)
+  f.assets.applySkin(b, alternate)
+  assert.equal(b.skinId, 'sakura', 'releasing one instance did not destroy the shared replacement map')
+})
+
+test('a skin cannot replace character arm materials', async (t) => {
+  const data = fixture()
+  data.skin.materials.armsLeft = structuredClone(data.skin.materials.weapon)
+  const f = setup(t, data)
+  await assert.rejects(f.assets.load(request), /never character arms/)
+})
+
 test('out-of-order skin requests warm independent handles without creating a stale visual instance', async (t) => {
   const data = fixture()
   data.manifest.skins.alternate = { url: 'skins/alternate.json' }
@@ -412,4 +465,110 @@ test('a failing instance disposer cannot skip other instances or shared resource
   assert.equal(second.player.snapshot().disposed, true)
   for (const entry of f.calls) assert.equal(f.resources.has(entry.name), false)
   assert.doesNotThrow(() => f.assets.dispose())
+})
+
+function withControls() {
+  const data = fixture()
+  data.gltf.animations.push(new THREE.AnimationClip('ammo_display', 1, [
+    new THREE.VectorKeyframeTrack('WeaponBone.scale', [0, 1], [1, 1, 1, 0.00001, 0.00001, 0.00001]),
+    new THREE.NumberKeyframeTrack('Arms.position[y]', [0, 1], [100, 200]),
+  ]))
+  data.manifest.clips.push({ name: 'ammo_display', duration: 1 })
+  data.manifest.runtimeControls = {
+    ammoDisplay: {
+      clip: 'ammo_display',
+      tracks: ['WeaponBone.scale'],
+    },
+  }
+  data.manifest.ammoDisplay = {
+    control: 'ammoDisplay',
+    levels: [
+      { minimum: 0, time: 1 },
+      { minimum: 1, time: 0 },
+    ],
+  }
+  return data
+}
+
+test('manifest controls preflight and instantiate as per-instance sparse bindings, preserving main actions and skins', async (t) => {
+  const f = setup(t, withControls())
+  const handle = await f.assets.load(request)
+  const a = f.assets.instantiate(handle)
+  const b = f.assets.instantiate(handle)
+  a.player.play('idle')
+  b.player.play('idle')
+  a.player.setControls({ ammoDisplay: 1 })
+  b.player.setControls({ ammoDisplay: 0 })
+  assert.ok(a.root.getObjectByName('WeaponBone').scale.x < 0.00002)
+  assert.equal(b.root.getObjectByName('WeaponBone').scale.x, 1)
+  assert.equal(f.data.gltf.scene.getObjectByName('WeaponBone').scale.x, 1)
+  assert.equal(a.root.getObjectByName('Arms').position.y, 0)
+  a.player.advance(0.5)
+  assert.equal(a.root.getObjectByName('WeaponBone').position.x, 1)
+  assert.equal(a.player.snapshot().controls.bindings, 1)
+  f.assets.dispose()
+  for (const instance of [a, b]) {
+    assert.equal(instance.player.snapshot().controls.bindings, 0)
+    assert.equal(instance.root.getObjectByName('WeaponBone').scale.x, 1)
+    assert.equal(instance.player.snapshot().disposed, true)
+  }
+})
+
+test('invalid controls and ammo thresholds fail template preparation before cloning or downloading textures', async (t) => {
+  for (const [label, change] of [
+    [
+      'missing clip',
+      data => data.manifest.runtimeControls.ammoDisplay.clip = 'absent',
+    ],
+    [
+      'missing track',
+      data => data.manifest.runtimeControls.ammoDisplay.tracks = ['Absent.scale'],
+    ],
+    [
+      'empty tracks',
+      data => data.manifest.runtimeControls.ammoDisplay.tracks = [],
+    ],
+    [
+      'duplicate track',
+      data => data.manifest.runtimeControls.ammoDisplay.tracks.push('WeaponBone.scale'),
+    ],
+    [
+      'null controls',
+      data => data.manifest.runtimeControls = null,
+    ],
+    [
+      'unknown display control',
+      data => data.manifest.ammoDisplay.control = 'absent',
+    ],
+    [
+      'no empty level',
+      data => data.manifest.ammoDisplay.levels[0].minimum = 1,
+    ],
+    [
+      'duplicate threshold',
+      data => data.manifest.ammoDisplay.levels[1].minimum = 0,
+    ],
+    [
+      'fractional threshold',
+      data => data.manifest.ammoDisplay.levels[1].minimum = 0.5,
+    ],
+    [
+      'time outside clip',
+      data => data.manifest.ammoDisplay.levels[1].time = 2,
+    ],
+    [
+      'NaN sample',
+      data => data.manifest.ammoDisplay.levels[1].time = NaN,
+    ],
+  ]) {
+    await t.test(label, async (child) => {
+      const data = withControls()
+      change(data)
+      const f = setup(child, data)
+      const instantiate = child.mock.method(f.resources, 'instantiate')
+      await assert.rejects(f.assets.load(request), /control|ammo display/i)
+      assert.equal(instantiate.mock.callCount(), 0)
+      assert.equal(f.calls.filter(call => call.type === 'texture').length, 0)
+    })
+  }
 })

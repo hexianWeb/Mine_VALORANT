@@ -11,11 +11,11 @@
   "materials": {
     "weapon": {
       "map": {
-        "url": "../textures/018027b89253bd77f7cafe717a3d44de4f0ac86a9b2dd88b9a2d52f706645a75.png",
-        "sha256": "018027b89253bd77f7cafe717a3d44de4f0ac86a9b2dd88b9a2d52f706645a75",
-        "bytes": 350051,
-        "width": 2048,
-        "height": 2048,
+        "url": "../textures/weapon.png",
+        "sha256": "29ae20be31b52db569cfec60ed5fdd8afe16e9368991f8fd0677b2ebe4a4aab1",
+        "bytes": 13908,
+        "width": 256,
+        "height": 256,
         "colorSpace": "srgb",
         "flipY": false,
         "magFilter": "nearest",

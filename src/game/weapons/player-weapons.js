@@ -1,6 +1,7 @@
 import { classicDefinition } from './definitions/classic.js'
 import { phantomDefinition } from './definitions/phantom.js'
 import { EquipmentController } from './equipment-controller.js'
+import { WeaponAudio } from './weapon-audio.js'
 import { WeaponViewModel } from './weapon-viewmodel.js'
 
 export const practiceLoadout = Object.freeze([
@@ -60,6 +61,7 @@ function immutable(value) {
 export class PlayerWeapons {
   #controller
   #view
+  #audio
   #aim
   #world
   #definitions
@@ -71,7 +73,7 @@ export class PlayerWeapons {
   #initialSelectionId
   #disposed = false
 
-  constructor({ assets, layer, aim, world, definitions = [classicDefinition, phantomDefinition], loadout = practiceLoadout, initialSlot = 'secondary', fixedDelta = 1 / 60 }) {
+  constructor({ assets, layer, aim, world, audio = null, definitions = [classicDefinition, phantomDefinition], loadout = practiceLoadout, initialSlot = 'secondary', fixedDelta = 1 / 60 }) {
     this.#controller = new EquipmentController({
       definitions,
       loadout,
@@ -85,6 +87,13 @@ export class PlayerWeapons {
       : inventory.slots.find(slot => slot.id === initialSlot)?.instanceId ?? null
     this.#aim = aim
     this.#world = world
+    this.#audio = audio
+      ? new WeaponAudio({
+          audio,
+          assets,
+          definitions: definitions.filter(definition => inventory.weapons.some(weapon => weapon.definitionId === definition.id)),
+        })
+      : null
     this.#view = new WeaponViewModel({
       assets,
       layer,
@@ -110,6 +119,7 @@ export class PlayerWeapons {
       'previousEquipped',
       'reload',
       'inspect',
+      'cycleSkin',
       'fire',
     ].filter(action => input.consumePressed(action)).map(action => ({ action }))
     for (const { action } of edges) {
@@ -121,11 +131,12 @@ export class PlayerWeapons {
         previousEquipped: { type: 'selectPrevious' },
         reload: { type: 'reload' },
         inspect: { type: 'inspect' },
+        cycleSkin: { type: 'cycleSkin', instanceId: this.#controller.snapshot().activeId },
         fire: { type: 'fire' },
       }[action]
       if (paused && command)
         this.#rememberPausedSelection(command)
-      else if (command)
+      else if (command && (command.type !== 'cycleSkin' || command.instanceId))
         this.#controller.queue(command)
     }
     if (paused)
@@ -205,9 +216,11 @@ export class PlayerWeapons {
     this.#events.push(...batch.events)
     this.#events = this.#events.slice(-64)
     this.#view.receive(batch, snapshot, aim)
+    this.#audio?.receive(batch, snapshot)
   }
 
   motion(time) {
+    this.#audio?.motion(time)
     this.#view.motion(time, this.#controller.snapshot(), this.#aim.sample(time.presentationTime))
   }
 
@@ -247,6 +260,7 @@ export class PlayerWeapons {
     return immutable({
       ...this.#controller.snapshot(),
       view: this.#view.snapshot(),
+      audio: this.#audio?.snapshot() ?? null,
       lastShot: this.#lastShot,
       recentEvents: [...this.#events],
     })
@@ -257,6 +271,7 @@ export class PlayerWeapons {
       return
     this.#disposed = true
     this.#controller.dispose()
+    this.#audio?.dispose()
     this.#view.dispose()
   }
 }

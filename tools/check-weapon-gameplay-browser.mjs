@@ -80,6 +80,49 @@ try {
   await frames(4)
   report.lock = await state()
   assert.equal(report.lock.inventory.weapons.find(w => w.instanceId === 'pistol').magazine, 12, 'first click only locks')
+  await key('KeyT', 't', 84)
+  await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.view.action === \'inspect\'')
+  await evaluate(`(() => {
+    const app = __RANGE_ROOM__, state = app.inspection.player.snapshot().weapons;
+    const mesh = app.render.viewmodel.scene.getObjectByName('Weapon_Body');
+    const arms = ['Arms_Left','Arms_Right'].map(name => app.render.viewmodel.scene.getObjectByName(name));
+    globalThis.__SKIN_PROOF__ = { mesh, material: mesh.material, skeleton: mesh.skeleton, map: mesh.material.map,
+      arms: arms.map(a => ({ mesh:a, material:a.material, map:a.material.map })),
+      actionId:state.action.actionId, playbackId:state.view.playback.current.playbackId,
+      drawCount:state.recentEvents.filter(e=>e.type==='DrawStarted').length };
+  })()`)
+  await key('KeyK', 'k', 75)
+  await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.view.skinId === \'sakura\'')
+  report.skinSwap = await evaluate(`(() => {
+    const state = __RANGE_ROOM__.inspection.player.snapshot().weapons, proof = __SKIN_PROOF__;
+    const mesh = __RANGE_ROOM__.render.viewmodel.scene.getObjectByName('Weapon_Body');
+    return { sameMesh: mesh===proof.mesh, sameSkeleton:mesh.skeleton===proof.skeleton,
+      sameMaterial:mesh.material===proof.material, changedMap:mesh.material.map!==proof.map,
+      sameArms:proof.arms.every(a=>a.mesh.material===a.material && a.material.map===a.map),
+      sameAction:state.action?.actionId===proof.actionId, samePlayback:state.view.playback.current.playbackId===proof.playbackId,
+      drawCount:state.recentEvents.filter(e=>e.type==='DrawStarted').length, beforeDrawCount:proof.drawCount,
+      skin:state.view.skinId, magazine:state.view.weapon.magazine,
+      imageSize:[mesh.material.map.image.width,mesh.material.map.image.height], instances:state.view.instances };
+  })()`)
+  for (const check of [
+    'sameMesh',
+    'sameSkeleton',
+    'sameMaterial',
+    'changedMap',
+    'sameArms',
+    'sameAction',
+    'samePlayback',
+  ])
+    assert.equal(report.skinSwap[check], true, `skin swap: ${check}`)
+  assert.equal(report.skinSwap.drawCount, report.skinSwap.beforeDrawCount)
+  assert.equal(report.skinSwap.magazine, 12)
+  assert.equal(report.skinSwap.instances, 1)
+  assert.deepEqual(report.skinSwap.imageSize, [2048, 2048])
+  await screenshot('classic-sakura-inspect.png')
+  await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.view.action === \'idle\'')
+  await screenshot('classic-sakura-ready.png')
+  await key('KeyK', 'k', 75)
+  await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.view.skinId === \'smite\'')
   await mouse('mousePressed')
   await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.lastShot !== null')
   await evaluate('new Promise(resolve => setTimeout(resolve, 450))')
@@ -198,6 +241,23 @@ try {
   assert.equal(report.respawn.inventory.weapons.find(w => w.instanceId === 'pistol').magazine, 12)
   assert.equal(report.respawn.inventory.weapons.find(w => w.instanceId === 'rifle').magazine, 30)
   assert.ok(report.respawn.view.maximumInstances <= 2)
+  report.repeatCycles = []
+  for (let index = 0; index < 3; index++) {
+    await key('Digit1', '1', 49)
+    await ready('rifle')
+    await key('Digit2', '2', 50)
+    await ready('pistol')
+    await key('KeyK', 'k', 75)
+    const expectedSkin = index % 2 === 0
+      ? 'sakura'
+      : 'smite'
+    await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.view.skinId === '${expectedSkin}'`)
+    const current = await state()
+    assert.equal(current.view.visibleInstances, 1)
+    assert.ok(current.view.maximumInstances <= 2)
+    assert.equal(current.inventory.weapons.find(w => w.instanceId === 'pistol').magazine, 12)
+    report.repeatCycles.push({ skin: current.view.skinId, instances: current.view.instances, maximumInstances: current.view.maximumInstances })
+  }
   report.disposal = await evaluate(`(() => {
     const app = __RANGE_ROOM__, weapons = app.inspection.player.weapons, scene = app.render.viewmodel.scene;
     app.engine.destroy();
@@ -221,6 +281,14 @@ try {
   await ready('rifle')
   report.gameOnly = await state()
   await screenshot('game-only-phantom.png')
+  await key('Digit2', '2', 50)
+  await ready('pistol')
+  await key('KeyK', 'k', 75)
+  await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.view.skinId === \'sakura\'')
+  report.gameOnlySkin = await state()
+  assert.equal(report.gameOnlySkin.view.weapon.magazine, 11, 'switching and changing skin preserve spent ammunition without Editor')
+  assert.equal(report.gameOnlySkin.view.visibleInstances, 1)
+  await screenshot('game-only-classic-sakura.png')
   await evaluate('__RANGE_ROOM__.engine.destroy()')
   assert.deepEqual(report.errors, [])
   assert.ok(!report.messages.some(m => /PropertyBinding|no target node|Failed to load texture/i.test(m.text ?? '')))

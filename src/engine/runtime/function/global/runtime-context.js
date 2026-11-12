@@ -6,6 +6,7 @@ import { Engine } from '../../engine.js'
 import { createFrameDriver } from '../../platform/frame-driver.js'
 import { Size } from '../../platform/size.js'
 import { ResourceManager } from '../../resource/index.js'
+import { AudioSystem } from '../audio/audio-system.js'
 import { WorldManager } from '../framework/world/world-manager.js'
 import { createInputSystem } from '../input/input-system.js'
 import { createPhysicsSystem } from '../physics/index.js'
@@ -18,6 +19,7 @@ const defaults = {
   camera: size => new THREE.PerspectiveCamera(50, size.aspect, 0.05, 400),
   render: createRenderSystem,
   input: createInputSystem,
+  audio: options => new AudioSystem(options),
   physics: createPhysicsSystem,
   world: () => new WorldManager(),
   frameDriver: createFrameDriver,
@@ -79,6 +81,7 @@ export class RuntimeContext {
         signal: this.#controller.signal,
       }))
       this.#controller.signal.throwIfAborted()
+      this.audio = this.#owned.add(factories.audio({ element: canvas }))
       this.input = this.#owned.add(factories.input({ element: canvas, bindings: inputBindings }))
       this.physics = this.#owned.add(factories.physics())
       this.world = this.#owned.add(factories.world())
@@ -87,6 +90,13 @@ export class RuntimeContext {
         frameDriver: factories.frameDriver(),
         world: this.world,
         render: this.render,
+        audio: this.audio,
+        listener: () => this.camera.position?.toArray
+          ? {
+              position: this.camera.position.toArray(),
+              quaternion: this.camera.quaternion.toArray(),
+            }
+          : undefined,
       }))
       this.engine.events.on('destroy', () => this.dispose())
       this.state = 'ready'

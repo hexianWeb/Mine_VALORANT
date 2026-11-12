@@ -1,0 +1,12 @@
+{
+  "baseDirectory": "public/weapons/classic/v1",
+  "assetVersion": "v2",
+  "variants": [
+    {
+      "skinId": "sakura",
+      "texture": "skin_work_folder/classic_skin_work/classic_sakura_weapon.png",
+      "sourceBlend": "skin_work_folder/classic_skin_work/Classic_Sakura_Animated.blend",
+      "auditFile": "tools/weapons/skin-releases/classic-sakura-audit.json"
+    }
+  ]
+}

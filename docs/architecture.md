@@ -138,9 +138,13 @@ Context 每个应用实例独立持有。业务代码不使用全局服务查找
 
 角色移动调用关系：Player 写 command → Motor 调用 characterMotion → PhysicsSystem 调用 controller 的 moveAABB → Motor 提交 Transform。controller 直接依赖 physics/collision-world 的盒子数据和空间查询。
 
-武器玩法位于 `game/weapons`：EquipmentController 私有持有 WeaponInventory，接收普通命令和固定步快照，返回只读事实及资源准备意图；不依赖 Three.js、DOM 或 Promise。PlayerWeapons 连接有序输入、装备裁定、AimState 射击方向与碰撞盒射线，再把事实交给 WeaponViewModel。当前练枪房使用 Classic Smite 与 Phantom Tactiplay，支持切换、射击、换弹打断、检视、ADS 和实例冷却；尚无伤害系统或运行时音频。
+武器玩法位于 `game/weapons`：EquipmentController 私有持有 WeaponInventory，接收普通命令和固定步快照，返回只读事实及资源准备意图；不依赖 Three.js、DOM 或 Promise。PlayerWeapons 连接有序输入、装备裁定、AimState 射击方向与碰撞盒射线，再把事实交给 WeaponViewModel 与独立 WeaponAudio。当前练枪房使用 Classic 与 Phantom，支持切换、射击、换弹打断、检视、ADS、实例冷却及本地动作声音；Classic 还支持 smite/sakura 兼容换肤。换肤同样走 epoch/revision 票据、固定步事实和到时的表现提交，不重建 Mixer，不改弹药或手臂材质。尚无完整伤害系统或 3p 空间声。
 
 WeaponAssets 复用 ResourceManager，在关卡作用域加载发布包，实例独有骨架／材质／AnimationPlayer，共享几何与纹理；退出关卡先销毁实例再卸载模板。异步加载只预热资源，motion 阶段才创建有效票据对应的实例并排队确认，下一固定步裁定装备。WeaponViewModel 拥有最多 active / staged 两个实例，按公共表现时间提交可见枪；RenderSystem 独占独立视模 Scene、Camera 与 pass。function/animation 只管理播放、采样和表现事件，不能决定射速、补弹或装备时机。接口见[武器玩法模块](weapons/gameplay.md)与[发布和播放](weapons/animation-and-assets.md)。
+
+AnimationPlayer 另支持显式的稀疏控制白名单与片段局部绝对采样。每次先恢复上次覆盖前的主姿态，再管理 Action/Mixer，最后捕获当前底层值并覆盖；控制不参与混合、不拥有时钟或事件，也不决定弹药。WeaponAssets 预检 runtimeControls/ammoDisplay，WeaponViewModel 使用已展示事实的 magazine 选择显式档位。Judge/Odin 源曲线数值验收与完整发布的边界见[稀疏控制](weapons/runtime-controls.md)。
+
+RuntimeContext 另持有 function/audio 的 AudioSystem（最多一个按需创建的 AudioContext）。resource.binary 仅下载/校验原始 bytes；WeaponAssets 通过注入的 decode 能力持有关卡 AudioBank。WeaponAudio 在 motion 消费已提交事实及独立 marker 游标；Engine 在全部 presentation 之后、swap/render 之前一次 flush，使用最终 listener pose。rendererTick 不发声。暂停/变速/丢时通过显式音频时钟段处理，卸载先停作用域声音再释放 bank 和共享 bytes，最后由 runtime 关闭 context。接口及验收见[运行时音频](weapons/audio.md)。
 
 ## 每帧调用
 

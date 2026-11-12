@@ -136,6 +136,18 @@ export class WeaponInventory {
     return this.get(instanceId)
   }
 
+  /** A compatible cosmetic commit never patches gameplay state or instance identity. */
+  setSkin(instanceId, skinId) {
+    const state = this.#weapons.get(instanceId)
+    if (!state)
+      throw new Error(`Unknown weapon instance: ${instanceId}`)
+    this.#weapons.set(instanceId, {
+      ...state,
+      skinId: identifier(skinId, 'skinId'),
+    })
+    return this.get(instanceId)
+  }
+
   /** Returns an instance ID, or null for an empty or unknown slot. */
   instanceAt(slotId) {
     return this.#slotInstances.get(slotId) ?? null

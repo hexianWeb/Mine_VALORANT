@@ -1,6 +1,8 @@
 import * as THREE from 'three/webgpu'
 import { ResourceManager } from '../engine/runtime/resource/resource-manager.js'
 import { WeaponAssets } from '../game/weapons/assets/weapon-assets.js'
+import { classicDefinition } from '../game/weapons/definitions/classic.js'
+import { phantomDefinition } from '../game/weapons/definitions/phantom.js'
 
 const resources = new ResourceManager()
 const assets = new WeaponAssets({ resources, scopeId: 'browser-validation' })
@@ -33,12 +35,13 @@ async function load(weaponId) {
   if (entries.has(weaponId))
     return entries.get(weaponId)
   globalThis.__WEAPON_PREVIEW__.stage = `loading:${weaponId}`
+  const definition = weaponId === 'classic'
+    ? classicDefinition
+    : phantomDefinition
   const handle = await assets.load({
     weaponId,
-    assetVersion: 'v1',
-    skinId: weaponId === 'classic'
-      ? 'smite'
-      : 'tactiplay',
+    assetVersion: definition.assets.assetVersion,
+    skinId: definition.assets.defaultSkinId,
   })
   globalThis.__WEAPON_PREVIEW__.stage = `instantiating:${weaponId}`
   const instance = assets.instantiate(handle)

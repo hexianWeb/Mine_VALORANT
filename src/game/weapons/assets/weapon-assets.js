@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { AnimationPlayer } from '../../../engine/runtime/function/animation/animation-player.js'
 import { ClipLibrary } from '../../../engine/runtime/function/animation/clip-library.js'
+import { validateAmmoDisplay } from './weapon-control-profile.js'
 
 let nextScope = 0
 
@@ -113,6 +114,8 @@ function validateSkin(manifest, skin, request) {
   }
   if (!skin.materials || typeof skin.materials !== 'object')
     throw new Error('[WeaponAssets] Missing skin materials')
+  if (!skin.materials.weapon || Object.keys(skin.materials).some(role => !['weapon', 'scope'].includes(role)))
+    throw new Error('[WeaponAssets] Skins may only replace weapon/scope materials, never character arms')
 }
 
 function textureSettings(map) {
@@ -147,13 +150,19 @@ export class WeaponAssets {
   #handles = new WeakMap()
   #names = new Set()
   #instances = new Set()
+  #instanceRecords = new WeakMap()
+  #audio
+  #audioTasks = new Map()
+  #audioCues = new Map()
+  #manifests = new Map()
 
-  constructor({ resources, scopeId, baseUrl = '/weapons/', signal } = {}) {
+  constructor({ resources, scopeId, baseUrl = '/weapons/', signal, audio = null } = {}) {
     identifier(scopeId, 'scopeId')
     if (!resources || !['load', 'get', 'instantiate', 'unload'].every(key => typeof resources[key] === 'function'))
       throw new TypeError('[WeaponAssets] Expected a ResourceManager')
     identifier(baseUrl, 'baseUrl')
     this.#resources = resources
+    this.#audio = audio
     this.#baseUrl = baseUrl.endsWith('/')
       ? baseUrl
       : `${baseUrl}/`
@@ -163,6 +172,50 @@ export class WeaponAssets {
     signal?.addEventListener('abort', this.#onAbort, { once: true })
     if (signal?.aborted)
       this.dispose()
+  }
+
+  get audioScope() { return this.#prefix }
+
+  audioCue(id) { return this.#audioCues.get(id) ?? null }
+
+  manifest(weaponId, assetVersion) { return this.#manifests.get(`${weaponId}:${assetVersion}`) ?? null }
+
+  /** Audio is optional and cannot block VisualPrepared. Successful siblings remain cached. */
+  async preloadAudio(profile) {
+    this.#assertOpen()
+    if (!this.#audio || !profile)
+      return []
+    return Promise.allSettled(Object.values(profile.cues).map((cue) => {
+      let task = this.#audioTasks.get(cue.id)
+      if (!task) {
+        task = (async () => {
+          const bytes = await this.#loadEntry({
+            name: `${this.#prefix}:audio:${cue.id}`,
+            type: 'binary',
+            url: cue.url,
+            options: { sha256: cue.sha256 },
+          })
+          const buffer = await this.#audio.decode(bytes)
+          this.#assertOpen()
+          this.#audioCues.set(cue.id, Object.freeze({ ...cue, buffer }))
+        })().catch((error) => {
+          if (this.#audioTasks.get(cue.id) === task)
+            this.#audioTasks.delete(cue.id)
+          if (!this.#closed)
+            this.#audio.reportOnce(`load:${cue.id}`, error)
+          throw error
+        })
+        this.#audioTasks.set(cue.id, task)
+      }
+      return task
+    }))
+  }
+
+  audioSnapshot() {
+    return {
+      cues: this.#audioCues.size,
+      decodedBytes: Array.from(this.#audioCues.values()).reduce((sum, cue) => sum + cue.buffer.length * cue.buffer.numberOfChannels * 4, 0),
+    }
   }
 
   /** AssetReady only: no cloned model, mixer, gameplay ticket, or scene attachment is created. */
@@ -216,9 +269,16 @@ export class WeaponAssets {
     ])
     validateSkin(manifest, skin, request)
     const actions = profileFrom(manifest)
+    const controls = manifest.runtimeControls
     // Validates all referenced clips and their actual template bindings without creating a mixer.
-    const library = new ClipLibrary({ root: gltf.scene, clips: gltf.animations, actions })
+    const library = new ClipLibrary({
+      root: gltf.scene,
+      clips: gltf.animations,
+      actions,
+      controls,
+    })
     for (const role of manifest.requiredActions) library.get(role)
+    validateAmmoDisplay(manifest, library)
     const bindings = new Map()
     const sourceMaterials = new Map()
     gltf.scene.traverse((object) => {
@@ -258,8 +318,10 @@ export class WeaponAssets {
       modelKey,
       clips: gltf.animations,
       actions,
+      controls,
       bindings,
     })
+    this.#manifests.set(`${request.weaponId}:${request.assetVersion}`, manifest)
     return handle
   }
 
@@ -320,9 +382,23 @@ export class WeaponAssets {
           ? object.material.map(cloneMaterial)
           : cloneMaterial(object.material)
       })
-      player = new AnimationPlayer({ root, clips: record.clips, actions: record.actions })
-      instance = Object.freeze({ root, player, dispose })
+      player = new AnimationPlayer({
+        root,
+        clips: record.clips,
+        actions: record.actions,
+        controls: record.controls,
+      })
+      const state = { handle, materials }
+      instance = Object.freeze({
+        root,
+        player,
+        dispose,
+        get skinId() {
+          return state.handle.skinId
+        },
+      })
       this.#instances.add(instance)
+      this.#instanceRecords.set(instance, state)
       return instance
     }
     catch (error) {
@@ -336,6 +412,38 @@ export class WeaponAssets {
     }
   }
 
+  /** Atomic compatible material swap. No nodes, skeleton, mixer, actions or shared maps are rebuilt. */
+  applySkin(instance, handle) {
+    this.#assertOpen()
+    const state = this.#instanceRecords.get(instance)
+    const next = this.#handles.get(handle)
+    if (!state || !this.#instances.has(instance) || !next)
+      throw new Error('[WeaponAssets] Expected a live instance and AssetReady handle from this scope')
+    const previous = this.#handles.get(state.handle)
+    if (previous.modelKey !== next.modelKey)
+      throw new Error('[WeaponAssets] A skin swap requires the same model version')
+    // Resolve every assignment before touching any material; failure must leave the old skin intact.
+    const updates = []
+    const names = new Set([
+      ...previous.bindings.keys(),
+      ...next.bindings.keys(),
+    ])
+    for (const name of names) {
+      const matches = [...state.materials].filter(([source]) => source.name === name)
+      if (!matches.length)
+        throw new Error(`[WeaponAssets] Missing instance material: ${name}`)
+      for (const [source, material] of matches)
+        updates.push([material, next.bindings.get(name) ?? source.map])
+    }
+    for (const [material, map] of updates) {
+      if (material.map !== map) {
+        material.map = map
+        material.needsUpdate = true
+      }
+    }
+    state.handle = handle
+  }
+
   #assertOpen() {
     if (this.#closed)
       throw abortError()
@@ -346,6 +454,7 @@ export class WeaponAssets {
     if (this.#closed)
       return
     this.#closed = true
+    this.#audio?.invalidate({ scope: this.#prefix })
     this.#externalSignal?.removeEventListener('abort', this.#onAbort)
     this.#controller.abort(abortError())
     const errors = []
@@ -367,7 +476,11 @@ export class WeaponAssets {
     }
     this.#names.clear()
     this.#tasks.clear()
+    this.#audioTasks.clear()
+    this.#audioCues.clear()
+    this.#manifests.clear()
     this.#handles = new WeakMap()
+    this.#instanceRecords = new WeakMap()
     if (errors.length)
       throw new AggregateError(errors, '[WeaponAssets] Scope disposal failed')
   }

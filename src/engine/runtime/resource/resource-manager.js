@@ -254,6 +254,7 @@ function disposeAsset(type, asset) {
       disposeObject3D(asset.scene)
       break
     case 'json':
+    case 'binary':
       break
   }
 }

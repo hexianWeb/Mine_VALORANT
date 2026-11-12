@@ -4,6 +4,7 @@ import { GameObject, Level, MeshComponent, TransformComponent } from '../../engi
 import { createEnvironmentProxy } from '../../engine/runtime/function/render/sky-environment.js'
 import { createPlayer, PlayerComponent } from '../player/player.js'
 import { WeaponAssets } from '../weapons/assets/weapon-assets.js'
+import { classicDefinition } from '../weapons/definitions/classic.js'
 import { loadRoomAssets } from './assets/room-assets.js'
 import { loadCollisionLayer } from './collision.js'
 import { rangeRoomConfig } from './config.js'
@@ -30,13 +31,14 @@ export class RangeRoomLevel extends Level {
   #controller = new AbortController()
   #bindings = new Disposer()
 
-  constructor({ scene, camera, resources, input = null, physics = null, render = null, maxAnisotropy = 16, config = {} }) {
+  constructor({ scene, camera, resources, input = null, physics = null, render = null, audio = null, maxAnisotropy = 16, config = {} }) {
     super({ scene })
     this.camera = camera
     this.resources = resources
     this.input = input
     this.physics = physics
     this.render = render
+    this.audio = audio
     this.settings = {
       ...rangeRoomConfig,
       ...config,
@@ -123,10 +125,16 @@ export class RangeRoomLevel extends Level {
         if (this.collision) {
           let weapons = null
           if (this.render?.viewmodel) {
-            const assets = this.disposer.add(new WeaponAssets({ resources, scopeId: 'range-room-weapons', signal: token }))
-            weapons = { assets, layer: this.render.viewmodel }
+            const assets = this.disposer.add(new WeaponAssets({
+              resources,
+              scopeId: 'range-room-weapons',
+              signal: token,
+              audio: this.audio,
+            }))
+            weapons = { assets, layer: this.render.viewmodel, audio: this.audio }
             // Prewarm shared data only. VisualPrepared requires motion ticks after load completes.
-            await assets.load({ weaponId: 'classic', assetVersion: 'v1', skinId: 'smite' }).catch((error) => {
+            const initial = classicDefinition.assets
+            await assets.load({ weaponId: initial.modelId, assetVersion: initial.assetVersion, skinId: initial.defaultSkinId }).catch((error) => {
               token.throwIfAborted()
               console.error('[Range room] Initial weapon unavailable; select its slot to retry', error)
             })

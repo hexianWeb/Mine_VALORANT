@@ -23,6 +23,7 @@ import { decodeEXR } from './decode-exr.js'
  * @property {THREE.DataTexture} exr 场景线性半精度表面纹理（不是环境贴图）
  * @property {GLTF} gltf 解析后的模型及其关联
  * @property {any} json 解析后的 JSON
+ * @property {ArrayBuffer} binary 带完整性校验和取消的原始下载；解码能力由调用方注入
  */
 
 /** @typedef {keyof AssetTypeMap} AssetType */
@@ -42,6 +43,9 @@ import { decodeEXR } from './decode-exr.js'
  * @type {{ [K in AssetType]: (entry: AssetEntry, manager: THREE.LoadingManager) => Promise<AssetTypeMap[K]> }}
  */
 export const loaders = {
+  async binary(entry, manager) {
+    return loadCheckedBuffer(entry, manager)
+  },
   async texture(entry, manager) {
     // HTMLImage keeps TextureLoader's pixel decoding and flipY semantics. Fetch owns cancellation.
     const image = await loadImage(/** @type {string} */ (entry.url), manager, entry.options?.signal)

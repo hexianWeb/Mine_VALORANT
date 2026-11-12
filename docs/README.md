@@ -14,6 +14,8 @@
 | [CameraComponent](superpowers/specs/2026-11-11-camera-component.md) | 相机组件提取时的记录；当前玩家固定 AimState 历史接线以运行时架构为准 |
 | [武器玩法模块](weapons/gameplay.md) | Classic/Phantom 游戏闭环、控件、装备事务、固定瞄准、延迟 HUD 与生命周期 |
 | [武器发布与动画播放](weapons/animation-and-assets.md) | 发布包、AnimationPlayer、WeaponAssets、独立视模 pass、预览与主游戏验收 |
+| [武器运行时音频](weapons/audio.md) | 双枪本地声音、AudioBank、Web Audio 时钟、取消/暂停/变速与实际波形验收 |
+| [稀疏控制与弹药显示](weapons/runtime-controls.md) | Mixer 后的显式属性覆盖、Judge/Odin 源曲线、弹药事实与数值验收边界 |
 
 ### 光照与场景
 
@@ -38,7 +40,7 @@
 
 | 文档 | 范围 | 状态 |
 | --- | --- | --- |
-| [动画运行时与多枪切换](superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md) | animation 层、武器实例与背包、切换事务、资源发布、换肤、音频与验收 | 阶段 1—3 的双枪闭环已接入；运行时音频、换肤 UI 与其余枪型尚待实施 |
+| [动画运行时与多枪切换](superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md) | animation 层、武器实例与背包、切换事务、资源发布、换肤、音频与验收 | 阶段 1—4、双枪本地音频、稀疏控制及弹药事实采样已实现；其余枪型完整发布/空间声待实施，后续皮肤素材由用户处理 |
 
 ## 设计过程
 

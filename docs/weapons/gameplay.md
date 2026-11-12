@@ -1,6 +1,6 @@
 # 武器玩法模块
 
-本模块已将[动画与多枪设计](../superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md)的前三阶段接入练枪房：Classic Smite 与 Phantom Tactiplay 的准备、切换、射击、换弹、检视、固定步瞄准和视模播放形成同一条更新链。装备裁定仍只处理普通数据；PlayerWeapons 连接输入、AimState、资源和表现。音频尚未接入。
+本模块已将[动画与多枪设计](../superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md)的前四阶段接入练枪房：Classic 与 Phantom 的准备、切换、射击、换弹、检视、固定步瞄准、视模播放及兼容皮肤替换形成同一条更新链。装备裁定仍只处理普通数据；PlayerWeapons 连接输入、AimState、资源和表现。双枪的本地[运行时音频](audio.md)也已接入；后续皮肤素材由用户处理，不再自动生成或替换纹理。
 
 ## 游戏入口与控件
 
@@ -14,6 +14,7 @@
 | 主 / 副武器 | 1 / 2 |
 | 循环切枪 / 上一把 | 滚轮 / Q；上一把在完成掏枪后更新 |
 | 换弹 / 检视 | R / T |
+| 循环当前枪皮肤 | K；Classic 为 smite ↔ sakura，Phantom 目前只有一款 |
 | 回出生点 | Home；玩家复位按钮走同一排队入口 |
 | 移动 / 静步 / 蹲下 / 跳跃 | WASD / Shift / C / 空格 |
 | 释放鼠标 / 飞行观察 | Esc / V（飞行观察需要 Editor） |
@@ -84,7 +85,7 @@ equipment.step({ fixedTick: 2, fixedElapsed: 2 * fixedDelta, fixedDelta })
 | ADS 能力声明 | false | true |
 | 模型 / 默认皮肤 | classic / smite | phantom / tactiplay |
 
-弹量、射速、装备和换弹时刻依据本地 `valorant-first-person-pack` 的 manifest runtime；模式与检视时长依据来源数据及 clip。备用弹药为本项目选择的三个备用弹匣。两个 v1 模型与默认皮肤均已发布到 `public/weapons/`，见[发布和播放](animation-and-assets.md)。
+弹量、射速、装备和换弹时刻依据本地 `valorant-first-person-pack` 的 manifest runtime；模式与检视时长依据来源数据及 clip。备用弹药为本项目选择的三个备用弹匣。Classic 当前使用 v2（同一基础模型，smite/sakura 两款），Phantom 使用 v1，均已发布到 `public/weapons/`，见[发布和播放](animation-and-assets.md)。
 
 loadout 可覆盖实例的初始 magazine、reserve、skinId；其他状态从零开始。`reset()` 保留 loadout 的槽位、枪型、实例标识和皮肤，将弹药补至定义的 capacity / initialReserve，并清零冷却与射击序号。跨重生身份以 `(epoch, instanceId)` 区分。
 
@@ -112,6 +113,9 @@ HUD 由 `app/weapon-hud.js` 读取已展示事实，不能用最新背包数值�
 | `selectSlot` | slotId，空槽和未知槽无操作 |
 | `cycle` | direction: 1 或 -1，按配置顺序循环非空槽 |
 | `selectPrevious` | 选择上一笔完成切换的来源实例 |
+| `setSkin` | instanceId、skinId；准备成功后才提交，不改玩法状态；失败保留原皮肤，再次选择可重试 |
+| `cycleSkin` | instanceId；按定义的 assets.skinIds 循环，连续命令基于最新意图而非旧外观 |
+| `skinPrepared / skinFailed` | 原样回填皮肤 ticket；失败可附 message；不携带 Three 对象 |
 | `fire / reload / inspect` | 单次动作边沿；queue 返回 false 表示当前不能接收 |
 | `fireHeld` | held: boolean；auto 持续射击，semi 仍需要 fire 边沿 |
 | `prepared / prepareFailed` | 原样携带 ticket；失败可附 message |
@@ -136,7 +140,11 @@ HUD 由 `app/weapon-hud.js` 读取已展示事实，不能用最新背包数值�
 
 ## 资源与生命周期接口
 
-PrepareWeapon 携带 `{ epoch, requestId, instanceId, modelVersion, skinRevision }`。本阶段没有换肤，skinRevision 固定为 0。适配者通过快照查 definitionId / skinId，完整准备后把原票据作为 prepared 入队；异步回调不能自行装备或改变背包。
+PrepareWeapon 携带 `{ epoch, requestId, instanceId, modelVersion, skinRevision }`。skinRevision 对应当前 epoch 中该实例已提交的外观版本。适配者通过快照查 definitionId / skinId，完整准备后把原票据作为 prepared 入队；异步回调不能自行装备或改变背包。
+
+PrepareSkin 另带 ticket.skinId，异步阶段只预热兼容纹理；motion 排入 skinPrepared，下一固定步提交 SkinChanged。表现游标到达该事实时同步替换该实例的武器材质 map；节点、Skeleton、材质对象、Mixer、playbackId、动作时间、弹药和冷却不重置，也不触碰角色手臂。skinRequests 快照给出 loading/prepared/deferred/failed 与具体错误；视模的 skinError 仅显示当前实例的失败。
+
+同实例只保留最新换肤意图；旧回调不能覆盖新选择，已经接受的 SkinChanged 所需句柄则保留到展示完成。未锁定装备准备在换肤提交后以新 revision 重建；切换事务参与者的换肤延后到解锁，不替换 reserved staged。Editor 交接失效未提交请求，但保留已提交皮肤；若逻辑皮肤领先画面，返回时将保留视模绑定到已提交外观。重生按初始 loadout 恢复皮肤与弹药。
 
 CancelPreparation 是逻辑取消，不能据此中止仍有其他使用者的共享下载。DiscardPreparation 只允许清理完整票据匹配的未接受 staged 实例，禁止按 instanceId 释放当前或等待历史表现提交的实例。控制器在当前 epoch 内记住已接受票据，重复回调不会要求丢弃它们；epoch 失效时由适配者统一撤销旧资源所有权。
 
@@ -168,4 +176,4 @@ Home 与工具重生请求在下一实际 postPhysics 固定步执行，恢复�
 
 第三阶段另由 input、player-input、player、player-weapons、aim-state 相关测试验证真实动作输入、固定视角、异步准备、历史交接、Editor、暂停和重生。主游戏浏览器验收入口为 `tools/check-weapon-gameplay-browser.mjs`；资源预览检查仍使用 `tools/check-weapons-browser.mjs`。
 
-当前范围是双枪练习闭环。实时换肤 UI、其余七枪发布、Judge/Odin 控制轨道、完整伤害系统和运行时音频仍未接入；`public/audio` 的素材及动画 sound marker 不会自行播放。
+当前主游戏范围是双枪练习与 Classic 双皮肤闭环，K 输入及 HUD 已接入。Classic/Phantom 八个本地声音文件由玩法事实和独立音频游标驱动；未映射的其他素材不会自行播放，详见[运行时音频](audio.md)。[稀疏控制与弹药事实采样](runtime-controls.md)已实现并通过 Judge/Odin 源曲线数值测试，但其余七枪完整发布、Judge/Odin 整枪接入、完整伤害系统及 3p 空间声尚未交付。换肤相关专项还包括 weapon-skin-publication.test.mjs；主游戏浏览器报告包含 skinSwap 身份检查与 repeatCycles/销毁结果。

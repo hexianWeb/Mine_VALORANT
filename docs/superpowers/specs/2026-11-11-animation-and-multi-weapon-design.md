@@ -1,7 +1,7 @@
 # 动画运行时与多枪切换设计
 
 - 日期：2026-11-11
-- 状态：阶段 1 数据与控制器、阶段 2 发布与播放已实现；当前接口见[武器玩法模块](../../weapons/gameplay.md)和[武器发布与动画播放](../../weapons/animation-and-assets.md)。Player 接线与游戏内双枪闭环等后续阶段待实施。当前运行时行为仍以[运行时架构](../../architecture.md)为准。
+- 状态：阶段 1—4、Classic/Phantom 本地音频、阶段 5 稀疏控制与弹药事实采样已实现；Judge/Odin 整枪及其他枪型的完整发布/空间声待实施。后续皮肤资源由用户处理，不再自动生成或替换 texture。当前接口见[武器玩法](../../weapons/gameplay.md)、[发布与播放](../../weapons/animation-and-assets.md)、[运行时音频](../../weapons/audio.md)和[稀疏控制](../../weapons/runtime-controls.md)，更新契约见[运行时架构](../../architecture.md)。
 - 目标：建立可接入现有九枪资源的动画运行时，并完整定义多枪持有、切换、换肤和异步资源生命周期。
 - 首轮验收：Classic Smite 与 Phantom Tactiplay 两枪切换，Classic 第二皮肤验证外观独立；随后用 Judge、Odin 验证控制轨道。
 - 前置：[阶段优先组件 Tick](2026-11-11-phase-first-component-tick.md)、[CameraComponent](2026-11-11-camera-component.md)。
@@ -16,7 +16,7 @@
 
 ### 1.1 阶段 1 实施范围
 
-2026-11-11 已实现 Definition 校验、按实例隔离的 Inventory、EquipmentController 与 Classic/Phantom 数据，以及切换、换弹打断、冷却和生命周期测试。控制器通过普通准备票据对接未来的视觉适配者；当前尚未加载模型，也没有 PlayerWeapons 组件接线。ShotFired 暂时只证明射击被接受并扣弹，后坐力、散布、射线与 ViewPoseHistory 仍按第 5 节在后续实现。
+阶段 1 独立交付时已实现 Definition 校验、按实例隔离的 Inventory、EquipmentController 与 Classic/Phantom 数据，以及切换、换弹打断、冷却和生命周期测试。该阶段仅通过普通准备票据对接视觉适配者，尚未加载模型；后续 PlayerWeapons、后坐力、散布、射线与视角历史已在阶段 3 接入，不能将本节的历史范围当作当前项目状态。
 
 首版控制器每固定步最多接受一次射击，要求定义的 fire.interval 不小于 fixedDelta，构造时拒绝不支持的组合；自动射击沿绝对 deadline 推进，避免重复向上取整射击间隔造成累计降速。suspend/reset/dispose 直接返回同步失效批次，调用方在停止 tick 前处理。Editor 返回统一用新 epoch 票据重新确认保留枪的视觉准备，再发 DrawStarted(resume)；可复用的视模由适配者立即应答，不能复用旧票据。
 
@@ -24,7 +24,31 @@
 
 当前 Classic Smite / Phantom Tactiplay 制作源已通过显式配方发布到 public/weapons 的 v1 包，共 61 个片段。function/animation 实现 ClipLibrary、AnimationStateMachine、AnimationPlayer；WeaponAssets 复用 ResourceManager，提供模板预热和同步独立实例化。源码、资源及浏览器验证见第二阶段说明。
 
-独立开发预览页为 `/weapon-preview.html`。这一阶段没有把准备票据和装备事实接入玩家，也未添加 ViewModel pass、后坐力/散布、输入或声音播放。源 camera 动画保留在视觉实例内部，尚不作用于世界相机。逐枪动作裁切/速度映射与玩法时刻的对齐在双枪闭环时验证，不能把可独立播放当作全部游戏同步已经完成。
+独立开发预览页为 `/weapon-preview.html`。阶段 2 独立交付时尚未接入玩家；当前阶段 3 已完成准备票据、装备事实、ViewModel pass、后坐力/散布与输入接线，并按玩法期限调整动作播放。源 camera 动画仍只保留在视觉实例内部，不额外叠加世界相机。声音曾不在阶段 2 交付范围，现已另行完成双枪接线。
+
+### 1.3 阶段 3—4 当前实施范围
+
+主页面已实现 Classic ↔ Phantom、半自动/全自动、换弹/检视打断、ADS/FOV、固定步瞄准与射线、统一历史表现时间和 HUD。阶段 4 增加 `setSkin / cycleSkin`、带 epoch/revision 的皮肤准备、固定步 `SkinChanged` 与到时的原子材质替换；切换事务参与者的请求延后，不使保留票据失效。
+
+Classic 当前使用 v2 包，复用 v1 的同一 GLB，包含保留现有本地外观的 smite 与制作源 Sakura；Phantom 继续使用 v1。Sakura 的 SourceUV/网格权重、rest rig 和全部动作已通过只读后台 Blender 对比；v2 由显式皮肤发布配方产生，不修改 `.blend` 或旧模型。既有 v1 本地贴图替换仅修正对应尺寸/哈希登记，没有改写贴图像素。
+
+新增回归覆盖换肤不重置动作/弹药/冷却、失败保留外观、请求乱序、切换保留、Editor 返回与 20 次切换中重生的 Mixer 清理。主游戏 Chrome/WebGPU 验收已验证可信 K 输入、Sakura 实际解码、相同模型/骨架/材质/动作身份、三轮切枪换肤及销毁归零；本次报告在 `D:/opencode-temp/opencode/weapon-stage4/gameplay-browser/`，脚本默认输出目录见工具说明。阶段 5 与音频不在这些通过结果之内。
+
+2026-11-12 阶段 4 全量 Node 回归为 294/294；Classic v1/v2、Phantom v1 的官方 glTF 校验均为零 error/零 warning，修改文件 ESLint 与生产构建通过。阶段 5 的制作源已找到，但原始九枪 manifest/runtime 源包在记录路径和仓库中缺失，具体输入要求见[发布说明](../../weapons/animation-and-assets.md#后续阶段的本地输入缺口)。
+
+### 1.4 当前音频实施范围
+
+AudioSystem、resource.binary、关卡 AudioBank、WeaponAudio 和 Engine 的 presentation 后 flush 已实现；八个 Classic/Phantom 本地音频文件按 SHA256 校验并真实解码。输入可信交互解锁，射击/掏枪/换弹/检视由已接受事实驱动，独立 marker 游标不重复播放 Mixer 声音。暂停、0/正变速、Editor/重生/卸载、动作取消与 late decode 失效已接线。
+
+音频阶段交付时全量 Node 317/317，通过真实 Time 的 30/60/144 FPS、两步/五步批次与 250 ms 裁剪算例。生产构建的独立 Chrome 回归通过真实 Ogg 解码、输出 Analyser 非零波形、至少 16 发连射、换弹打断、暂停不补播、变速和卸载清理；具体报告与范围见[运行时音频](../../weapons/audio.md)。未实现的其他枪型、齐射/拉栓实际玩法和 3p 空间声不在本次通过范围内；未生成或改写纹理。
+
+### 1.5 阶段 5 当前控制轨道范围
+
+AnimationPlayer.setControls 已实现显式白名单、绝对局部时间与主 Mixer 后的稀疏属性覆盖；覆盖前先恢复底层姿态，避免 Mixer 缓存和 Action original 被污染。实例拥有独立绑定/插值器，不额外创建 Mixer 动作或事件时钟。WeaponAssets 预检 runtimeControls/ammoDisplay；WeaponViewModel 只在 P 到达已展示事实时更新弹药档位。
+
+只读核验 Judge/Odin 当前制作源，提取了可复现的数值夹具：Judge 的 5 个 LINEAR 弹药缩放和恒定 bullets.scale，Odin 的 8 组 STEP 弹链和 red_1/red_2 缩放。Odin 的 barrel 不是枪管旋转；未据片段名推导玩法。显示采用显式的 min(magazine, 可见窗口) 本地策略，不声称重建了缺失的原始 runtime 映射。
+
+新增 35 项（含子测试），当前全量 Node 352/352；30/60/144 FPS、乱序/重复采样、实例隔离、清除/销毁、主姿态恢复、STEP 编码边界、实际 GLTF CUBICSPLINE、补弹事实及取消/恢复均通过。修改文件 ESLint、生产构建及原有双枪玩法/音频生产浏览器回归通过。源哈希未变，夹具逐字节复现；详见[控制轨道接口与验收范围](../../weapons/runtime-controls.md)。Judge/Odin 完整发布与实际整枪视觉验收尚未完成，继续需要原始九枪 manifest/runtime 源包；没有生成或替换纹理。
 
 ## 2 状态所有权
 
@@ -38,7 +62,7 @@
 | EquipmentController | activeId、phase、锁定的 switch transaction、最新 queuedTarget、动作提交状态与派生 canAct | 每玩家一份 |
 | WeaponViewModel | 当前与准备中的视觉实例、材质副本、AnimationPlayer、表现事件 | 可以释放后重建，不影响弹药 |
 | WeaponAssets | 当前关卡内武器模板与纹理的加载任务、缓存键和准备结果 | 关卡作用域 |
-| AnimationPlayer | Mixer、actions、ASM、playbackId、局部时间、混合权重与 marker | 每个视觉实例一份 |
+| AnimationPlayer | Mixer、actions、ASM、playbackId、局部时间、混合权重、marker、稀疏控制绑定与底层姿态 | 每个视觉实例一份 |
 
 例如，两把 Classic 必须有不同 instanceId，即使使用同一 definitionId；同一把 Classic 换皮只改 skinId，不生成新逻辑实例。槽位编号也不是 instanceId，替换槽位不能意外继承旧枪的弹药。
 
@@ -55,6 +79,7 @@ src/engine/runtime/function/animation/
   animation-player.js              对外统一播放接口
   animation-state-machine.js       内部状态转换、播放代次、混合
   clip-library.js                  绑定校验、marker 与控制轨道
+  control-sampler.js               独立实例绑定、绝对采样及底层姿态恢复
 
 src/engine/runtime/function/audio/
   audio-system.js                  AudioContext、voice、增益与调度
@@ -441,7 +466,7 @@ Operator bolt 文件自身在约 0.24 秒后才超过测量的活跃阈值；不
 
 ### 13.3 音频模块和生命周期
 
-当前源码没有 AudioSystem 或音频加载类型。新增 function/audio 的 AudioSystem，单个 RuntimeContext 持有一个 AudioContext；它接收 buffer 和通用播放参数，管理 voice、输出总线和调度，不认识枪名或弹药。
+当前已实现 function/audio 的 AudioSystem 与 binary 加载类型，单个 RuntimeContext 最多持有一个按需创建的 AudioContext；它接收 buffer 和通用播放参数，管理 voice、输出总线和调度，不认识枪名或弹药。以下契约已用于 Classic/Phantom，其他枪型的实际玩法接线另行验收。
 
 resource 层新增 binary 类型，复用已有带完整性校验与取消的下载逻辑。WeaponAssets 在关卡作用域持有解码后的 AudioBank，通过注入的解码能力使用 AudioSystem 的 context；resource 不反向导入 function/audio。解码时传入原始 bytes 的副本，避免消费共享 ArrayBuffer。取消装备请求不取消共享下载；关卡取消使解码结果逻辑失效，无法中断的迟到解码丢弃。卸载先停止关卡 voices，再释放 bank 引用和资源缓存。
 
@@ -486,7 +511,7 @@ timeScale=0 走暂停流程，公式不除以零。r 改变后重新映射未播
 
 浮点解码有 8 个文件的样本峰值超过 0 dBFS：Sheriff shoot/3p 约 +6.48/+6.41 dBFS、Odin 3p +4.21、Vandal shoot/3p +2.59/+0.18、Operator shoot/3p +1.59/+0.18、Operator inspect +1.07。这是解码样本峰值，不是主观失真结论或 true-peak 测量；Vorbis 浮点重建可能超出满幅。直接以 unity gain 输出可能削波，先配置逐 cue 增益和混音余量，再检验连射叠加峰值，不直接修改源 Ogg。
 
-音频专项验收包括：Classic/Phantom 双枪动作同步、连续射击保留独立起音、切枪取消旧动作声但保留枪声尾音、齐射不重复、Operator 拉栓延迟、Outlaw 两种换弹、1p/3p 互斥、未解锁/暂停恢复不补播、迟到批次不聚集、关卡卸载后无残余 voice。当前已完成技术解码和来源映射检查，主观音量及与画面同步仍需实际接入后验收。
+音频专项验收包括：Classic/Phantom 双枪动作同步、连续射击保留独立起音、切枪取消旧动作声但保留枪声尾音、齐射不重复、Operator 拉栓延迟、Outlaw 两种换弹、1p/3p 互斥、未解锁/暂停恢复不补播、迟到批次不聚集、关卡卸载后无残余 voice。当前双枪本地路径已完成 Node 与真实 Chrome 解码/输出波形及生命周期验收；齐射、Operator/Outlaw 和 3p 尚待实际枪型接线。主观音量、设备延迟与逐动作听感仍需人工试听，不能用非零波形代替。
 
 调度公式已用零锚点、60 Hz 固定步、r=1 的算例核对；假设每步各产生一个测试瞬态事件，不代表真实武器每步射击：
 
@@ -496,4 +521,4 @@ timeScale=0 走暂停流程，公式不除以零。r 改变后重新映射未播
 | 30 Hz，两步 | 33.333 | 43.333、60.000 | 2 条准时，间隔仍为一步 |
 | 83.333 ms，五步且未丢时 | 83.333 | 93.333、110.000 | 2 条准时，3 条因错过 deadline 丢弃 |
 
-同时使用当前 Time 类核对了 250 ms 帧的裁剪：模拟推进 83.333 ms，墙钟差额 166.667 ms；旧锚点会把下一步声音排到 126.667 ms，重锚后排到 293.333 ms。这些是规格算例和现有 Time 行为验证，尚不是音频/动画实现测试。
+同时使用 Time 类核对了 250 ms 帧的裁剪：模拟推进 83.333 ms，墙钟差额 166.667 ms；旧锚点会把下一步声音排到 126.667 ms，重锚后排到 293.333 ms。以上是规格形成时的算例；当前 audio.test.mjs 还直接验证了实现中的五步丢弃与 293.333 ms 重锚结果。

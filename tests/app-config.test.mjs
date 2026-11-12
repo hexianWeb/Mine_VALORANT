@@ -17,6 +17,7 @@ test('weapon controls reserve R for reload and Home for respawn', () => {
     KeyR: 'reload',
     Home: 'respawn',
     KeyT: 'inspect',
+    KeyK: 'cycleSkin',
     Digit1: 'primaryWeapon',
     Digit2: 'secondaryWeapon',
     KeyQ: 'previousEquipped',

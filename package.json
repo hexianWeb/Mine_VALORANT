@@ -19,6 +19,7 @@
     "@antfu/eslint-config": "^10.0.0",
     "@types/three": "^0.187.0",
     "eslint": "^10.14.0",
+    "gltf-validator": "^2.0.0-dev.3.10",
     "vite": "^8.3.0"
   }
 }

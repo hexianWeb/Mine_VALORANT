@@ -283,8 +283,8 @@
   "skins": {
     "smite": {
       "url": "skins/smite.json",
-      "sha256": "783d9e4aa8b1c1c88a8e380ab268203054944fae6d194ac59378ca944fff507e",
-      "bytes": 843
+      "sha256": "0f7749e33f503091ce87c1ccd84f6c0046798ea5671f82c4cb7d690ee75a6678",
+      "bytes": 783
     }
   },
   "view": {

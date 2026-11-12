@@ -59,11 +59,23 @@ export function createWeaponDefinition(input) {
   record(input.equip, 'equip', ['draw', 'holster'])
   record(input.reload, 'reload', ['tactical', 'empty'])
   record(input.capabilities, 'capabilities', ['ads'])
-  record(input.assets, 'assets', ['modelId', 'assetVersion', 'defaultSkinId'])
+  record(input.assets, 'assets', [
+    'modelId',
+    'assetVersion',
+    'defaultSkinId',
+    'skinIds',
+  ])
   if (!['semi', 'auto'].includes(input.fire.mode))
     throw new TypeError('fire.mode must be semi or auto')
   if (typeof input.capabilities.ads !== 'boolean')
     throw new TypeError('capabilities.ads must be a boolean')
+  const defaultSkinId = identifier(input.assets.defaultSkinId, 'assets.defaultSkinId')
+  const skinIds = input.assets.skinIds ?? [defaultSkinId]
+  if (!Array.isArray(skinIds) || !skinIds.includes(defaultSkinId)
+    || new Set(skinIds).size !== skinIds.length) {
+    throw new TypeError('assets.skinIds must be unique and include defaultSkinId')
+  }
+  for (const skinId of skinIds) identifier(skinId, 'assets.skinIds')
 
   return Object.freeze({
     ...createAimProfile(input),
@@ -87,7 +99,8 @@ export function createWeaponDefinition(input) {
     assets: Object.freeze({
       modelId: identifier(input.assets.modelId, 'assets.modelId'),
       assetVersion: identifier(input.assets.assetVersion, 'assets.assetVersion'),
-      defaultSkinId: identifier(input.assets.defaultSkinId, 'assets.defaultSkinId'),
+      defaultSkinId,
+      skinIds: Object.freeze([...skinIds]),
     }),
   })
 }

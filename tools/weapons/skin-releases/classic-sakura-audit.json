@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "classic",
+  "base": {
+    "sourceSha256": "73aeb9718d22dd1015f20bb4b1fca3ca6d2351488536c010400000e1e06931d1",
+    "geometryUV": "729a690e00ad5c7560a1acaaaafe8d6de61ce8354bb36c3b548d1ca8b6de1b0a",
+    "rig": "48a2519ca7f4a34c3e90df20f23b1811f8a73017e99d077d64a83585d9cb5329",
+    "clipSet": "144b0aa81ec038c095a53f8ac1c1ec05300efd3fd87cdda8ad74ac0a167151da",
+    "textureSha256": "cbc4c4fc5ba78841d39b3e931f6a75fcc77acd3f1b9d0355d96dc21e9947b718"
+  },
+  "skin": {
+    "sourceSha256": "b28e6d713b1497a0cd9dcb5273f0d1387a28132dc7771831ce227cc41abd6928",
+    "geometryUV": "729a690e00ad5c7560a1acaaaafe8d6de61ce8354bb36c3b548d1ca8b6de1b0a",
+    "rig": "48a2519ca7f4a34c3e90df20f23b1811f8a73017e99d077d64a83585d9cb5329",
+    "clipSet": "144b0aa81ec038c095a53f8ac1c1ec05300efd3fd87cdda8ad74ac0a167151da",
+    "textureSha256": "a2570df2d605a77bc3b10ff7c32a457adace12bc37402f77d14203282a7ecc45"
+  },
+  "compatibility": {
+    "rig": "2b1365cc7b1ca885d05ed908da2151e1058d822302b342357a28181cce375f75",
+    "geometryUV": "bfcf8e5a38fee4445a016e1c4ce4c812eb770cdb669800cd330c0a2e867801ad",
+    "clipSet": "f84fd84bd17e412c6390481ac74c9f49198d1d4544f0483ef9db9bf2a7a29f2b"
+  },
+  "blenderVersion": "5.2.3 LTS"
+}

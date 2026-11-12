@@ -26,11 +26,14 @@ function fakeAssets() {
   const requests = []
   const instances = []
   const live = new Set()
+  const skinSwaps = []
   let maximum = 0
   return {
+    audioScope: 'test-weapons',
     requests,
     instances,
     live,
+    skinSwaps,
     get maximum() { return maximum },
     load(request) {
       return new Promise((resolve, reject) => requests.push({
@@ -90,6 +93,7 @@ function fakeAssets() {
         root,
         player,
         weaponId: handle.weaponId,
+        skinId: handle.skinId,
         disposed: false,
         dispose() {
           if (this.disposed)
@@ -104,6 +108,12 @@ function fakeAssets() {
       live.add(visual)
       maximum = Math.max(maximum, live.size)
       return visual
+    },
+    applySkin(visual, handle) {
+      assert.equal(visual.disposed, false)
+      assert.equal(visual.weaponId, handle.weaponId)
+      visual.skinId = handle.skinId
+      skinSwaps.push({ visual, handle })
     },
   }
 }
@@ -453,4 +463,256 @@ test('failed loads keep the current gun usable and disposal ignores any later co
   assert.equal(f.assets.instances.length, 1)
   assert.equal(f.assets.live.size, 0)
   assert.equal(f.layer.scene.children.length, 0)
+})
+
+test('changing skin during inspect swaps materials only at P without restarting animation or changing ammo', async (t) => {
+  const f = setup(t)
+  await f.ready()
+  f.fixed({ type: 'inspect' })
+  f.motion(f.tick * h)
+  const visual = f.assets.instances[0]
+  const playbackId = visual.player.snapshot().current.playbackId
+  const before = f.weapons.snapshot()
+  f.fixed({ type: 'setSkin', instanceId: 'pistol', skinId: 'sakura' })
+  await f.assets.resolve('classic')
+  assert.equal(visual.skinId, 'smite', 'promise completion never applies materials')
+  f.motion()
+  assert.equal(visual.skinId, 'smite', 'motion only queues readiness until fixed acceptance')
+  const batch = f.fixed()
+  const change = batch.events.find(event => event.type === 'SkinChanged')
+  assert.ok(change)
+  assert.equal(f.weapons.snapshot().inventory.weapons[1].skinId, 'sakura')
+  f.motion(change.at - 0.01)
+  assert.equal(visual.skinId, 'smite', 'appearance cannot lead its committed presentation fact')
+  f.motion(change.at)
+  f.motion(change.at)
+  assert.equal(visual.skinId, 'sakura')
+  assert.equal(visual.player.snapshot().current.playbackId, playbackId)
+  assert.deepEqual(f.weapons.snapshot().action, before.action)
+  assert.deepEqual({
+    ...f.weapons.snapshot().inventory.weapons[1],
+    skinId: 'smite',
+  }, before.inventory.weapons[1])
+  assert.equal(f.assets.skinSwaps.length, 1)
+  assert.equal(f.assets.instances.length, 1)
+  assert.equal(f.weapons.snapshot().view.skinId, 'sakura')
+})
+
+test('late skin completions, failed requests and choosing the original skin cannot overwrite the newest intent', async (t) => {
+  const f = setup(t)
+  await f.ready()
+  f.fixed({ type: 'setSkin', instanceId: 'pistol', skinId: 'slow' })
+  f.fixed({ type: 'setSkin', instanceId: 'pistol', skinId: 'sakura' })
+  await f.assets.resolve('classic') // latest sakura first
+  f.motion()
+  f.fixed()
+  f.motion(f.tick * h)
+  await f.assets.resolve('classic') // abandoned slow last
+  f.motion(f.tick * h)
+  assert.equal(f.assets.instances[0].skinId, 'sakura')
+  assert.equal(f.assets.skinSwaps.length, 1)
+  f.fixed({ type: 'setSkin', instanceId: 'pistol', skinId: 'missing' })
+  await f.assets.reject('classic')
+  f.fixed()
+  f.motion(f.tick * h)
+  assert.equal(f.assets.instances[0].skinId, 'sakura')
+  assert.match(f.weapons.snapshot().view.skinError, /load failed/)
+  assert.equal(f.weapons.snapshot().canFire, true)
+  f.fixed({ type: 'setSkin', instanceId: 'pistol', skinId: 'slow' })
+  f.fixed({ type: 'setSkin', instanceId: 'pistol', skinId: 'sakura' })
+  await f.assets.resolve('classic')
+  f.motion(f.tick * h)
+  assert.equal(f.assets.instances[0].skinId, 'sakura')
+  assert.equal(f.weapons.snapshot().view.skinError, null)
+})
+
+test('accepted skin handles survive a newer request until their historical presentation commits', async (t) => {
+  const f = setup(t)
+  await f.ready()
+  f.fixed({ type: 'setSkin', instanceId: 'pistol', skinId: 'sakura' })
+  await f.assets.resolve('classic')
+  f.motion()
+  const first = f.fixed().events.find(event => event.type === 'SkinChanged')
+  f.fixed({ type: 'setSkin', instanceId: 'pistol', skinId: 'smite' })
+  await f.assets.resolve('classic')
+  f.motion(first.at)
+  assert.equal(f.assets.instances[0].skinId, 'sakura')
+  const second = f.fixed().events.find(event => event.type === 'SkinChanged')
+  f.motion(second.at)
+  assert.equal(f.assets.instances[0].skinId, 'smite')
+  assert.equal(f.assets.instances.length, 1)
+})
+
+test('Editor return reapplies a committed skin even if its delayed visual had not changed before suspend', async (t) => {
+  const f = setup(t)
+  await f.ready()
+  f.fixed({ type: 'setSkin', instanceId: 'pistol', skinId: 'sakura' })
+  await f.assets.resolve('classic')
+  f.motion()
+  f.fixed()
+  assert.equal(f.assets.instances[0].skinId, 'smite')
+  f.weapons.suspend()
+  f.weapons.resume()
+  f.fixed()
+  await f.assets.resolve('classic')
+  f.motion()
+  f.fixed()
+  f.motion(f.tick * h)
+  assert.equal(f.assets.instances.length, 1)
+  assert.equal(f.assets.instances[0].skinId, 'sakura')
+  assert.equal(f.weapons.snapshot().view.skinId, 'sakura')
+})
+
+test('real K input cycles skins in order and discards paused skin commands', async (t) => {
+  const f = setup(t)
+  await f.ready()
+  for (let index = 0; index < 2; index++) {
+    f.key('keydown', 'KeyK')
+    f.key('keyup', 'KeyK')
+  }
+  f.weapons.collectInput(f.input)
+  f.fixed()
+  assert.equal(f.assets.requests.length, 1, 'two cycles returning to the original do not load an obsolete skin')
+  f.key('keydown', 'KeyK')
+  f.key('keyup', 'KeyK')
+  f.weapons.collectInput(f.input)
+  f.fixed()
+  assert.equal(f.assets.requests.at(-1).request.skinId, 'sakura')
+  await f.assets.resolve('classic')
+  f.motion()
+  f.fixed()
+  f.motion(f.tick * h)
+  f.weapons.setPaused(true)
+  f.key('keydown', 'KeyK')
+  f.key('keyup', 'KeyK')
+  f.weapons.collectInput(f.input, true)
+  f.weapons.collectInput(f.input, false)
+  f.fixed()
+  assert.equal(f.weapons.snapshot().inventory.weapons[1].skinId, 'sakura')
+  assert.equal(f.assets.requests.length, 2)
+})
+
+test('skin requests during a switch wait for readiness without replacing the reserved target visual', async (t) => {
+  const f = setup(t)
+  await f.ready()
+  f.fixed({ type: 'select', instanceId: 'rifle' })
+  await f.assets.resolve('phantom')
+  f.motion()
+  f.fixed()
+  const target = f.assets.instances[1]
+  const count = f.assets.requests.length
+  f.fixed({ type: 'setSkin', instanceId: 'rifle', skinId: 'alternate' })
+  f.motion()
+  assert.equal(target.disposed, false)
+  assert.equal(f.assets.requests.length, count)
+  while (f.weapons.snapshot().phase !== 'Ready') f.advance(1)
+  assert.equal(f.assets.requests.at(-1).request.skinId, 'alternate')
+  await f.assets.resolve('phantom')
+  f.motion()
+  f.fixed()
+  f.motion(f.tick * h)
+  assert.equal(target.skinId, 'alternate')
+  assert.equal(target.disposed, false)
+  assert.equal(f.assets.instances.length, 2)
+})
+
+test('K retries the failed next skin instead of silently cycling back to the old skin', async (t) => {
+  const f = setup(t)
+  await f.ready()
+  f.fixed({ type: 'cycleSkin', instanceId: 'pistol' })
+  await f.assets.reject('classic')
+  f.fixed()
+  assert.equal(f.weapons.snapshot().inventory.weapons[1].skinId, 'smite')
+  f.key('keydown', 'KeyK')
+  f.key('keyup', 'KeyK')
+  f.weapons.collectInput(f.input)
+  f.fixed()
+  assert.equal(f.assets.requests.at(-1).request.skinId, 'sakura')
+  await f.assets.resolve('classic')
+  f.motion()
+  f.fixed()
+  f.motion(f.tick * h)
+  assert.equal(f.assets.instances[0].skinId, 'sakura')
+  assert.equal(f.weapons.snapshot().view.skinError, null)
+})
+
+test('a failed resume material rebind keeps the hidden retained visual alive for an explicit retry', async (t) => {
+  const f = setup(t)
+  await f.ready()
+  const retained = f.assets.instances[0]
+  const applySkin = f.assets.applySkin
+  f.assets.applySkin = () => {
+    throw new Error('rebind failed')
+  }
+  f.weapons.suspend()
+  f.weapons.resume()
+  f.fixed()
+  await f.assets.resolve('classic')
+  f.motion()
+  f.fixed()
+  assert.equal(f.weapons.snapshot().phase, 'Suspended')
+  assert.equal(retained.disposed, false)
+  assert.equal(f.weapons.snapshot().view.instances, 1)
+  f.assets.applySkin = applySkin
+  f.fixed({ type: 'select', instanceId: 'pistol' })
+  await f.assets.resolve('classic')
+  f.motion()
+  f.fixed()
+  f.motion(f.tick * h)
+  assert.equal(f.assets.instances.length, 1)
+  assert.equal(f.weapons.snapshot().view.visibleInstances, 1)
+  assert.equal(f.weapons.snapshot().view.error, null)
+})
+
+test('repeated reset during a prepared switch leaves no retired mixer bindings or attached visual trees', async (t) => {
+  const f = setup(t)
+  for (let index = 0; index < 20; index++) {
+    await f.ready()
+    f.fixed({ type: 'select', instanceId: 'rifle' })
+    await f.assets.resolve('phantom')
+    f.motion()
+    f.fixed()
+    f.weapons.reset()
+    assert.equal(f.assets.live.size, 0)
+    assert.equal(f.weapons.snapshot().view.instances, 0)
+    assert.equal(f.layer.enabled, false)
+    for (const visual of f.assets.instances) {
+      assert.equal(visual.disposed, true)
+      assert.equal(visual.player.snapshot().stats.actions, 0)
+      assert.equal(visual.player.snapshot().stats.bindings, 0)
+      assert.equal(visual.root.parent, null)
+    }
+  }
+  f.weapons.dispose()
+  assert.equal(f.layer.scene.children.length, 0)
+  assert.ok(f.assets.maximum <= 2)
+})
+
+test('audio prewarming follows held loadout definitions, not every available catalog definition', () => {
+  const assets = fakeAssets()
+  const preloaded = []
+  assets.preloadAudio = async profile => preloaded.push(profile)
+  const weapons = new PlayerWeapons({
+    assets,
+    aim: new AimState(),
+    audio: {
+      invalidate() {},
+      reportOnce() { assert.fail('prewarming should not fail') },
+    },
+    layer: {
+      scene: new Scene(),
+      setEnabled() {},
+    },
+    definitions: [classicDefinition, phantomDefinition],
+    loadout: [
+      {
+        id: 'secondary',
+        weapon: { instanceId: 'pistol', definitionId: 'classic' },
+      },
+    ],
+    initialSlot: 'secondary',
+  })
+  assert.equal(preloaded.length, 1)
+  assert.ok(Object.keys(preloaded[0].cues).every(id => id.startsWith('classic_')))
+  weapons.dispose()
 })

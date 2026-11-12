@@ -26,11 +26,12 @@ async function temporaryPackage(t) {
 }
 
 test('published current-skin packages bind every clip and match the authoring Blender poses', async () => {
-  for (const [weaponId, clipCount, meshCount] of [
-    ['classic', 31, 4],
-    ['phantom', 30, 5],
+  for (const [weaponId, assetVersion, clipCount, meshCount] of [
+    ['classic', 'v1', 31, 4],
+    ['classic', 'v2', 31, 4],
+    ['phantom', 'v1', 30, 5],
   ]) {
-    const directory = path.join(publication, weaponId, 'v1')
+    const directory = path.join(publication, weaponId, assetVersion)
     const audit = JSON.parse(await readFile(path.join(directory, 'source-audit.json'), 'utf8'))
     const report = await validateWeaponPackage(directory, { poseSamples: audit.poseSamples })
     assert.equal(report.clips, clipCount)

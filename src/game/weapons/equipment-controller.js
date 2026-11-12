@@ -11,6 +11,10 @@ const commandTypes = new Set([
   'selectPrevious',
   'prepared',
   'prepareFailed',
+  'setSkin',
+  'cycleSkin',
+  'skinPrepared',
+  'skinFailed',
 ])
 
 function immutable(value) {
@@ -32,6 +36,7 @@ function sameTicket(a, b) {
     'instanceId',
     'modelVersion',
     'skinRevision',
+    'skinId',
   ]
     .every(key => a[key] === b[key])
 }
@@ -66,6 +71,9 @@ export class EquipmentController {
   #desiredId = null
   #acceptedTickets = new Map()
   #preparation = null
+  #skinRequests = new Map()
+  #skinRevisions = new Map()
+  #committedSkinRevisions = new Map()
   #transaction = null
   #action = null
   #commands = []
@@ -118,11 +126,23 @@ export class EquipmentController {
       identifier(command.instanceId, 'instanceId')
     if (type === 'selectSlot')
       identifier(command.slotId, 'slotId')
+    if (type === 'setSkin' || type === 'cycleSkin') {
+      identifier(command.instanceId, 'instanceId')
+      if (type === 'setSkin')
+        identifier(command.skinId, 'skinId')
+      if (this.#paused || this.#suspended || this.#resumePending)
+        return false
+    }
     if (type === 'fireHeld' && typeof command.held !== 'boolean')
       throw new TypeError('[Equipment] fireHeld requires a boolean')
     if (type === 'cycle' && ![-1, 1].includes(command.direction))
       throw new TypeError('[Equipment] cycle direction must be -1 or 1')
-    if (type === 'prepared' || type === 'prepareFailed') {
+    if ([
+      'prepared',
+      'prepareFailed',
+      'skinPrepared',
+      'skinFailed',
+    ].includes(type)) {
       const ticket = command.ticket
       if (!ticket || !Number.isSafeInteger(ticket.epoch) || !Number.isSafeInteger(ticket.requestId)
         || !Number.isSafeInteger(ticket.skinRevision)) {
@@ -130,6 +150,8 @@ export class EquipmentController {
       }
       identifier(ticket.instanceId, 'ticket.instanceId')
       identifier(ticket.modelVersion, 'ticket.modelVersion')
+      if (type === 'skinPrepared' || type === 'skinFailed')
+        identifier(ticket.skinId, 'ticket.skinId')
     }
     if ((this.#paused || this.#suspended) && (actionCommands.has(type) || type === 'fireHeld'))
       return false
@@ -168,6 +190,10 @@ export class EquipmentController {
     }
     if (selected && this.#preparation?.status === 'failed')
       this.#cancelPreparation()
+    // New cosmetic intentions precede old async replies, just like equipment selection.
+    for (const { command } of commands) this.#requestSkin(command)
+    for (const { command } of commands) this.#acceptSkinPreparation(command)
+    this.#settleSkins()
     this.#ensurePreparation()
     for (const { command } of commands) this.#acceptPreparation(command)
 
@@ -178,6 +204,8 @@ export class EquipmentController {
       startedSwitch = true
       this.#advanceSwitch() // Includes bounded zero-duration holster/draw transitions.
     }
+    this.#ensurePreparation()
+    this.#settleSkins()
     this.#ensurePreparation()
     if (startedSwitch && this.#mayStartSwitch())
       this.#actionBlockReason = 'nextSwitchDeferred'
@@ -275,7 +303,7 @@ export class EquipmentController {
       requestId: ++this.#requestId,
       instanceId: target,
       modelVersion: definition.assets.assetVersion,
-      skinRevision: 0,
+      skinRevision: this.#committedSkinRevisions.get(target) ?? 0,
     })
     this.#preparation = { ticket, status: 'loading', error: null }
     this.#effects.push(immutable({ type: 'PrepareWeapon', ticket }))
@@ -317,6 +345,86 @@ export class EquipmentController {
     return !this.#transaction && this.#preparation?.status === 'visualPrepared'
       && ['Ready', 'Empty', 'Suspended'].includes(this.#phase)
       && this.#preparation.ticket.instanceId === this.#preparationTarget()
+      && (!this.#skinRequests.has(this.#preparation.ticket.instanceId)
+        || this.#skinRequests.get(this.#preparation.ticket.instanceId).status === 'failed')
+  }
+
+  #requestSkin(command) {
+    if (!['setSkin', 'cycleSkin'].includes(command.type))
+      return
+    const weapon = this.#inventory.get(command.instanceId)
+    if (!weapon)
+      return
+    const pending = this.#skinRequests.get(weapon.instanceId)
+    if (command.type === 'cycleSkin') {
+      const skins = this.#inventory.definition(weapon.instanceId).assets.skinIds
+      const current = pending && pending.status !== 'failed'
+        ? pending.ticket.skinId
+        : weapon.skinId
+      const index = skins.indexOf(current)
+      command = { ...command, skinId: skins[(index + 1) % skins.length] }
+    }
+    if (pending?.ticket.skinId === command.skinId && pending.status !== 'failed')
+      return
+    if (pending) {
+      this.#effects.push(immutable({ type: 'CancelSkinPreparation', ticket: pending.ticket }))
+      this.#skinRequests.delete(weapon.instanceId)
+    }
+    if (weapon.skinId === command.skinId)
+      return
+    const skinRevision = (this.#skinRevisions.get(weapon.instanceId) ?? 0) + 1
+    this.#skinRevisions.set(weapon.instanceId, skinRevision)
+    this.#skinRequests.set(weapon.instanceId, {
+      ticket: immutable({
+        epoch: this.#epoch,
+        requestId: ++this.#requestId,
+        instanceId: weapon.instanceId,
+        modelVersion: this.#inventory.definition(weapon.instanceId).assets.assetVersion,
+        skinRevision,
+        skinId: command.skinId,
+      }),
+      status: 'deferred',
+      error: null,
+    })
+  }
+
+  #acceptSkinPreparation(command) {
+    if (!['skinPrepared', 'skinFailed'].includes(command.type))
+      return
+    const pending = this.#skinRequests.get(command.ticket.instanceId)
+    if (!sameTicket(command.ticket, pending?.ticket) || pending.status !== 'loading')
+      return
+    pending.status = command.type === 'skinPrepared'
+      ? 'prepared'
+      : 'failed'
+    if (command.type === 'skinFailed') {
+      pending.error = String(command.message ?? 'Skin preparation failed')
+      this.#emit('SkinFailed', command.ticket.instanceId, { ticket: pending.ticket, message: pending.error })
+    }
+  }
+
+  #settleSkins() {
+    for (const [instanceId, pending] of this.#skinRequests) {
+      // A locked target keeps its already prepared appearance through the entire draw.
+      if (this.#resumePending || (this.#transaction
+        && [this.#transaction.fromId, this.#transaction.toId].includes(instanceId))) {
+        continue
+      }
+      if (pending.status === 'deferred') {
+        pending.status = 'loading'
+        this.#effects.push(immutable({ type: 'PrepareSkin', ticket: pending.ticket }))
+      }
+      else if (pending.status === 'prepared') {
+        const previousSkinId = this.#inventory.get(instanceId).skinId
+        this.#inventory.setSkin(instanceId, pending.ticket.skinId)
+        this.#committedSkinRevisions.set(instanceId, pending.ticket.skinRevision)
+        this.#skinRequests.delete(instanceId)
+        // Only an unlocked preparation can be invalidated. Accepted tickets stay reserved.
+        if (this.#preparation?.ticket.instanceId === instanceId)
+          this.#cancelPreparation()
+        this.#emit('SkinChanged', instanceId, { ticket: pending.ticket, previousSkinId, skinId: pending.ticket.skinId })
+      }
+    }
   }
 
   #startSwitch() {
@@ -512,12 +620,18 @@ export class EquipmentController {
     this.#paused = paused
     this.#fireHeld = false
     this.#automaticRun = false
-    this.#commands = this.#commands.filter(({ command }) => !actionCommands.has(command.type) && command.type !== 'fireHeld')
+    this.#commands = this.#commands.filter(({ command }) => !actionCommands.has(command.type)
+      && !['fireHeld', 'setSkin', 'cycleSkin'].includes(command.type))
   }
 
   #invalidate(reason) {
     this.#cancelAction(reason)
     this.#cancelPreparation()
+    for (const pending of this.#skinRequests.values())
+      this.#effects.push(immutable({ type: 'CancelSkinPreparation', ticket: pending.ticket }))
+    this.#skinRequests.clear()
+    this.#skinRevisions.clear()
+    this.#committedSkinRevisions.clear()
     this.#epoch++
     this.#equipmentGeneration++
     this.#commands = []
@@ -586,6 +700,7 @@ export class EquipmentController {
       disposed: this.#disposed,
       transaction: this.#transaction,
       preparation: this.#preparation,
+      skinRequests: Array.from(this.#skinRequests.values()),
       action: this.#action,
       inventory: this.#inventory.snapshot(),
     })

@@ -16,6 +16,10 @@ export const classicDefinition = createWeaponDefinition({
   },
   inspectDuration: 3,
   capabilities: { ads: false }, // Classic's secondary salvo is outside this first data/controller slice.
-  // Logical publication IDs; this declaration does not imply a GLB is already published.
-  assets: { modelId: 'classic', assetVersion: 'v1', defaultSkinId: 'smite' },
+  assets: {
+    modelId: 'classic',
+    assetVersion: 'v2',
+    defaultSkinId: 'smite',
+    skinIds: ['smite', 'sakura'],
+  },
 })

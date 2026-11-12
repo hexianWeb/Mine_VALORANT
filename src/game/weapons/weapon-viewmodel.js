@@ -1,4 +1,5 @@
 import { Group, Mesh, MeshBasicMaterial, SphereGeometry } from 'three/webgpu'
+import { ammoControlSamples } from './assets/weapon-control-profile.js'
 
 const key = ticket => `${ticket.epoch}:${ticket.requestId}`
 
@@ -11,6 +12,7 @@ export class WeaponViewModel {
   #active = null
   #staged = null
   #request = null
+  #skinRequests = new Map()
   #events = []
   #cursor = null
   #hidden = false
@@ -23,6 +25,10 @@ export class WeaponViewModel {
   #queuedAiming = false
   #presentedShot = null
   error = null
+
+  get skinError() {
+    return Array.from(this.#skinRequests.values()).findLast(request => request.ticket.instanceId === this.#active?.instanceId && request.error)?.error ?? null
+  }
 
   constructor({ assets, layer, queue, definitions }) {
     this.#assets = assets
@@ -48,6 +54,11 @@ export class WeaponViewModel {
         && this.#staged && event.payload.ticket && key(this.#staged.ticket) === key(event.payload.ticket)) {
         this.#staged.reserved = true
       }
+      if (event.type === 'SkinChanged') {
+        const request = this.#skinRequests.get(key(event.payload.ticket))
+        if (request)
+          request.reserved = true
+      }
       this.#events.push(event)
     }
     if (aim && aim.aiming !== this.#queuedAiming) {
@@ -64,7 +75,37 @@ export class WeaponViewModel {
       })
     }
     for (const effect of batch.effects) {
-      if (effect.type === 'PrepareWeapon') {
+      if (effect.type === 'PrepareSkin') {
+        const weapon = snapshot.inventory.weapons.find(weapon => weapon.instanceId === effect.ticket.instanceId)
+        const definition = this.#definitions.get(weapon.definitionId)
+        const request = {
+          ticket: effect.ticket,
+          handle: null,
+          reported: false,
+          reserved: false,
+          error: null,
+        }
+        this.#skinRequests.set(key(effect.ticket), request)
+        this.#assets.load({ weaponId: definition.assets.modelId, assetVersion: effect.ticket.modelVersion, skinId: effect.ticket.skinId })
+          .then((handle) => {
+            if (!this.#closed && this.#skinRequests.get(key(effect.ticket)) === request)
+              request.handle = handle
+          })
+          .catch((error) => {
+            if (!this.#closed && this.#skinRequests.get(key(effect.ticket)) === request) {
+              request.reported = true
+              request.error = String(error.message ?? error)
+              this.#queue({ type: 'skinFailed', ticket: effect.ticket, message: request.error })
+            }
+          })
+      }
+      else if (effect.type === 'CancelSkinPreparation') {
+        const request = this.#skinRequests.get(key(effect.ticket))
+        if (!request?.reserved) {
+          this.#skinRequests.delete(key(effect.ticket))
+        }
+      }
+      else if (effect.type === 'PrepareWeapon') {
         const weapon = snapshot.inventory.weapons.find(weapon => weapon.instanceId === effect.ticket.instanceId)
         const definition = this.#definitions.get(weapon.definitionId)
         const request = { ticket: effect.ticket, handle: null, failed: false }
@@ -112,6 +153,12 @@ export class WeaponViewModel {
       // Resume rebinds a retained committed visual to the new epoch without cloning it again.
       if (snapshot.phase === 'Suspended' && this.#active?.instanceId === request.ticket.instanceId) {
         entry = this.#active
+        // A skin may be logically committed but not yet displayed when Editor takes control.
+        // Resume must rebind the retained model to the committed appearance, not its old P.
+        if (entry.handle !== request.handle) {
+          this.#assets.applySkin(entry.visual, request.handle)
+          entry.handle = request.handle
+        }
         this.#active = null
         entry.ticket = request.ticket
         entry.reserved = false
@@ -138,7 +185,7 @@ export class WeaponViewModel {
       this.#queue({ type: 'prepared', ticket: entry.ticket })
     }
     catch (error) {
-      if (entry)
+      if (entry && entry !== this.#active)
         this.#release(entry)
       this.#staged = null
       request.failed = true
@@ -186,7 +233,30 @@ export class WeaponViewModel {
     this.#cursor = at
   }
 
+  #syncControls() {
+    const manifest = this.#active?.handle.manifest
+    if (manifest?.ammoDisplay && this.#weapon)
+      this.#active.visual.player.setControls(ammoControlSamples(manifest, this.#weapon.magazine))
+  }
+
   #apply(event, fixedDelta, snapshot) {
+    if (event.type === 'SkinChanged') {
+      const request = this.#skinRequests.get(key(event.payload.ticket))
+      if (!request?.handle)
+        throw new Error('[WeaponViewModel] Accepted skin lost its prepared handle')
+      for (const entry of [this.#active, this.#staged]) {
+        if (entry?.instanceId === event.instanceId) {
+          this.#assets.applySkin(entry.visual, request.handle)
+          entry.handle = request.handle
+        }
+      }
+      if (this.#active?.instanceId === event.instanceId) {
+        this.#weapon = event.payload.weapon
+        this.#syncControls()
+      }
+      this.#skinRequests.delete(key(event.payload.ticket))
+      return
+    }
     if (event.type === 'AimChanged') {
       this.#aiming = event.aiming
       if (['idle', 'aim', 'fire', 'fireAds'].includes(this.#active?.action?.role))
@@ -208,6 +278,7 @@ export class WeaponViewModel {
     const payload = event.payload
     if (payload.weapon)
       this.#weapon = payload.weapon
+    this.#syncControls()
     if (event.type === 'SwitchStarted')
       this.#play('holster', event.at, { endAt: payload.commitTick * fixedDelta, fade: 0.04 })
     if (event.type === 'DrawStarted')
@@ -263,6 +334,12 @@ export class WeaponViewModel {
       this.#apply(event, time.fixedDelta, snapshot)
     }
     this.#advance(at)
+    for (const request of this.#skinRequests.values()) {
+      if (request.handle && !request.reported) {
+        request.reported = true
+        this.#queue({ type: 'skinPrepared', ticket: request.ticket })
+      }
+    }
     this.#prepare(snapshot)
     this.#layer.setEnabled(!!this.#active)
     if (pose)
@@ -273,6 +350,7 @@ export class WeaponViewModel {
   reset(snapshot, retain = false) {
     this.#request = null
     this.error = null
+    this.#skinRequests.clear()
     this.#events = []
     this.#cursor = null
     this.#flashUntil = -Infinity
@@ -314,6 +392,8 @@ export class WeaponViewModel {
       presentationTime: this.#cursor,
       muzzleFlash: this.#flash.visible,
       error: this.error,
+      skinError: this.skinError,
+      skinId: this.#active?.handle.skinId ?? null,
       weapon: this.#weapon,
       lastShot: this.#presentedShot,
     }

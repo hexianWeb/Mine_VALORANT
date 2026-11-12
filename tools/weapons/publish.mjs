@@ -101,7 +101,7 @@ async function files(directory, prefix = '') {
 }
 
 /** Publishing a version twice must produce identical bytes; changed content needs a new version. */
-async function install(candidate, target) {
+export async function installWeaponPackage(candidate, target) {
   if (await exists(path.join(target, 'manifest.json'))) {
     const expected = await files(candidate)
     assert.deepEqual(await files(target), expected, `Existing version has a different file set: ${target}`)
@@ -119,10 +119,10 @@ async function install(candidate, target) {
   await cp(path.join(candidate, 'manifest.json'), path.join(target, 'manifest.json'))
 }
 
-export async function publishWeapons({ weapons = ['classic', 'phantom'], blender, sourcePack, outputRoot, validatorModule, verifyOnly = false }) {
+export async function publishWeapons({ weapons = ['classic', 'phantom'], blender, sourcePack, outputRoot, validatorModule, verifyOnly = false, workRoot = 'D:/opencode-temp/opencode' }) {
   const root = path.resolve(outputRoot ?? path.join(project, 'public/weapons'))
   const pack = path.resolve(sourcePack ?? path.join(project, '../vandal-roundtrip/valorant-first-person-pack'))
-  const validator = require(validatorModule ?? path.resolve(pack, '../first-person/work/gltf-validator/node_modules/gltf-validator'))
+  const validator = require(validatorModule ?? 'gltf-validator')
   const selected = weapons.map((id) => {
     assert.ok(Object.hasOwn(recipes, id), `Unknown explicit weapon recipe: ${id}`)
     return recipes[id]
@@ -139,7 +139,8 @@ export async function publishWeapons({ weapons = ['classic', 'phantom'], blender
   }
   assert.ok(blender, 'Pass --blender PATH (or BLENDER_PATH); authoring is never sent to a live Blender instance')
   await mkdir(root, { recursive: true })
-  const staging = await mkdtemp(path.join(root, '.publish-'))
+  await mkdir(workRoot, { recursive: true })
+  const staging = await mkdtemp(path.join(workRoot, 'weapon-publish-'))
   const prepared = []
   try {
     for (const recipe of selected) {
@@ -233,13 +234,13 @@ export async function publishWeapons({ weapons = ['classic', 'phantom'], blender
       prepared.push({ directory, recipe, report })
     }
     for (const { directory, recipe } of prepared)
-      await install(directory, path.join(root, recipe.weaponId, recipe.assetVersion))
+      await installWeaponPackage(directory, path.join(root, recipe.weaponId, recipe.assetVersion))
     return prepared.map(item => item.report)
   }
   finally {
-    // Only remove the exact staging child just allocated under the explicit publication root.
-    assert.equal(path.dirname(path.resolve(staging)), root)
-    assert.ok(path.basename(staging).startsWith('.publish-'))
+    // Only remove the exact temporary staging child allocated by this invocation.
+    assert.equal(path.dirname(path.resolve(staging)), path.resolve(workRoot))
+    assert.ok(path.basename(staging).startsWith('weapon-publish-'))
     await rm(staging, { recursive: true, force: true })
   }
 }
@@ -251,6 +252,7 @@ async function main(args) {
     '--source-pack': 'sourcePack',
     '--out-root': 'outputRoot',
     '--validator-module': 'validatorModule',
+    '--work-root': 'workRoot',
   }
   for (let index = 0; index < args.length; index++) {
     const argument = args[index]

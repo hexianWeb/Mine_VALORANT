@@ -27,6 +27,9 @@ importers:
       eslint:
         specifier: ^10.14.0
         version: 10.14.0
+      gltf-validator:
+        specifier: ^2.0.0-dev.3.10
+        version: 2.0.0-dev.3.10
       vite:
         specifier: ^8.3.0
         version: 8.3.0(yaml@2.9.1)
@@ -989,6 +992,9 @@ packages:
 
   globrex@0.1.2:
     resolution: {integrity: sha512-uHJgbwAMwNFf5mLst7IWLNg14x1CkeqglJb/K3doi4dw6q2IvAAmM/Y81kevy83wP+Sst+nutFTYOGg3d1lsxg==}
+
+  gltf-validator@2.0.0-dev.3.10:
+    resolution: {integrity: sha512-odJ4k0tRkGXiDGn78yDBg+fBbAIvBnXxh3RwAta0emSxGtyagFE8B4xELB1oYe3S5RD8Ci3uZAsZaascH2LAEQ==}
 
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
@@ -2637,6 +2643,8 @@ snapshots:
   globals@17.14.0: {}
 
   globrex@0.1.2: {}
+
+  gltf-validator@2.0.0-dev.3.10: {}
 
   graceful-fs@4.2.11: {}
 

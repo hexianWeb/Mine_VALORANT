@@ -18,24 +18,34 @@ export function seconds(value, name, positive = false) {
   return value
 }
 
+export function overlaps(a, b) {
+  return a.node === b.node && a.property === b.property
+    && (a.index === undefined || b.index === undefined || String(a.index) === String(b.index))
+}
+
+function bindingTarget(root, track, nodes) {
+  const path = PropertyBinding.parseTrackName(track.name)
+  if (path.objectName)
+    throw new Error(`[Animation] Unsupported compound binding: ${track.name}`)
+  const matches = nodes.get(path.nodeName)
+  if (matches?.length > 1)
+    throw new Error(`[Animation] Ambiguous node binding: ${track.name}`)
+  const node = PropertyBinding.findNode(root, path.nodeName)
+  if (!node || node[path.propertyName] === undefined)
+    throw new Error(`[Animation] Missing binding: ${track.name}`)
+  const index = path.propertyIndex === undefined
+    ? undefined
+    : path.propertyName === 'morphTargetInfluences'
+      ? node.morphTargetDictionary?.[path.propertyIndex] ?? path.propertyIndex
+      : path.propertyIndex
+  if (index !== undefined && node[path.propertyName][index] === undefined)
+    throw new Error(`[Animation] Missing property index: ${track.name}`)
+  return { node, property: path.propertyName, index }
+}
+
 function validateBindings(root, clip, nodes) {
   for (const track of clip.tracks) {
-    const path = PropertyBinding.parseTrackName(track.name)
-    if (path.objectName)
-      throw new Error(`[Animation] Unsupported compound binding: ${track.name}`)
-    const matches = nodes.get(path.nodeName)
-    if (matches?.length > 1)
-      throw new Error(`[Animation] Ambiguous node binding: ${track.name}`)
-    const node = PropertyBinding.findNode(root, path.nodeName)
-    if (!node || node[path.propertyName] === undefined)
-      throw new Error(`[Animation] Missing binding: ${track.name}`)
-    if (path.propertyIndex !== undefined) {
-      const index = path.propertyName === 'morphTargetInfluences'
-        ? node.morphTargetDictionary?.[path.propertyIndex] ?? path.propertyIndex
-        : path.propertyIndex
-      if (node[path.propertyName][index] === undefined)
-        throw new Error(`[Animation] Missing property index: ${track.name}`)
-    }
+    bindingTarget(root, track, nodes)
     if (!track.times.length || !Number.isInteger(track.getValueSize()) || track.getValueSize() < 1)
       throw new Error(`[Animation] Empty or malformed track: ${track.name}`)
     let previous = -Infinity
@@ -52,8 +62,9 @@ function validateBindings(root, clip, nodes) {
 /** Resolves semantic roles and rejects missing targets before Mixer can silently skip them. */
 export class ClipLibrary {
   #roles = new Map()
+  #controls = new Map()
 
-  constructor({ root, clips, actions } = {}) {
+  constructor({ root, clips, actions, controls = {} } = {}) {
     if (!root?.isObject3D || !Array.isArray(clips) || !actions || Array.isArray(actions))
       throw new TypeError('[Animation] Expected root, clips and actions')
     const nodes = new Map()
@@ -106,12 +117,61 @@ export class ClipLibrary {
         markers: Object.freeze(copiedMarkers),
       }))
     }
+    if (!controls || typeof controls !== 'object' || Array.isArray(controls))
+      throw new TypeError('[Animation] controls must be a record')
+    for (const [role, profile] of Object.entries(controls)) {
+      const clip = byName.get(profile?.clip)
+      if (!role || !clip || !Array.isArray(profile.tracks) || !profile.tracks.length
+        || Object.keys(profile).some(key => !['clip', 'tracks'].includes(key))) {
+        throw new Error(`[Animation] Invalid control profile: ${role}`)
+      }
+      const names = new Set()
+      const tracks = profile.tracks.map((name) => {
+        const matches = clip.tracks.filter(track => track.name === name)
+        if (names.has(name) || matches.length !== 1)
+          throw new Error(`[Animation] Missing or duplicate control track: ${role}/${name}`)
+        names.add(name)
+        const track = matches[0]
+        const target = bindingTarget(root, track, nodes)
+        const property = target.node[target.property]
+        const values = target.index !== undefined
+          ? [property[target.index]]
+          : property.toArray?.() ?? (Array.isArray(property)
+            ? property
+            : [property])
+        // Use the source factory, including GLTF CUBICSPLINE's tangent/value layout.
+        const size = track.createInterpolant().valueSize
+        if (size !== values.length || !values.every(Number.isFinite)
+          || ['bool', 'string'].includes(track.ValueTypeName)) {
+          throw new Error(`[Animation] Invalid numeric control binding: ${name}`)
+        }
+        return Object.freeze({
+          track,
+          ...target,
+          size,
+        })
+      })
+      if (tracks.some((track, index) => tracks.slice(0, index).some(other => overlaps(track, other))))
+        throw new Error(`[Animation] Overlapping control profile: ${role}`)
+      this.#controls.set(role, Object.freeze({
+        role,
+        clip,
+        tracks: Object.freeze(tracks),
+      }))
+    }
   }
 
   get(role) {
     const entry = this.#roles.get(role)
     if (!entry)
       throw new Error(`[Animation] Unknown role: ${role}`)
+    return entry
+  }
+
+  getControl(role) {
+    const entry = this.#controls.get(role)
+    if (!entry)
+      throw new Error(`[Animation] Unknown control: ${role}`)
     return entry
   }
 }

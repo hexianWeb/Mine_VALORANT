@@ -11,6 +11,9 @@
 export class Time {
   delta = 0
   rawDelta = 0
+  unclippedDelta = 0
+  clippedWallTime = 0
+  clockRevision = 0
   elapsed = 0
   frame = 0
   fixedSteps = 0
@@ -57,7 +60,9 @@ export class Time {
       : (nowMs - this.#last) / 1000
     this.#last = nowMs
     this.#frameTimeScale = this.timeScale
+    this.unclippedDelta = Math.max(raw, 0)
     this.rawDelta = Math.min(Math.max(raw, 0), this.#maxDelta)
+    this.clippedWallTime = this.unclippedDelta - this.rawDelta
     this.delta = this.rawDelta * this.#frameTimeScale
     this.elapsed += this.delta
     this.frame++
@@ -92,6 +97,9 @@ export class Time {
       frame: this.frame,
       delta: this.delta,
       rawDelta: this.rawDelta,
+      unclippedDelta: this.unclippedDelta,
+      clippedWallTime: this.clippedWallTime,
+      clockRevision: this.clockRevision,
       elapsed: this.elapsed,
       timeScale: this.#frameTimeScale,
       fixedDelta: this.fixedDelta,
@@ -109,6 +117,7 @@ export class Time {
   /** 忘掉上一帧时间戳，恢复后的第一帧 delta 为 0，保留插值余量。 */
   resetDelta() {
     this.#last = null
+    this.clockRevision++
   }
 
   /** @param {number} stepIndex 本帧尚未提交的下一子步索引。 */

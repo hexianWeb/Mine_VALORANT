@@ -101,6 +101,104 @@ function shots(result) {
   return ofType(result, 'ShotFired')
 }
 
+test('skin preparation commits once without changing reload, ammo, cooldown or instance identity', (t) => {
+  const f = setup(t)
+  f.ready()
+  f.step({ type: 'fire' })
+  f.step({ type: 'reload' })
+  const before = f.controller.snapshot()
+  const requested = f.step({ type: 'setSkin', instanceId: 'A', skinId: 'sakura' })
+  const ticket = requested.effects.find(effect => effect.type === 'PrepareSkin').ticket
+  assert.equal(f.weapon('A').skinId, 'default', 'download does not change the selected skin')
+  const committed = f.step({ type: 'skinPrepared', ticket })
+  assert.equal(ofType(committed, 'SkinChanged').length, 1)
+  assert.equal(f.weapon('A').skinId, 'sakura')
+  assert.deepEqual(f.controller.snapshot().action, before.action)
+  assert.deepEqual({
+    ...f.weapon('A'),
+    skinId: 'default',
+  }, before.inventory.weapons[0])
+  assert.equal(ofType(committed, 'DrawStarted').length, 0)
+  assert.equal(ofType(f.step({ type: 'skinPrepared', ticket }), 'SkinChanged').length, 0)
+})
+
+test('latest skin intent wins over old readiness even in the same step; failure retains the old skin and can retry', (t) => {
+  const f = setup(t)
+  f.ready()
+  const first = f.step({ type: 'setSkin', instanceId: 'A', skinId: 'sakura' }).effects[0].ticket
+  const next = f.step({ type: 'skinPrepared', ticket: first }, { type: 'setSkin', instanceId: 'A', skinId: 'other' })
+  const second = next.effects.find(effect => effect.type === 'PrepareSkin').ticket
+  assert.ok(second.skinRevision > first.skinRevision)
+  assert.equal(ofType(next, 'SkinChanged').length, 0)
+  f.step({ type: 'skinFailed', ticket: second, message: 'missing texture' })
+  assert.equal(f.weapon('A').skinId, 'default')
+  assert.equal(f.controller.snapshot().skinRequests[0].status, 'failed')
+  assert.equal(f.controller.snapshot().canFire, true)
+  const retry = f.step({ type: 'setSkin', instanceId: 'A', skinId: 'other' })
+  const third = retry.effects.find(effect => effect.type === 'PrepareSkin').ticket
+  assert.notEqual(third.requestId, second.requestId)
+  f.step({ type: 'skinPrepared', ticket: third })
+  assert.equal(f.weapon('A').skinId, 'other')
+  assert.equal(f.weapon('B').skinId, 'default')
+})
+
+test('selecting the existing skin cancels a pending replacement and late replies cannot restore it', (t) => {
+  const f = setup(t)
+  f.ready()
+  const ticket = f.step({ type: 'setSkin', instanceId: 'A', skinId: 'sakura' }).effects[0].ticket
+  f.step({ type: 'setSkin', instanceId: 'A', skinId: 'default' }, { type: 'skinPrepared', ticket })
+  assert.equal(f.weapon('A').skinId, 'default')
+  assert.deepEqual(f.controller.snapshot().skinRequests, [])
+})
+
+test('a new skin invalidates unlocked equipment preparation but never a reserved switch target', (t) => {
+  const f = setup(t, {
+    definitions: {
+      B: {
+        equip: { draw: 0.3, holster: 0.2 },
+      },
+    },
+  })
+  f.ready()
+  f.select('B')
+  const old = f.ticket('B')
+  const requested = f.step({ type: 'prepared', ticket: old }, { type: 'setSkin', instanceId: 'B', skinId: 'sakura' })
+  assert.equal(f.controller.snapshot().activeId, 'A')
+  const skin = requested.effects.find(effect => effect.type === 'PrepareSkin').ticket
+  f.step({ type: 'skinPrepared', ticket: skin })
+  const fresh = f.ticket('B')
+  assert.notEqual(fresh.requestId, old.requestId)
+  assert.equal(fresh.skinRevision, skin.skinRevision)
+  f.prepare('B')
+  const transaction = f.controller.snapshot().transaction
+  const deferred = f.step({ type: 'setSkin', instanceId: 'B', skinId: 'other' })
+  assert.equal(deferred.effects.some(effect => effect.type === 'PrepareSkin'), false)
+  assert.deepEqual(f.controller.snapshot().transaction, transaction)
+  assert.equal(f.weapon('B').skinId, 'sakura')
+  while (f.controller.snapshot().phase !== 'Ready') f.step()
+  const later = f.effects.findLast(effect => effect.type === 'PrepareSkin')
+  assert.equal(later.ticket.skinId, 'other')
+  f.step({ type: 'skinPrepared', ticket: later.ticket })
+  assert.equal(f.weapon('B').skinId, 'other')
+})
+
+test('suspend and reset invalidate skin work synchronously, while committed skins survive only suspend', (t) => {
+  const f = setup(t)
+  f.ready()
+  const ticket = f.step({ type: 'setSkin', instanceId: 'A', skinId: 'sakura' }).effects[0].ticket
+  f.step({ type: 'skinPrepared', ticket })
+  const pending = f.step({ type: 'setSkin', instanceId: 'A', skinId: 'other' }).effects[0].ticket
+  const invalidation = f.controller.suspend()
+  assert.ok(invalidation.effects.some(effect => effect.type === 'CancelSkinPreparation'))
+  assert.equal(f.controller.queue({ type: 'setSkin', instanceId: 'A', skinId: 'ignored' }), false)
+  f.controller.resume()
+  f.step({ type: 'skinPrepared', ticket: pending })
+  assert.equal(f.weapon('A').skinId, 'sakura')
+  f.controller.reset()
+  f.step({ type: 'skinPrepared', ticket })
+  assert.equal(f.weapon('A').skinId, 'default')
+})
+
 test('initial equipment waits for its preparation ticket and gives draw its full quantized duration', (t) => {
   const f = setup(t, {
     definitions: {

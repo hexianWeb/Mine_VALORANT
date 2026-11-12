@@ -12,11 +12,25 @@ node tools/weapons/publish.mjs --verify-only
 node --test tests/weapon-publication.test.mjs
 ```
 
-可在末尾指定 `classic` 或 `phantom`；省略则发布两枪。`BLENDER_PATH` 可代替 `--blender`，`--out-root` 可指定独立候选目录。原包默认位置为相邻 `vandal-roundtrip/valorant-first-person-pack`。官方 glTF Validator 必须可用：默认读取原包旁 `first-person/work/gltf-validator/node_modules/gltf-validator`，其他安装位置用 `--validator-module` 指向模块目录。已验证导出环境为 Blender 5.3.0；其他版本需重新通过校验，不假定产物字节相同。
+可在末尾指定 `classic` 或 `phantom`；省略则发布两枪。`BLENDER_PATH` 可代替 `--blender`，`--out-root` 可指定独立候选目录。原包默认位置为相邻 `vandal-roundtrip/valorant-first-person-pack`。官方 glTF Validator 使用项目开发依赖，其他安装位置仍可用 `--validator-module` 指定。暂存目录默认在 `D:/opencode-temp/opencode`，可用 `--work-root` 改变。已验证模型导出环境为 Blender 5.3.0；其他版本需重新通过校验，不假定产物字节相同。
+
+### 兼容皮肤发布
+
+Classic 当前使用 v2（smite/sakura），复用 v1 GLB，增加独立皮肤及审计记录，不覆盖旧模型。v1 现有本地 weapon.png 替换保留；仅修正其皮肤 JSON/manifest 中错误的尺寸与哈希，新发布中按内容哈希复制这些像素。
+
+```powershell
+& 'F:/Blender5.3/blender.exe' --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/weapons/audit_skin_blender.py -- --manifest public/weapons/classic/v1/manifest.json --base-blend skin_work_folder/classic_skin_work/Classic_Smite_Animated.blend --skin-blend skin_work_folder/classic_skin_work/Classic_Sakura_Animated.blend --texture skin_work_folder/classic_skin_work/classic_sakura_weapon.png --out D:/opencode-temp/opencode/weapon-stage4/sakura-audit.json
+node tools/weapons/publish-skins.mjs tools/weapons/skin-releases/classic-v2.json
+node --test tests/weapon-skin-publication.test.mjs
+```
+
+`audit_skin_blender.py` 只读打开两份制作源，核对 SourceUV、几何/权重、rest rig、全部动作与 packed PNG，不保存文件。审核后的证据由显式配方引用；更新证据前应复核命令输出。`publish-skins.mjs` 验证原包、证据与源文件哈希后生成新版本，已有目标版本必须字节一致。Sakura 当前审计环境为 Blender 5.2.3 LTS；它没有重新导出 v1 GLB。
 
 导出只选择配方列出的运行时网格与四套动画 Armature，排除 Icosphere 自定义骨形和预览摄像机。保留多对象 Action、STEP 可见性和原有 SourceUV；规范化时间原点、skinned mesh 根节点、材质 UV 及重复节点名。材质角色区分 weapon / armsLeft / armsRight，皮肤只覆盖 weapon。GLB 内含初始贴图；皮肤 JSON 的纹理 URL 相对皮肤 JSON，其他资源 URL 相对 manifest。挂载位置在 `view.mountOffset`，单位为米，写到 Mixer 根节点外的 anchor，GLB 不再缩放。
 
-发布门槛包括源文件前后 SHA256 一致、packed 皮肤与显式 PNG 一致、完整 clip/mesh/material/socket 绑定、时间原点、循环端点、有限骨骼矩阵、刚性权重、每枪九个 Blender/Three.js 变形包围盒比较，以及 glTF Validator 零 error/零 warning。`source-audit.json` 保存源姿态证据，`validation.json` 保存检查结果。Node 贴图检查读取 PNG 尺寸，不代替真实浏览器的像素解码和 WebGPU 画面验收。普通动作零时刻音效不重复导入为 marker；Classic salvo 等独立 cue 保留。已发布两枪接入主游戏，操作与时钟契约见[武器玩法](../docs/weapons/gameplay.md)；运行时音频尚未接入。
+发布门槛包括源文件前后 SHA256 一致、packed 皮肤与显式 PNG 一致、完整 clip/mesh/material/socket 绑定、时间原点、循环端点、有限骨骼矩阵、刚性权重、每枪九个 Blender/Three.js 变形包围盒比较，以及 glTF Validator 零 error/零 warning。`source-audit.json` 保存源姿态证据，`validation.json` 保存检查结果。Node 贴图检查读取 PNG 尺寸，不代替真实浏览器的像素解码和 WebGPU 画面验收。普通动作零时刻音效不重复导入为 marker；Classic salvo 等独立 cue 保留。已发布两枪接入主游戏，操作与时钟契约见[武器玩法](../docs/weapons/gameplay.md)；本地声音见[运行时音频](../docs/weapons/audio.md)。后续皮肤素材由用户处理，不自动生成或替换纹理。
+
+`weapons/audit_controls.py` 只读审计 Judge/Odin 的显式 scale 白名单、插值、层级及权重，输出 `tests/fixtures/weapon-controls/` 的可复现数值夹具；不导出模型、材质或图像，也不保存 blend。复核时输出到 `D:/opencode-temp/opencode/weapon-controls/reproduced` 再与保存的夹具比较，运行方式及验收边界见[稀疏控制](../docs/weapons/runtime-controls.md)。正常 npm test 不需要启动 Blender。
 
 在项目根目录执行。浏览器脚本默认找 `C:/Program Files/Google/Chrome/Application/chrome.exe`，换路径时设 `CHROME_PATH`。截图和 `report.json` 写到 `D:/opencode-temp/opencode/...`，换目录时设 `ROOM_TEST_OUTPUT`。失败时进程退出码为 1，先看终端里的 `passed` / `failure`。
 
@@ -31,6 +45,7 @@ node --test tests/weapon-publication.test.mjs
 | `check-runtime-browser.mjs` | 有 / 无 Editor 重载、独立渲染 | 同上，必须开发服务器 |
 | `check-weapons-browser.mjs` | Classic/Phantom 真实皮肤、动作采样、实例隔离与释放 | `npm run dev` 后 `node tools/check-weapons-browser.mjs http://localhost:5173/weapon-preview.html`；输出目录用 `WEAPON_TEST_OUTPUT` |
 | `check-weapon-gameplay-browser.mjs` | 主游戏真实输入、切枪／打断、射击／ADS、统一表现时间与生命周期 | `npm run dev` 后 `node tools/check-weapon-gameplay-browser.mjs http://localhost:5173/`；输出目录用 `WEAPON_GAME_TEST_OUTPUT` |
+| `check-weapon-audio-browser.mjs` | 双枪真实 Ogg 解码与输出波形、音频解锁、连射、取消、暂停/变速及卸载 | `npm run dev` 后 `node tools/check-weapon-audio-browser.mjs http://localhost:5173/`；输出目录用 `WEAPON_AUDIO_TEST_OUTPUT` |
 
 ```powershell
 pnpm test
@@ -48,6 +63,7 @@ node tools/check-player-browser.mjs "http://localhost:5173/"
 node tools/check-pipeline-browser.mjs "http://localhost:5173/"
 node tools/check-runtime-browser.mjs "http://localhost:5173/"
 node tools/check-weapon-gameplay-browser.mjs "http://localhost:5173/"
+node tools/check-weapon-audio-browser.mjs "http://localhost:5173/"
 ```
 
 `check-room` 会加上 `profile=1` 和 `player=0`。`check-pipeline` 和 `check-runtime` 会从开发服务器加载 `tests/*-browser-cases.js`，把 `pnpm preview` 的地址喂给它们会失败。

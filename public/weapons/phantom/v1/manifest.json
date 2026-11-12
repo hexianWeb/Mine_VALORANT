@@ -272,8 +272,8 @@
   "skins": {
     "tactiplay": {
       "url": "skins/tactiplay.json",
-      "sha256": "c3161fd4dcfe3c1fc41cfb489d3b0af740ebf1dabc5c683a250755922a1e00d1",
-      "bytes": 847
+      "sha256": "04c8df89d11fa6a3c9e20b2891bbdf1babbf6d0c4d7292f13b8600e3a543b258",
+      "bytes": 786
     }
   },
   "view": {

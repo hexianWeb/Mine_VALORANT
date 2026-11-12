@@ -1,20 +1,34 @@
 import { AnimationClip, AnimationMixer, LoopOnce } from 'three/webgpu'
 import { AnimationStateMachine } from './animation-state-machine.js'
 import { ClipLibrary, immutable, seconds } from './clip-library.js'
+import { ControlSampler } from './control-sampler.js'
 
 /** One visual instance, one playback owner. Gameplay decides which semantic role to play. */
 export class AnimationPlayer {
   #root
   #library
   #mixer
+  #controls
   #state = new AnimationStateMachine()
   #actions = new Map()
   #disposed = false
 
-  constructor({ root, clips, actions } = {}) {
-    this.#library = new ClipLibrary({ root, clips, actions })
+  constructor({ root, clips, actions, controls } = {}) {
+    this.#library = new ClipLibrary({ root, clips, actions, controls })
     this.#root = root
     this.#mixer = new AnimationMixer(root)
+    this.#controls = new ControlSampler(root, this.#library)
+  }
+
+  /** Replace the complete sparse override set atomically. Times are explicit clip-local seconds. */
+  setControls(samples) {
+    this.#assertLive()
+    this.#controls.set(samples)
+    this.#sample()
+  }
+
+  clearControls() {
+    this.setControls({})
   }
 
   play(role, { restart = false, fade, rate } = {}) {
@@ -47,6 +61,9 @@ export class AnimationPlayer {
   }
 
   #sample() {
+    // Restore BEFORE action stop/creation: Mixer caches originals on activation and may skip
+    // unchanged outputs. An override must never become its original or next frame's base pose.
+    this.#controls.restore()
     const alive = new Set(this.#state.layers.map(layer => layer.playbackId))
     for (const [id, entry] of this.#actions) {
       if (!alive.has(id)) {
@@ -76,12 +93,14 @@ export class AnimationPlayer {
     }
     // All clocks and event decisions are above. Mixer only samples the selected local times.
     this.#mixer.update(0)
+    this.#controls.apply()
     this.#root.updateMatrixWorld(true)
   }
 
   stop() {
     if (this.#disposed)
       return
+    this.#controls.clear()
     this.#state.stop()
     this.#sample()
   }
@@ -102,6 +121,7 @@ export class AnimationPlayer {
         : null,
       layers: this.#state.layers.map(describe),
       disposed: this.#disposed,
+      controls: this.#controls.snapshot(),
       stats: { actions: this.#mixer.stats.actions.total, bindings: this.#mixer.stats.bindings.total },
     })
   }

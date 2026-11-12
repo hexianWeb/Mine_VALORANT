@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { Buffer } from 'node:buffer'
+import { createHash } from 'node:crypto'
 import http from 'node:http'
 import test from 'node:test'
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js'
@@ -105,7 +106,7 @@ test('one failed asset does not cancel its batch siblings and can be retried', a
 })
 
 test('all resource types abort real HTTP downloads without waiting for the server', { timeout: 5000 }, async (t) => {
-  const expected = 11 // five single-file types plus six cubemap faces
+  const expected = 12 // six single-file types plus six cubemap faces
   const arrived = Promise.withResolvers()
   const closed = Promise.withResolvers()
   let requests = 0
@@ -120,6 +121,7 @@ test('all resource types abort real HTTP downloads without waiting for the serve
   })
   const entries = [
     'json',
+    'binary',
     'texture',
     'gltf',
     'hdr',
@@ -140,6 +142,34 @@ test('all resource types abort real HTTP downloads without waiting for the serve
   await closed.promise
   assert.equal(requests, expected)
   assert.equal(closures, expected)
+})
+
+test('binary downloads preserve bytes and enforce SHA256 before caching', async (t) => {
+  const bytes = Buffer.from('scope-owned sound bytes')
+  const base = await serve(t, (_request, response) => response.end(bytes))
+  const resources = new ResourceManager()
+  t.after(() => resources.dispose())
+  const hash = createHash('sha256').update(bytes).digest('hex')
+  await resources.load([
+    {
+      name: 'sound',
+      type: 'binary',
+      url: `${base}/sound`,
+      options: { sha256: hash },
+    },
+  ])
+  assert.deepEqual(Buffer.from(resources.get('sound', 'binary')), bytes)
+  await assert.rejects(resources.load([
+    {
+      name: 'bad',
+      type: 'binary',
+      url: `${base}/bad`,
+      options: {
+        sha256: '0'.repeat(64),
+      },
+    },
+  ]), /SHA-256 mismatch/)
+  assert.equal(resources.has('bad'), false)
 })
 
 test('a cancelled response body allows immediate same-URL retry and world reload', { timeout: 5000 }, async (t) => {

@@ -1,21 +1,24 @@
 # 武器资源发布与动画播放
 
-[整体设计](../superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md)的发布与播放模块已接入主游戏：Classic Smite、Phantom Tactiplay 由关卡作用域加载，每个视觉实例拥有独立 AnimationPlayer。主页面通过装备事实驱动双枪视模；专用预览页仍用于资产采样验收。固定瞄准和控件见[武器玩法](gameplay.md)，运行时音频尚未接入。
+[整体设计](../superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md)的发布与播放模块已接入主游戏：Classic Smite、Phantom Tactiplay 由关卡作用域加载，每个视觉实例拥有独立 AnimationPlayer。主页面通过装备事实驱动双枪视模；专用预览页仍用于资产采样验收。固定瞄准和控件见[武器玩法](gameplay.md)，双枪的声音及独立 cue 时钟见[运行时音频](audio.md)。
 
 ## 发布结果与来源
 
 | 发布包 | 制作源 | 片段 / 轨道 / STEP 轨道 | 蒙皮网格 |
 | --- | --- | --- | --- |
 | `public/weapons/classic/v1/` | `Classic_Smite_Animated.blend` | 31 / 1116 / 1 | 4 |
+| `public/weapons/classic/v2/`（当前） | 复用 v1 模型，增加已核验的 Sakura | 31 / 1116 / 1 | 4 |
 | `public/weapons/phantom/v1/` | `Phantom_Tactiplay_Animated.blend` | 30 / 1620 / 8 | 5 |
 
 发布器使用 `tools/weapons/recipes.mjs` 显式指定源文件、场景、网格、动画对象、皮肤 PNG、角色与挂点。后台 Blender 打开当前制作源导出，不保存源 `.blend`；源 SHA256 前后必须一致。原始资源包提供动作元数据和对照依据，不用旧 GLB 替代当前美术源。
 
-每包包含 model.glb、manifest.json、skins 下的皮肤定义、按内容哈希命名的 PNG，以及 source-audit.json、validation.json。当前两个包共约 2.60 MiB。manifest 描述模型哈希、骨架/几何 UV/动作集兼容签名、语义动作、材质角色、挂点与坐标约定；运行时完全不访问 skin_work_folder。
+每包包含 model.glb、manifest.json、skins 下的皮肤定义，以及 source-audit.json、validation.json。Classic 当前的 v2 使用内容哈希 PNG，包含 smite / sakura；它的 GLB 与 v1 字节相同，增加的 skin-audits 保存 Sakura 制作源兼容证据。既有 v1 的本地 weapon.png 替换予以保留，并按实际文件修正了尺寸与哈希。manifest 描述模型哈希、骨架/几何 UV/动作集兼容签名、语义动作、材质角色、挂点与坐标约定；运行时完全不访问 skin_work_folder。
 
 导出保留 camera、views 等辅助动画，以及 STEP 缩放/可见性轨道。GLB 统一使用 Y-up、-Z forward、米制；`manifest.view.mountOffset` 写到 visualRoot 外的 anchor，不再额外缩放。武器、左臂、右臂材质角色分开，皮肤只替换 weapon 角色。
 
 发布和复核命令见 [tools 说明](../../tools/README.md)。`node tools/weapons/publish.mjs --verify-only` 可独立校验已有包；重新导出需要本地 Blender 和 glTF Validator。既有版本要求所有文件字节一致，否则拒绝覆盖；更改内容应升级配方中的 assetVersion，同时更新 WeaponDefinition。
+
+兼容皮肤发布使用 `node tools/weapons/publish-skins.mjs tools/weapons/skin-releases/classic-v2.json`。它校验原包和只读 Blender 审计，复用原 GLB，保留当前本地默认外观，向新版本发布额外皮肤；重复发布必须字节一致。需要重新审计时运行 tools 中的 `audit_skin_blender.py`，不保存 `.blend`。官方 glTF Validator 已作为开发依赖安装，不再要求另一台机器上的模块路径。
 
 ## 加载与实例所有权
 
@@ -23,7 +26,7 @@
 
 ```js
 const assets = new WeaponAssets({ resources, scopeId: 'range-weapons', signal: levelAbortSignal })
-const handle = await assets.load({ weaponId: 'classic', assetVersion: 'v1', skinId: 'smite' })
+const handle = await assets.load({ weaponId: 'classic', assetVersion: 'v2', skinId: 'smite' })
 // 到 motion 阶段确认票据有效且 staged 槽可用后，再同步实例化。
 const visual = assets.instantiate(handle)
 visual.player.play('idle')
@@ -33,6 +36,8 @@ const events = visual.player.advance(presentationDelta)
 visual.dispose()
 assets.dispose()
 ```
+
+`assets.applySkin(visual, compatibleHandle)` 同步、原子地替换该实例武器/镜体材质的 map，保留材质对象、骨架与播放器。句柄和实例必须属于同一存活作用域及同一模型版本；外来/已释放对象、跨版本替换会拒绝。皮肤不得覆盖角色手臂。PlayerWeapons 的准备票据与 SkinChanged 事实决定实际调用时刻，异步回调本身不会换肤。
 
 `load()` 只预热模板和皮肤，返回冻结的 AssetReady 句柄，未创建模型或 Mixer。`instantiate()` 同步创建 detached root 和播放器，并验证实际加载节点的轨道绑定。缺少必需动作、材质、节点或皮肤签名不匹配都会拒绝准备。
 
@@ -48,9 +53,10 @@ epoch/requestId 的裁定由 EquipmentController 完成；WeaponViewModel 管理
 
 | 调用 | 行为 |
 | --- | --- |
-| `new AnimationPlayer({ root, clips, actions })` | 构造时验证 clip、节点和属性绑定；不静默跳过失效轨道 |
+| `new AnimationPlayer({ root, clips, actions, controls? })` | 构造时验证 clip、节点、属性绑定及稀疏白名单；不静默跳过失效轨道 |
 | `play(role, { restart, fade, rate })` | 返回 playbackId；同一当前角色默认不重播，restart 显式创建新代次 |
 | `advance(delta)` | 接受非负表现秒，采样并返回只读 marker / finished 事件；不推进玩法 |
+| `setControls(samples)` / `clearControls()` | 原子替换 `role -> 局部秒` 的稀疏覆盖集合；在主 Mixer 后覆盖，不创建动作或发事件 |
 | `snapshot()` | 当前动作、局部时间、混合层及权重、Mixer action/binding 数量 |
 | `stop()` | 停止全部层、清事件游标、恢复绑定前姿态；累计时间不倒退 |
 | `dispose()` | 停止并 uncache Mixer；不销毁模型、共享几何或贴图；之后不能继续播放 |
@@ -59,9 +65,9 @@ actions 是 `role -> { clip, loop?, rate?, fade?, markers? }`。rate 默认 1，
 
 内部 AnimationStateMachine 管理播放代次、局部时间和混合权重；Mixer 仅采样。被打断动作可继续淡出，但不再发 marker/finished；再次打断从当前所有权重继续过渡。同一片段重播拥有独立 Action 身份，保留旧层姿态，轨道数组仍共享。权重低于 1e-5 的旧层会退出并归一剩余权重，防止持续连射无限累积采样成本。
 
-时间采用补偿累计，并统一处理循环、marker、结束及淡入淡出边界；不同帧拆分不会在精确边界重复或漏发。STEP 沿用原插值器，不重采样成线性。当前支持标准 GLTF 的直接节点属性和索引属性；复合 `.bones[...]` 绑定会明确拒绝。Judge/Odin 的稀疏控制轨道覆盖、Blend Tree、IK 等尚未实现。
+时间采用补偿累计，并统一处理循环、marker、结束及淡入淡出边界；不同帧拆分不会在精确边界重复或漏发。STEP 沿用原插值器，不重采样成线性。当前支持标准 GLTF 的直接节点属性和索引属性；复合 `.bones[...]` 绑定会明确拒绝。[稀疏控制轨道](runtime-controls.md)已实现，并通过 Judge/Odin 源曲线数值验收；两枪完整发布、Blend Tree、IK 仍未交付。
 
-声音 marker 现在只是数据事件。普通 draw/fire/reload 的零时刻重复 cue 在发布时移除，独立 cue 保留；当前没有创建 AudioContext 或播放声音。WeaponViewModel 已按 `P = max(0, C - h + alpha * h)` 分段推进：先推进旧动作到事件 at，执行该事件，再推进剩余区间。装备、换弹、检视与射击事实选择语义动作；同片段射击使用显式 restart。片段时长不决定装备、补弹或可开火时间，适配者按玩法动作期限配置速度或结束恢复段。
+AnimationPlayer 返回的声音 marker 仍只是数据事件，不能自行发声。普通 draw/fire/reload 的零时刻重复 cue 在发布时移除，独立 cue 保留；主游戏由 WeaponAudio 的独立已提交动作游标调度，不等待延迟 Mixer 回调，也不重复播放。WeaponViewModel 已按 `P = max(0, C - h + alpha * h)` 分段推进：先推进旧动作到事件 at，执行该事件，再推进剩余区间。装备、换弹、检视与射击事实选择语义动作；同片段射击使用显式 restart。片段时长不决定装备、补弹或可开火时间，适配者按玩法动作期限配置速度或结束恢复段。
 
 开火片段自然结束时也按精确终点拆段，接待机后推进本帧剩余时间，避免低帧率丢失 idle 相位。ADS 变更使用固定步生成的私有表现时间点，按 P 消费后切换 idle/aim，不以首次观察到状态的渲染帧计时；它不占用装备事件的序号。30/60/144 FPS 与大步追帧的回归比较同一 P 的动作、混合权重和实际轨道采样。
 
@@ -89,4 +95,10 @@ node tools/check-weapon-gameplay-browser.mjs http://localhost:5173/
 
 Node 专项测试为 animation.test.mjs、weapon-assets.test.mjs、weapon-publication.test.mjs。发布还对照每枪九组 Blender/Three.js 变形包围盒，最大误差分别约 3.31e-7、4.86e-7 米；两包 glTF Validator 均为零 error / 零 warning。连续 500 次射击重播与 300 个 60 Hz 动画步覆盖混合层退场和浮点边界回归。
 
-主游戏检查使用 `check-weapon-gameplay-browser.mjs`，与预览检查分开运行；输出默认在 `D:/opencode-temp/opencode/weapon-gameplay-browser`，可用 `WEAPON_GAME_TEST_OUTPUT` 修改。其结果以当次 report.json 为准；该工具覆盖输入、装备事件、固定瞄准与视模接线，不验证尚未实现的音频。
+主游戏检查使用 `check-weapon-gameplay-browser.mjs`，与预览检查分开运行；输出默认在 `D:/opencode-temp/opencode/weapon-gameplay-browser`，可用 `WEAPON_GAME_TEST_OUTPUT` 修改。其结果以当次 report.json 为准；该工具覆盖输入、装备事件、固定瞄准与视模接线。声音实际解码、输出波形和生命周期另用 `check-weapon-audio-browser.mjs` 验证。
+
+## 后续阶段的本地输入缺口
+
+2026-11-12 已确认九枪制作源存在于 skin_work_folder，Judge 的独立动作场景与 Odin/Vandal 的 E08/E09/E04 动作场景也能只读打开；不需要重新生成美术。仓库与便携交付目录中没有原始九枪 manifest/runtime JSON；设计记录中的 `D:/Projects/vandal-roundtrip/valorant-first-person-pack` 和发布器默认的相邻源包目录均不存在。制作源仅保留 `asset_manifest=//manifest.json` 引用和动作时长等元数据，不能替代原始 runtime_control、control_bones、recoil、动作声音映射及玩法时刻。
+
+按阶段 5 的来源归一化契约继续完整发布前，需要提供完整 valorant-first-person-pack 的实际目录（各枪 manifest.json 及其引用的玩法数据）。不能从动画时长猜射速/补弹时刻，也不能拿旧便携 GLB 替代当前 Odin 网格。阶段 4 以及已完成的稀疏控制采样/源曲线数值验收不依赖该缺失源包；后者使用显式的本地显示窗口策略，不冒充原始 runtime 映射。

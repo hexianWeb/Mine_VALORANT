@@ -14,9 +14,11 @@ export class Engine {
   #logicalFrame = 0
   #completedFrame = 0
 
-  constructor({ world, render, frameDriver = null, time = new Time(), autoPauseOnHidden = true } = {}) {
+  constructor({ world, render, audio = null, listener = null, frameDriver = null, time = new Time(), autoPauseOnHidden = true } = {}) {
     this.world = world
     this.render = render
+    this.audio = audio
+    this.listener = listener
     this.frameDriver = frameDriver
     this.time = time
     this.frame = Object.freeze({
@@ -46,12 +48,14 @@ export class Engine {
     this.state = 'paused'
     this.#autoPaused = false
     this.#cancelFrame()
+    this.audio?.setPaused(true)
     this.events.emit('pause')
   }
 
   resume() {
     this.#assertState('resume', 'paused')
     this.#run()
+    this.audio?.setPaused(false)
     this.events.emit('resume')
   }
 
@@ -112,6 +116,8 @@ export class Engine {
       if (this.state !== 'destroyed')
         this.world?.tickComponents('presentation', this.frame)
       if (this.state !== 'destroyed')
+        this.audio?.flush(this.frame.time, this.listener?.())
+      if (this.state !== 'destroyed')
         this.#completedFrame = this.#logicalFrame
     }
     finally {
@@ -138,6 +144,7 @@ export class Engine {
       return
     this.state = 'destroyed'
     this.#cancelFrame()
+    this.audio?.invalidate()
     this.#offVisibility?.()
     try {
       this.events.emit('destroy')
