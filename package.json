@@ -8,6 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test tests/*.test.mjs",
+    "test:weapon-workflow": "node --test tests/weapon-iteration-workflow.test.mjs tests/weapon-candidate-preview.test.mjs",
+    "weapon:check": "node tools/weapons/check-iteration.mjs",
     "validate:room": "node tools/validate-room-assets.mjs"
   },
   "dependencies": {

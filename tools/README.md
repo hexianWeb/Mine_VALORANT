@@ -1,17 +1,33 @@
 # tools 秒懂
 
-`tools/` 里的脚本服务练枪房与武器的资产和验收链路。表按重要程度从上到下：先是每次改完都该跑的检查，然后是改模型、光照、碰撞时才跑的导出，最后是被别的脚本调用的库。
+`tools/` 里的脚本服务练枪房与武器的资产和验收链路。按改动范围选择检查，不把完整集成交付清单当成每次 Blender 编辑的必跑项。日常制作、候选预览和正式发布的分级见[快速迭代工作流](../docs/weapons/iteration-workflow.md)。
+
+## 日常武器迭代（优先）
+
+```powershell
+# 已有包：当前资源/PNG + 可缓存的代表动作检查，不启动 Blender/Chrome
+npm run weapon:check -- public/weapons/classic/v4
+
+# 从制作源导出项目外候选，不覆盖已发布包；返回可直接打开的 previewUrl
+node tools/weapons/publish-optimized.mjs tools/weapons/optimized-releases/classic-v4.json --preview --blender F:/Blender5.3/blender.exe --report D:/opencode-temp/opencode/classic-preview-export.json
+
+# 需要画面时，只检查目标枪；URL 使用上一条返回的候选地址
+node tools/check-weapons-browser.mjs '<开发服务器地址 + previewUrl>' --quick --weapon classic
+```
+
+预览有明确的 `publishable: false` 标记，不能代替正式发布检查。模型缓存不跳过当前资源哈希/图片解码，源码、模型或姿态输入变化会失效。完整说明、缓存边界及计时见上面的快速迭代文档。
 
 ## 武器发布
 
-材质制作方向以[武器材质路线图](../docs/weapons/material-quality-roadmap.md)为准：平直着色、枪械整体金属质感、不依赖自发光；静态室内反射采用游戏内离线 HDR Cubemap 捕获＋PMREM。该方案尚未实施，下面的现行发布／检查命令不能替代新版材质和反射验收。
+材质制作方向以[武器材质路线图](../docs/weapons/material-quality-roadmap.md)为准：平直着色、枪械整体金属质感、不依赖自发光；静态室内反射采用游戏内离线 HDR Cubemap 捕获＋PMREM。`?weaponStudy=1` 已提供 Classic v4／AG 可选小样，默认及其他皮肤不变；普通发布检查不能替代小样的专用材质／反射验收。
 
 Classic 当前的精简网格／336 图集使用独立发布入口，不覆盖历史包：
 
 ```powershell
 node tools/weapons/publish-optimized.mjs tools/weapons/optimized-releases/classic-v4.json --blender 'F:/Blender5.3/blender.exe'
-node tools/weapons/publish-optimized.mjs tools/weapons/optimized-releases/classic-v4.json --verify-only
 ```
+
+发布成功已做完整资产校验，不立即重复 `--verify-only`。该参数用于独立核对已有包；日常制作优先用上面的候选预览。
 
 完整的备份、无损裁图、UV 公式、旧开火面处理、骨架／动作兼容及 Three.js 接入见[枪械专用图集工作流](../docs/weapons/gun-only-uv-workflow.md)。`gun-atlas.mjs` 提供 PNG 裁图与 UV 换算；`optimized_geometry.py` 只在后台导入显式的新枪械网格，保留用户权重并验证全部作者动作曲线。默认 Classic v4 / AG，另保留 336 版 Smite、Sakura。
 
@@ -19,7 +35,6 @@ node tools/weapons/publish-optimized.mjs tools/weapons/optimized-releases/classi
 
 ```powershell
 node tools/weapons/publish.mjs --blender 'F:/Blender5.3/blender.exe' --source-pack '<完整源包目录>' --asset-version '<未发布的新版本>' classic
-node tools/weapons/publish.mjs --verify-only
 node --test tests/weapon-publication.test.mjs
 ```
 
@@ -46,7 +61,7 @@ node --test tests/weapon-skin-publication.test.mjs
 
 `audit_skin_blender.py` 只读打开两份制作源，核对 SourceUV、几何/权重、rest rig、全部动作与 packed PNG，不保存文件。审核后的证据由显式配方引用；更新证据前应复核命令输出。`publish-skins.mjs` 验证原包、证据与源文件哈希后生成新版本，已有目标版本必须字节一致。历史 `classic-v2.json` 绑定旧制作源，不能拿统一后的 `.blend` 复现旧审计。Sakura 新审计环境为 Blender 5.2.3 LTS。
 
-新皮肤不再以额外发光图或颜色图自发光保亮为制作方向；首版保留颜色图，优先验证金属材质与室内反射，再按需补粗糙度。现有发布器与运行时仍保留[待迁移的旧材质兼容处理](../docs/weapons/animation-and-assets.md#旧材质兼容状态)；这不代表新版已关闭发光，也不应据此新增发光素材。迁移须调整加载／换肤契约，不直接改写已发布包或其哈希。
+新皮肤不再以额外发光图或颜色图自发光保亮为制作方向；首版保留颜色图，优先验证金属材质与室内反射，再按需补粗糙度。默认路径仍有[待迁移的旧材质兼容状态](../docs/weapons/animation-and-assets.md#旧材质兼容状态)，目前仅 AG 可选小样明确关闭发光；不据此新增发光素材或直接改写已发布包及哈希。
 
 导出只选择配方列出的运行时网格与四套动画 Armature，排除 Icosphere 自定义骨形和预览摄像机。保留多对象 Action 和 STEP 可见性，检查手臂 SourceUV/标准贴图；规范化时间原点、skinned mesh 根节点、材质 UV 及重复节点名。材质角色区分 weapon / armsLeft / armsRight，皮肤只覆盖 weapon。GLB 内含初始贴图；皮肤 JSON 的纹理 URL 相对皮肤 JSON，其他资源 URL 相对 manifest。挂载位置在 `view.mountOffset`，单位为米，写到 Mixer 根节点外的 anchor，GLB 不再缩放。
 
@@ -56,7 +71,9 @@ node --test tests/weapon-skin-publication.test.mjs
 
 在项目根目录执行。浏览器脚本默认找 `C:/Program Files/Google/Chrome/Application/chrome.exe`，换路径时设 `CHROME_PATH`。截图和 `report.json` 写到 `D:/opencode-temp/opencode/...`，换目录时设 `ROOM_TEST_OUTPUT`。失败时进程退出码为 1，先看终端里的 `passed` / `failure`。
 
-## 1. 每次改完都跑
+## 1. 按影响范围选择检查
+
+AG 材质／反射小样使用 `node --test tests/weapon-material-study.test.mjs` 和开发服务器上的 `node tools/check-weapon-material-study-browser.mjs <url>`，输出默认在 `D:/opencode-temp/opencode/weapon-material-study/check/`。源房间确需更新时才运行 `node tools/bake-room-reflection.mjs <url>`，用 `REFLECTION_OUTPUT` 指定新候选目录；默认拒绝覆盖内容不同的已有反射版本。该脚本不打开 Blender，不重新发布枪械或 Lightmap，正常页面也不调用它。
 
 | 文件 | 什么时候用 | 怎么跑 |
 | --- | --- | --- |
@@ -69,6 +86,8 @@ node --test tests/weapon-skin-publication.test.mjs
 | `check-weapon-gameplay-browser.mjs` | 主游戏真实输入、切枪／打断、射击／ADS、统一表现时间与生命周期 | `npm run dev` 后 `node tools/check-weapon-gameplay-browser.mjs http://localhost:5173/`；输出目录用 `WEAPON_GAME_TEST_OUTPUT` |
 | `check-weapon-lighting-browser.mjs` | 现行双枪 HDR 光照、探针/环境共享、移动转向、AO 隔离与旧材质兼容回归；尚非新版材质验收 | 开发服务器下 `node tools/check-weapon-lighting-browser.mjs http://localhost:5173/`；输出目录用 `WEAPON_LIGHTING_TEST_OUTPUT` |
 | `check-weapon-audio-browser.mjs` | 双枪真实 Ogg 解码与输出波形、音频解锁、连射、取消、暂停/变速及卸载 | `npm run dev` 后 `node tools/check-weapon-audio-browser.mjs http://localhost:5173/`；输出目录用 `WEAPON_AUDIO_TEST_OUTPUT` |
+
+下面是一整套房间集成交付示例，**不是每次 Blender 小改的默认步骤**；武器资源小改使用上面的快速迭代入口。
 
 ```powershell
 pnpm test
@@ -175,7 +194,7 @@ export = runpy.run_path(r'E:\graphic\MC_VALORANT\tools\export_probe_volumes.py')
 export['export_volumes'](r'E:\graphic\MC_VALORANT\public\lighting\range-room-probes\volumes.json')
 ```
 
-这里重捕的是现行漫反射 SH 辐照度，不是[待实施的室内镜面 HDR Cubemap／PMREM](../docs/weapons/material-quality-roadmap.md#5-反射方案游戏内离线捕获的静态局部反射探针)。辐照度重捕会覆盖 `public/lighting/range-room-probes/probe-atlas.bin` 和 `cache.json`。换输出目录时设 `PROBE_OUTPUT`。页面需要已经启用探针：
+这里重捕的是现行漫反射 SH 辐照度，不是 [AG 小样的室内镜面 HDR Cubemap／PMREM](../docs/weapons/material-quality-roadmap.md#当前小样入口与验证)。辐照度重捕会覆盖 `public/lighting/range-room-probes/probe-atlas.bin` 和 `cache.json`。换输出目录时设 `PROBE_OUTPUT`。页面需要已经启用探针：
 
 ```powershell
 pnpm dev

@@ -164,8 +164,8 @@ async function readChecked(root, base, descriptor) {
   return bytes
 }
 
-/** Headless binding/pose checks use PNG dimensions only; browser checks decode and render pixels. */
-export async function validateWeaponPackage(directory, { validator, poseSamples = [] } = {}) {
+/** Always check current resource bytes, even when preview model checks can be reused. */
+export async function inspectWeaponPackage(directory) {
   const manifest = JSON.parse(await readFile(path.join(directory, 'manifest.json'), 'utf8'))
   assert.equal(manifest.schemaVersion, 1)
   const bytes = await readChecked(directory, directory, manifest.model)
@@ -190,6 +190,7 @@ export async function validateWeaponPackage(directory, { validator, poseSamples 
   for (const name of Object.values(manifest.sockets))
     assert.ok(glb.doc.nodes.some(node => node.name === name), `Unbound socket: ${name}`)
   assert.ok(manifest.skins[manifest.defaultSkinId], 'Missing default skin')
+  const textures = []
   for (const [skinId, descriptor] of Object.entries(manifest.skins)) {
     const skinBytes = await readChecked(directory, directory, descriptor)
     const skin = JSON.parse(skinBytes)
@@ -204,9 +205,27 @@ export async function validateWeaponPackage(directory, { validator, poseSamples 
       assert.deepEqual(pngSize(texture), { width: input.map.width, height: input.map.height })
       assert.equal(input.map.colorSpace, 'srgb')
       assert.equal(input.map.flipY, false)
+      textures.push(texture)
     }
   }
+  return { manifest, bytes, glb, textures }
+}
 
+/** Release remains the default; a preview is explicitly not a publication gate. */
+export async function validateWeaponPackage(directory, options = {}) {
+  return validateWeaponModel(await inspectWeaponPackage(directory), options)
+}
+
+export async function validateWeaponModel({ manifest, bytes }, { validator, poseSamples = [], profile = 'release' } = {}) {
+  assert.ok(['release', 'preview'].includes(profile), 'Unknown validation profile')
+  assert.ok(profile === 'preview' || !manifest.provenance?.preview, 'Preview packages cannot pass release validation; rebuild with a pinned release recipe')
+  const previewClips = new Set(['idle', 'reloadEmpty', 'inspect'].map(role => manifest.actions[role]).filter(Boolean))
+  const selectedSamples = profile === 'release'
+    ? poseSamples
+    : poseSamples.filter(sample => previewClips.has(sample.clip)).slice(0, 3)
+  const fractions = profile === 'release'
+    ? [0, 0.25, 0.5, 0.75, 1]
+    : [0, 0.5, 1]
   const globals = new Map(['self', 'createImageBitmap', 'ProgressEvent'].map(name => [
     name,
     Object.getOwnPropertyDescriptor(globalThis, name),
@@ -262,9 +281,11 @@ export async function validateWeaponPackage(directory, { validator, poseSamples 
           assert.ok(difference <= 0.001, `Loop seam: ${clip.name}/${track.name}`)
         }
       }
+      if (profile === 'preview' && !previewClips.has(clip.name))
+        continue
       const action = mixer.clipAction(clip).setLoop(THREE.LoopOnce, 1)
       action.clampWhenFinished = true
-      for (const fraction of [0, 0.25, 0.5, 0.75, 1]) {
+      for (const fraction of fractions) {
         action.reset().play()
         mixer.setTime(clip.duration * fraction)
         loaded.scene.updateMatrixWorld(true)
@@ -296,7 +317,7 @@ export async function validateWeaponPackage(directory, { validator, poseSamples 
       }
     }
     let maxPoseBoundsError = 0
-    for (const sample of poseSamples) {
+    for (const sample of selectedSamples) {
       mixer.stopAllAction()
       const clip = loaded.animations.find(clip => clip.name === sample.clip)
       const action = mixer.clipAction(clip).reset().setLoop(THREE.LoopOnce, 1)
@@ -324,7 +345,7 @@ export async function validateWeaponPackage(directory, { validator, poseSamples 
     }
     assert.ok(maxPoseBoundsError < 0.001, `Blender/Three pose mismatch: ${maxPoseBoundsError}`)
     let gltfIssues = null
-    if (validator) {
+    if (validator && profile === 'release') {
       const result = await validator.validateBytes(new Uint8Array(bytes), { maxIssues: 100 })
       gltfIssues = result.issues
       assert.equal(gltfIssues.numErrors, 0, JSON.stringify(gltfIssues))
@@ -336,9 +357,12 @@ export async function validateWeaponPackage(directory, { validator, poseSamples 
       meshes: meshes.length,
       tracks,
       stepTracks,
-      poseSamples: poseSamples.length,
+      poseSamples: selectedSamples.length,
       maxPoseBoundsError,
       gltfIssues,
+      ...(profile === 'preview'
+        ? { profile, publishable: false, sampledClips: previewClips.size }
+        : {}),
     }
   }
   finally {

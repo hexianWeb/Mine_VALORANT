@@ -88,6 +88,8 @@ EXR 解码和 alpha 加权 mip 生成在独立 Worker 中完成，通过 transfe
 
 ## 导出与替换模型
 
+Blender 日常制作、单枪候选预览与正式发布已分级，见[快速迭代工作流](docs/weapons/iteration-workflow.md)。已有武器包可用 `npm run weapon:check -- public/weapons/classic/v4` 快速检查；`publish-optimized.mjs --preview` 只写 D 盘候选，不触碰正式资源。完整验证清单不作为每次小改的默认动作。
+
 Classic 已使用精简后的 `classic/v4`：枪械图集为 336×336，默认 AG，保留 Smite／Sakura；完整动作与统一手臂保持兼容。可复用的裁图、UV 调整、版本化导出和验收步骤见[枪械专用图集工作流](docs/weapons/gun-only-uv-workflow.md)。
 
 `tools/export_range_room.py` 只允许在后台 Blender 副本中运行，要求显式对象 scope，拒绝覆盖已存在的正式资产。副本中调用 `repair_blender_alpha.py` 按图像实际 alpha 分类，防止后续重新导出时退回全部 BLEND；不改源 `.blend`，不重新展开或烘焙。

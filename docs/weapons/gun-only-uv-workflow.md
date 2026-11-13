@@ -4,6 +4,8 @@
 
 **不能只换 PNG：图集、UV、兼容签名、皮肤包和运行时版本必须一起更新。**
 
+> 本文保留 Classic 的制作与正式发布方法。日常编辑不再默认执行整套发布验收：先读[快速迭代与发布分级](iteration-workflow.md)，使用 `--preview`、可缓存的资源检查和单枪画面检查。只改 Blender 时不自动接入游戏。
+
 ## 1. 本次结果与入口
 
 | 项目 | 内容 |
@@ -106,8 +108,9 @@ Blender UV = (335.5 / 336, 0.5 / 336)
 
 ```powershell
 node tools/weapons/publish-optimized.mjs tools/weapons/optimized-releases/classic-v4.json --blender "F:/Blender5.3/blender.exe"
-node tools/weapons/publish-optimized.mjs tools/weapons/optimized-releases/classic-v4.json --verify-only
 ```
+
+发布成功已完成完整资产校验，不紧接着重复 `--verify-only`。后者用于独立核对已有发布包；日常临时候选则使用 `--preview`。
 
 发布器校验配方、作者源、旧元数据、图片的 SHA-256，在独立后台 Blender 中导出并核对源文件未被写入。随后生成新兼容签名，发布 AG／Smite 的 336 图集，并将已验证的 Sakura 旧图集无损裁成对应布局，不直接套用旧 2048 PNG。
 
@@ -131,6 +134,8 @@ assets: {
 继续通过 WeaponAssets／ResourceManager 加载，不另建 GLTFLoader，不改射速、弹药、后坐力、动作时钟或持枪位置。颜色图为 sRGB、最近邻、无 mipmap、`flipY=false`。
 
 本工作流负责几何／图集发布，不把额外发光图作为皮肤制作要求。平直着色、全金属、不依赖自发光和静态局部反射的后续工作以[材质路线图](material-quality-roadmap.md)为准；当前加载器的[旧材质兼容状态](animation-and-assets.md#旧材质兼容状态)仍待迁移。
+
+以下是集成交付/相关公共代码修改时的检查清单，不是每次裁图或 Blender 编辑的必跑步骤。日常候选用单枪 `--quick`；玩法或光照公共代码变更再补对应专项。
 
 ```powershell
 npm test

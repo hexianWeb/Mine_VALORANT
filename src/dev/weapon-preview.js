@@ -3,9 +3,15 @@ import { ResourceManager } from '../engine/runtime/resource/resource-manager.js'
 import { WeaponAssets } from '../game/weapons/assets/weapon-assets.js'
 import { classicDefinition } from '../game/weapons/definitions/classic.js'
 import { phantomDefinition } from '../game/weapons/definitions/phantom.js'
+import { weaponPreviewOptions } from './weapon-preview-options.js'
 
 const resources = new ResourceManager()
-const assets = new WeaponAssets({ resources, scopeId: 'browser-validation' })
+const options = weaponPreviewOptions(location.search, import.meta.env.DEV)
+const assets = new WeaponAssets({ resources, scopeId: 'browser-validation', baseUrl: options.baseUrl })
+if (options.candidate) {
+  for (const option of document.querySelector('#weapon').options)
+    option.disabled = option.value !== options.weapon
+}
 const scene = new THREE.Scene()
 scene.background = new THREE.Color(0x1C2230)
 const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.005, 100)
@@ -32,6 +38,7 @@ function require(condition, message) {
 }
 
 async function load(weaponId) {
+  require(!options.candidate || weaponId === options.weapon, 'Candidate preview contains only the requested weapon')
   if (entries.has(weaponId))
     return entries.get(weaponId)
   globalThis.__WEAPON_PREVIEW__.stage = `loading:${weaponId}`
@@ -40,8 +47,8 @@ async function load(weaponId) {
     : phantomDefinition
   const handle = await assets.load({
     weaponId,
-    assetVersion: definition.assets.assetVersion,
-    skinId: definition.assets.defaultSkinId,
+    assetVersion: options.candidate ? options.version : definition.assets.assetVersion,
+    skinId: options.candidate ? options.skin : definition.assets.defaultSkinId,
   })
   globalThis.__WEAPON_PREVIEW__.stage = `instantiating:${weaponId}`
   const instance = assets.instantiate(handle)
@@ -71,7 +78,7 @@ async function sample(weaponId, role, time = 0) {
   const actionSelect = document.querySelector('#action')
   if ([...actionSelect.options].some(option => option.value === role))
     actionSelect.value = role
-  document.querySelector('#status').textContent = `${weaponId} · ${role} · ${time.toFixed(2)} s`
+  document.querySelector('#status').textContent = `${options.candidate ? '候选预览（非发布验收） · ' : ''}${weaponId} · ${role} · ${time.toFixed(2)} s`
   return {
     events,
     state: entry.instance.player.snapshot(),
@@ -95,19 +102,28 @@ function meshState(root) {
   return meshes
 }
 
-async function verify() {
+const defaultWeapons = options.candidate
+  ? [options.weapon]
+  : ['classic', 'phantom']
+
+async function verify({ weapons = defaultWeapons, quick = false } = {}) {
   const checks = []
-  for (const weaponId of ['classic', 'phantom']) {
+  for (const weaponId of weapons) {
     const entry = await load(weaponId)
     const second = assets.instantiate(entry.handle)
     second.player.play('idle')
     second.player.advance(0)
     const before = JSON.stringify(meshState(second.root))
-    const roles = Object.keys(entry.handle.manifest.actions)
+    const roles = quick
+      ? ['idle', 'reloadEmpty', 'inspect']
+      : Object.keys(entry.handle.manifest.actions)
+    const fractions = quick
+      ? [0, 0.5, 1]
+      : [0, 0.25, 0.5, 0.75, 1]
     for (const role of roles) {
       const clipName = entry.handle.manifest.actions[role]
       const clip = entry.handle.manifest.clips.find(clip => clip.name === clipName)
-      for (const fraction of [0, 0.25, 0.5, 0.75, 1]) {
+      for (const fraction of fractions) {
         entry.instance.player.play(role, { restart: true, fade: 0 })
         entry.instance.player.advance(clip.duration * fraction)
         meshState(entry.instance.root)
@@ -127,6 +143,8 @@ async function verify() {
       instancesIndependent: true,
     })
   }
+  if (!weapons.includes('classic') || !weapons.includes('phantom'))
+    return checks
   const classic = entries.get('classic').instance.root
   const phantom = entries.get('phantom').instance.root
   const sharedMap = classic.getObjectByName('Arms_Left').material.map
@@ -194,13 +212,14 @@ globalThis.__WEAPON_PREVIEW__ = {
   sample,
   verify,
   dispose,
+  options,
   ready: false,
 }
 async function initialize() {
   try {
     globalThis.__WEAPON_PREVIEW__.stage = 'renderer:init'
     await renderer.init()
-    await sample('classic', 'idle')
+    await sample(options.weapon, 'idle')
     globalThis.__WEAPON_PREVIEW__.ready = true
   }
   catch (error) {

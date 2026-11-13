@@ -5,6 +5,7 @@ import math
 from pathlib import Path
 import struct
 import sys
+import time
 
 import bpy
 
@@ -137,17 +138,29 @@ def normalize(path):
 
 
 def main():
+    started = time.perf_counter()
+    phases = []
+
+    def mark(name):
+        now = time.perf_counter()
+        previous = phases[-1]['end'] if phases else started
+        phases.append({'name': name, 'ms': round((now - previous) * 1000, 2), 'end': now})
+
     request = json.loads(Path(sys.argv[sys.argv.index('--') + 1]).read_text(encoding='utf8'))
     source = Path(request['blend'])
     before = hashlib.sha256(source.read_bytes()).hexdigest()
     manifest = json.loads(Path(request['sourceManifest']).read_text(encoding='utf8'))
     assert len(manifest['clips']) == request['clipCount']
+    mark('read-inputs')
     bpy.ops.wm.open_mainfile(filepath=str(source), load_ui=False)
+    mark('load-authoring')
     arm_contract, _ = load_contract()
     validate_arms(arm_contract)
+    mark('arm-contract')
     optimized = None
     if request.get('optimizedGeometry'):
         optimized = install_optimized_geometry(request['optimizedGeometry'], request['texture'], manifest)
+    mark('geometry-and-action-audit')
     scene = bpy.data.scenes[request['scene']]
     bpy.context.window.scene = scene
     assert scene.render.fps / scene.render.fps_base == 60
@@ -186,6 +199,7 @@ def main():
                                  [max(p[i] for p in points) for i in range(3)]]
             evaluated.to_mesh_clear()
         samples.append({'clip': name, 'time': seconds, 'bounds': bounds})
+    mark('authoring-pose-samples')
     for obj, slot in animated.items():
         obj.animation_data.action = bpy.data.actions['static_idle']
         obj.animation_data.action_slot = next(s for s in bpy.data.actions['static_idle'].slots if s.name_display == slot)
@@ -204,7 +218,9 @@ def main():
         export_def_bones=False, export_skins=True, export_leaf_bone=False, export_apply=False,
         export_texcoords=True, export_normals=True, export_materials='EXPORT', export_extras=False,
         export_yup=True, will_save_settings=False)
+    mark('gltf-export')
     normalize(Path(request['output']))
+    mark('normalize-glb')
     assert hashlib.sha256(source.read_bytes()).hexdigest() == before
     report = {
         'blenderVersion': bpy.app.version_string, 'sourceSha256': before,
@@ -214,6 +230,12 @@ def main():
     if optimized is not None:
         report['optimizedGeometry'] = optimized
     Path(request['report']).write_text(json.dumps(report, indent=2), encoding='utf8')
+    mark('source-unchanged-and-audit')
+    if request.get('timingReport'):
+        Path(request['timingReport']).write_text(json.dumps({
+            'totalMs': round((time.perf_counter() - started) * 1000, 2),
+            'stages': [{key: value for key, value in phase.items() if key != 'end'} for phase in phases],
+        }, indent=2), encoding='utf8')
 
 
 if __name__ == '__main__':
