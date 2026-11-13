@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "classic",
+  "assetVersion": "v4",
+  "baseDirectory": "public/weapons/classic/v3",
+  "baseManifestSha256": "5f0fdad76f481112a178e08cab4088ae6107c4deb6a063255adf432f21f1f4c1",
+  "rigBlend": "skin_work_folder/classic_skin_work/Classic_Smite_Animated.blend",
+  "rigBlendSha256": "b4e115d72b20e4e9a3992474aec2816e5c4a73f5a71b171e540abb25b141c16f",
+  "exportScene": "80_ThreeJS_Export",
+  "geometrySource": {
+    "blend": "skin_work_folder/classic_skin_work/optimized-336-v4/Classic_GunOnly336_Optimized.blend",
+    "sha256": "dacf8d2c1b14923bcc0eda4a0105d0b6b6dab4d4c5e6922b4e35be22267acf71",
+    "scene": "01_CLASSIC",
+    "actionPrefix": "classic / ",
+    "textureSize": [336, 336],
+    "meshes": {
+      "Weapon_Body": "Weapon_Body | 00_Showcase",
+      "Weapon_Magazine": "Weapon_Magazine | 00_Showcase"
+    }
+  },
+  "defaultSkinId": "ag",
+  "skins": [
+    {
+      "skinId": "ag",
+      "texture": "skin_work_folder/classic_skin_work/optimized-336-v4/classic-ag-336.png",
+      "sha256": "873dd9caaaa5d09392beadef1e1213aaaeac27e9149c04f981478ecf7867acc2",
+      "size": [336, 336]
+    },
+    {
+      "skinId": "smite",
+      "texture": "skin_work_folder/classic_skin_work/optimized-336-v4/classic-smite-336.png",
+      "sha256": "3968815132fa88c8014dac983563826ae7f212da084dcf07720197ef7d278f0a",
+      "size": [336, 336]
+    },
+    {
+      "skinId": "sakura",
+      "baseSkinId": "sakura",
+      "sourceTextureSha256": "a2570df2d605a77bc3b10ff7c32a457adace12bc37402f77d14203282a7ecc45",
+      "crop": { "rect": [0, 0, 332, 332], "padding": 2 }
+    }
+  ]
+}

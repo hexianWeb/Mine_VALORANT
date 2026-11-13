@@ -1,0 +1,152 @@
+{
+  "weaponId": "classic",
+  "clips": 31,
+  "meshes": 4,
+  "tracks": 1116,
+  "stepTracks": 1,
+  "poseSamples": 9,
+  "maxPoseBoundsError": 3.3072612559692516e-7,
+  "gltfIssues": {
+    "numErrors": 0,
+    "numWarnings": 0,
+    "numInfos": 13,
+    "numHints": 0,
+    "messages": [
+      {
+        "code": "NODE_EMPTY",
+        "message": "Empty node encountered.",
+        "severity": 2,
+        "pointer": "/nodes/0"
+      },
+      {
+        "code": "NODE_EMPTY",
+        "message": "Empty node encountered.",
+        "severity": 2,
+        "pointer": "/nodes/2"
+      },
+      {
+        "code": "NODE_EMPTY",
+        "message": "Empty node encountered.",
+        "severity": 2,
+        "pointer": "/nodes/3"
+      },
+      {
+        "code": "NODE_EMPTY",
+        "message": "Empty node encountered.",
+        "severity": 2,
+        "pointer": "/nodes/4"
+      },
+      {
+        "code": "NODE_EMPTY",
+        "message": "Empty node encountered.",
+        "severity": 2,
+        "pointer": "/nodes/38"
+      },
+      {
+        "code": "NODE_EMPTY",
+        "message": "Empty node encountered.",
+        "severity": 2,
+        "pointer": "/nodes/39"
+      },
+      {
+        "code": "NODE_EMPTY",
+        "message": "Empty node encountered.",
+        "severity": 2,
+        "pointer": "/nodes/40"
+      },
+      {
+        "code": "NODE_EMPTY",
+        "message": "Empty node encountered.",
+        "severity": 2,
+        "pointer": "/nodes/41"
+      },
+      {
+        "code": "NODE_EMPTY",
+        "message": "Empty node encountered.",
+        "severity": 2,
+        "pointer": "/nodes/42"
+      },
+      {
+        "code": "NODE_EMPTY",
+        "message": "Empty node encountered.",
+        "severity": 2,
+        "pointer": "/nodes/43"
+      },
+      {
+        "code": "NODE_EMPTY",
+        "message": "Empty node encountered.",
+        "severity": 2,
+        "pointer": "/nodes/44"
+      },
+      {
+        "code": "NODE_EMPTY",
+        "message": "Empty node encountered.",
+        "severity": 2,
+        "pointer": "/nodes/45"
+      },
+      {
+        "code": "IMAGE_NPOT_DIMENSIONS",
+        "message": "Image has non-power-of-two dimensions: 336x336.",
+        "severity": 2,
+        "pointer": "/images/1"
+      }
+    ],
+    "truncated": false
+  },
+  "meshStatistics": {
+    "previous": {
+      "Arms_Left": {
+        "vertices": 24,
+        "triangles": 12
+      },
+      "Arms_Right": {
+        "vertices": 24,
+        "triangles": 12
+      },
+      "Weapon_Body": {
+        "vertices": 3346,
+        "triangles": 1666
+      },
+      "Weapon_Magazine": {
+        "vertices": 322,
+        "triangles": 158
+      }
+    },
+    "current": {
+      "Arms_Left": {
+        "vertices": 24,
+        "triangles": 12
+      },
+      "Arms_Right": {
+        "vertices": 24,
+        "triangles": 12
+      },
+      "Weapon_Body": {
+        "vertices": 3335,
+        "triangles": 1413
+      },
+      "Weapon_Magazine": {
+        "vertices": 322,
+        "triangles": 158
+      }
+    },
+    "source": [
+      {
+        "name": "Weapon_Body",
+        "sourceObject": "Weapon_Body | 00_Showcase",
+        "vertices": 1030,
+        "triangles": 1413,
+        "geometryUVWeightsSha256": "0be6e76b61a608330b72f066dae9cc9027e0f77e075f33816eba349bf9e6babd",
+        "maxInfluences": 3
+      },
+      {
+        "name": "Weapon_Magazine",
+        "sourceObject": "Weapon_Magazine | 00_Showcase",
+        "vertices": 316,
+        "triangles": 158,
+        "geometryUVWeightsSha256": "bf83a64bebfcf0b06c292577302dcd116d17276c48ed3400a665f8bceec2c6ae",
+        "maxInfluences": 1
+      }
+    ]
+  }
+}

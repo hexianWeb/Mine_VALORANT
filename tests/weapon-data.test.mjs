@@ -43,7 +43,7 @@ test('definitions copy and deeply freeze configuration without freezing the sour
   source.assets.defaultSkinId = 'other'
   assert.equal(definition.fire.interval, 60 / 405)
   assert.equal(definition.reload.empty.feed, 1.75)
-  assert.equal(definition.assets.defaultSkinId, 'smite')
+  assert.equal(definition.assets.defaultSkinId, 'ag')
   for (const value of [
     definition,
     definition.fire,
@@ -163,6 +163,9 @@ test('Classic and Phantom preserve source timings and explicit project loadout d
   assert.deepEqual(classicDefinition.reload.tactical, { feed: 1.75, duration: 1.75 })
   assert.deepEqual(classicDefinition.reload.empty, { feed: 1.75, duration: 1.75 })
   assert.equal(classicDefinition.capabilities.ads, false)
+  assert.equal(classicDefinition.assets.assetVersion, 'v4')
+  assert.equal(classicDefinition.assets.defaultSkinId, 'ag')
+  assert.deepEqual(classicDefinition.assets.skinIds, ['ag', 'smite', 'sakura'])
   assert.equal(phantomDefinition.capacity, 30)
   assert.equal(phantomDefinition.initialReserve, 90)
   assert.deepEqual(phantomDefinition.fire, { mode: 'auto', interval: 60 / 660 })
@@ -182,7 +185,7 @@ test('inventory resolves slots and defaults without conflating slots, definition
   assert.deepEqual(inventory.get('pistol'), {
     instanceId: 'pistol',
     definitionId: 'classic',
-    skinId: 'smite',
+    skinId: 'ag',
     magazine: 12,
     reserve: 36,
     nextFireAt: 0,

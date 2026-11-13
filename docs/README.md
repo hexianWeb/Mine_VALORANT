@@ -14,6 +14,7 @@
 | [CameraComponent](superpowers/specs/2026-11-11-camera-component.md) | 相机组件提取时的记录；当前玩家固定 AimState 历史接线以运行时架构为准 |
 | [武器玩法模块](weapons/gameplay.md) | Classic/Phantom 游戏闭环、控件、装备事务、固定瞄准、延迟 HUD 与生命周期 |
 | [武器发布与动画播放](weapons/animation-and-assets.md) | 发布包、AnimationPlayer、WeaponAssets、独立视模 pass、预览与主游戏验收 |
+| [枪械图集与发布工作流](weapons/gun-only-uv-workflow.md) | Classic 精简网格、336 图集与 UV、动作／手臂兼容及 Three.js 接入 |
 | [武器运行时音频](weapons/audio.md) | 双枪本地声音、AudioBank、Web Audio 时钟、取消/暂停/变速与实际波形验收 |
 | [稀疏控制与弹药显示](weapons/runtime-controls.md) | Mixer 后的显式属性覆盖、Judge/Odin 源曲线、弹药事实与数值验收边界 |
 

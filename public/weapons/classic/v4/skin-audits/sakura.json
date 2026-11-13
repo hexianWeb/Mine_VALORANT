@@ -1,0 +1,22 @@
+{
+  "type": "lossless-atlas-crop",
+  "baseSkinId": "sakura",
+  "sourceSha256": "a2570df2d605a77bc3b10ff7c32a457adace12bc37402f77d14203282a7ecc45",
+  "sourceSize": [
+    2048,
+    2048
+  ],
+  "rect": [
+    0,
+    0,
+    332,
+    332
+  ],
+  "padding": 2,
+  "outputSha256": "987d1c15ce14ce8367fd42f7e998489fd46c2ce8be2f4ca3e90a59f35088b08e",
+  "compatibility": {
+    "rig": "146cbb637a84e5b8f720f14fb7720bda2b491595b5f060916f11afdf4d6e9575",
+    "geometryUV": "560a1a4ef20e7ab7df767d42ecd5b1416f11ceeecc0d59d7744212f03c603e2d",
+    "clipSet": "f84fd84bd17e412c6390481ac74c9f49198d1d4544f0483ef9db9bf2a7a29f2b"
+  }
+}

@@ -18,8 +18,8 @@ export const classicDefinition = createWeaponDefinition({
   capabilities: { ads: false }, // Classic's secondary salvo is outside this first data/controller slice.
   assets: {
     modelId: 'classic',
-    assetVersion: 'v3',
-    defaultSkinId: 'smite',
-    skinIds: ['smite', 'sakura'],
+    assetVersion: 'v4',
+    defaultSkinId: 'ag',
+    skinIds: ['ag', 'smite', 'sakura'],
   },
 })

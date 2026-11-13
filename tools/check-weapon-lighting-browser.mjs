@@ -41,7 +41,7 @@ try {
   const modulePath = `/@fs/${path.resolve('tests/weapon-lighting-browser-cases.js').replaceAll('\\', '/')}`
   await evaluate(`import(${JSON.stringify(modulePath)}).then(module => { globalThis.__WEAPON_LIGHTING__ = module; return true; })`)
   report.classic = await evaluate('__WEAPON_LIGHTING__.checkWeaponLighting(__RANGE_ROOM__)')
-  await screenshot('classic-smite.png')
+  await screenshot('classic-ag.png')
   await evaluate(`(() => {
     const app = __RANGE_ROOM__; app.engine.resume();
     app.inspection.player.weapons.queue({ type: 'selectSlot', slotId: 'primary' });
@@ -53,7 +53,7 @@ try {
   await evaluate(`(() => {
     const app = __RANGE_ROOM__; app.engine.resume();
     app.inspection.player.weapons.queue({ type: 'selectSlot', slotId: 'secondary' });
-    app.inspection.player.weapons.queue({ type: 'cycleSkin', instanceId: 'pistol' });
+    app.inspection.player.weapons.queue({ type: 'setSkin', instanceId: 'pistol', skinId: 'sakura' });
   })()`)
   await ready('pistol')
   await evaluate(`new Promise(resolve => {

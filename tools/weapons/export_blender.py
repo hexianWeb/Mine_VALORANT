@@ -11,6 +11,7 @@ import bpy
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from arm_contract import load_contract, validate_arms
+from optimized_geometry import install_optimized_geometry
 
 
 def normalize(path):
@@ -139,9 +140,14 @@ def main():
     request = json.loads(Path(sys.argv[sys.argv.index('--') + 1]).read_text(encoding='utf8'))
     source = Path(request['blend'])
     before = hashlib.sha256(source.read_bytes()).hexdigest()
+    manifest = json.loads(Path(request['sourceManifest']).read_text(encoding='utf8'))
+    assert len(manifest['clips']) == request['clipCount']
     bpy.ops.wm.open_mainfile(filepath=str(source), load_ui=False)
     arm_contract, _ = load_contract()
     validate_arms(arm_contract)
+    optimized = None
+    if request.get('optimizedGeometry'):
+        optimized = install_optimized_geometry(request['optimizedGeometry'], request['texture'], manifest)
     scene = bpy.data.scenes[request['scene']]
     bpy.context.window.scene = scene
     assert scene.render.fps / scene.render.fps_base == 60
@@ -154,8 +160,6 @@ def main():
     assert all(obj.type == 'MESH' for obj in objects[:len(request['meshes'])])
     animated = {obj: obj.animation_data.action_slot.name_display for obj in objects
                 if obj.animation_data and obj.animation_data.action_slot}
-    manifest = json.loads(Path(request['sourceManifest']).read_text(encoding='utf8'))
-    assert len(manifest['clips']) == request['clipCount']
     for clip in manifest['clips']:
         assert clip['name'] in bpy.data.actions
 
@@ -202,11 +206,14 @@ def main():
         export_yup=True, will_save_settings=False)
     normalize(Path(request['output']))
     assert hashlib.sha256(source.read_bytes()).hexdigest() == before
-    Path(request['report']).write_text(json.dumps({
+    report = {
         'blenderVersion': bpy.app.version_string, 'sourceSha256': before,
         'textureSha256': hashlib.sha256(packed).hexdigest(), 'poseSamples': samples,
         'selectedObjects': [obj.name for obj in objects],
-    }, indent=2), encoding='utf8')
+    }
+    if optimized is not None:
+        report['optimizedGeometry'] = optimized
+    Path(request['report']).write_text(json.dumps(report, indent=2), encoding='utf8')
 
 
 if __name__ == '__main__':

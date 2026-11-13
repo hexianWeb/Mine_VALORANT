@@ -276,6 +276,8 @@ export async function validateWeaponPackage(directory, { validator, poseSamples 
       action.stop()
     }
     assert.ok(stepTracks > 0, 'Authored STEP channels were lost')
+    const maxInfluences = manifest.skinning?.maxInfluences ?? 1
+    assert.ok(Number.isInteger(maxInfluences) && maxInfluences >= 1 && maxInfluences <= 4, 'Invalid declared skin influence limit')
     for (const mesh of meshes) {
       const weights = mesh.geometry.attributes.skinWeight
       for (let index = 0; index < weights.count; index++) {
@@ -285,7 +287,11 @@ export async function validateWeaponPackage(directory, { validator, poseSamples 
           weights.getZ(index),
           weights.getW(index),
         ]
-        assert.equal(values.filter(value => value > 1e-6).length, 1, 'Expected rigid source weights')
+        const influences = values.filter(value => value > 1e-6).length
+        assert.ok(values.every(value => Number.isFinite(value) && value >= 0), 'Invalid skin weight value')
+        assert.ok(influences >= 1 && influences <= maxInfluences, maxInfluences === 1
+          ? 'Expected rigid source weights'
+          : 'Skin influence limit exceeded')
         assert.ok(Math.abs(values.reduce((sum, value) => sum + value, 0) - 1) < 1e-5, 'Invalid skin weights')
       }
     }

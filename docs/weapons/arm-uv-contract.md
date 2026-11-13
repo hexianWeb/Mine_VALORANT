@@ -21,7 +21,7 @@
 
 [`arm-source-files.json`](../../tools/weapons/arm-source-files.json) 列出九枪的 42 个单枪制作源，包含用户确认的单枪历史及 `edge_fixed` 版本；Gallery、多枪展示场景和 `.blend1` 没有修改。每个文件修改前对每只手的 248 个三角形内纹素采样点逐个比较，颜色与 alpha 均匹配；候选文件重新打开后对其他网格、UV、权重、骨架、动作曲线和对象变换计算指纹。修改前后 SHA-256 与采样数量见 [`arm-migration-evidence.json`](../../tools/weapons/arm-migration-evidence.json)。原始 `.blend` 备份在 `D:/opencode-temp/opencode/arm-uv-backup/`，按原项目目录结构保存；该位置不是版本库内的永久备份，请自行保管。
 
-游戏当前使用 `classic/v3` 和 `phantom/v2`。这两包是从已校验的旧 GLB **只改手臂 UV 和内嵌 PNG** 派生的，不依赖缺失的原始源包元数据；骨架、动画字节、非手臂 UV 与枪皮肤像素保持不变。Classic 的 Sakura 已按新制作源重新审计。旧包不变，但旧的 Classic v2 Sakura 审计绑定的是修改前的制作文件，不能用当前 `.blend` 重跑旧配方；要复现历史审计需使用备份，或者针对新版本重新审计。
+手臂迁移包 `classic/v3` 和 `phantom/v2` 是从已校验的旧 GLB **只改手臂 UV 和内嵌 PNG** 派生的，不依赖缺失的原始源包元数据；骨架、动画字节、非手臂 UV 与枪皮肤像素保持不变。游戏当前 Classic 已升级为 `classic/v4`：使用精简后的枪械和 336 图集，仍满足本手臂契约，流程见[枪械专用图集工作流](gun-only-uv-workflow.md)。Phantom 仍为 v2。旧包不变，但旧的 Classic v2 Sakura 审计绑定的是修改前的制作文件，不能用当前 `.blend` 重跑旧配方；要复现历史审计需使用备份，或者针对新版本重新审计。
 
 其他七枪目前仅统一了制作源，尚未发布到游戏；继续发布还需要完整的 `valorant-first-person-pack` 源包及各枪运行时元数据。
 

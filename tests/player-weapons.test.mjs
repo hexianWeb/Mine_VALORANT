@@ -12,6 +12,15 @@ import { createWeaponDefinition } from '../src/game/weapons/weapon-definition.js
 import { setupInput } from './input-fixture.mjs'
 
 const h = 0.1
+// Transaction timing uses an explicit two-skin fixture, independent of catalog art defaults.
+const classicTestDefinition = createWeaponDefinition({
+  ...classicDefinition,
+  assets: {
+    ...classicDefinition.assets,
+    defaultSkinId: 'smite',
+    skinIds: ['smite', 'sakura'],
+  },
+})
 const roles = [
   'idle',
   'draw',
@@ -134,7 +143,7 @@ function setup(t, { thirdWeapon = false } = {}) {
     setEnabled(value) { this.enabled = value },
     setFov(value) { this.camera.fov = value },
   }
-  const definitions = [classicDefinition, phantomDefinition].map(definition => createWeaponDefinition({
+  const definitions = [classicTestDefinition, phantomDefinition].map(definition => createWeaponDefinition({
     ...definition,
     ...createAimProfile(),
     fire: { ...definition.fire, interval: 0.2 },

@@ -1,0 +1,11 @@
+{
+  "type": "authored-cropped-texture",
+  "source": "skin_work_folder/classic_skin_work/optimized-336-v4/classic-ag-336.png",
+  "sourceSha256": "873dd9caaaa5d09392beadef1e1213aaaeac27e9149c04f981478ecf7867acc2",
+  "outputSha256": "873dd9caaaa5d09392beadef1e1213aaaeac27e9149c04f981478ecf7867acc2",
+  "compatibility": {
+    "rig": "146cbb637a84e5b8f720f14fb7720bda2b491595b5f060916f11afdf4d6e9575",
+    "geometryUV": "560a1a4ef20e7ab7df767d42ecd5b1416f11ceeecc0d59d7744212f03c603e2d",
+    "clipSet": "f84fd84bd17e412c6390481ac74c9f49198d1d4544f0483ef9db9bf2a7a29f2b"
+  }
+}

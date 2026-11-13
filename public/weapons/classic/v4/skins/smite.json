@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "classic",
+  "assetVersion": "v4",
+  "skinId": "smite",
+  "compatibility": {
+    "rig": "146cbb637a84e5b8f720f14fb7720bda2b491595b5f060916f11afdf4d6e9575",
+    "geometryUV": "560a1a4ef20e7ab7df767d42ecd5b1416f11ceeecc0d59d7744212f03c603e2d",
+    "clipSet": "f84fd84bd17e412c6390481ac74c9f49198d1d4544f0483ef9db9bf2a7a29f2b"
+  },
+  "materials": {
+    "weapon": {
+      "map": {
+        "url": "../textures/3968815132fa88c8014dac983563826ae7f212da084dcf07720197ef7d278f0a.png",
+        "sha256": "3968815132fa88c8014dac983563826ae7f212da084dcf07720197ef7d278f0a",
+        "bytes": 103488,
+        "width": 336,
+        "height": 336,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    }
+  }
+}

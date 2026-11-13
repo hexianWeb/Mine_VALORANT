@@ -1,6 +1,6 @@
 # 武器资源发布与动画播放
 
-[整体设计](../superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md)的发布与播放模块已接入主游戏：Classic Smite、Phantom Tactiplay 由关卡作用域加载，每个视觉实例拥有独立 AnimationPlayer。主页面通过装备事实驱动双枪视模；专用预览页仍用于资产采样验收。固定瞄准和控件见[武器玩法](gameplay.md)，双枪的声音及独立 cue 时钟见[运行时音频](audio.md)。
+[整体设计](../superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md)的发布与播放模块已接入主游戏：Classic 默认 AG、Phantom 默认 Tactiplay，由关卡作用域加载，每个视觉实例拥有独立 AnimationPlayer。主页面通过装备事实驱动双枪视模；专用预览页仍用于资产采样验收。Classic 的精简网格与 336 图集见[裁图、UV 与发布工作流](gun-only-uv-workflow.md)。固定瞄准和控件见[武器玩法](gameplay.md)，双枪的声音及独立 cue 时钟见[运行时音频](audio.md)。
 
 ## 发布结果与来源
 
@@ -8,13 +8,14 @@
 | --- | --- | --- | --- |
 | `public/weapons/classic/v1/` | `Classic_Smite_Animated.blend` | 31 / 1116 / 1 | 4 |
 | `public/weapons/classic/v2/` | 复用 v1 模型，增加已核验的 Sakura | 31 / 1116 / 1 | 4 |
-| `public/weapons/classic/v3/`（当前） | v2 模型统一手臂 UV 与 32×32 贴图 | 31 / 1116 / 1 | 4 |
+| `public/weapons/classic/v3/` | v2 模型统一手臂 UV 与 32×32 贴图 | 31 / 1116 / 1 | 4 |
+| `public/weapons/classic/v4/`（当前） | 用户精简后的枪身／弹匣、336 图集；AG / Smite / Sakura | 31 / 1116 / 1 | 4 |
 | `public/weapons/phantom/v1/` | `Phantom_Tactiplay_Animated.blend` | 30 / 1620 / 8 | 5 |
 | `public/weapons/phantom/v2/`（当前） | v1 模型统一手臂 UV 与 32×32 贴图 | 30 / 1620 / 8 | 5 |
 
 发布器使用 `tools/weapons/recipes.mjs` 显式指定源文件、场景、网格、动画对象、皮肤 PNG、角色与挂点。后台 Blender 打开当前制作源导出，不保存源 `.blend`；源 SHA256 前后必须一致。原始资源包提供动作元数据和对照依据，不用旧 GLB 替代当前美术源。
 
-每包包含 model.glb、manifest.json、skins 下的皮肤定义，以及 source-audit.json、validation.json。Classic v2 使用内容哈希 PNG，包含 smite / sakura；它的 GLB 与 v1 字节相同。当前 Classic v3 和 Phantom v2 在旧模型上只调整手臂 UV 和内嵌贴图，保留骨架、动画及枪皮肤像素；Classic 的 Sakura 已按新制作源重新审计。既有 v1 的本地 weapon.png 替换予以保留，并按实际文件修正了尺寸与哈希。manifest 描述模型哈希、骨架/几何 UV/动作集兼容签名、语义动作、材质角色、挂点与坐标约定；运行时完全不访问 skin_work_folder。
+每包包含 model.glb、manifest.json、skins 下的皮肤定义，以及 source-audit.json、validation.json。Classic v2 使用内容哈希 PNG，包含 smite / sakura；它的 GLB 与 v1 字节相同。Classic v3 和 Phantom v2 是手臂专用迁移，保留原枪械几何及动作。当前 Classic v4 则从新的作者快照导入精简网格与 336 UV，校验 Rest 骨架及 31 个动作曲线后使用标准导出骨架和手臂；Sakura 的旧图集也按同一布局裁剪。既有旧版本的本地外观予以保留。manifest 描述模型哈希、骨架/几何 UV/动作集兼容签名、语义动作、材质角色、挂点与坐标约定；运行时完全不访问 skin_work_folder。
 
 导出保留 camera、views 等辅助动画，以及 STEP 缩放/可见性轨道。GLB 统一使用 Y-up、-Z forward、米制；`manifest.view.mountOffset` 写到 visualRoot 外的 anchor，不再额外缩放。武器、左臂、右臂材质角色分开，皮肤只替换 weapon 角色。
 
@@ -30,7 +31,7 @@
 
 ```js
 const assets = new WeaponAssets({ resources, scopeId: 'range-weapons', signal: levelAbortSignal })
-const handle = await assets.load({ weaponId: 'classic', assetVersion: 'v3', skinId: 'smite' })
+const handle = await assets.load({ weaponId: 'classic', assetVersion: 'v4', skinId: 'ag' })
 // 到 motion 阶段确认票据有效且 staged 槽可用后，再同步实例化。
 const visual = assets.instantiate(handle)
 visual.player.play('idle')
@@ -112,7 +113,7 @@ Node 专项测试为 animation.test.mjs、weapon-assets.test.mjs、weapon-public
 
 主游戏检查使用 `check-weapon-gameplay-browser.mjs`，与预览检查分开运行；输出默认在 `D:/opencode-temp/opencode/weapon-gameplay-browser`，可用 `WEAPON_GAME_TEST_OUTPUT` 修改。其结果以当次 report.json 为准；该工具覆盖输入、装备事件、固定瞄准与视模接线，并隔离左右手、读取视模 HDR alpha，检查 Classic → Phantom → Classic 重复切换后的实际手臂像素和共享贴图。声音实际解码、输出波形和生命周期另用 `check-weapon-audio-browser.mjs` 验证。
 
-`check-weapon-lighting-browser.mjs` 使用启用探针的主页面及真实武器 HDR 读回，分别验证直接光、探针、环境反射的贡献、移动/转向的受光变化、世界 AO 隔离和轮廓不漂移；另外保存 Smite / Sakura / Tactiplay 截图，并核对换肤后材质参数。默认输出 `D:/opencode-temp/opencode/weapon-lighting-browser`，可用 `WEAPON_LIGHTING_TEST_OUTPUT` 修改；需要开发服务器加载 GPU 测试模块。独立 `/weapon-preview.html` 的展示灯光与 ACES 仅用于资产验收，不作为主游戏材质校准的参考。
+`check-weapon-lighting-browser.mjs` 使用启用探针的主页面及真实武器 HDR 读回，分别验证直接光、探针、环境反射的贡献、移动/转向的受光变化、世界 AO 隔离和轮廓不漂移；另外保存 AG / Sakura / Tactiplay 截图，并核对换肤后材质参数。默认输出 `D:/opencode-temp/opencode/weapon-lighting-browser`，可用 `WEAPON_LIGHTING_TEST_OUTPUT` 修改；需要开发服务器加载 GPU 测试模块。独立 `/weapon-preview.html` 的展示灯光与 ACES 仅用于资产验收，不作为主游戏材质校准的参考。
 
 ## 后续阶段的本地输入缺口
 

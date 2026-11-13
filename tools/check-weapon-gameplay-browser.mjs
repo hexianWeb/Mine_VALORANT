@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
+import { classicDefinition } from '../src/game/weapons/definitions/classic.js'
 import { openBrowser } from './browser-session.mjs'
 
 const output = path.resolve(process.env.WEAPON_GAME_TEST_OUTPUT ?? 'D:/opencode-temp/opencode/weapon-gameplay-browser')
@@ -60,6 +61,16 @@ try {
   }
   const ready = instanceId => until(`globalThis.__RANGE_ROOM__?.ready && __RANGE_ROOM__.inspection.player.snapshot().weapons.canAct && __RANGE_ROOM__.inspection.player.snapshot().weapons.view.renderActiveId === '${instanceId}'`)
   const idleReady = instanceId => until(`globalThis.__RANGE_ROOM__?.ready && __RANGE_ROOM__.inspection.player.snapshot().weapons.canAct && __RANGE_ROOM__.inspection.player.snapshot().weapons.view.renderActiveId === '${instanceId}' && __RANGE_ROOM__.inspection.player.snapshot().weapons.view.action === 'idle' && __RANGE_ROOM__.inspection.player.snapshot().weapons.view.playback?.current?.weight > .999`)
+  const cycleToSkin = async (skinId) => {
+    for (let attempt = 0; attempt <= classicDefinition.assets.skinIds.length; attempt++) {
+      const previous = (await state()).view.skinId
+      if (previous === skinId)
+        return
+      await key('KeyK', 'k', 75)
+      await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.view.skinId !== ${JSON.stringify(previous)}`)
+    }
+    throw new Error(`Skin cycle did not reach ${skinId}`)
+  }
   const armCoverage = async () => {
     await evaluate('__RANGE_ROOM__.engine.pause()')
     try {
@@ -74,6 +85,18 @@ try {
   await send('Emulation.setFocusEmulationEnabled', { enabled: true })
   await ready('pistol')
   report.initial = await state()
+  assert.equal(report.initial.view.skinId, 'ag')
+  report.optimizedAsset = await evaluate(`(() => {
+    const scene = __RANGE_ROOM__.render.viewmodel.scene;
+    const body = scene.getObjectByName('Weapon_Body'), magazine = scene.getObjectByName('Weapon_Magazine');
+    return { bodyTriangles: body.geometry.index.count / 3, magazineTriangles: magazine.geometry.index.count / 3,
+      textureSize: [body.material.map.image.width, body.material.map.image.height],
+      loadedV4: performance.getEntriesByType('resource').some(e => e.name.includes('/weapons/classic/v4/model.glb')) };
+  })()`)
+  assert.equal(report.optimizedAsset.bodyTriangles, 1413)
+  assert.equal(report.optimizedAsset.magazineTriangles, 158)
+  assert.deepEqual(report.optimizedAsset.textureSize, [336, 336])
+  assert.equal(report.optimizedAsset.loadedV4, true)
   report.focus = await evaluate(`(() => {
     globalThis.__LOCK_ERRORS__ = [];
     const original = Element.prototype.requestPointerLock;
@@ -125,8 +148,7 @@ try {
       actionId:state.action.actionId, playbackId:state.view.playback.current.playbackId,
       drawCount:state.recentEvents.filter(e=>e.type==='DrawStarted').length };
   })()`)
-  await key('KeyK', 'k', 75)
-  await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.view.skinId === \'sakura\'')
+  await cycleToSkin('sakura')
   report.skinSwap = await evaluate(`(() => {
     const state = __RANGE_ROOM__.inspection.player.snapshot().weapons, proof = __SKIN_PROOF__;
     const mesh = __RANGE_ROOM__.render.viewmodel.scene.getObjectByName('Weapon_Body');
@@ -151,12 +173,11 @@ try {
   assert.equal(report.skinSwap.drawCount, report.skinSwap.beforeDrawCount)
   assert.equal(report.skinSwap.magazine, 12)
   assert.equal(report.skinSwap.instances, 1)
-  assert.deepEqual(report.skinSwap.imageSize, [2048, 2048])
+  assert.deepEqual(report.skinSwap.imageSize, [336, 336])
   await screenshot('classic-sakura-inspect.png')
   await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.view.action === \'idle\'')
   await screenshot('classic-sakura-ready.png')
-  await key('KeyK', 'k', 75)
-  await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.view.skinId === \'smite\'')
+  await cycleToSkin('smite')
   await mouse('mousePressed')
   await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.lastShot !== null')
   await evaluate('new Promise(resolve => setTimeout(resolve, 450))')
@@ -281,10 +302,10 @@ try {
     await ready('rifle')
     await key('Digit2', '2', 50)
     await ready('pistol')
+    const previousSkin = (await state()).view.skinId
+    const skins = classicDefinition.assets.skinIds
+    const expectedSkin = skins[(skins.indexOf(previousSkin) + 1) % skins.length]
     await key('KeyK', 'k', 75)
-    const expectedSkin = index % 2 === 0
-      ? 'sakura'
-      : 'smite'
     await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.view.skinId === '${expectedSkin}'`)
     const current = await state()
     assert.equal(current.view.visibleInstances, 1)
@@ -317,8 +338,7 @@ try {
   await screenshot('game-only-phantom.png')
   await key('Digit2', '2', 50)
   await ready('pistol')
-  await key('KeyK', 'k', 75)
-  await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.view.skinId === \'sakura\'')
+  await cycleToSkin('sakura')
   report.gameOnlySkin = await state()
   assert.equal(report.gameOnlySkin.view.weapon.magazine, 11, 'switching and changing skin preserve spent ammunition without Editor')
   assert.equal(report.gameOnlySkin.view.visibleInstances, 1)
