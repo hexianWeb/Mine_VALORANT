@@ -65,7 +65,7 @@ node --test tests/weapon-skin-publication.test.mjs
 
 导出只选择配方列出的运行时网格与四套动画 Armature，排除 Icosphere 自定义骨形和预览摄像机。保留多对象 Action 和 STEP 可见性，检查手臂 SourceUV/标准贴图；规范化时间原点、skinned mesh 根节点、材质 UV 及重复节点名。材质角色区分 weapon / armsLeft / armsRight，皮肤只覆盖 weapon。GLB 内含初始贴图；皮肤 JSON 的纹理 URL 相对皮肤 JSON，其他资源 URL 相对 manifest。挂载位置在 `view.mountOffset`，单位为米，写到 Mixer 根节点外的 anchor，GLB 不再缩放。
 
-发布门槛包括源文件前后 SHA256 一致、packed 皮肤与显式 PNG 一致、完整 clip/mesh/material/socket 绑定、时间原点、循环端点、有限骨骼矩阵、权重非负且归一化（旧包默认刚性，新包可显式声明最多 4 骨骼）、每枪九个 Blender/Three.js 变形包围盒比较，以及 glTF Validator 零 error/零 warning。`source-audit.json` 保存源姿态证据，`validation.json` 保存检查结果。Node 贴图检查读取 PNG 尺寸，不代替真实浏览器的像素解码和 WebGPU 画面验收。普通动作零时刻音效不重复导入为 marker；Classic salvo 等独立 cue 保留。已发布两枪接入主游戏，操作与时钟契约见[武器玩法](../docs/weapons/gameplay.md)；本地声音见[运行时音频](../docs/weapons/audio.md)。后续枪皮肤素材由用户处理，不自动生成或替换。
+发布门槛包括源文件前后 SHA256 一致、packed 皮肤与显式 PNG 一致、完整 clip/mesh/material/socket 绑定、时间原点、循环端点、有限骨骼矩阵、权重非负且归一化（旧包默认刚性，新包可显式声明最多 4 骨骼）、每枪九个 Blender/Three.js 变形包围盒比较，以及 glTF Validator 零 error/零 warning。`source-audit.json` 保存源姿态证据，`validation.json` 保存检查结果。Node 贴图检查不代替真实浏览器的像素解码和 WebGPU 画面验收。普通动作零时刻音效不重复导入为 marker；Classic salvo 等独立 cue 保留。已发布两枪接入主游戏，操作与时钟契约见[武器玩法](../docs/weapons/gameplay.md)；本地声音见[运行时音频](../docs/weapons/audio.md)。后续枪皮肤素材由用户处理，不自动生成或替换。
 
 `weapons/audit_controls.py` 只读审计 Judge/Odin 的显式 scale 白名单、插值、层级及权重，输出 `tests/fixtures/weapon-controls/` 的可复现数值夹具；不导出模型、材质或图像，也不保存 blend。复核时输出到 `D:/opencode-temp/opencode/weapon-controls/reproduced` 再与保存的夹具比较，运行方式及验收边界见[稀疏控制](../docs/weapons/runtime-controls.md)。正常 npm test 不需要启动 Blender。
 

@@ -81,6 +81,38 @@ test('skin hash validity cannot hide a different compatibility signature', async
   await assert.rejects(validateWeaponPackage(fixture.directory), /Incompatible skin/)
 })
 
+test('publication validates optional emission maps, including their hashes, paths and sampling', async (t) => {
+  const fixture = await temporaryPackage(t)
+  const descriptor = fixture.manifest.skins.smite
+  const filename = path.join(fixture.directory, descriptor.url)
+  const skin = JSON.parse(await readFile(filename, 'utf8'))
+  const input = skin.materials.weapon
+  input.emissiveMap = { ...input.map }
+  input.emissiveIntensity = 2.25
+  const saveSkin = async () => {
+    const bytes = JSON.stringify(skin)
+    await writeFile(filename, bytes)
+    descriptor.sha256 = sha256(bytes)
+    descriptor.bytes = new TextEncoder().encode(bytes).length
+    await fixture.save()
+  }
+  await saveSkin()
+  await validateWeaponPackage(fixture.directory)
+  input.emissiveMap.sha256 = '0'.repeat(64)
+  await saveSkin()
+  await assert.rejects(validateWeaponPackage(fixture.directory), /SHA256 mismatch/)
+  input.emissiveMap = { ...input.map, url: '../../outside.png' }
+  await saveSkin()
+  await assert.rejects(validateWeaponPackage(fixture.directory), /escapes package/)
+  input.emissiveMap = { ...input.map, magFilter: 'linear' }
+  await saveSkin()
+  await assert.rejects(validateWeaponPackage(fixture.directory), /sampling profile/)
+  input.emissiveMap = { ...input.map }
+  input.emissiveIntensity = -1
+  await saveSkin()
+  await assert.rejects(validateWeaponPackage(fixture.directory), /emissiveIntensity/)
+})
+
 test('publication resource paths cannot escape their package', async (t) => {
   const fixture = await temporaryPackage(t)
   fixture.manifest.model.url = '../model.glb'

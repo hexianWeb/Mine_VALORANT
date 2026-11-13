@@ -48,11 +48,27 @@ export async function publishSkinRelease({ baseDirectory, assetVersion, variants
         },
       },
     }
-    async function addSkin(skinId, skin, textureBytes) {
-      assert.match(skinId, /^[\w-]+$/, 'Invalid skinId')
-      assert.ok(!Object.hasOwn(next.skins, skinId), `Duplicate skin: ${skinId}`)
+    async function addMap(textureBytes) {
       const textureName = `${sha256(textureBytes)}.png`
       await writeFile(path.join(staging, 'textures', textureName), textureBytes)
+      return {
+        ...resource(`../textures/${textureName}`, textureBytes),
+        ...pngSize(textureBytes),
+        colorSpace: 'srgb',
+        flipY: false,
+        magFilter: 'nearest',
+        minFilter: 'nearest',
+        generateMipmaps: false,
+      }
+    }
+    async function addSkin(skinId, skin, textureBytes, { emissiveBytes, emissiveIntensity } = {}) {
+      assert.match(skinId, /^[\w-]+$/, 'Invalid skinId')
+      assert.ok(!Object.hasOwn(next.skins, skinId), `Duplicate skin: ${skinId}`)
+      const material = { map: await addMap(textureBytes) }
+      if (emissiveBytes)
+        material.emissiveMap = await addMap(emissiveBytes)
+      if (emissiveIntensity !== undefined)
+        material.emissiveIntensity = emissiveIntensity
       const bytes = json({
         ...skin,
         schemaVersion: 1,
@@ -60,19 +76,7 @@ export async function publishSkinRelease({ baseDirectory, assetVersion, variants
         assetVersion,
         skinId,
         compatibility: manifest.compatibility,
-        materials: {
-          weapon: {
-            map: {
-              ...resource(`../textures/${textureName}`, textureBytes),
-              ...pngSize(textureBytes),
-              colorSpace: 'srgb',
-              flipY: false,
-              magFilter: 'nearest',
-              minFilter: 'nearest',
-              generateMipmaps: false,
-            },
-          },
-        },
+        materials: { weapon: material },
       })
       await writeFile(path.join(staging, 'skins', `${skinId}.json`), bytes)
       next.skins[skinId] = resource(`skins/${skinId}.json`, bytes)
@@ -80,8 +84,14 @@ export async function publishSkinRelease({ baseDirectory, assetVersion, variants
     for (const [skinId, descriptor] of Object.entries(manifest.skins)) {
       const filename = path.resolve(base, descriptor.url)
       const skin = JSON.parse(await readFile(filename, 'utf8'))
-      assert.deepEqual(Object.keys(skin.materials), ['weapon'], 'This release recipe supports weapon-map variants only')
-      await addSkin(skinId, skin, await readFile(path.resolve(path.dirname(filename), skin.materials.weapon.map.url)))
+      assert.deepEqual(Object.keys(skin.materials), ['weapon'], 'This release recipe supports weapon variants only')
+      const material = skin.materials.weapon
+      await addSkin(skinId, skin, await readFile(path.resolve(path.dirname(filename), material.map.url)), {
+        emissiveBytes: material.emissiveMap
+          ? await readFile(path.resolve(path.dirname(filename), material.emissiveMap.url))
+          : undefined,
+        emissiveIntensity: material.emissiveIntensity,
+      })
     }
     for (const variant of variants) {
       const proof = JSON.parse(await readFile(variant.auditFile, 'utf8'))
@@ -93,8 +103,20 @@ export async function publishSkinRelease({ baseDirectory, assetVersion, variants
         assert.equal(proof.base[key], proof.skin[key], `Incompatible authoring variant: ${key}`)
       assert.equal(proof.skin.textureSha256, sha256(textureBytes), 'PNG changed since authoring audit')
       assert.equal(proof.skin.sourceSha256, sha256(await readFile(variant.sourceBlend)), 'Authoring variant changed since audit')
-      await addSkin(variant.skinId, {}, textureBytes)
-      await writeFile(path.join(staging, 'skin-audits', `${variant.skinId}.json`), json(proof))
+      const emissiveBytes = variant.emissiveMap
+        ? await readFile(variant.emissiveMap)
+        : undefined
+      if (emissiveBytes)
+        assert.equal(sha256(emissiveBytes), variant.emissiveMapSha256, 'Emissive PNG changed since release recipe')
+      await addSkin(variant.skinId, {}, textureBytes, { emissiveBytes, emissiveIntensity: variant.emissiveIntensity })
+      await writeFile(path.join(staging, 'skin-audits', `${variant.skinId}.json`), json({
+        ...proof,
+        ...(emissiveBytes
+          ? {
+              emissiveMapSha256: sha256(emissiveBytes),
+            }
+          : {}),
+      }))
     }
     await writeFile(path.join(staging, 'manifest.json'), json(next))
     const report = await validateWeaponPackage(staging, { validator, poseSamples: audit.poseSamples })
@@ -124,6 +146,8 @@ async function main(args) {
   }
   for (const variant of recipe.variants ?? []) {
     for (const key of ['auditFile', 'texture', 'sourceBlend']) variant[key] = path.resolve(project, variant[key])
+    if (variant.emissiveMap)
+      variant.emissiveMap = path.resolve(project, variant.emissiveMap)
   }
   console.log(JSON.stringify(await publishSkinRelease(recipe), null, 2))
 }

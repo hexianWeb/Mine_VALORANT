@@ -279,6 +279,269 @@ test('a compatible skin swap is atomic and preserves the exact player, skeleton,
   assert.equal(b.skinId, 'sakura', 'releasing one instance did not destroy the shared replacement map')
 })
 
+test('albedo-only weapon skins glow with their color map and ignore embedded emission', async (t) => {
+  const data = fixture()
+  const embedded = new THREE.Texture()
+  data.weaponMaterial.emissiveMap = embedded
+  data.weaponMaterial.emissive.setRGB(0.6, 0.6, 0.6)
+  data.weaponMaterial.emissiveIntensity = 2
+  const f = setup(t, data)
+  const handle = await f.assets.load(request)
+  const instance = f.assets.instantiate(handle)
+  const material = instance.root.getObjectByName('WeaponMesh').material
+  assert.equal(material.map, f.textures[0])
+  assert.equal(material.emissiveMap, material.map)
+  assert.notEqual(material.emissiveMap, embedded)
+  assert.equal(material.emissive.getHex(), 0xFFFFFF)
+  assert.equal(material.emissiveIntensity, 1)
+  assert.equal(data.weaponMaterial.emissiveMap, embedded, 'the shared template is untouched')
+  assert.deepEqual(data.weaponMaterial.emissive.toArray(), [0.6, 0.6, 0.6])
+  assert.equal(data.weaponMaterial.emissiveIntensity, 2)
+})
+
+test('skin emission is loaded, replaced and removed together with albedo without accumulating layers', async (t) => {
+  const data = fixture()
+  data.manifest.skins.sakura = { url: 'skins/sakura.json' }
+  data.manifest.skins.ag = { url: 'skins/ag.json' }
+  data.skin.materials.weapon.emissiveMap = {
+    ...data.skin.materials.weapon.map,
+    url: '../textures/smite-emissive.png',
+  }
+  data.skin.materials.weapon.emissiveIntensity = 2.5
+  data.armsMaterial.emissive.setRGB(0.1, 0.2, 0.3)
+  const f = setup(t, data, {
+    json(entry) {
+      if (entry.url.endsWith('manifest.json'))
+        return data.manifest
+      const skin = structuredClone(data.skin)
+      if (entry.url.endsWith('sakura.json')) {
+        skin.skinId = 'sakura'
+        skin.materials.weapon.map.url = '../textures/sakura.png'
+        skin.materials.weapon.emissiveMap.url = '../textures/sakura-emissive.png'
+        delete skin.materials.weapon.emissiveIntensity
+      }
+      if (entry.url.endsWith('ag.json')) {
+        skin.skinId = 'ag'
+        skin.materials.weapon.map.url = '../textures/ag.png'
+        delete skin.materials.weapon.emissiveMap
+        delete skin.materials.weapon.emissiveIntensity
+      }
+      return skin
+    },
+  })
+  const original = await f.assets.load(request)
+  const alternate = await f.assets.load({ ...request, skinId: 'sakura' })
+  const plain = await f.assets.load({ ...request, skinId: 'ag' })
+  const a = f.assets.instantiate(original)
+  const b = f.assets.instantiate(alternate)
+  const material = a.root.getObjectByName('WeaponMesh').material
+  const other = b.root.getObjectByName('WeaponMesh').material
+  const arms = a.root.getObjectByName('Arms').material
+  const smiteMap = material.map
+  const smiteEmission = material.emissiveMap
+  const sakuraMap = other.map
+  const sakuraEmission = other.emissiveMap
+  assert.ok(smiteEmission?.isTexture)
+  assert.notEqual(smiteMap, smiteEmission)
+  assert.notEqual(smiteEmission, sakuraEmission)
+  assert.equal(material.emissive.getHex(), 0xFFFFFF)
+  assert.equal(material.emissiveIntensity, 2.5)
+  assert.equal(other.emissiveIntensity, 1)
+  assert.equal(smiteEmission.colorSpace, THREE.SRGBColorSpace)
+  assert.equal(smiteEmission.flipY, false)
+  assert.equal(smiteEmission.magFilter, THREE.NearestFilter)
+  assert.equal(smiteEmission.minFilter, THREE.NearestFilter)
+  assert.equal(smiteEmission.generateMipmaps, false)
+  a.player.play('idle', { fade: 0 })
+  a.player.advance(0.35)
+  const playback = a.player.snapshot()
+  const children = a.root.children.slice()
+  let emissionDisposals = 0
+  smiteEmission.addEventListener('dispose', () => emissionDisposals++)
+  for (let index = 0; index < 12; index++) {
+    f.assets.applySkin(a, alternate)
+    assert.equal(material.map, sakuraMap)
+    assert.equal(material.emissiveMap, sakuraEmission)
+    assert.equal(material.emissiveIntensity, 1)
+    f.assets.applySkin(a, plain)
+    assert.equal(material.emissiveMap, material.map)
+    assert.notEqual(material.map, smiteMap)
+    assert.notEqual(material.map, sakuraMap)
+    assert.equal(material.emissive.getHex(), 0xFFFFFF)
+    assert.equal(material.emissiveIntensity, 1)
+    f.assets.applySkin(a, original)
+    assert.equal(material.map, smiteMap)
+    assert.equal(material.emissiveMap, smiteEmission)
+    assert.equal(material.emissive.getHex(), 0xFFFFFF)
+    assert.equal(material.emissiveIntensity, 2.5)
+  }
+  assert.equal(a.root.getObjectByName('WeaponMesh').material, material)
+  assert.deepEqual(a.root.children, children)
+  assert.deepEqual(a.player.snapshot(), playback)
+  assert.equal(material.roughness, weaponMaterialProfiles.weapon.roughness)
+  assert.equal(material.metalness, weaponMaterialProfiles.weapon.metalness)
+  assert.equal(other.emissiveMap, sakuraEmission)
+  assert.deepEqual(arms.emissive.toArray(), [0.1, 0.2, 0.3])
+  a.dispose()
+  assert.equal(emissionDisposals, 0, 'instances borrow the scope-owned emission maps')
+  f.assets.dispose()
+  assert.equal(emissionDisposals, 1)
+})
+
+test('failed emission downloads keep the displayed skin intact and retry only the missing texture', async (t) => {
+  const data = fixture()
+  data.manifest.skins.glow = { url: 'skins/glow.json' }
+  let attempts = 0
+  const f = setup(t, data, {
+    json(entry) {
+      if (entry.url.endsWith('manifest.json'))
+        return data.manifest
+      const skin = structuredClone(data.skin)
+      if (entry.url.endsWith('glow.json')) {
+        skin.skinId = 'glow'
+        skin.materials.weapon.emissiveMap = { ...skin.materials.weapon.map, url: '../textures/glow.png' }
+      }
+      return skin
+    },
+    texture(entry) {
+      if (entry.url.endsWith('/glow.png') && ++attempts === 1)
+        throw new Error('temporary emission failure')
+      return new THREE.Texture()
+    },
+  })
+  const original = await f.assets.load(request)
+  const instance = f.assets.instantiate(original)
+  const material = instance.root.getObjectByName('WeaponMesh').material
+  const map = material.map
+  await assert.rejects(f.assets.load({ ...request, skinId: 'glow' }), /temporary emission failure/)
+  assert.equal(instance.skinId, 'smite')
+  assert.equal(material.map, map)
+  assert.equal(material.emissiveMap, map)
+  const glow = await f.assets.load({ ...request, skinId: 'glow' })
+  f.assets.applySkin(instance, glow)
+  assert.equal(instance.skinId, 'glow')
+  assert.ok(material.emissiveMap?.isTexture)
+  assert.equal(attempts, 2)
+  assert.equal(f.calls.filter(entry => entry.type === 'texture' && entry.url.endsWith('/skin.png')).length, 2, 'one albedo per skin, never redownloaded on retry')
+})
+
+test('removing an optional scope override restores all source channels, and a missing binding leaves every channel intact', async (t) => {
+  const data = fixture()
+  const source = new THREE.MeshStandardMaterial({
+    map: new THREE.Texture(),
+    emissiveMap: new THREE.Texture(),
+    emissive: 0x123456,
+    emissiveIntensity: 0.4,
+  })
+  source.name = 'Scope'
+  data.gltf.scene.add(new THREE.Mesh(data.geometry, source))
+  data.manifest.materials.scope = ['Scope']
+  data.manifest.skins.plain = { url: 'skins/plain.json' }
+  data.skin.materials.scope = structuredClone(data.skin.materials.weapon)
+  data.skin.materials.scope.emissiveMap = { ...data.skin.materials.scope.map, url: '../textures/scope-emission.png' }
+  const f = setup(t, data, {
+    json(entry) {
+      if (entry.url.endsWith('manifest.json'))
+        return data.manifest
+      const skin = structuredClone(data.skin)
+      if (entry.url.endsWith('plain.json')) {
+        skin.skinId = 'plain'
+        delete skin.materials.scope
+        skin.materials.weapon.emissiveMap = { ...skin.materials.weapon.map, url: '../textures/plain-emission.png' }
+      }
+      return skin
+    },
+  })
+  const scoped = await f.assets.load(request)
+  const plain = await f.assets.load({ ...request, skinId: 'plain' })
+  const instance = f.assets.instantiate(scoped)
+  const weapon = instance.root.getObjectByName('WeaponMesh').material
+  const scope = instance.root.children.find(object => object.material?.name === 'Scope').material
+  const originalMap = weapon.map
+  const scopeMap = scope.map
+  const scopeEmission = scope.emissiveMap
+  source.name = 'MissingScope'
+  assert.throws(() => f.assets.applySkin(instance, plain), /Missing instance material/)
+  assert.equal(instance.skinId, 'smite')
+  assert.equal(weapon.map, originalMap)
+  assert.equal(weapon.emissiveMap, originalMap)
+  assert.equal(scope.map, scopeMap)
+  assert.equal(scope.emissiveMap, scopeEmission)
+  source.name = 'Scope'
+  f.assets.applySkin(instance, plain)
+  assert.ok(weapon.emissiveMap?.isTexture)
+  assert.equal(scope.map, source.map)
+  assert.equal(scope.emissiveMap, source.emissiveMap)
+  assert.ok(scope.emissive.equals(source.emissive))
+  assert.equal(scope.emissiveIntensity, 0.4)
+})
+
+test('invalid emission inputs reject preparation before downloading any skin maps', async (t) => {
+  for (const [label, change] of [
+    [
+      'unknown channel',
+      input => input.normalMap = input.map,
+    ],
+    [
+      'missing URL',
+      input => delete input.emissiveMap.url,
+    ],
+    [
+      'linear emission',
+      input => input.emissiveMap.colorSpace = 'linear',
+    ],
+    [
+      'flipped UVs',
+      input => input.emissiveMap.flipY = true,
+    ],
+    [
+      'linear mag filter',
+      input => input.emissiveMap.magFilter = 'linear',
+    ],
+    [
+      'mip min filter',
+      input => input.emissiveMap.minFilter = 'mipmap',
+    ],
+    [
+      'generated mipmaps',
+      input => input.emissiveMap.generateMipmaps = true,
+    ],
+    [
+      'negative intensity',
+      input => input.emissiveIntensity = -1,
+    ],
+    [
+      'infinite intensity',
+      input => input.emissiveIntensity = Infinity,
+    ],
+    [
+      'NaN intensity',
+      input => input.emissiveIntensity = NaN,
+    ],
+    [
+      'string intensity',
+      input => input.emissiveIntensity = '2',
+    ],
+    [
+      'intensity without a map',
+      (input) => {
+        delete input.emissiveMap
+        input.emissiveIntensity = 2
+      },
+    ],
+  ]) {
+    await t.test(label, async (child) => {
+      const data = fixture()
+      const input = data.skin.materials.weapon
+      input.emissiveMap = { ...input.map, url: '../textures/emission.png' }
+      change(input)
+      const f = setup(child, data)
+      await assert.rejects(f.assets.load(request), /material inputs|sampling profile|emissiveIntensity/)
+      assert.equal(f.calls.filter(entry => entry.type === 'texture').length, 0)
+    })
+  }
+})
+
 test('a skin cannot replace character arm materials', async (t) => {
   const data = fixture()
   data.skin.materials.armsLeft = structuredClone(data.skin.materials.weapon)

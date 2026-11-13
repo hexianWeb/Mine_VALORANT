@@ -40,6 +40,9 @@ try {
   await evaluate('__RANGE_ROOM__.engine.pause()')
   const modulePath = `/@fs/${path.resolve('tests/weapon-lighting-browser-cases.js').replaceAll('\\', '/')}`
   await evaluate(`import(${JSON.stringify(modulePath)}).then(module => { globalThis.__WEAPON_LIGHTING__ = module; return true; })`)
+  const skinModulePath = `/@fs/${path.resolve('tests/weapon-skin-browser-cases.js').replaceAll('\\', '/')}`
+  await evaluate(`import(${JSON.stringify(skinModulePath)}).then(module => { globalThis.__WEAPON_SKINS__ = module; return true; })`)
+  report.skinEmission = await evaluate('__WEAPON_SKINS__.checkWeaponSkinEmission(__RANGE_ROOM__)')
   report.classic = await evaluate('__WEAPON_LIGHTING__.checkWeaponLighting(__RANGE_ROOM__)')
   await screenshot('classic-ag.png')
   await evaluate(`(() => {
@@ -97,6 +100,7 @@ finally {
     passed: report.passed,
     failure: report.failure,
     errors: report.errors,
+    skinEmission: report.skinEmission,
     classic: report.classic,
     phantom: report.phantom,
     report: path.join(output, 'report.json'),

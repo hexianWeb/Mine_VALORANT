@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { validateWeaponSkinMaterial } from '../../src/game/weapons/assets/weapon-materials.js'
 
 export function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex')
@@ -199,13 +200,18 @@ export async function inspectWeaponPackage(directory) {
     assert.equal(skin.assetVersion, manifest.assetVersion)
     assert.equal(skin.skinId, skinId)
     assert.deepEqual(skin.compatibility, manifest.compatibility, 'Incompatible skin')
+    assert.ok(skin.materials?.weapon && Object.keys(skin.materials).every(role => ['weapon', 'scope'].includes(role)), 'Skins may only replace weapon/scope materials, never character arms')
     for (const [role, input] of Object.entries(skin.materials)) {
       assert.ok(manifest.materials[role], `Unknown skin material role: ${role}`)
-      const texture = await readChecked(directory, path.dirname(path.resolve(directory, descriptor.url)), input.map)
-      assert.deepEqual(pngSize(texture), { width: input.map.width, height: input.map.height })
-      assert.equal(input.map.colorSpace, 'srgb')
-      assert.equal(input.map.flipY, false)
-      textures.push(texture)
+      validateWeaponSkinMaterial(input, role)
+      for (const channel of ['map', 'emissiveMap']) {
+        const map = input[channel]
+        if (!map)
+          continue
+        const texture = await readChecked(directory, path.dirname(path.resolve(directory, descriptor.url)), map)
+        assert.deepEqual(pngSize(texture), { width: map.width, height: map.height })
+        textures.push(texture)
+      }
     }
   }
   return { manifest, bytes, glb, textures }

@@ -91,12 +91,14 @@ try {
     const body = scene.getObjectByName('Weapon_Body'), magazine = scene.getObjectByName('Weapon_Magazine');
     return { bodyTriangles: body.geometry.index.count / 3, magazineTriangles: magazine.geometry.index.count / 3,
       textureSize: [body.material.map.image.width, body.material.map.image.height],
+      albedoEmission: body.material.emissiveMap === body.material.map && body.material.emissive.getHex() === 0xFFFFFF,
       loadedV4: performance.getEntriesByType('resource').some(e => e.name.includes('/weapons/classic/v4/model.glb')) };
   })()`)
   assert.equal(report.optimizedAsset.bodyTriangles, 1413)
   assert.equal(report.optimizedAsset.magazineTriangles, 158)
   assert.deepEqual(report.optimizedAsset.textureSize, [336, 336])
   assert.equal(report.optimizedAsset.loadedV4, true)
+  assert.equal(report.optimizedAsset.albedoEmission, true, 'default skin should use its color texture as emission')
   report.focus = await evaluate(`(() => {
     globalThis.__LOCK_ERRORS__ = [];
     const original = Element.prototype.requestPointerLock;
@@ -154,6 +156,7 @@ try {
     const mesh = __RANGE_ROOM__.render.viewmodel.scene.getObjectByName('Weapon_Body');
     return { sameMesh: mesh===proof.mesh, sameSkeleton:mesh.skeleton===proof.skeleton,
       sameMaterial:mesh.material===proof.material, changedMap:mesh.material.map!==proof.map,
+      albedoEmission:mesh.material.emissiveMap===mesh.material.map && mesh.material.emissive.getHex()===0xFFFFFF,
       sameArms:proof.arms.every(a=>a.mesh.material===a.material && a.material.map===a.map),
       sameAction:state.action?.actionId===proof.actionId, samePlayback:state.view.playback.current.playbackId===proof.playbackId,
       drawCount:state.recentEvents.filter(e=>e.type==='DrawStarted').length, beforeDrawCount:proof.drawCount,
@@ -165,6 +168,7 @@ try {
     'sameSkeleton',
     'sameMaterial',
     'changedMap',
+    'albedoEmission',
     'sameArms',
     'sameAction',
     'samePlayback',
@@ -311,6 +315,10 @@ try {
     assert.equal(current.view.visibleInstances, 1)
     assert.ok(current.view.maximumInstances <= 2)
     assert.equal(current.inventory.weapons.find(w => w.instanceId === 'pistol').magazine, 12)
+    assert.equal(await evaluate(`(() => {
+      const material = __RANGE_ROOM__.render.viewmodel.scene.getObjectByName('Weapon_Body').material;
+      return material.emissiveMap === material.map && material.emissive.getHex() === 0xFFFFFF;
+    })()`), true, 'repeated K presses must keep the current skin texture as its emission')
     report.repeatCycles.push({ skin: current.view.skinId, instances: current.view.instances, maximumInstances: current.view.maximumInstances })
   }
   report.disposal = await evaluate(`(() => {

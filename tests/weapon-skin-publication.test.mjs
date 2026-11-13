@@ -50,6 +50,40 @@ test('a material release preserves the exact base model and current local skin w
   await assert.rejects(publishSkinRelease(recipe), /Existing version differs/)
 })
 
+test('material releases preserve existing emission and publish a separately authored emission map', async (t) => {
+  const { recipe } = await fixture(t)
+  const manifestPath = path.join(recipe.baseDirectory, 'manifest.json')
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
+  const descriptor = manifest.skins.smite
+  const skinPath = path.join(recipe.baseDirectory, descriptor.url)
+  const skin = JSON.parse(await readFile(skinPath, 'utf8'))
+  skin.materials.weapon.emissiveMap = { ...skin.materials.weapon.map }
+  skin.materials.weapon.emissiveIntensity = 0.75
+  const skinBytes = JSON.stringify(skin)
+  await writeFile(skinPath, skinBytes)
+  descriptor.sha256 = sha256(skinBytes)
+  descriptor.bytes = new TextEncoder().encode(skinBytes).length
+  await writeFile(manifestPath, JSON.stringify(manifest))
+  const variant = recipe.variants[0]
+  variant.emissiveMap = variant.texture
+  variant.emissiveMapSha256 = sha256(await readFile(variant.emissiveMap))
+  variant.emissiveIntensity = 2.5
+  const report = await publishSkinRelease(recipe)
+  for (const [skinId, intensity, emissionHash] of [
+    ['smite', 0.75, skin.materials.weapon.emissiveMap.sha256],
+    ['sakura', 2.5, variant.emissiveMapSha256],
+  ]) {
+    const published = JSON.parse(await readFile(path.join(report.directory, 'skins', `${skinId}.json`), 'utf8'))
+    const material = published.materials.weapon
+    assert.equal(material.emissiveIntensity, intensity)
+    assert.equal(material.emissiveMap.sha256, emissionHash)
+    assert.equal(sha256(await readFile(path.resolve(report.directory, 'skins', material.emissiveMap.url))), emissionHash)
+  }
+  await validateWeaponPackage(report.directory)
+  variant.emissiveMapSha256 = '0'.repeat(64)
+  await assert.rejects(publishSkinRelease(recipe), /Emissive PNG changed/)
+})
+
 test('a material release rejects same-version replacement and incompatible or stale authoring evidence', async (t) => {
   const { recipe, directory } = await fixture(t)
   await assert.rejects(publishSkinRelease({ ...recipe, assetVersion: 'v3' }), /new assetVersion/)
