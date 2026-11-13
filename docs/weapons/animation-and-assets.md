@@ -1,6 +1,6 @@
 # 武器资源发布与动画播放
 
-> 本文描述现行发布、播放与材质兼容行为。新材质方向已确认为平直着色、全金属、不依赖自发光，以及游戏内离线 HDR Cubemap＋PMREM 静态局部反射，见[材质路线图](material-quality-roadmap.md)；尚未实施，不再把旧发光路径作为新皮肤制作方案。
+> 本文描述现行发布、播放与材质兼容行为。`?weaponStudy=1` 已提供 Classic v4／AG 的平直着色、全金属、零自发光和静态局部反射小样，默认及其他皮肤不变，见[材质路线图](material-quality-roadmap.md#当前小样入口与验证)；不把旧发光路径作为新皮肤制作方案。
 
 [整体设计](../superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md)的发布与播放模块已接入主游戏：Classic 默认 AG、Phantom 默认 Tactiplay，由关卡作用域加载，每个视觉实例拥有独立 AnimationPlayer。主页面通过装备事实驱动双枪视模；专用预览页仍用于资产采样验收。Classic 的精简网格与 336 图集见[裁图、UV 与发布工作流](gun-only-uv-workflow.md)。固定瞄准和控件见[武器玩法](gameplay.md)，双枪的声音及独立 cue 时钟见[运行时音频](audio.md)。
 
@@ -58,9 +58,9 @@ epoch/requestId 的裁定由 EquipmentController 完成；WeaponViewModel 管理
 
 **以下是仍在代码中的待迁移行为，不是新材质的推荐配置：**
 
-- 当前加载与换肤会同时更新颜色和旧自发光状态；武器皮肤未声明独立发光图时，仍用自身颜色图作为自发光。镜体未声明时清除发光，不叠加 GLB 或上一皮肤的旧图案。
+- 默认加载与换肤主要更新颜色图，仍可能继承 GLB 的自发光和清漆；旧独立发光接口及回归预期尚未统一，不应将它们当成新版皮肤契约。
 - 角色级配置目前主要覆盖粗糙度和金属度，不能据此认为导入材质的清漆、发光和法线策略已全部统一。
-- 新模式需要在实例创建、换肤和重新装备时显式关闭枪械发光，小样先关闭清漆；不能仅修改文档或省略皮肤字段，就宣称已完成零自发光迁移。
+- AG 可选小样已在实例创建、换肤和重新装备时显式关闭发光与清漆，并借用场景所有的静态反射；关闭小样或切到其他皮肤恢复原材质参数。其他路径不能仅因文档或字段变化就宣称已完成迁移。
 
 旧路径仅供定位现行行为与兼容回归，不再提供额外发光素材的制作／发布指引。新的材质参数、静态反射与迁移验收统一以[材质路线图](material-quality-roadmap.md)为准；既有资产、动作和手臂契约保持不变。
 
@@ -108,7 +108,7 @@ RenderSystem 拥有稳定的 `viewmodel` layer，包括独立 Scene、Perspectiv
 
 世界灯光通过独立 Lighting/LightsNode 借用，不重设 parent，不复制或释放世界灯光、探针 atlas 和天空纹理；灯光可见性、layers 和移除会在下一次绘制同步。保留 `viewmodelLightIntensity` 作为弱暗部补光，默认从 3 降到 **0.18**，可在右侧「武器 · 场景光照」中调节和重置。
 
-`assets/weapon-materials.js` 的 `weaponMaterialProfiles` 当前按 manifest 的 weapon / scope / armsLeft / armsRight 角色配置实例副本的 roughness 与 metalness，属于过渡标定，不是新版平直着色／全金属基线。换肤保留材质对象和这些角色级响应，手臂独立保持哑光；材质参数本身不改源模型或 PNG。手臂采样与纹理所有权见[手臂规范](arm-uv-contract.md)。目前没有因导入而自动生成新的法线或逐部件材质贴图，也尚未接入静态局部镜面反射。现行测试检查参数应用与换肤后保留，新方向需另按路线图实现并验收。
+`assets/weapon-materials.js` 的 `weaponMaterialProfiles` 默认仍按 weapon / scope / armsLeft / armsRight 角色配置 roughness 与 metalness。可选的 `weapon-material-study.js` 仅对 Classic v4／AG 覆盖平直着色、全金属、零发光／零清漆与局部镜面环境，实例释放时撤销绑定；不重建骨架、修改皮肤像素或影响手臂。反射由关卡拥有，材质借用，不为每把枪复制 PMREM。手臂采样与纹理所有权见[手臂规范](arm-uv-contract.md)。默认路径和新小样分开验收，完整推广仍按路线图推进。
 
 ## 浏览器预览与验证
 

@@ -158,14 +158,16 @@ export class WeaponAssets {
   #manifests = new Map()
   // The first validated package owns the map; all contract-compatible weapons borrow it.
   #armMaps = new Map()
+  #materialStudy
 
-  constructor({ resources, scopeId, baseUrl = '/weapons/', signal, audio = null } = {}) {
+  constructor({ resources, scopeId, baseUrl = '/weapons/', signal, audio = null, materialStudy = null } = {}) {
     identifier(scopeId, 'scopeId')
     if (!resources || !['load', 'get', 'instantiate', 'unload'].every(key => typeof resources[key] === 'function'))
       throw new TypeError('[WeaponAssets] Expected a ResourceManager')
     identifier(baseUrl, 'baseUrl')
     this.#resources = resources
     this.#audio = audio
+    this.#materialStudy = materialStudy
     this.#baseUrl = baseUrl.endsWith('/')
       ? baseUrl
       : `${baseUrl}/`
@@ -382,6 +384,7 @@ export class WeaponAssets {
     let player
     let released = false
     let instance
+    let studyBinding
     const dispose = () => {
       if (released)
         return
@@ -390,6 +393,7 @@ export class WeaponAssets {
       const errors = []
       for (const release of [
         () => player?.dispose(),
+        () => studyBinding?.dispose(),
         () => root.removeFromParent(),
         ...Array.from(skeletons, skeleton => () => skeleton.dispose()),
         ...Array.from(materials.values(), material => () => material.dispose()),
@@ -432,13 +436,14 @@ export class WeaponAssets {
           ? object.material.map(cloneMaterial)
           : cloneMaterial(object.material)
       })
+      studyBinding = this.#materialStudy?.attach(root, handle, record.materialRoles)
       player = new AnimationPlayer({
         root,
         clips: record.clips,
         actions: record.actions,
         controls: record.controls,
       })
-      const state = { handle, materials }
+      const state = { handle, materials, studyBinding }
       instance = Object.freeze({
         root,
         player,
@@ -492,6 +497,7 @@ export class WeaponAssets {
       }
     }
     state.handle = handle
+    state.studyBinding?.setSkin(handle)
   }
 
   #assertOpen() {

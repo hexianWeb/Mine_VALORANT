@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "id": "range-room-main-v1",
+  "encoding": "webgpu-cube-camera-r187-rgba16f-le",
+  "source": {
+    "version": 1,
+    "three": "187",
+    "room": "c0655887f0c5258490544f5682c96c3ecd328be4ec559c904a8535c9f9e3520f",
+    "sky": "b7d98fe95157e74b3899a1dd468a1e478005bcd1f668b29b5b42a48cb5358fa2",
+    "capture": {
+      "id": "range-room-main-v1",
+      "size": 256,
+      "position": [
+        0.5,
+        10.5,
+        5.5
+      ],
+      "min": [
+        -22.0874,
+        9,
+        -6.8332
+      ],
+      "max": [
+        21.7254,
+        18,
+        18.98
+      ],
+      "near": 0.05,
+      "far": 160,
+      "sky": 0.35,
+      "direct": 1,
+      "emissive": 0
+    },
+    "encoding": "webgpu-cube-camera-r187-rgba16f-le"
+  },
+  "url": "./room-438cad7fd66a25453efcf5c11a714f5e0a9aa232e2d3ee7ef2254fd100bebf2e.bin",
+  "sha256": "438cad7fd66a25453efcf5c11a714f5e0a9aa232e2d3ee7ef2254fd100bebf2e",
+  "bytes": 3145728,
+  "stats": [
+    {
+      "face": 0,
+      "rgbMax": 1.1650390625,
+      "rgbMean": 0.14775498776361928
+    },
+    {
+      "face": 1,
+      "rgbMax": 1.1591796875,
+      "rgbMean": 0.15181424491765938
+    },
+    {
+      "face": 2,
+      "rgbMax": 1.1591796875,
+      "rgbMean": 0.05357719766228305
+    },
+    {
+      "face": 3,
+      "rgbMax": 1.1357421875,
+      "rgbMean": 0.35662823025874485
+    },
+    {
+      "face": 4,
+      "rgbMax": 1.1591796875,
+      "rgbMean": 0.1624965881225459
+    },
+    {
+      "face": 5,
+      "rgbMax": 1.216796875,
+      "rgbMean": 0.1918411216295984
+    }
+  ]
+}

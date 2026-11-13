@@ -18,7 +18,7 @@ function makeGrid(volume) {
 }
 
 /** Separate static scene: no inspection prop, shadow key, LPV markers, AO or grading. */
-function makeCaptureScene(room, scene) {
+export function makeCaptureScene(room, scene) {
   const captureScene = new THREE.Scene()
   captureScene.background = scene.background
   captureScene.environment = scene.environment

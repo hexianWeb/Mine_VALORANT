@@ -17,6 +17,8 @@ import { mountWeaponHud } from './weapon-hud.js'
  * `readAppConfig()` 的返回值。
  * `?editor=0` 关闭编辑器，`?player=0` 从飞行开始，`?probes=0` 关闭探针，
  * `?lighting=appearance` 改用外观清单，`?ao=0` 关闭环境光遮蔽，`?aa=none` 关闭抗锯齿，`?profile=1` 记录时间戳。
+ * `?weaponStudy=1` 启用 Classic v4／AG 的静态室内反射小样（金属度沿用材质本身），不改变默认外观。
+ * `?reflectionPreview=1` 在大厅中央显示已保存 HDR Cubemap 的六面原始预览。
  *
  * @typedef {ReturnType<typeof readAppConfig>} AppConfig
  */
@@ -146,6 +148,7 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
           panelContainer,
           lightingMode: level.snapshot().lightingMode,
           probes: level.probes,
+          weaponStudy: level.weaponStudy,
           collisionBoxes: level.collision?.world.boxes,
           bindInspection,
         }))
