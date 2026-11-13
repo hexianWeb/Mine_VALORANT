@@ -166,8 +166,6 @@ export class WeaponViewModel {
       else {
         const visual = this.#assets.instantiate(request.handle)
         const anchor = new Group()
-        anchor.position.fromArray(request.handle.manifest.view.mountOffset)
-        anchor.add(visual.root)
         entry = {
           visual,
           anchor,
@@ -177,6 +175,14 @@ export class WeaponViewModel {
           reserved: false,
           action: null,
         }
+        // Skinned bounds can be cached while draw starts off-screen and remain stale as
+        // the arms move into view. This small first-person layer must render every pose.
+        visual.root.traverse((object) => {
+          if (object.isSkinnedMesh)
+            object.frustumCulled = false
+        })
+        anchor.position.fromArray(request.handle.manifest.view.mountOffset)
+        anchor.add(visual.root)
       }
       entry.anchor.visible = false
       this.#staged = entry
@@ -316,6 +322,7 @@ export class WeaponViewModel {
       this.#active.anchor.updateMatrixWorld(true)
       if (socket) {
         socket.getWorldPosition(this.#flash.position)
+        this.#layer.scene.worldToLocal(this.#flash.position)
         this.#flashUntil = event.at + 0.045
       }
     }

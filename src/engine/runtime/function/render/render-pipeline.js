@@ -61,7 +61,7 @@ export function buildPipeline(renderer, scene, camera, config, grading = null, v
     scenePass.contextNode = builtinAOContext(aoNode)
   }
   const viewmodelPass = viewmodel
-    ? own(new ViewModelPass(viewmodel))
+    ? own(new ViewModelPass(viewmodel, scene, camera))
     : null
   const composite = viewmodelPass
     ? own(convertToTexture(compositeViewModel(scenePass.getTextureNode(), viewmodelPass.getTextureNode()), null, null, {

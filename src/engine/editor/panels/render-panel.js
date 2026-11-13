@@ -115,6 +115,17 @@ export function createDebugPanel(render, container, lightingMode = 'lightmap', p
     denoiseRadius: renderConfig.denoiseRadius,
   })))
 
+  const viewmodel = pane.addFolder({ title: '武器 · 场景光照', expanded: false })
+  bindEffect(viewmodel, 'viewmodelLightIntensity', {
+    label: '暗部补光',
+    min: 0,
+    max: 1,
+    step: 0.01,
+  })
+  viewmodel.addButton({ title: '重置武器补光' }).on('click', () => safely(() => render.setEffects({
+    viewmodelLightIntensity: renderConfig.viewmodelLightIntensity,
+  })))
+
   const lut = pane.addFolder({ title: 'LUT · Color grading', expanded: true })
   bindEffect(lut, 'toneMappingExposure', {
     label: '曝光强度',

@@ -4,31 +4,40 @@
 
 ## 武器发布
 
-`weapons/publish.mjs` 使用 `weapons/recipes.mjs` 中的显式配方，从当前 Classic Smite / Phantom Tactiplay 制作文件导出。使用全新后台 Blender，不连接用户的 Blender、不保存或重写源 `.blend`。源文件路径相对项目根；原动作元数据来自 `--source-pack`。首次发布输出 `public/weapons/<weaponId>/v1/`；只有全部校验通过才复制资源，最后写入口 manifest。已经存在的版本必须逐文件字节一致，否则拒绝覆盖，变更需更新配方的 assetVersion。
+`weapons/publish.mjs` 使用 `weapons/recipes.mjs` 中的显式配方，从当前 Classic Smite / Phantom Tactiplay 制作文件导出。使用全新后台 Blender，不连接用户的 Blender、不保存或重写源 `.blend`。源文件路径相对项目根；原动作元数据来自 `--source-pack`。默认配方版本为 v1，后续发布应指定新的 `--asset-version`；只有全部校验通过才复制资源，最后写入口 manifest。已经存在的版本必须逐文件字节一致，否则拒绝覆盖。
 
 ```powershell
-node tools/weapons/publish.mjs --blender 'D:/game/steamapps/common/Blender/blender.exe' --source-pack 'D:/Projects/vandal-roundtrip/valorant-first-person-pack'
+node tools/weapons/publish.mjs --blender 'F:/Blender5.3/blender.exe' --source-pack '<完整源包目录>' --asset-version v4 classic
 node tools/weapons/publish.mjs --verify-only
 node --test tests/weapon-publication.test.mjs
 ```
 
-可在末尾指定 `classic` 或 `phantom`；省略则发布两枪。`BLENDER_PATH` 可代替 `--blender`，`--out-root` 可指定独立候选目录。原包默认位置为相邻 `vandal-roundtrip/valorant-first-person-pack`。官方 glTF Validator 使用项目开发依赖，其他安装位置仍可用 `--validator-module` 指定。暂存目录默认在 `D:/opencode-temp/opencode`，可用 `--work-root` 改变。已验证模型导出环境为 Blender 5.3.0；其他版本需重新通过校验，不假定产物字节相同。
+可在末尾指定 `classic` 或 `phantom`；省略则发布两枪。`--asset-version` 应选择尚未存在的版本；省略时 `--verify-only` 检查旧 v1。`BLENDER_PATH` 可代替 `--blender`，`--out-root` 可指定独立候选目录。原包默认位置为相邻 `vandal-roundtrip/valorant-first-person-pack`；该完整源包当前缺失，不能从片段时长补造运行时元数据。官方 glTF Validator 使用项目开发依赖，其他安装位置仍可用 `--validator-module` 指定。暂存目录默认在 `D:/opencode-temp/opencode`，可用 `--work-root` 改变。其他 Blender 版本需重新通过校验，不假定产物字节相同。
+
+### 手臂 UV 标准化
+
+当前 `classic/v3` 与 `phantom/v2` 从旧包派生，仅改手臂 UV 和内嵌 32×32 图；制作源及完整九枪范围、备份、限制和后续导出契约见[手臂 UV 规范](../docs/weapons/arm-uv-contract.md)。重现派生版本需要已保存的迁移证据及未再改变的制作源：
+
+```powershell
+node tools/weapons/publish-arms.mjs --blender 'F:/Blender5.3/blender.exe' --out-root 'D:/opencode-temp/opencode/arm-release-check'
+& 'F:/Blender5.3/blender.exe' --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/weapons/audit_arm_sources.py -- --files tools/weapons/arm-source-files.json
+node --test tests/weapon-arms.test.mjs
+```
 
 ### 兼容皮肤发布
 
-Classic 当前使用 v2（smite/sakura），复用 v1 GLB，增加独立皮肤及审计记录，不覆盖旧模型。v1 现有本地 weapon.png 替换保留；仅修正其皮肤 JSON/manifest 中错误的尺寸与哈希，新发布中按内容哈希复制这些像素。
+Classic v2（smite/sakura）复用 v1 GLB；当前 v3 继续保留相同皮肤像素并使用新手臂契约。v1 现有本地 weapon.png 替换保留；仅修正其皮肤 JSON/manifest 中错误的尺寸与哈希，新发布中按内容哈希复制这些像素。
 
 ```powershell
-& 'F:/Blender5.3/blender.exe' --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/weapons/audit_skin_blender.py -- --manifest public/weapons/classic/v1/manifest.json --base-blend skin_work_folder/classic_skin_work/Classic_Smite_Animated.blend --skin-blend skin_work_folder/classic_skin_work/Classic_Sakura_Animated.blend --texture skin_work_folder/classic_skin_work/classic_sakura_weapon.png --out D:/opencode-temp/opencode/weapon-stage4/sakura-audit.json
-node tools/weapons/publish-skins.mjs tools/weapons/skin-releases/classic-v2.json
+& 'F:/Blender5.3/blender.exe' --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/weapons/audit_skin_blender.py -- --manifest public/weapons/classic/v3/manifest.json --base-blend skin_work_folder/classic_skin_work/Classic_Smite_Animated.blend --skin-blend skin_work_folder/classic_skin_work/Classic_Sakura_Animated.blend --texture skin_work_folder/classic_skin_work/classic_sakura_weapon.png --out D:/opencode-temp/opencode/weapon-stage4/sakura-audit-v3.json
 node --test tests/weapon-skin-publication.test.mjs
 ```
 
-`audit_skin_blender.py` 只读打开两份制作源，核对 SourceUV、几何/权重、rest rig、全部动作与 packed PNG，不保存文件。审核后的证据由显式配方引用；更新证据前应复核命令输出。`publish-skins.mjs` 验证原包、证据与源文件哈希后生成新版本，已有目标版本必须字节一致。Sakura 当前审计环境为 Blender 5.2.3 LTS；它没有重新导出 v1 GLB。
+`audit_skin_blender.py` 只读打开两份制作源，核对 SourceUV、几何/权重、rest rig、全部动作与 packed PNG，不保存文件。审核后的证据由显式配方引用；更新证据前应复核命令输出。`publish-skins.mjs` 验证原包、证据与源文件哈希后生成新版本，已有目标版本必须字节一致。历史 `classic-v2.json` 绑定旧制作源，不能拿统一后的 `.blend` 复现旧审计。Sakura 新审计环境为 Blender 5.2.3 LTS。
 
-导出只选择配方列出的运行时网格与四套动画 Armature，排除 Icosphere 自定义骨形和预览摄像机。保留多对象 Action、STEP 可见性和原有 SourceUV；规范化时间原点、skinned mesh 根节点、材质 UV 及重复节点名。材质角色区分 weapon / armsLeft / armsRight，皮肤只覆盖 weapon。GLB 内含初始贴图；皮肤 JSON 的纹理 URL 相对皮肤 JSON，其他资源 URL 相对 manifest。挂载位置在 `view.mountOffset`，单位为米，写到 Mixer 根节点外的 anchor，GLB 不再缩放。
+导出只选择配方列出的运行时网格与四套动画 Armature，排除 Icosphere 自定义骨形和预览摄像机。保留多对象 Action 和 STEP 可见性，检查手臂 SourceUV/标准贴图；规范化时间原点、skinned mesh 根节点、材质 UV 及重复节点名。材质角色区分 weapon / armsLeft / armsRight，皮肤只覆盖 weapon。GLB 内含初始贴图；皮肤 JSON 的纹理 URL 相对皮肤 JSON，其他资源 URL 相对 manifest。挂载位置在 `view.mountOffset`，单位为米，写到 Mixer 根节点外的 anchor，GLB 不再缩放。
 
-发布门槛包括源文件前后 SHA256 一致、packed 皮肤与显式 PNG 一致、完整 clip/mesh/material/socket 绑定、时间原点、循环端点、有限骨骼矩阵、刚性权重、每枪九个 Blender/Three.js 变形包围盒比较，以及 glTF Validator 零 error/零 warning。`source-audit.json` 保存源姿态证据，`validation.json` 保存检查结果。Node 贴图检查读取 PNG 尺寸，不代替真实浏览器的像素解码和 WebGPU 画面验收。普通动作零时刻音效不重复导入为 marker；Classic salvo 等独立 cue 保留。已发布两枪接入主游戏，操作与时钟契约见[武器玩法](../docs/weapons/gameplay.md)；本地声音见[运行时音频](../docs/weapons/audio.md)。后续皮肤素材由用户处理，不自动生成或替换纹理。
+发布门槛包括源文件前后 SHA256 一致、packed 皮肤与显式 PNG 一致、完整 clip/mesh/material/socket 绑定、时间原点、循环端点、有限骨骼矩阵、刚性权重、每枪九个 Blender/Three.js 变形包围盒比较，以及 glTF Validator 零 error/零 warning。`source-audit.json` 保存源姿态证据，`validation.json` 保存检查结果。Node 贴图检查读取 PNG 尺寸，不代替真实浏览器的像素解码和 WebGPU 画面验收。普通动作零时刻音效不重复导入为 marker；Classic salvo 等独立 cue 保留。已发布两枪接入主游戏，操作与时钟契约见[武器玩法](../docs/weapons/gameplay.md)；本地声音见[运行时音频](../docs/weapons/audio.md)。后续枪皮肤素材由用户处理，不自动生成或替换。
 
 `weapons/audit_controls.py` 只读审计 Judge/Odin 的显式 scale 白名单、插值、层级及权重，输出 `tests/fixtures/weapon-controls/` 的可复现数值夹具；不导出模型、材质或图像，也不保存 blend。复核时输出到 `D:/opencode-temp/opencode/weapon-controls/reproduced` 再与保存的夹具比较，运行方式及验收边界见[稀疏控制](../docs/weapons/runtime-controls.md)。正常 npm test 不需要启动 Blender。
 
@@ -45,6 +54,7 @@ node --test tests/weapon-skin-publication.test.mjs
 | `check-runtime-browser.mjs` | 有 / 无 Editor 重载、独立渲染 | 同上，必须开发服务器 |
 | `check-weapons-browser.mjs` | Classic/Phantom 真实皮肤、动作采样、实例隔离与释放 | `npm run dev` 后 `node tools/check-weapons-browser.mjs http://localhost:5173/weapon-preview.html`；输出目录用 `WEAPON_TEST_OUTPUT` |
 | `check-weapon-gameplay-browser.mjs` | 主游戏真实输入、切枪／打断、射击／ADS、统一表现时间与生命周期 | `npm run dev` 后 `node tools/check-weapon-gameplay-browser.mjs http://localhost:5173/`；输出目录用 `WEAPON_GAME_TEST_OUTPUT` |
+| `check-weapon-lighting-browser.mjs` | 双枪 HDR 光照贡献、探针/环境共享、移动转向受光、AO 隔离与皮肤材质 | 开发服务器下 `node tools/check-weapon-lighting-browser.mjs http://localhost:5173/`；输出目录用 `WEAPON_LIGHTING_TEST_OUTPUT` |
 | `check-weapon-audio-browser.mjs` | 双枪真实 Ogg 解码与输出波形、音频解锁、连射、取消、暂停/变速及卸载 | `npm run dev` 后 `node tools/check-weapon-audio-browser.mjs http://localhost:5173/`；输出目录用 `WEAPON_AUDIO_TEST_OUTPUT` |
 
 ```powershell
@@ -63,12 +73,13 @@ node tools/check-player-browser.mjs "http://localhost:5173/"
 node tools/check-pipeline-browser.mjs "http://localhost:5173/"
 node tools/check-runtime-browser.mjs "http://localhost:5173/"
 node tools/check-weapon-gameplay-browser.mjs "http://localhost:5173/"
+node tools/check-weapon-lighting-browser.mjs "http://localhost:5173/"
 node tools/check-weapon-audio-browser.mjs "http://localhost:5173/"
 ```
 
 `check-room` 会加上 `profile=1` 和 `player=0`。`check-pipeline` 和 `check-runtime` 会从开发服务器加载 `tests/*-browser-cases.js`，把 `pnpm preview` 的地址喂给它们会失败。
 
-`check-weapons-browser` 使用独立资产预览页；`check-weapon-gameplay-browser` 使用默认启用 Player 与 Editor 的主游戏页面，并设置 `probes=0`。后者通过可信鼠标点击捕获 Pointer Lock，检查首击不开火、Classic 半自动、Phantom 自动射速与 ADS、换弹／检视打断、切枪、世界相机与 AimState 采样一致、武器公共表现时间、Editor 交接、暂停输入丢弃、Home 重生和销毁。默认输出为 `D:/opencode-temp/opencode/weapon-gameplay-browser/`，包含截图和 `report.json`；通过状态以本次报告为准。
+`check-weapons-browser` 使用独立资产预览页；`check-weapon-gameplay-browser` 使用默认启用 Player 与 Editor 的主游戏页面，并设置 `probes=0`。后者通过可信鼠标点击捕获 Pointer Lock，检查首击不开火、Classic 半自动、Phantom 自动射速与 ADS、换弹／检视打断、切枪、世界相机与 AimState 采样一致、武器公共表现时间、Editor 交接、暂停输入丢弃、Home 重生和销毁；重复切枪时还分别隔离左右手并读取视模 HDR，确认手臂确实绘制、共享贴图且未受错误的视锥剔除。默认输出为 `D:/opencode-temp/opencode/weapon-gameplay-browser/`，包含截图和 `report.json`；通过状态以本次报告为准。
 
 `validate-room-assets.mjs` 默认读 `public/lighting/range-room-lightmap/manifest.json`。查另一套资源时把 manifest 路径放在后面，例如 `node tools/validate-room-assets.mjs public/lighting/range-room/manifest.json`。
 

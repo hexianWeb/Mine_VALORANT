@@ -119,13 +119,17 @@ export async function installWeaponPackage(candidate, target) {
   await cp(path.join(candidate, 'manifest.json'), path.join(target, 'manifest.json'))
 }
 
-export async function publishWeapons({ weapons = ['classic', 'phantom'], blender, sourcePack, outputRoot, validatorModule, verifyOnly = false, workRoot = 'D:/opencode-temp/opencode' }) {
+export async function publishWeapons({ weapons = ['classic', 'phantom'], blender, sourcePack, outputRoot, validatorModule, assetVersion, verifyOnly = false, workRoot = 'D:/opencode-temp/opencode' }) {
   const root = path.resolve(outputRoot ?? path.join(project, 'public/weapons'))
   const pack = path.resolve(sourcePack ?? path.join(project, '../vandal-roundtrip/valorant-first-person-pack'))
   const validator = require(validatorModule ?? 'gltf-validator')
+  if (assetVersion !== undefined)
+    assert.match(assetVersion, /^[\w-]+$/, 'Invalid assetVersion')
   const selected = weapons.map((id) => {
     assert.ok(Object.hasOwn(recipes, id), `Unknown explicit weapon recipe: ${id}`)
-    return recipes[id]
+    return assetVersion
+      ? { ...recipes[id], assetVersion }
+      : recipes[id]
   })
   assert.equal(new Set(weapons).size, weapons.length, 'Repeated recipe')
   if (verifyOnly) {
@@ -194,12 +198,14 @@ export async function publishWeapons({ weapons = ['classic', 'phantom'], blender
       }
       const skinBytes = jsonBytes(skin)
       await writeFile(path.join(directory, 'skins', `${recipe.skinId}.json`), skinBytes)
+      const armContract = JSON.parse(await readFile(path.join(project, 'tools/weapons/arm-contract.json'), 'utf8'))
       const manifest = {
         schemaVersion: 1,
         weaponId: recipe.weaponId,
         assetVersion: recipe.assetVersion,
         model: resource('model.glb', modelBytes),
         compatibility,
+        armContract: { version: armContract.version, textureSha256: armContract.textureSha256 },
         clips: normalizedClips(source, recipe.weaponId),
         actions: recipe.actions,
         requiredActions: recipe.requiredActions,
@@ -253,6 +259,7 @@ async function main(args) {
     '--out-root': 'outputRoot',
     '--validator-module': 'validatorModule',
     '--work-root': 'workRoot',
+    '--asset-version': 'assetVersion',
   }
   for (let index = 0; index < args.length; index++) {
     const argument = args[index]

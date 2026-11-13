@@ -127,6 +127,24 @@ async function verify() {
       instancesIndependent: true,
     })
   }
+  const classic = entries.get('classic').instance.root
+  const phantom = entries.get('phantom').instance.root
+  const sharedMap = classic.getObjectByName('Arms_Left').material.map
+  require(sharedMap?.image?.width === 32 && sharedMap.image.height === 32, 'Arm atlas must be 32×32')
+  for (const side of ['Left', 'Right']) {
+    const a = classic.getObjectByName(`Arms_${side}`)
+    const b = phantom.getObjectByName(`Arms_${side}`)
+    require(a.material.map === sharedMap && b.material.map === sharedMap, `${side}: arm atlas is not shared`)
+    require(a.geometry.attributes.uv.count === b.geometry.attributes.uv.count, `${side}: UV count differs`)
+    require(a.geometry.attributes.uv.array.every((value, index) => Math.abs(value - b.geometry.attributes.uv.array[index]) < 1e-6), `${side}: UV layout differs`)
+  }
+  checks.push({
+    weaponId: 'shared-arms',
+    sharedTexture: true,
+    width: 32,
+    height: 32,
+    matchingUV: true,
+  })
   return checks
 }
 

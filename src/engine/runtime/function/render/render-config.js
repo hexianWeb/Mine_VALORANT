@@ -17,7 +17,7 @@ export const renderConfig = Object.freeze({
   lutIntensity: 1,
   aa: 'smaa',
   trackTimestamp: false, // 用 ?profile=1 开启，或在创建性能分析实例时开启。
-  viewmodelLightIntensity: 3, // 独立视模光照，不复用世界 AO 或房间灯光。
+  viewmodelLightIntensity: 0.18, // 世界灯光/探针/环境之外的弱补光；视模仍不复用世界 AO。
 })
 
 export function validateEffects(config) {

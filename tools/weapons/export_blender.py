@@ -8,6 +8,10 @@ import sys
 
 import bpy
 
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from arm_contract import load_contract, validate_arms
+
 
 def normalize(path):
     raw = path.read_bytes()
@@ -136,6 +140,8 @@ def main():
     source = Path(request['blend'])
     before = hashlib.sha256(source.read_bytes()).hexdigest()
     bpy.ops.wm.open_mainfile(filepath=str(source), load_ui=False)
+    arm_contract, _ = load_contract()
+    validate_arms(arm_contract)
     scene = bpy.data.scenes[request['scene']]
     bpy.context.window.scene = scene
     assert scene.render.fps / scene.render.fps_base == 60

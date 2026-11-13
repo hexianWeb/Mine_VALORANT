@@ -2,6 +2,7 @@ import * as THREE from 'three/webgpu'
 import { AnimationPlayer } from '../../../engine/runtime/function/animation/animation-player.js'
 import { ClipLibrary } from '../../../engine/runtime/function/animation/clip-library.js'
 import { validateAmmoDisplay } from './weapon-control-profile.js'
+import { applyWeaponMaterialProfile } from './weapon-materials.js'
 
 let nextScope = 0
 
@@ -155,6 +156,8 @@ export class WeaponAssets {
   #audioTasks = new Map()
   #audioCues = new Map()
   #manifests = new Map()
+  // The first validated package owns the map; all contract-compatible weapons borrow it.
+  #armMaps = new Map()
 
   constructor({ resources, scopeId, baseUrl = '/weapons/', signal, audio = null } = {}) {
     identifier(scopeId, 'scopeId')
@@ -280,6 +283,16 @@ export class WeaponAssets {
     for (const role of manifest.requiredActions) library.get(role)
     validateAmmoDisplay(manifest, library)
     const bindings = new Map()
+    const materialRoles = new Map()
+    for (const [role, names] of Object.entries(manifest.materials ?? {})) {
+      if (!Array.isArray(names))
+        throw new TypeError(`[WeaponAssets] Invalid material bindings for role: ${role}`)
+      for (const name of names) {
+        if (materialRoles.has(name))
+          throw new Error(`[WeaponAssets] Material has multiple roles: ${name}`)
+        materialRoles.set(name, role)
+      }
+    }
     const sourceMaterials = new Map()
     gltf.scene.traverse((object) => {
       for (const material of Array.isArray(object.material)
@@ -289,6 +302,35 @@ export class WeaponAssets {
           sourceMaterials.set(material.name, material)
       }
     })
+    let sharedArmMap = null
+    const armMaterialNames = new Set()
+    if (manifest.armContract) {
+      const { version, textureSha256 } = manifest.armContract
+      if (version !== 1 || typeof textureSha256 !== 'string' || !/^[0-9a-f]{64}$/u.test(textureSha256))
+        throw new Error('[WeaponAssets] Unsupported arm UV contract')
+      for (const role of ['armsLeft', 'armsRight']) {
+        const names = manifest.materials?.[role]
+        if (!Array.isArray(names) || !names.length)
+          throw new Error(`[WeaponAssets] Missing arm material binding: ${role}`)
+        for (const name of names) {
+          if (!sourceMaterials.get(name)?.map)
+            throw new Error(`[WeaponAssets] Missing arm atlas: ${name}`)
+          armMaterialNames.add(name)
+        }
+      }
+      const key = `${version}:${textureSha256}`
+      sharedArmMap = this.#armMaps.get(key)
+      if (!sharedArmMap) {
+        sharedArmMap = sourceMaterials.get(armMaterialNames.values().next().value).map
+        sharedArmMap.colorSpace = THREE.SRGBColorSpace
+        sharedArmMap.flipY = false
+        sharedArmMap.magFilter = THREE.NearestFilter
+        sharedArmMap.minFilter = THREE.NearestFilter
+        sharedArmMap.generateMipmaps = false
+        sharedArmMap.needsUpdate = true
+        this.#armMaps.set(key, sharedArmMap)
+      }
+    }
     await Promise.all(Object.entries(skin.materials).map(async ([role, materialInput]) => {
       const names = manifest.materials?.[role]
       if (!Array.isArray(names) || !names.length || names.some(name => !sourceMaterials.has(name)))
@@ -320,6 +362,9 @@ export class WeaponAssets {
       actions,
       controls,
       bindings,
+      materialRoles,
+      sharedArmMap,
+      armMaterialNames,
     })
     this.#manifests.set(`${request.weaponId}:${request.assetVersion}`, manifest)
     return handle
@@ -371,6 +416,11 @@ export class WeaponAssets {
           if (!materials.has(source)) {
             const material = source.clone()
             materials.set(source, material)
+            applyWeaponMaterialProfile(material, record.materialRoles.get(source.name))
+            if (record.armMaterialNames.has(source.name)) {
+              material.map = record.sharedArmMap
+              material.needsUpdate = true
+            }
             if (record.bindings.has(source.name)) {
               material.map = record.bindings.get(source.name)
               material.needsUpdate = true
@@ -479,6 +529,7 @@ export class WeaponAssets {
     this.#audioTasks.clear()
     this.#audioCues.clear()
     this.#manifests.clear()
+    this.#armMaps.clear()
     this.#handles = new WeakMap()
     this.#instanceRecords = new WeakMap()
     if (errors.length)

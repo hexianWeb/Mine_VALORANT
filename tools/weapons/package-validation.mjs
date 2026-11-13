@@ -112,6 +112,48 @@ export function pngSize(bytes) {
   }
 }
 
+/** Verify both anatomical mappings and the actual embedded shared atlas, not just their names. */
+export function validateArmContract(glb, declaration, contract) {
+  assert.equal(declaration.version, contract.version, 'Unsupported arm UV contract')
+  assert.equal(declaration.textureSha256, contract.textureSha256, 'Arm atlas contract mismatch')
+  const imageIndices = []
+  for (const side of ['Left', 'Right']) {
+    const mesh = glb.doc.meshes.find(item => item.name === `Arms_${side}`)
+    assert.ok(mesh && mesh.primitives.length === 1, `Missing arm mesh: ${side}`)
+    const primitive = mesh.primitives[0]
+    assert.equal(glb.doc.materials[primitive.material]?.name, `Character_${side}`, `Wrong arm material: ${side}`)
+    const indexAccessor = glb.doc.accessors[primitive.indices]
+    const indexBytes = accessorBytes(glb, primitive.indices)
+    assert.equal(indexAccessor.type, 'SCALAR')
+    assert.equal(indexAccessor.count, contract.indices.length)
+    assert.ok([5123, 5125].includes(indexAccessor.componentType), 'Unsupported arm index type')
+    const actualIndices = contract.indices.map((_, index) => indexAccessor.componentType === 5123
+      ? indexBytes.readUInt16LE(index * 2)
+      : indexBytes.readUInt32LE(index * 4))
+    assert.deepEqual(actualIndices, contract.indices, `Arm topology mismatch: ${side}`)
+    const uvIndex = primitive.attributes.TEXCOORD_0
+    const uvAccessor = glb.doc.accessors[uvIndex]
+    assert.ok(uvAccessor && uvAccessor.type === 'VEC2' && uvAccessor.componentType === 5126
+      && uvAccessor.count === contract.sides[side].length, `Invalid arm UV accessor: ${side}`)
+    const uv = accessorBytes(glb, uvIndex)
+    for (let index = 0; index < uvAccessor.count; index++) {
+      assert.ok(Math.abs(uv.readFloatLE(index * 8) - contract.sides[side][index][0]) < 1e-6
+        && Math.abs(uv.readFloatLE(index * 8 + 4) - (1 - contract.sides[side][index][1])) < 1e-6, `Arm UV mismatch: ${side} vertex ${index}`)
+    }
+    const material = glb.doc.materials[primitive.material]
+    const texture = glb.doc.textures[material.pbrMetallicRoughness?.baseColorTexture?.index]
+    const image = glb.doc.images[texture?.source]
+    assert.ok(image && image.mimeType === 'image/png', `Missing arm atlas: ${side}`)
+    const view = glb.doc.bufferViews[image.bufferView]
+    const start = view.byteOffset ?? 0
+    const bytes = glb.binary.subarray(start, start + view.byteLength)
+    assert.deepEqual(pngSize(bytes), { width: contract.width, height: contract.height }, 'Wrong arm atlas dimensions')
+    assert.equal(sha256(bytes), contract.textureSha256, `Wrong arm atlas pixels: ${side}`)
+    imageIndices.push(texture.source)
+  }
+  assert.equal(imageIndices[0], imageIndices[1], 'Left and right must reference one embedded arm atlas')
+}
+
 async function readChecked(root, base, descriptor) {
   assert.ok(descriptor && typeof descriptor.url === 'string', 'Missing resource descriptor')
   const resolved = path.resolve(base, descriptor.url)
@@ -129,6 +171,10 @@ export async function validateWeaponPackage(directory, { validator, poseSamples 
   const bytes = await readChecked(directory, directory, manifest.model)
   const glb = readGlb(bytes)
   assert.deepEqual(compatibilityFor(glb), manifest.compatibility, 'Model compatibility signature mismatch')
+  if (manifest.armContract) {
+    const contract = JSON.parse(await readFile(new URL('./arm-contract.json', import.meta.url), 'utf8'))
+    validateArmContract(glb, manifest.armContract, contract)
+  }
   assert.equal(new Set(glb.doc.nodes.map(node => node.name)).size, glb.doc.nodes.length, 'Duplicate node names')
   const clipNames = manifest.clips.map(clip => clip.name)
   assert.deepEqual(glb.doc.animations.map(clip => clip.name).sort(), [...clipNames].sort(), 'Clip set mismatch')

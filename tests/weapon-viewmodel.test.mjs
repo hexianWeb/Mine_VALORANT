@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { AnimationClip, Group, NumberKeyframeTrack, Scene } from 'three/webgpu'
+import { AnimationClip, Group, NumberKeyframeTrack, Scene, Vector3 } from 'three/webgpu'
 import { AnimationPlayer } from '../src/engine/runtime/function/animation/animation-player.js'
 import { WeaponViewModel } from '../src/game/weapons/weapon-viewmodel.js'
 
@@ -124,6 +124,8 @@ async function fixture(t, { fireDuration = 0.04 } = {}) {
   motion(0)
   return {
     root,
+    handle,
+    layer,
     player,
     view,
     receive,
@@ -131,6 +133,24 @@ async function fixture(t, { fireDuration = 0.04 } = {}) {
     aim,
   }
 }
+
+test('muzzle flash stays scene-local when the viewmodel layer follows the world camera', async (t) => {
+  const f = await fixture(t)
+  const socket = new Group()
+  socket.name = 'Muzzle'
+  socket.position.set(0.2, -0.1, -0.8)
+  f.root.add(socket)
+  f.handle.manifest.sockets = { muzzle: socket.name }
+  f.layer.scene.position.set(4, 10, -7)
+  f.layer.scene.rotation.set(0.2, 0.8, -0.1)
+  f.layer.scene.updateMatrixWorld(true)
+  f.receive('ShotFired', 0.1, { aiming: false })
+  f.motion(0.1)
+  const flash = f.layer.scene.getObjectByName('Weapon muzzle flash')
+  const expected = f.layer.scene.worldToLocal(socket.getWorldPosition(new Vector3()))
+  assert.ok(flash.position.distanceTo(expected) < 1e-12)
+  assert.equal(flash.visible, true)
+})
 
 test('private ADS facts use the weapon definition transition duration', async (t) => {
   const f = await fixture(t)

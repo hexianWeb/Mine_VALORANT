@@ -42,6 +42,7 @@ node tools/check-probes-browser.mjs "http://localhost:5173/"
 node tools/check-ground-browser.mjs "http://localhost:5173/"
 node tools/check-player-browser.mjs "http://localhost:5173/"
 node tools/check-runtime-browser.mjs "http://localhost:5173/"
+node tools/check-weapon-lighting-browser.mjs "http://localhost:5173/"
 ```
 
 专项测试覆盖法线预通道的透明裁剪/顶点变形、像素贴图的近处锐度与远处缩小过滤、参数原地更新、分辨率联动、效果循环释放，以及 1080p 分 pass GPU 计时。浏览器脚本自动添加 `?profile=1`。
@@ -80,6 +81,7 @@ EXR 解码和 alpha 加权 mip 生成在独立 Worker 中完成，通过 transfe
 - **烘焙 atlas**：线性放大、三线性缩小、最高 16× 各向异性（受设备上限限制）；仅生成 0–2 级 mip，透明空白不参与颜色平均。Lightmap 重烘复用原 BakeUV，并修正两处因底色材质更换而错误指向其他图集的绑定。WebGPU 各向异性要求三种过滤均为 linear；Lightmap 底色通过 shader 重建近处像素感，实时最近邻贴图使用 anisotropy 1。
 - **显示**：`ReinhardToneMapping`，`toneMappingExposure = 1.2`，不是 1.2 EV。顺序为线性 tone mapping → SMAA → sRGB → LUT；中性默认 LUT 为 33³ 半浮点 identity，identity 或关闭 LUT 时走真正的 shader 旁路。
 - **天空与灯光**：`skybox-day.png` 是 LDR PNG，保留 4096×2048 背景，用 1024×512 代理生成低成本环境光，关闭旧 AmbientLight 避免叠加。三盏走廊顶棚补光灯已移除。原三排矩形顶灯用于实时物体。Lightmap 通过空的显式灯光列表排除重复照明并接收 GTAO；旧完整外观使用 unlit 材质。
+- **第一人称武器**：独立深度的 HDR 视模共享世界灯光、三个 LightProbeGrid 与天空环境，移动/转身同步受光，但不叠加世界 AO。枪身使用宽高光、手臂保持哑光，弱暗部补光默认为 0.18；右侧「武器 · 场景光照」可调。保留原皮肤像素与动画，见[材质统一说明](docs/weapons/animation-and-assets.md#武器与场景的材质统一)；手臂 UV 与 32×32 共用贴图见[手臂规范](docs/weapons/arm-uv-contract.md)。
 - **AO 面板**：开关、仅 AO 预览、强度、半径、厚度、采样、分辨率、去噪与重置。默认 GTAO 为 50%/16 samples，去噪分辨率默认跟随 AO，也可独立选择；R16F 去噪结果经深度/法线引导的四点重建接入材质间接光（包含 lightMap）。修改 samples/分辨率保留现有 render targets。
 - **LUT 面板**：曝光、开关/混合强度、中性/暖/冷/柔和电影预设、对比度/饱和度/色温/色偏、`.cube` 导入与重置。导入支持 2–64³、0–1 显示域，不直接接受 Log LUT；错误文件保留上一个有效 LUT。
 

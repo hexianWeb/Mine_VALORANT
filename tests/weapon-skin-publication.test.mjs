@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
@@ -13,7 +13,18 @@ async function fixture(t) {
     assert.ok(path.basename(directory).startsWith('weapon-skin-publication-'))
     await rm(directory, { recursive: true, force: true })
   })
+  // v2's audit is historical: the real authoring files now have the new arm UVs.
+  // Start from the current normalized base and add its independently re-audited Sakura.
+  const baseDirectory = path.join(directory, 'base')
+  await cp('public/weapons/classic/v3', baseDirectory, { recursive: true })
+  const manifestPath = path.join(baseDirectory, 'manifest.json')
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
+  delete manifest.skins.sakura
+  await writeFile(manifestPath, JSON.stringify(manifest))
   const recipe = JSON.parse(await readFile('tools/weapons/skin-releases/classic-v2.json', 'utf8'))
+  recipe.baseDirectory = baseDirectory
+  recipe.assetVersion = 'v4'
+  recipe.variants[0].auditFile = 'public/weapons/classic/v3/skin-audits/sakura.json'
   return {
     directory,
     recipe: { ...recipe, outputRoot: directory, workRoot: directory },
@@ -30,7 +41,9 @@ test('a material release preserves the exact base model and current local skin w
   const manifest = JSON.parse(await readFile(path.join(report.directory, 'manifest.json'), 'utf8'))
   const skin = JSON.parse(await readFile(path.join(report.directory, manifest.skins.smite.url), 'utf8'))
   const texture = await readFile(path.join(report.directory, 'skins', skin.materials.weapon.map.url))
-  assert.equal(sha256(texture), sha256(await readFile(path.join(recipe.baseDirectory, 'textures/weapon.png'))))
+  const base = JSON.parse(await readFile(path.join(recipe.baseDirectory, 'manifest.json'), 'utf8'))
+  const baseSkin = JSON.parse(await readFile(path.join(recipe.baseDirectory, base.skins.smite.url), 'utf8'))
+  assert.equal(sha256(texture), sha256(await readFile(path.resolve(recipe.baseDirectory, 'skins', baseSkin.materials.weapon.map.url))))
   await validateWeaponPackage(report.directory)
   assert.deepEqual(await publishSkinRelease(recipe), report, 'an identical release is idempotent')
   await writeFile(path.join(report.directory, 'manifest.json'), '{}')
@@ -39,7 +52,7 @@ test('a material release preserves the exact base model and current local skin w
 
 test('a material release rejects same-version replacement and incompatible or stale authoring evidence', async (t) => {
   const { recipe, directory } = await fixture(t)
-  await assert.rejects(publishSkinRelease({ ...recipe, assetVersion: 'v1' }), /new assetVersion/)
+  await assert.rejects(publishSkinRelease({ ...recipe, assetVersion: 'v3' }), /new assetVersion/)
   const proof = JSON.parse(await readFile(recipe.variants[0].auditFile, 'utf8'))
   proof.skin.rig = 'different'
   const auditFile = path.join(directory, 'bad-audit.json')

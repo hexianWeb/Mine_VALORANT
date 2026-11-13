@@ -59,6 +59,16 @@ try {
     fs.writeFileSync(path.join(output, name), Buffer.from(image.data, 'base64'))
   }
   const ready = instanceId => until(`globalThis.__RANGE_ROOM__?.ready && __RANGE_ROOM__.inspection.player.snapshot().weapons.canAct && __RANGE_ROOM__.inspection.player.snapshot().weapons.view.renderActiveId === '${instanceId}'`)
+  const idleReady = instanceId => until(`globalThis.__RANGE_ROOM__?.ready && __RANGE_ROOM__.inspection.player.snapshot().weapons.canAct && __RANGE_ROOM__.inspection.player.snapshot().weapons.view.renderActiveId === '${instanceId}' && __RANGE_ROOM__.inspection.player.snapshot().weapons.view.action === 'idle' && __RANGE_ROOM__.inspection.player.snapshot().weapons.view.playback?.current?.weight > .999`)
+  const armCoverage = async () => {
+    await evaluate('__RANGE_ROOM__.engine.pause()')
+    try {
+      return await evaluate('__ARM_CULLING_CHECK__.measureArmCoverage(__RANGE_ROOM__)')
+    }
+    finally {
+      await evaluate('__RANGE_ROOM__.engine.resume()')
+    }
+  }
   await session.navigate(report.url)
   await send('Page.bringToFront')
   await send('Emulation.setFocusEmulationEnabled', { enabled: true })
@@ -80,6 +90,30 @@ try {
   await frames(4)
   report.lock = await state()
   assert.equal(report.lock.inventory.weapons.find(w => w.instanceId === 'pistol').magazine, 12, 'first click only locks')
+  const armTestModule = `/@fs/${path.resolve('tests/viewmodel-culling-browser-cases.js').replaceAll('\\', '/')}`
+  await evaluate(`import(${JSON.stringify(armTestModule)}).then(module => { globalThis.__ARM_CULLING_CHECK__ = module; })`)
+  await idleReady('pistol')
+  report.armSwitch = { initial: await armCoverage(), cycles: [] }
+  for (const side of ['Left', 'Right'])
+    assert.ok(report.armSwitch.initial[side].covered > 0, `Initial Classic ${side} arm has no rendered pixels`)
+  for (let index = 0; index < 2; index++) {
+    await key('Digit1', '1', 49)
+    await idleReady('rifle')
+    const rifle = await armCoverage()
+    await key('Digit2', '2', 50)
+    await idleReady('pistol')
+    const pistol = await armCoverage()
+    for (const side of ['Left', 'Right']) {
+      assert.ok(rifle[side].covered > 0, `Rifle ${side} arm disappeared in cycle ${index + 1}`)
+      assert.ok(pistol[side].covered >= Math.max(1, Math.floor(report.armSwitch.initial[side].covered / 2)), `Classic ${side} arm disappeared in cycle ${index + 1}`)
+      assert.equal(pistol[side].frustumCulled, false, `Classic ${side} arm can use stale animated bounds`)
+      assert.equal(rifle[side].frustumCulled, false, `Rifle ${side} arm can use stale animated bounds`)
+      assert.equal(pistol[side].map, report.armSwitch.initial[side].map, `Classic ${side} lost its shared atlas`)
+      assert.equal(rifle[side].map, report.armSwitch.initial[side].map, `Rifle ${side} did not share the arm atlas`)
+    }
+    report.armSwitch.cycles.push({ rifle, pistol })
+  }
+  await screenshot('classic-after-arm-switch.png')
   await key('KeyT', 't', 84)
   await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.view.action === \'inspect\'')
   await evaluate(`(() => {
@@ -288,6 +322,13 @@ try {
   report.gameOnlySkin = await state()
   assert.equal(report.gameOnlySkin.view.weapon.magazine, 11, 'switching and changing skin preserve spent ammunition without Editor')
   assert.equal(report.gameOnlySkin.view.visibleInstances, 1)
+  await evaluate(`import(${JSON.stringify(armTestModule)}).then(module => { globalThis.__ARM_CULLING_CHECK__ = module; })`)
+  await idleReady('pistol')
+  report.gameOnlyArmReturn = await armCoverage()
+  for (const side of ['Left', 'Right']) {
+    assert.ok(report.gameOnlyArmReturn[side].covered > 0, `Classic ${side} arm disappeared without Editor`)
+    assert.equal(report.gameOnlyArmReturn[side].frustumCulled, false)
+  }
   await screenshot('game-only-classic-sakura.png')
   await evaluate('__RANGE_ROOM__.engine.destroy()')
   assert.deepEqual(report.errors, [])
@@ -312,6 +353,8 @@ finally {
     passed: report.passed,
     failure: report.failure,
     errors: report.errors,
+    armSwitch: report.armSwitch,
+    gameOnlyArmReturn: report.gameOnlyArmReturn,
     report: path.join(output, 'report.json'),
   }, null, 2))
   session?.close()

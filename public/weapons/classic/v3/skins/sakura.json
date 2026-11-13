@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "classic",
+  "assetVersion": "v3",
+  "skinId": "sakura",
+  "compatibility": {
+    "rig": "2b1365cc7b1ca885d05ed908da2151e1058d822302b342357a28181cce375f75",
+    "geometryUV": "15735333a8d8ebceb2114e7e2e45506d141b78f0c6c0fed787eb49b97ecd6f41",
+    "clipSet": "f84fd84bd17e412c6390481ac74c9f49198d1d4544f0483ef9db9bf2a7a29f2b"
+  },
+  "materials": {
+    "weapon": {
+      "map": {
+        "url": "../textures/a2570df2d605a77bc3b10ff7c32a457adace12bc37402f77d14203282a7ecc45.png",
+        "sha256": "a2570df2d605a77bc3b10ff7c32a457adace12bc37402f77d14203282a7ecc45",
+        "bytes": 163011,
+        "width": 2048,
+        "height": 2048,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    }
+  }
+}

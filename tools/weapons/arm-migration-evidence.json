@@ -1,0 +1,380 @@
+[
+  {
+    "file": "skin_work_folder/classic_skin_work/Classic_AG_Animated.blend",
+    "before": "bc5b888383e0ab133e18f9661e412ee0f5f67c47bedd163ab2f54b9ee6cdba5c",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "872a121c0132ab2a37aa9c46e8dabfab2f1417dc3a7b2387b02e500ed07e48fb"
+  },
+  {
+    "file": "skin_work_folder/classic_skin_work/Classic_Blackmarket_Animated.blend",
+    "before": "99b19d5e87c43eb297540a3b17130e2392b3570268cf44488b03913714e5a540",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "701585649acd648d9f4f880d6122e524bb50d221558008f99785a94d285ce8d8"
+  },
+  {
+    "file": "skin_work_folder/classic_skin_work/Classic_BLG_Animated.blend",
+    "before": "02d8e44165f3a1748cae907b367c71bc8cb9934b1c1d85f98a1646c9e9ad0382",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "d96f5a7afe5a3b0be6f660df605eb3830547e075590498401cc3c460abb62366"
+  },
+  {
+    "file": "skin_work_folder/classic_skin_work/Classic_EDG_Animated.blend",
+    "before": "4ccdb011f3ef11fd5587eaa4faa73b9d18fcc6d7f9337d8d0355130de99c6f1a",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "b5b67563a5a0584c9fd6d755fa5913ed055de7f86f759e693c177466338388a7"
+  },
+  {
+    "file": "skin_work_folder/classic_skin_work/Classic_Sakura_Animated.blend",
+    "before": "b28e6d713b1497a0cd9dcb5273f0d1387a28132dc7771831ce227cc41abd6928",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "40f1d2abc4b9456553d960a006a854371b1e372cfb9bf919d27a0e40216d3283"
+  },
+  {
+    "file": "skin_work_folder/classic_skin_work/Classic_Smite_Animated.blend",
+    "before": "73aeb9718d22dd1015f20bb4b1fca3ca6d2351488536c010400000e1e06931d1",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "b4e115d72b20e4e9a3992474aec2816e5c4a73f5a71b171e540abb25b141c16f"
+  },
+  {
+    "file": "skin_work_folder/ghost_skin_work/Ghost_Ego_Animated.blend",
+    "before": "4893a054a23a6088d8a0b24eca35cc0dcf0ede65c41013990d15109d60cd03b8",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "6a4e4adfbed7464ad6a9140c252df18549d5985c6be5498c2ec89d2cdff439ed"
+  },
+  {
+    "file": "skin_work_folder/ghost_skin_work/Ghost_Freehand_Animated.blend",
+    "before": "8b17878ff4303b92235efa9fbf68b91d7891acef0e94b06a4465907c8caf5647",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "2355de16a613c0f046f4a3d6524cd73ad4ba3b1da4f027f46a2aa6e43a8622eb"
+  },
+  {
+    "file": "skin_work_folder/ghost_skin_work/Ghost_Recon_Animated.blend",
+    "before": "f7e1fb362d0fc69a724a13fc92d615f8200fdd1c049965fbd2bd53e51845425e",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "99ee1c5c3fac61834ae06d933076bd671b2c6c1816a34efb2e3be498eebd3764"
+  },
+  {
+    "file": "skin_work_folder/ghost_skin_work/Ghost_Spitfire_Animated.blend",
+    "before": "e73104ec4b5e51d8d99a030ad30d973ff318efa50d919ef9f8dc173e4fcf9f3b",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "7c8f3c0c538472ec87c20108d4c96b756365ce96726d95f49a706257bf8ccdb6"
+  },
+  {
+    "file": "skin_work_folder/judge_skin_work/Judge_Rush_Animated.blend",
+    "before": "e4f7bdcaff4854380756b2706e918e72bb01abe1ba6d1ca2ea9c844df51f1595",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "8a90e1ba3588f8bd0cb9f158292392b4536b2652ac30155c8aec0fea886ff858"
+  },
+  {
+    "file": "skin_work_folder/judge_skin_work/Judge_Smite_Animated.blend",
+    "before": "3a580c0dbf5a55d7bfbe63216e1e7555647d8a9c957027afa247599abf308ac5",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "8b1ee764a4981cb05267a00441669a33305ed083f034eeb871afbf007f1b6a19"
+  },
+  {
+    "file": "skin_work_folder/odin_skin_work/Odin_Smite.blend",
+    "before": "d9e1e5b1086d3b37fd4565483ff9b4b6250ac75ff7e9c97b96cb2cb587a8eb86",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "fd89e7aff9187b908dce8b83d20dfbca142d34fb10f664181f2afa2235f0927c"
+  },
+  {
+    "file": "skin_work_folder/odin_skin_work/three_odin_skins/Odin_BlastX.blend",
+    "before": "bf01536803a1c3b74ea62aa6d91ee2278228fa717575bec49d0800426ccb7ea8",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "7bb36b84aeb75acb9ad1ccb9098eb294778d29bf52f12799511a9b808b6726a6"
+  },
+  {
+    "file": "skin_work_folder/odin_skin_work/three_odin_skins/Odin_Prime.blend",
+    "before": "8441795c6a53ae922fd9e21bd0e0e37281e527f94fa79340c01f29224c79b62f",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "b181a8a9941006707ed65f1aad589181760b75bfe0ee2cf01925a163a6a88ad3"
+  },
+  {
+    "file": "skin_work_folder/odin_skin_work/three_odin_skins/Odin_Smite.blend",
+    "before": "6f6129afe99f6bf36aa2316f11a8ee7ff8d39490c180fd7a7c9d5d20f8416348",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "b6264337f242c1eb175f26a8e8a703e6c72438cef20ada34ad578b30b1fc09c0"
+  },
+  {
+    "file": "skin_work_folder/operator_skin_work/Operator_Prism_Animated.blend",
+    "before": "fa2d7cea737af8a18213759f99477767de5baa2a264e692cacaa47f8fbf1b330",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "3df878cc48c35f2d417c1695aba9ca0c4c09bf65f9ffbd712c8cacd52757392c"
+  },
+  {
+    "file": "skin_work_folder/operator_skin_work/Operator_Striker_Animated.blend",
+    "before": "8488e999e0b2a3826273a710275080aaa6e4753dce45fa54566767705b84258a",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "c594e2affe9fcabb0a254e3819b7e7d5491cb9faece034226a939b420cd205bb"
+  },
+  {
+    "file": "skin_work_folder/outlaw_skin_work/Outlaw_RGX_Animated.blend",
+    "before": "97d35fdb9001c5cd1c3c79ccb0fa5b020eb59856f98e868cc0d820f35bfd5ad6",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "b039dd758e7aa8398b926b34d89d200e8e34f4f7758543be0b14941e7928d2e8"
+  },
+  {
+    "file": "skin_work_folder/outlaw_skin_work/Outlaw_Smite_Animated.blend",
+    "before": "0a0ad24ad111ba958aaa272d2c61628eda782c5576628d8347eafb83b36d078d",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "07e92750c94e1e80decc83a8b288469b08ae5b5b65eb7557a354e586c0c28e4d"
+  },
+  {
+    "file": "skin_work_folder/phantom_skin_work/Phantom_Prism_Animated.blend",
+    "before": "871cab544c8714aab204e0e6779fa9b273f5030ed707467ef402c567d4057ba0",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "27b1fc335ab395f3550a355db95e9341da7afc83641317b2c1e1cd36ab92b98e"
+  },
+  {
+    "file": "skin_work_folder/phantom_skin_work/Phantom_Rush_Animated.blend",
+    "before": "4b9eb8a4d2d7f3cfbfa02984c38e6d65440dfa8c813b84a37d8784715f593a6f",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "582f1cf636bc10bcfc02aee15f13193df2f4e9abd9adbee8c46e418b8a5a02c5"
+  },
+  {
+    "file": "skin_work_folder/phantom_skin_work/Phantom_Smite_Animated.blend",
+    "before": "c5b33369e7639c501178a9495349f4ceb06f703407587e9ac3849d3cc55fa82a",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "7b21d39ea89da9b226cd570924fe97c8772daa45e15a65c5cadaa6ad41aa3561"
+  },
+  {
+    "file": "skin_work_folder/phantom_skin_work/Phantom_Tactiplay_Animated.blend",
+    "before": "a41e65d997e2b668502d86bb9263b7f04e3859da8685ad47e797ff41c5c650fd",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "4d393ff401da9f818ee2a527464d794c971ee2a438f29b758f383710f420e76d"
+  },
+  {
+    "file": "skin_work_folder/sheriff_skin_work/Sheriff_Convex_Animated.blend",
+    "before": "020a004f17da19257f28ce71000cf34e724256bd85908683e7c6f9d919897517",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "d71e6cc2b8f9280631c15ce132c8bbab091b9c6c31e06c2f5a5ba2490c5d234d"
+  },
+  {
+    "file": "skin_work_folder/sheriff_skin_work/Sheriff_Sakura_Animated.blend",
+    "before": "7468ce9a506fe0103196658d748d39f3da4eaa8d02f4671076e6cbededd9ea3f",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "547a361e45872dfa883d99cf545e66417c9b01ac9d5b5ca55b4f518706a1148f"
+  },
+  {
+    "file": "skin_work_folder/sheriff_skin_work/Sheriff_Smite_Animated.blend",
+    "before": "6a8a22ea0d4fe8ad96b79fa6b15f966de3833370e2584e5f86075d45ef9b8930",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "af5e9e848d204244c695ad71d96fa01605e4f1c7428bcac8e96c98cb569131b3"
+  },
+  {
+    "file": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/Vandal_EGO_Edge_Fixed.blend",
+    "before": "64b284a6f8311139bb91ff0e8280e4edd2e0a617e50c684444bbe030bc227e0f",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "3c89f6434830e4dbb3603f5b4e996a00ae4ae2b12218f495b63206f47ce2ae81"
+  },
+  {
+    "file": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/Vandal_Original_Edge_Fixed.blend",
+    "before": "66a1fc7b654d05c58ae0c39b258b2617b2880dc3ec05636321b75028177cc6af",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "76eff015ffee89c42156039ebe26cbc835b0481c74d13dd90b4e20b68f493b63"
+  },
+  {
+    "file": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/Vandal_Royal_Gold_Edge_Fixed.blend",
+    "before": "3daa2e0ab0a2a1b038eaa9ba5ac85327f8ed9d08af32d53b25654ef9a7eb3917",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "91854eefb1c26b294af36c89b71ac92afb1a417c843baed5af26199b40c8d14a"
+  },
+  {
+    "file": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/Vandal_Sakura_Edge_Fixed.blend",
+    "before": "00ad5f1b8a6fa55c7ff075900a1847c1f62d4f16f94b8703234cb65a91090bc6",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "d31959bacb9aa1717d69c6f363f121f90e7beb177d535a1f777038c8f54411a2"
+  },
+  {
+    "file": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/Vandal_Smite_Edge_Fixed.blend",
+    "before": "1f655a4dc6a7979a11dfbe11becbabdbbadefef0faf134d9b603d32259e52d5e",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "4642ec21436c063f7009474bf442be747535d2d216cd12acb3fea059891352bc"
+  },
+  {
+    "file": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/Vandal_Wood_Metal_Edge_Fixed.blend",
+    "before": "7f6c5817919f5b459bb6b3d8128147dc34577ba04fdc884ca124314445f684ea",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "5e20ddcea856be465806f65f51460f71f448c4dacab144392e3974c8f7354c15"
+  },
+  {
+    "file": "skin_work_folder/vandal_skin_work/three_vandals/Vandal_EGO.blend",
+    "before": "e1b737851971179c8b37d92847effba20db741d43235736029eee6bdea91a23a",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "62c87b29464a4d088386813d55bf4d9f913b50c3f8e53cbe7bc87d3356e20897"
+  },
+  {
+    "file": "skin_work_folder/vandal_skin_work/three_vandals/Vandal_EGO_Magazine_Fixed.blend",
+    "before": "0e0a00c17d650af0d9e8d485268a7e736af85f5610b4e6f2993cfa91f037cdd4",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "fb2327cd9fa42381ee0a6339b4ac53c24440f7ba5188c856f755398b75868ef4"
+  },
+  {
+    "file": "skin_work_folder/vandal_skin_work/three_vandals/Vandal_Original.blend",
+    "before": "7b04b53995df7c9c7e3f727671b80f8d50f775191172e643ae0472e3b1fe3f4c",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "ae8303fe195bb4c7352e8c80e2ea6c14dace3524b0feb541a63adc857883d851"
+  },
+  {
+    "file": "skin_work_folder/vandal_skin_work/three_vandals/Vandal_Royal_Gold.blend",
+    "before": "19e81de89c118b92738183f4adf79192e0b3c9f2bd28ef6526cd7902e2fef7c0",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "b5114b24b9b125cf832c7dbc78614b939262a301f1ce50c510b984625eba5160"
+  },
+  {
+    "file": "skin_work_folder/vandal_skin_work/three_vandals/Vandal_Sakura.blend",
+    "before": "08f958fdde42b0dde86bb90929596cbdc96f2f30fbc3d2055446f9a28ecafb35",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "3bc78b1f846f5c2ae4741b0ab208529f75c6809beed8145da6658fc1b2398ed4"
+  },
+  {
+    "file": "skin_work_folder/vandal_skin_work/three_vandals/Vandal_Smite_2.blend",
+    "before": "fb620ad4d655eea55f6f24cfd0babefc8f80a275d54b960e44db54870fe827b1",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "0fd368d659fd312bfea0cb8a6e859abece3032a4c17bab59320a4e574435d749"
+  },
+  {
+    "file": "skin_work_folder/vandal_skin_work/three_vandals/Vandal_Wood_Metal.blend",
+    "before": "3b733644f394dc6ea59678149a5408faf0e26ab340ee03a262154eec85659957",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "5382a990c0da14983847cc51f50aab72a211fab0f6d2600c178a985774a38fdb"
+  },
+  {
+    "file": "skin_work_folder/vandal_skin_work/Vandal_EGO.blend",
+    "before": "cfb538e3a91aef19341cf00ec3ee8d1f42f6d22c28e127a30511eba26f50edb0",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "051ffa542258d354034abfb5dadae994686f31c2be6ec038b27234b79d2970b0"
+  },
+  {
+    "file": "skin_work_folder/vandal_skin_work/Vandal_Royal_Gold.blend",
+    "before": "cfd8eb376dc96c0142a43889f9df3d57c21d3107aa9f509f3430502cc404bfc5",
+    "samples": {
+      "Left": 248,
+      "Right": 248
+    },
+    "after": "38f144e03c0686cc7fb1748062b01b85eab65234e0165613cc0038387dbf67ee"
+  }
+]

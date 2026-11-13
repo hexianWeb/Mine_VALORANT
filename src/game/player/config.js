@@ -2,7 +2,7 @@
 export const playerConfig = Object.freeze({
   width: 0.6,
   standHeight: 1.8,
-  standEye: 1.62,
+  standEye: 1.7,
   crouchHeight: 1.5,
   crouchEye: 1.27,
   runSpeed: 6.75,

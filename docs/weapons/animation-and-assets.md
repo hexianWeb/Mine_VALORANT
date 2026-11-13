@@ -7,18 +7,22 @@
 | 发布包 | 制作源 | 片段 / 轨道 / STEP 轨道 | 蒙皮网格 |
 | --- | --- | --- | --- |
 | `public/weapons/classic/v1/` | `Classic_Smite_Animated.blend` | 31 / 1116 / 1 | 4 |
-| `public/weapons/classic/v2/`（当前） | 复用 v1 模型，增加已核验的 Sakura | 31 / 1116 / 1 | 4 |
+| `public/weapons/classic/v2/` | 复用 v1 模型，增加已核验的 Sakura | 31 / 1116 / 1 | 4 |
+| `public/weapons/classic/v3/`（当前） | v2 模型统一手臂 UV 与 32×32 贴图 | 31 / 1116 / 1 | 4 |
 | `public/weapons/phantom/v1/` | `Phantom_Tactiplay_Animated.blend` | 30 / 1620 / 8 | 5 |
+| `public/weapons/phantom/v2/`（当前） | v1 模型统一手臂 UV 与 32×32 贴图 | 30 / 1620 / 8 | 5 |
 
 发布器使用 `tools/weapons/recipes.mjs` 显式指定源文件、场景、网格、动画对象、皮肤 PNG、角色与挂点。后台 Blender 打开当前制作源导出，不保存源 `.blend`；源 SHA256 前后必须一致。原始资源包提供动作元数据和对照依据，不用旧 GLB 替代当前美术源。
 
-每包包含 model.glb、manifest.json、skins 下的皮肤定义，以及 source-audit.json、validation.json。Classic 当前的 v2 使用内容哈希 PNG，包含 smite / sakura；它的 GLB 与 v1 字节相同，增加的 skin-audits 保存 Sakura 制作源兼容证据。既有 v1 的本地 weapon.png 替换予以保留，并按实际文件修正了尺寸与哈希。manifest 描述模型哈希、骨架/几何 UV/动作集兼容签名、语义动作、材质角色、挂点与坐标约定；运行时完全不访问 skin_work_folder。
+每包包含 model.glb、manifest.json、skins 下的皮肤定义，以及 source-audit.json、validation.json。Classic v2 使用内容哈希 PNG，包含 smite / sakura；它的 GLB 与 v1 字节相同。当前 Classic v3 和 Phantom v2 在旧模型上只调整手臂 UV 和内嵌贴图，保留骨架、动画及枪皮肤像素；Classic 的 Sakura 已按新制作源重新审计。既有 v1 的本地 weapon.png 替换予以保留，并按实际文件修正了尺寸与哈希。manifest 描述模型哈希、骨架/几何 UV/动作集兼容签名、语义动作、材质角色、挂点与坐标约定；运行时完全不访问 skin_work_folder。
 
 导出保留 camera、views 等辅助动画，以及 STEP 缩放/可见性轨道。GLB 统一使用 Y-up、-Z forward、米制；`manifest.view.mountOffset` 写到 visualRoot 外的 anchor，不再额外缩放。武器、左臂、右臂材质角色分开，皮肤只替换 weapon 角色。
 
 发布和复核命令见 [tools 说明](../../tools/README.md)。`node tools/weapons/publish.mjs --verify-only` 可独立校验已有包；重新导出需要本地 Blender 和 glTF Validator。既有版本要求所有文件字节一致，否则拒绝覆盖；更改内容应升级配方中的 assetVersion，同时更新 WeaponDefinition。
 
-兼容皮肤发布使用 `node tools/weapons/publish-skins.mjs tools/weapons/skin-releases/classic-v2.json`。它校验原包和只读 Blender 审计，复用原 GLB，保留当前本地默认外观，向新版本发布额外皮肤；重复发布必须字节一致。需要重新审计时运行 tools 中的 `audit_skin_blender.py`，不保存 `.blend`。官方 glTF Validator 已作为开发依赖安装，不再要求另一台机器上的模块路径。
+兼容皮肤发布使用 `tools/weapons/publish-skins.mjs`：它校验原包和只读 Blender 审计，复用原 GLB，保留当前默认外观，向新版本发布额外皮肤；重复发布必须字节一致。历史 `classic-v2.json` 的审计绑定旧制作源，手臂统一后不能直接用当前 `.blend` 重跑；应以新版本及新审计为基础发布。需要重新审计时运行 tools 中的 `audit_skin_blender.py`，不保存 `.blend`。官方 glTF Validator 已作为开发依赖安装，不再要求另一台机器上的模块路径。
+
+九枪制作源、左右手对应 UV、32×32 标准贴图和新包的发布依据见[手臂 UV 与贴图规范](arm-uv-contract.md)。导出前和发布验证都会检查契约；游戏内兼容武器共用同一个手臂纹理对象。
 
 ## 加载与实例所有权
 
@@ -26,7 +30,7 @@
 
 ```js
 const assets = new WeaponAssets({ resources, scopeId: 'range-weapons', signal: levelAbortSignal })
-const handle = await assets.load({ weaponId: 'classic', assetVersion: 'v2', skinId: 'smite' })
+const handle = await assets.load({ weaponId: 'classic', assetVersion: 'v3', skinId: 'smite' })
 // 到 motion 阶段确认票据有效且 staged 槽可用后，再同步实例化。
 const visual = assets.instantiate(handle)
 visual.player.play('idle')
@@ -79,9 +83,19 @@ RenderSystem 拥有稳定的 `viewmodel` layer，包括独立 Scene、Perspectiv
 
 视模使用独立深度、透明背景和 HDR 颜色目标，相机 near/far 为 0.005/10 米，基础垂直 FOV 为 70°。窗口 resize 更新宽高比，ADS 的 FOV 来自同一 P 的 AimState 采样。世界碰撞和深度不会把贴墙枪模切掉；命中射线仍在固定玩法中独立裁定。
 
-管线顺序为：世界 HDR（含世界 AO）+ 视模 HDR → 预乘 alpha 合成 → 共同 tone mapping → SMAA → sRGB → 显示 LUT。视模使用独立环境光，不套用世界 AO，也不参与世界阴影或探针捕获。pass 在更新后恢复 renderer 的清屏、目标、MRT 等状态；管线重建释放旧 pass，视觉对象继续归游戏持有。
+视模实例的 `SkinnedMesh` 禁用 CPU 视锥剔除：Three.js 会缓存首次绘制时的蒙皮包围球，而掏枪或切枪初始姿态可能在镜头外，后续动画不会自动重算该球，导致回到待机后手臂或枪体被错误剔除。限制只作用于第一人称实例，不修改共享模板或世界物体；GPU 仍按相机裁剪，动画、UV 和贴图无需改动。
+
+管线顺序为：世界 HDR（含世界 AO）+ 视模 HDR → 预乘 alpha 合成 → 共同 tone mapping → SMAA → sRGB → 显示 LUT。视模共享可见的世界灯光、LightProbeGrid 和天空环境，不套用世界 AO，也不参与世界阴影或探针捕获。pass 在更新后恢复 renderer 的清屏、目标、MRT 等状态；管线重建释放旧 pass，视觉对象继续归游戏持有。
 
 进入 Editor 同步隐藏视模并撤销旧事件；保留对象按逻辑 activeId 选择，返回玩家后用新票据重新掏枪。暂停冻结表现游标，重生清除旧队列和实例。HUD 的枪名、弹药和命中反馈也读取已展示事实，不能领先模型交接。
+
+### 武器与场景的材质统一
+
+原视模只有强度 3 的白色 AmbientLight，导入材质的 roughness/metalness 全部为 1/0；枪面缺少方向性明暗和反射，移动或转身也不会改变受光。现在 ViewModelPass 将视模 Scene 与独立相机同步到世界相机的完整世界变换，游戏挂点仍保留原有局部坐标。因而顶灯方向、环境反射及三个探针体积的世界坐标采样都与房间一致，不改变持枪位置、ADS FOV 或独立深度。
+
+世界灯光通过独立 Lighting/LightsNode 借用，不重设 parent，不复制或释放世界灯光、探针 atlas 和天空纹理；灯光可见性、layers 和移除会在下一次绘制同步。保留 `viewmodelLightIntensity` 作为弱暗部补光，默认从 3 降到 **0.18**，可在右侧「武器 · 场景光照」中调节和重置。
+
+`assets/weapon-materials.js` 的 `weaponMaterialProfiles` 按 manifest 的 weapon / scope / armsLeft / armsRight 角色，集中配置实例副本的 roughness 与 metalness，便于继续做美术校准。枪身保留宽高光，袖子保持哑光；换肤仍只换 map，不重建或重置材质响应。材质参数本身不改源模型或 PNG；手臂统一后的采样与纹理所有权另见[手臂规范](arm-uv-contract.md)。当前仍是角色级参数，没有凭空生成法线或逐部件金属/粗糙度贴图。测试核对配置是否正确应用及换肤后是否保留，不锁死后续美术调参的具体数值。
 
 ## 浏览器预览与验证
 
@@ -89,13 +103,16 @@ RenderSystem 拥有稳定的 `viewmodel` layer，包括独立 Scene、Perspectiv
 npm run dev
 node tools/check-weapons-browser.mjs http://localhost:5173/weapon-preview.html
 node tools/check-weapon-gameplay-browser.mjs http://localhost:5173/
+node tools/check-weapon-lighting-browser.mjs http://localhost:5173/
 ```
 
 浏览器手动打开 `/weapon-preview.html` 可选择枪型和待机、掏枪、开火、两种换弹、检视。该页面是独立资源验收工具，没有修改练枪房启动流程。检查脚本使用真实 Chrome、WebGPU、像素解码和 ResourceManager；验证所有已映射角色的多个采样点、双实例骨架/材质隔离、实例释放后另一实例仍能渲染、作用域关闭后的缓存清理，并输出四张截图和 report.json。输出位置默认 `D:/opencode-temp/opencode/weapons-browser`，可用 WEAPON_TEST_OUTPUT 修改。
 
 Node 专项测试为 animation.test.mjs、weapon-assets.test.mjs、weapon-publication.test.mjs。发布还对照每枪九组 Blender/Three.js 变形包围盒，最大误差分别约 3.31e-7、4.86e-7 米；两包 glTF Validator 均为零 error / 零 warning。连续 500 次射击重播与 300 个 60 Hz 动画步覆盖混合层退场和浮点边界回归。
 
-主游戏检查使用 `check-weapon-gameplay-browser.mjs`，与预览检查分开运行；输出默认在 `D:/opencode-temp/opencode/weapon-gameplay-browser`，可用 `WEAPON_GAME_TEST_OUTPUT` 修改。其结果以当次 report.json 为准；该工具覆盖输入、装备事件、固定瞄准与视模接线。声音实际解码、输出波形和生命周期另用 `check-weapon-audio-browser.mjs` 验证。
+主游戏检查使用 `check-weapon-gameplay-browser.mjs`，与预览检查分开运行；输出默认在 `D:/opencode-temp/opencode/weapon-gameplay-browser`，可用 `WEAPON_GAME_TEST_OUTPUT` 修改。其结果以当次 report.json 为准；该工具覆盖输入、装备事件、固定瞄准与视模接线，并隔离左右手、读取视模 HDR alpha，检查 Classic → Phantom → Classic 重复切换后的实际手臂像素和共享贴图。声音实际解码、输出波形和生命周期另用 `check-weapon-audio-browser.mjs` 验证。
+
+`check-weapon-lighting-browser.mjs` 使用启用探针的主页面及真实武器 HDR 读回，分别验证直接光、探针、环境反射的贡献、移动/转向的受光变化、世界 AO 隔离和轮廓不漂移；另外保存 Smite / Sakura / Tactiplay 截图，并核对换肤后材质参数。默认输出 `D:/opencode-temp/opencode/weapon-lighting-browser`，可用 `WEAPON_LIGHTING_TEST_OUTPUT` 修改；需要开发服务器加载 GPU 测试模块。独立 `/weapon-preview.html` 的展示灯光与 ACES 仅用于资产验收，不作为主游戏材质校准的参考。
 
 ## 后续阶段的本地输入缺口
 

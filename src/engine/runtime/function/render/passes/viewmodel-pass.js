@@ -1,8 +1,41 @@
 import { context, vec4 } from 'three/tsl'
 import * as THREE from 'three/webgpu'
 
+/** Add borrowed world lights without reparenting them or duplicating probe atlases. */
+class ViewModelLightsNode extends THREE.LightsNode {
+  constructor(getWorldLights) {
+    super()
+    this.getWorldLights = getWorldLights
+    this.borrowed = new WeakSet()
+  }
+
+  setLights(lights) {
+    // Lighting.beginRender/finishRender restore earlier arrays. Strip previously borrowed
+    // entries first, so removed/hidden world lights cannot accumulate in that cache.
+    const world = this.getWorldLights()
+    for (const light of world) this.borrowed.add(light)
+    const local = lights.filter(light => !this.borrowed.has(light))
+    const combined = new Set([
+      ...local,
+      ...world,
+    ])
+    return super.setLights(Array.from(combined))
+  }
+}
+
+class ViewModelLighting extends THREE.Lighting {
+  constructor(getWorldLights) {
+    super()
+    this.getWorldLights = getWorldLights
+  }
+
+  createNode() {
+    return new ViewModelLightsNode(this.getWorldLights)
+  }
+}
+
 /** Render-owned stable layer. Game owns and disposes the visual roots attached to scene. */
-export function createViewModelLayer({ aspect = 1, lightIntensity = 3 } = {}) {
+export function createViewModelLayer({ aspect = 1, lightIntensity = 0.18 } = {}) {
   if (!Number.isFinite(aspect) || aspect <= 0)
     throw new RangeError('[Viewmodel] aspect must be positive and finite')
   if (!Number.isFinite(lightIntensity) || lightIntensity < 0)
@@ -11,7 +44,7 @@ export function createViewModelLayer({ aspect = 1, lightIntensity = 3 } = {}) {
   scene.name = 'Viewmodel'
   const camera = new THREE.PerspectiveCamera(70, aspect, 0.005, 10)
   const light = new THREE.AmbientLight(0xFFFFFF, lightIntensity)
-  light.name = 'Viewmodel ambient'
+  light.name = 'Viewmodel readability fill'
   scene.add(light)
   scene.visible = false
   let enabled = false
@@ -58,6 +91,7 @@ export function createViewModelLayer({ aspect = 1, lightIntensity = 3 } = {}) {
       enabled = false
       scene.visible = false
       scene.clear()
+      scene.environment = null // Borrowed from the world; never dispose it here.
       light.dispose()
     },
   })
@@ -73,15 +107,42 @@ export function compositeViewModel(world, view) {
 
 /** Independent depth and transparent HDR. Ordinary transparent blending yields premultiplied pixels. */
 export class ViewModelPass extends THREE.PassNode {
-  constructor(layer) {
+  constructor(layer, worldScene = null, worldCamera = null) {
     super(THREE.PassNode.COLOR, layer.scene, layer.camera, { samples: 0, depthBuffer: true })
     this.name = 'Viewmodel HDR color'
     this.layer = layer
-    this.lighting = new THREE.Lighting()
+    this.worldScene = worldScene
+    this.worldCamera = worldCamera
+    this.worldLights = []
+    this.lighting = new ViewModelLighting(() => this.worldLights)
     this.contextNode = context({
       getAO: () => null,
     })
     this.disposed = false
+  }
+
+  syncWorldLighting() {
+    if (!this.worldScene || !this.worldCamera)
+      return
+    this.worldCamera.updateWorldMatrix(true, false)
+    // Keep the game-owned roots camera-local, but render their actual world-space positions
+    // and normals. Probe bounds, light directions and environment reflections then agree
+    // with the room, while the view camera retains its independent FOV and depth range.
+    this.worldCamera.matrixWorld.decompose(this.scene.position, this.scene.quaternion, this.scene.scale)
+    this.camera.position.copy(this.scene.position)
+    this.camera.quaternion.copy(this.scene.quaternion)
+    this.camera.scale.copy(this.scene.scale)
+    this.scene.environment = this.worldScene.environment
+    this.scene.environmentIntensity = this.worldScene.environmentIntensity
+    this.scene.environmentRotation.copy(this.worldScene.environmentRotation)
+    this.worldLights.length = 0
+    this.worldScene.traverseVisible((object) => {
+      if (!object.isLight || !this.worldCamera.layers.test(object.layers))
+        return
+      object.updateWorldMatrix(true, false)
+      object.target?.updateWorldMatrix(true, false)
+      this.worldLights.push(object)
+    })
   }
 
   updateBefore(frame) {
@@ -113,6 +174,7 @@ export class ViewModelPass extends THREE.PassNode {
     }
     const cameraMask = this.camera.layers.mask
     try {
+      this.syncWorldLighting()
       renderer.setClearColor(0x000000, 0)
       this.scene.background = null
       this.scene.backgroundNode = null
@@ -134,6 +196,7 @@ export class ViewModelPass extends THREE.PassNode {
       return
     this.disposed = true
     this.lighting.dispose()
+    this.worldLights.length = 0
     super.dispose()
   }
 }

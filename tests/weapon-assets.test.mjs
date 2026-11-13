@@ -4,6 +4,7 @@ import * as THREE from 'three/webgpu'
 import { loaders } from '../src/engine/runtime/resource/loader/loaders.js'
 import { ResourceManager } from '../src/engine/runtime/resource/resource-manager.js'
 import { WeaponAssets } from '../src/game/weapons/assets/weapon-assets.js'
+import { weaponMaterialProfiles } from '../src/game/weapons/assets/weapon-materials.js'
 
 const request = { weaponId: 'classic', assetVersion: 'v1', skinId: 'smite' }
 const compatibility = { rig: 'rig-v1', geometryUV: 'uv-v1', clipSet: 'clips-v1' }
@@ -210,6 +211,25 @@ test('aborting one request rejects it promptly without cancelling another waiter
   assert.equal(f.calls.filter(entry => entry.type === 'gltf').length, 1)
 })
 
+test('runtime material roles distinguish painted weapons from matte arms without changing source assets', async (t) => {
+  const f = setup(t)
+  const handle = await f.assets.load(request)
+  const instance = f.assets.instantiate(handle)
+  const weapon = instance.root.getObjectByName('WeaponMesh').material
+  const arms = instance.root.getObjectByName('Arms').material
+  assert.equal(weapon.roughness, weaponMaterialProfiles.weapon.roughness)
+  assert.equal(weapon.metalness, weaponMaterialProfiles.weapon.metalness)
+  assert.equal(arms.roughness, weaponMaterialProfiles.armsLeft.roughness)
+  assert.equal(arms.metalness, weaponMaterialProfiles.armsLeft.metalness)
+  assert.equal(f.data.weaponMaterial.roughness, 1)
+  assert.equal(f.data.weaponMaterial.metalness, 0)
+  assert.equal(f.data.armsMaterial.roughness, 1)
+  assert.equal(weapon.alphaTest, f.data.weaponMaterial.alphaTest)
+  assert.equal(weapon.side, f.data.weaponMaterial.side)
+  assert.deepEqual(weapon.color.toArray(), f.data.weaponMaterial.color.toArray())
+  assert.equal(weapon.map, f.textures[0])
+})
+
 test('a compatible skin swap is atomic and preserves the exact player, skeleton, materials and other instances', async (t) => {
   const data = fixture()
   data.manifest.skins.sakura = { url: 'skins/sakura.json' }
@@ -242,6 +262,9 @@ test('a compatible skin swap is atomic and preserves the exact player, skeleton,
   assert.equal(mesh.skeleton, skeleton)
   assert.equal(a.root.getObjectByName('Arms').material, arms)
   assert.equal(arms.map, null)
+  assert.equal(material.roughness, weaponMaterialProfiles.weapon.roughness)
+  assert.equal(material.metalness, weaponMaterialProfiles.weapon.metalness)
+  assert.equal(arms.roughness, weaponMaterialProfiles.armsLeft.roughness)
   assert.deepEqual(a.player.snapshot(), playback)
   assert.notEqual(mesh.material.map, b.root.getObjectByName('WeaponMesh').material.map)
   assert.equal(b.skinId, 'smite')
