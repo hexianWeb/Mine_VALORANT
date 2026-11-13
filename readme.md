@@ -8,7 +8,7 @@
 
 最新 [Lightmap 重烘与接入](docs/lighting/lightmap-v1.md) 覆盖“预烘焙”集合的 12 个对象、19 个分区；`Stone_Slab.001` 与 `wall` 使用单独的紧凑补烘图。新资源在 `public/model/range-room-lightmap.glb` 与 `public/lighting/range-room-lightmap/`。右上角 **切回原版** 或 `?lighting=appearance` 可回退；`?lighting=lightmap` 使用新方案。
 
-[室内 LightProbeGrid](docs/lighting/light-probes.md) 使用 Blender `LightProbeVolumes` 的三个 Box，共 282 个预计算探针，为实时物体和漂浮茶壶提供局部间接光。右侧 Panel 可分别调节探针、天空漫反射/镜面反射、顶灯，并配置捕获与查看边界。`?probes=0` 跳过探针模块。
+[室内 LightProbeGrid](docs/lighting/light-probes.md) 使用 Blender `LightProbeVolumes` 的三个 Box，共 282 个预计算探针，为实时物体和漂浮茶壶提供局部漫反射间接光；它不是枪械金属所需的室内镜面反射探针。右侧 Panel 可分别调节探针、已接入材质的天空漫反射/镜面反射、顶灯，并配置捕获与查看边界。`?probes=0` 跳过探针模块。
 
 [超平坦外部地面](docs/lighting/superflat-ground.md) 按模型实际包围盒自动生成石英砖基底，外围延伸原版平原草皮。原版 16×16 纹理按 1 m/格重复，结合像素锐度、mip 与各向异性过滤；飞出练枪房即可观察。
 
@@ -81,7 +81,8 @@ EXR 解码和 alpha 加权 mip 生成在独立 Worker 中完成，通过 transfe
 - **烘焙 atlas**：线性放大、三线性缩小、最高 16× 各向异性（受设备上限限制）；仅生成 0–2 级 mip，透明空白不参与颜色平均。Lightmap 重烘复用原 BakeUV，并修正两处因底色材质更换而错误指向其他图集的绑定。WebGPU 各向异性要求三种过滤均为 linear；Lightmap 底色通过 shader 重建近处像素感，实时最近邻贴图使用 anisotropy 1。
 - **显示**：`ReinhardToneMapping`，`toneMappingExposure = 1.2`，不是 1.2 EV。顺序为线性 tone mapping → SMAA → sRGB → LUT；中性默认 LUT 为 33³ 半浮点 identity，identity 或关闭 LUT 时走真正的 shader 旁路。
 - **天空与灯光**：`skybox-day.png` 是 LDR PNG，保留 4096×2048 背景，用 1024×512 代理生成低成本环境光，关闭旧 AmbientLight 避免叠加。三盏走廊顶棚补光灯已移除。原三排矩形顶灯用于实时物体。Lightmap 通过空的显式灯光列表排除重复照明并接收 GTAO；旧完整外观使用 unlit 材质。
-- **第一人称武器**：独立深度的 HDR 视模共享世界灯光、三个 LightProbeGrid 与天空环境，移动/转身同步受光，但不叠加世界 AO。枪身使用宽高光、手臂保持哑光，弱暗部补光默认为 0.18；右侧「武器 · 场景光照」可调。保留原皮肤像素与动画，见[材质统一说明](docs/weapons/animation-and-assets.md#武器与场景的材质统一)；手臂 UV 与 32×32 共用贴图见[手臂规范](docs/weapons/arm-uv-contract.md)。
+- **第一人称武器（现状）**：独立深度的 HDR 视模共享世界灯光、三个 LightProbeGrid 与天空环境，移动/转身同步受光，但不叠加世界 AO。当前采用角色级材质参数，手臂保持哑光；弱暗部补光默认为 0.18，可在右侧「武器 · 场景光照」调节。加载与换肤仍保留[待迁移的旧材质兼容状态](docs/weapons/animation-and-assets.md#旧材质兼容状态)，不作为新皮肤的制作要求。手臂 UV 与 32×32 共用贴图见[手臂规范](docs/weapons/arm-uv-contract.md)。
+- **武器材质（已确认，待实施）**：新方向为平直着色、枪械整体金属质感、不依赖自发光；采用游戏内离线 HDR Cubemap 捕获＋PMREM 的静态局部反射探针，先做主房间单探针，再评估盒投影和走廊过渡。方案、阶段与验收见[材质路线图](docs/weapons/material-quality-roadmap.md)，不能把现有天空环境或漫反射探针视为已完成新版室内反射。
 - **AO 面板**：开关、仅 AO 预览、强度、半径、厚度、采样、分辨率、去噪与重置。默认 GTAO 为 50%/16 samples，去噪分辨率默认跟随 AO，也可独立选择；R16F 去噪结果经深度/法线引导的四点重建接入材质间接光（包含 lightMap）。修改 samples/分辨率保留现有 render targets。
 - **LUT 面板**：曝光、开关/混合强度、中性/暖/冷/柔和电影预设、对比度/饱和度/色温/色偏、`.cube` 导入与重置。导入支持 2–64³、0–1 显示域，不直接接受 Log LUT；错误文件保留上一个有效 LUT。
 

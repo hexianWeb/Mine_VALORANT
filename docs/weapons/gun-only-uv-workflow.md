@@ -130,6 +130,8 @@ assets: {
 
 继续通过 WeaponAssets／ResourceManager 加载，不另建 GLTFLoader，不改射速、弹药、后坐力、动作时钟或持枪位置。颜色图为 sRGB、最近邻、无 mipmap、`flipY=false`。
 
+本工作流负责几何／图集发布，不把额外发光图作为皮肤制作要求。平直着色、全金属、不依赖自发光和静态局部反射的后续工作以[材质路线图](material-quality-roadmap.md)为准；当前加载器的[旧材质兼容状态](animation-and-assets.md#旧材质兼容状态)仍待迁移。
+
 ```powershell
 npm test
 npm run build
@@ -157,10 +159,10 @@ node tools/check-weapon-lighting-browser.mjs http://localhost:5173/
 
 ## 11. 本次执行记录（2026-11-13）
 
-- 执行结束时完整单元测试 **386／386**（含换肤发光与共享贴图测试），本任务修改的 JavaScript 通过 ESLint，生产构建通过（仅已有的大 bundle 提示）。
+- 执行结束时完整单元测试 **386／386**（含当时的旧材质兼容与共享贴图测试），本任务修改的 JavaScript 通过 ESLint，生产构建通过（仅已有的大 bundle 提示）。
 - glTF Validator **0 error／0 warning**；九组动作采样最大误差约 `3.31e-7` 米。
 - 从两份制作源重新发布，整个 v4 包与首次发布逐字节一致。
 - 真实 Chrome／WebGPU 的资源预览、玩法和光照检查全部通过；网络请求确认 v4，贴图 336×336，换肤不替换骨架、动作或手臂。
 - 本机报告与截图：`D:/opencode-temp/opencode/classic-v4/` 下的 `preview/`、`gameplay/`、`lighting/`。
 
-这些是本次执行结果；后续发布新版本仍须重跑检查，不能将历史通过记录当作新资源的验收。
+这些是本次执行结果；后续发布新版本仍须重跑检查，不能将历史通过记录当作新资源或尚未实施的新版材质方案的验收。

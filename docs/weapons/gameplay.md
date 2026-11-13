@@ -142,7 +142,7 @@ HUD 由 `app/weapon-hud.js` 读取已展示事实，不能用最新背包数值�
 
 PrepareWeapon 携带 `{ epoch, requestId, instanceId, modelVersion, skinRevision }`。skinRevision 对应当前 epoch 中该实例已提交的外观版本。适配者通过快照查 definitionId / skinId，完整准备后把原票据作为 prepared 入队；异步回调不能自行装备或改变背包。
 
-PrepareSkin 另带 ticket.skinId，异步阶段只预热兼容纹理；motion 排入 skinPrepared，下一固定步提交 SkinChanged。表现游标到达该事实时同步替换该实例的武器材质 map；节点、Skeleton、材质对象、Mixer、playbackId、动作时间、弹药和冷却不重置，也不触碰角色手臂。skinRequests 快照给出 loading/prepared/deferred/failed 与具体错误；视模的 skinError 仅显示当前实例的失败。
+PrepareSkin 另带 ticket.skinId，异步阶段只预热兼容纹理；motion 排入 skinPrepared，下一固定步提交 SkinChanged。表现游标到达该事实时同步替换该实例的兼容皮肤材质绑定；节点、Skeleton、材质对象、Mixer、playbackId、动作时间、弹药和冷却不重置，也不触碰角色手臂。当前绑定中的[旧材质兼容状态](animation-and-assets.md#旧材质兼容状态)与待实施的[新版材质路线图](material-quality-roadmap.md)分开说明，材质迁移不改变这套玩法提交时序。skinRequests 快照给出 loading/prepared/deferred/failed 与具体错误；视模的 skinError 仅显示当前实例的失败。
 
 同实例只保留最新换肤意图；旧回调不能覆盖新选择，已经接受的 SkinChanged 所需句柄则保留到展示完成。未锁定装备准备在换肤提交后以新 revision 重建；切换事务参与者的换肤延后到解锁，不替换 reserved staged。Editor 交接失效未提交请求，但保留已提交皮肤；若逻辑皮肤领先画面，返回时将保留视模绑定到已提交外观。重生按初始 loadout 恢复皮肤与弹药。
 

@@ -13,7 +13,7 @@
 | [function 层结构](superpowers/specs/2026-11-11-function-layer-layout.md) | `component / level / object / world` 与 `function/global` 的目录迁移 |
 | [CameraComponent](superpowers/specs/2026-11-11-camera-component.md) | 相机组件提取时的记录；当前玩家固定 AimState 历史接线以运行时架构为准 |
 | [武器玩法模块](weapons/gameplay.md) | Classic/Phantom 游戏闭环、控件、装备事务、固定瞄准、延迟 HUD 与生命周期 |
-| [武器发布与动画播放](weapons/animation-and-assets.md) | 发布包、AnimationPlayer、WeaponAssets、独立视模 pass、预览与主游戏验收 |
+| [武器发布与动画播放](weapons/animation-and-assets.md) | 发布包、AnimationPlayer、WeaponAssets、独立视模 pass、现行旧材质兼容边界与验收 |
 | [枪械图集与发布工作流](weapons/gun-only-uv-workflow.md) | Classic 精简网格、336 图集与 UV、动作／手臂兼容及 Three.js 接入 |
 | [武器运行时音频](weapons/audio.md) | 双枪本地声音、AudioBank、Web Audio 时钟、取消/暂停/变速与实际波形验收 |
 | [稀疏控制与弹药显示](weapons/runtime-controls.md) | Mixer 后的显式属性覆盖、Judge/Odin 源曲线、弹药事实与数值验收边界 |
@@ -24,7 +24,7 @@
 | --- | --- |
 | [renderer V2](lighting/renderer-v2-optimization.md) | 当前渲染管线与验证 |
 | [Lightmap v1](lighting/lightmap-v1.md) | 预烘焙集合重烘、补烘和回退 |
-| [室内 LightProbeGrid](lighting/light-probes.md) | Blender Box 驱动的探针体积 |
+| [室内 LightProbeGrid](lighting/light-probes.md) | Blender Box 驱动的 SH 漫反射探针体积，不是新版室内镜面反射 |
 | [超平坦外部地面](lighting/superflat-ground.md) | 房间外石英砖与草皮 |
 | [茶壶、阴影与飞行观察](lighting/room-inspection.md) | 茶壶、动态阴影和飞行／轨道操作。默认进入的是玩家模式，飞行操作见本文 |
 
@@ -42,7 +42,7 @@
 | 文档 | 范围 | 状态 |
 | --- | --- | --- |
 | [动画运行时与多枪切换](superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md) | animation 层、武器实例与背包、切换事务、资源发布、换肤、音频与验收 | 阶段 1—4、双枪本地音频、稀疏控制及弹药事实采样已实现；其余枪型完整发布/空间声待实施，后续皮肤素材由用户处理 |
-| [武器材质与质感优化路线图](weapons/material-quality-roadmap.md) | 分区 PBR、室内反射、接触遮蔽、边缘细节与材质校准 | 优化思路，尚未实施；建议先做分区材质和静态室内反射小样 |
+| [武器材质与质感优化路线图](weapons/material-quality-roadmap.md) | 平直着色、全金属、零自发光与静态局部反射；后续空间校正和表面细节 | 方向与选型已确认，尚未实施；游戏内离线 HDR Cubemap 捕获＋PMREM，先做主房间单探针 |
 
 ## 设计过程
 
