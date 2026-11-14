@@ -2,7 +2,7 @@
 export function mountWeaponHud({ canvas, player, engine }) {
   const root = canvas.ownerDocument.createElement('div')
   root.className = 'weapon-hud'
-  root.innerHTML = '<span class="weapon-crosshair">+</span><div class="weapon-readout"><strong></strong><span></span><small>1 Phantom · 2 Classic · 3 Ghost · 4 Vandal · 5 Sheriff · 6 Judge · 3–6 临时参数 · R 换弹 · T 检视 · K 换肤 · Home 重生</small></div>'
+  root.innerHTML = '<span class="weapon-crosshair">+</span><div class="weapon-readout"><strong></strong><span></span><small>1 Phantom · 2 Classic · 3 Ghost · 4 Vandal · 5 Sheriff · 6 Judge · 7 Odin · 3–7 临时参数 · R 换弹 · T 检视 · K 换肤 · Home 重生</small></div>'
   canvas.parentElement.append(root)
   const name = root.querySelector('strong')
   const ammo = root.querySelector('.weapon-readout > span')
@@ -20,6 +20,7 @@ export function mountWeaponHud({ canvas, player, engine }) {
       'vandal',
       'sheriff',
       'judge',
+      'odin',
     ].includes(weapon?.definitionId)
       ? '（临时参数）'
       : ''

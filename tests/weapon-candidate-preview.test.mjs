@@ -46,6 +46,7 @@ test('candidate URLs are dev-only, explicit and scoped to one weapon', () => {
   assert.equal(weaponPreviewOptions('?weapon=vandal', false).weapon, 'vandal')
   assert.equal(weaponPreviewOptions('?weapon=sheriff', false).weapon, 'sheriff')
   assert.equal(weaponPreviewOptions('?weapon=judge', false).weapon, 'judge')
+  assert.equal(weaponPreviewOptions('?weapon=odin', false).weapon, 'odin')
   assert.equal(weaponPreviewOptions('?candidate=candidate-sheriff&weapon=sheriff&version=v1&skin=smite', true).weapon, 'sheriff')
   assert.equal(weaponPreviewOptions('?candidate=candidate-ghost&weapon=ghost&version=v1&skin=freehand', true).weapon, 'ghost')
   assert.throws(() => weaponPreviewOptions(query, false), /development server/)

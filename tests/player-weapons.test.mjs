@@ -8,6 +8,7 @@ import { createAimProfile } from '../src/game/weapons/aim-profile.js'
 import { classicDefinition } from '../src/game/weapons/definitions/classic.js'
 import { ghostDefinition } from '../src/game/weapons/definitions/ghost.js'
 import { judgeDefinition } from '../src/game/weapons/definitions/judge.js'
+import { odinDefinition } from '../src/game/weapons/definitions/odin.js'
 import { phantomDefinition } from '../src/game/weapons/definitions/phantom.js'
 import { sheriffDefinition } from '../src/game/weapons/definitions/sheriff.js'
 import { vandalDefinition } from '../src/game/weapons/definitions/vandal.js'
@@ -137,6 +138,7 @@ function setup(t, {
   vandal = false,
   sheriff = false,
   judge = false,
+  odin = false,
 } = {}) {
   const assets = fakeAssets()
   const aim = new AimState({ seed: 123, offsetSmoothing: 0 })
@@ -200,6 +202,17 @@ function setup(t, {
     loadout.push({
       id: 'senary',
       weapon: { instanceId: 'judge', definitionId: 'judge' },
+    })
+  }
+  if (odin) {
+    // This transaction fixture uses 100 ms ticks. Exact 12/s cadence is tested in the real 60 Hz game.
+    definitions.push(createWeaponDefinition({
+      ...odinDefinition,
+      fire: { ...odinDefinition.fire, interval: h },
+    }))
+    loadout.push({
+      id: 'septenary',
+      weapon: { instanceId: 'odin', definitionId: 'odin' },
     })
   }
   if (thirdWeapon) {
@@ -525,6 +538,14 @@ for (const [id, code, option, capacity, reloadTicks, skinIds] of [
     5,
     22,
     ['rush', 'smite'],
+  ],
+  [
+    'odin',
+    'Digit7',
+    'odin',
+    100,
+    50,
+    ['prime', 'blastx', 'smite'],
   ],
 ]) {
   test(`${code} selects ${id}; automatic fire, ammo conservation, reload and skins preserve existing weapons`, async (t) => {

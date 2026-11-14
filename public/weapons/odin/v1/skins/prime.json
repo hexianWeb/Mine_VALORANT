@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "odin",
+  "assetVersion": "v1",
+  "skinId": "prime",
+  "compatibility": {
+    "rig": "ce5f861a258eff5f6776cf7a1224d7afd9b69aae6fb71089d13beb98b3e419a4",
+    "geometryUV": "5fe9431e66daab6b38bad4213c56d17640568e14cbdff53476f679d3ff9e1b98",
+    "clipSet": "de20903372e532371b5d309854366528dfb951cbfeb274132597183fd51c3d39"
+  },
+  "materials": {
+    "weapon": {
+      "map": {
+        "url": "../textures/125596a1f9425f758ceba32320f50a3112c9ee192d1a22fb47f0b8a99e16098d.png",
+        "sha256": "125596a1f9425f758ceba32320f50a3112c9ee192d1a22fb47f0b8a99e16098d",
+        "bytes": 863761,
+        "width": 2048,
+        "height": 2048,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    }
+  }
+}

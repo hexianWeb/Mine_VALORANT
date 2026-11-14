@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "originalRuntimeManifestAvailable": false,
+  "provenance": {
+    "status": "temporary-public-reference",
+    "observedAt": "2026-11-14",
+    "referenceUrl": "https://valorant-api.com/v1/weapons/63e6c2b6-4a8e-869c-3d4c-e38355226584",
+    "wikiAccess": "Wiki inaccessible earlier in this session; community game-data API snapshot used instead",
+    "fireMode": "Full-auto project mapping; API fireMode is null",
+    "recoilAndSpread": "Phantom project curves reused temporarily; not Odin source curves",
+    "fireRate": "Fixed 12/s; ROFIncrease spin-up and reference ADS 15.6/s are NOT implemented",
+    "ads": "Project 0.2083-second transition; FOV computed from authoring 70 degrees / 1.15 tangent zoom",
+    "reserve": "Three spare magazines, project practice policy",
+    "reloadCommit": "At the end of the public five-second duration, project policy",
+    "holster": "Zero-duration switch, project policy",
+    "inspect": "6.5417-second authoring clip used as a project deadline",
+    "barrel": "Source barrel clip controls red_1/red_2 scales, not rotation; no invented heat driver",
+    "unimplementedReferenceFields": "Damage, penetration and weapon-specific movement are recorded only"
+  },
+  "reference": {
+    "provider": "Valorant-API community game data (not Riot official API)",
+    "url": "https://valorant-api.com/v1/weapons/63e6c2b6-4a8e-869c-3d4c-e38355226584",
+    "observedAt": "2026-11-14",
+    "requestUrl": "https://valorant-api.com/v1/weapons",
+    "snapshotKind": "selected Judge and Odin record fields from the successful HTTP tool response",
+    "selectedSnapshotSha256": "b52c020bdbf370a0eee4c826b77b5708dc0a2b715e82ec35ac348c7d0eeeea58",
+    "uuid": "63e6c2b6-4a8e-869c-3d4c-e38355226584",
+    "displayName": "Odin",
+    "weaponStats": {
+      "fireRate": 12,
+      "magazineSize": 100,
+      "runSpeedMultiplier": 0.76,
+      "equipTimeSeconds": 1.25,
+      "reloadTimeSeconds": 5,
+      "firstBulletAccuracy": 0.8,
+      "shotgunPelletCount": 1,
+      "wallPenetration": "EWallPenetrationDisplayType::High",
+      "feature": "EWeaponStatsFeature::ROFIncrease",
+      "fireMode": null,
+      "altFireType": "EWeaponAltFireDisplayType::ADS",
+      "adsStats": {
+        "zoomMultiplier": 1.15,
+        "fireRate": 15.6,
+        "runSpeedMultiplier": 0.76,
+        "burstCount": 1,
+        "firstBulletAccuracy": 0.79
+      },
+      "altShotgunStats": null,
+      "airBurstStats": null,
+      "damageRanges": [
+        {
+          "rangeStartMeters": 0,
+          "rangeEndMeters": 30,
+          "headDamage": 95,
+          "bodyDamage": 38,
+          "legDamage": 32.3
+        },
+        {
+          "rangeStartMeters": 30,
+          "rangeEndMeters": 50,
+          "headDamage": 77.5,
+          "bodyDamage": 31,
+          "legDamage": 26.35
+        }
+      ]
+    },
+    "cost": 3200
+  },
+  "definition": {
+    "recoil": {
+      "pitch": [
+        {
+          "time": 0,
+          "min": 0.006981317007977318,
+          "max": 0.006981317007977318
+        },
+        {
+          "time": 0.25,
+          "min": 0.009599310885968814,
+          "max": 0.009599310885968814
+        },
+        {
+          "time": 0.45,
+          "min": -0.0020943951023931952,
+          "max": -0.0020943951023931952
+        },
+        {
+          "time": 0.6,
+          "min": 0,
+          "max": 0
+        }
+      ],
+      "yaw": [
+        {
+          "time": 0,
+          "min": -0.004363323129985824,
+          "max": 0.002617993877991494
+        },
+        {
+          "time": 0.45,
+          "min": 0,
+          "max": 0
+        }
+      ]
+    },
+    "spread": {
+      "stand": 0.0034455,
+      "move": 0.117147,
+      "crouch": 0.0029286750000000004,
+      "ads": 0.001895025
+    },
+    "aim": {
+      "duration": 0.2083,
+      "worldFov": 62.67247387571614,
+      "viewmodelFov": 62.67247387571614
+    },
+    "id": "odin",
+    "capacity": 100,
+    "initialReserve": 300,
+    "fire": {
+      "mode": "auto",
+      "interval": 0.08333333333333333
+    },
+    "equip": {
+      "draw": 1.25,
+      "holster": 0
+    },
+    "reload": {
+      "tactical": {
+        "feed": 5,
+        "duration": 5
+      },
+      "empty": {
+        "feed": 5,
+        "duration": 5
+      }
+    },
+    "inspectDuration": 6.5417,
+    "capabilities": {
+      "ads": true
+    },
+    "assets": {
+      "modelId": "odin",
+      "assetVersion": "v1",
+      "defaultSkinId": "smite",
+      "skinIds": [
+        "smite",
+        "prime",
+        "blastx"
+      ]
+    }
+  },
+  "audio": {
+    "cues": {
+      "odin_shoot": {
+        "id": "odin_shoot",
+        "url": "/audio/odin/odin_shoot.ogg",
+        "sha256": "dfd4be930b6f879d73b8ee5d9ce6feadfd2961ca3afaded262fb7d126f9fdc9e",
+        "gain": 0.25
+      },
+      "odin_draw": {
+        "id": "odin_draw",
+        "url": "/audio/odin/odin_draw.ogg",
+        "sha256": "9c3d9ebc9de14803c551974a4218dfe11eeda8a575a1e74f9220a5953f5f0c12",
+        "gain": 0.22
+      },
+      "odin_reload": {
+        "id": "odin_reload",
+        "url": "/audio/odin/odin_reload.ogg",
+        "sha256": "547862e65b90a666fa571fcdab7aa1659005490c06f645446f96860370e1cd8f",
+        "gain": 0.22
+      },
+      "odin_inspect": {
+        "id": "odin_inspect",
+        "url": "/audio/odin/odin_inspect.ogg",
+        "sha256": "1074135015bc642c37fe00164a12d5d6d88e38366292cab1573f9b6ca06ee9fa",
+        "gain": 0.22
+      }
+    },
+    "fire": "odin_shoot",
+    "draw": "odin_draw",
+    "reloadTactical": "odin_reload",
+    "reloadEmpty": "odin_reload",
+    "inspect": "odin_inspect"
+  }
+}

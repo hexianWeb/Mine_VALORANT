@@ -32,7 +32,8 @@ assert.ok([
   'vandal',
   'sheriff',
   'judge',
-].includes(weapon), 'Pass a supported --weapon: classic, phantom, ghost, vandal, sheriff, judge')
+  'odin',
+].includes(weapon), 'Pass a supported --weapon: classic, phantom, ghost, vandal, sheriff, judge or odin')
 assert.ok(quick || !url.searchParams.has('candidate'), 'Candidate smoke checks require --quick')
 assert.ok(quick || weaponIndex === -1, '--weapon requires --quick; omit both flags for the full regression')
 if (quick)

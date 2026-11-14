@@ -4,6 +4,7 @@ import { WeaponAssets } from '../game/weapons/assets/weapon-assets.js'
 import { classicDefinition } from '../game/weapons/definitions/classic.js'
 import { ghostDefinition } from '../game/weapons/definitions/ghost.js'
 import { judgeDefinition } from '../game/weapons/definitions/judge.js'
+import { odinDefinition } from '../game/weapons/definitions/odin.js'
 import { phantomDefinition } from '../game/weapons/definitions/phantom.js'
 import { sheriffDefinition } from '../game/weapons/definitions/sheriff.js'
 import { vandalDefinition } from '../game/weapons/definitions/vandal.js'
@@ -39,6 +40,7 @@ const definitions = {
   vandal: vandalDefinition,
   sheriff: sheriffDefinition,
   judge: judgeDefinition,
+  odin: odinDefinition,
 }
 let active = null
 let frame = 0

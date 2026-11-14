@@ -8,6 +8,7 @@ import { AnimationPlayer } from '../src/engine/runtime/function/animation/animat
 import { ammoControlSamples } from '../src/game/weapons/assets/weapon-control-profile.js'
 import { weaponAudioProfiles } from '../src/game/weapons/definitions/audio.js'
 import { judgeDefinition, judgeGameplayProvenance } from '../src/game/weapons/definitions/judge.js'
+import { odinDefinition, odinGameplayProvenance } from '../src/game/weapons/definitions/odin.js'
 import { practiceLoadout } from '../src/game/weapons/player-weapons.js'
 import { pngSize, readGlb, sha256, validateWeaponModel } from '../tools/weapons/package-validation.mjs'
 import { authoredControlProfile, readPinnedAuthoring } from '../tools/weapons/publish-authored.mjs'
@@ -20,9 +21,15 @@ const entries = [
     judgeGameplayProvenance,
     5,
   ],
+  [
+    'odin',
+    odinDefinition,
+    odinGameplayProvenance,
+    8,
+  ],
 ]
 
-test('Judge appends the sixth slot without changing the five existing loadout entries', () => {
+test('Judge/Odin append sixth/seventh slots without changing the five existing loadout entries', () => {
   assert.deepEqual(practiceLoadout.map(slot => slot.weapon.definitionId), [
     'phantom',
     'classic',
@@ -30,10 +37,13 @@ test('Judge appends the sixth slot without changing the five existing loadout en
     'vandal',
     'sheriff',
     'judge',
+    'odin',
   ])
   assert.equal(practiceLoadout[5].id, 'senary')
+  assert.equal(practiceLoadout[6].id, 'septenary')
   assert.equal(judgeDefinition.fire.pellets, 12)
   assert.equal(judgeDefinition.capacity, 5, 'use the observed current record, not an old seven-round value')
+  assert.match(odinGameplayProvenance.fireRate, /NOT implemented/)
 })
 
 test('publication rejects malformed sparse-control declarations, not only runtime loading', async () => {
