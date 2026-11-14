@@ -1,0 +1,326 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "sheriff",
+  "metadataSource": "Pinned Blender Action properties and Camera_FP; not original runtime data",
+  "blenderVersion": "5.2.3 LTS",
+  "clips": [
+    {
+      "name": "ADS_down",
+      "duration": 0.6,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "ADS_up",
+      "duration": 0.6333,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim",
+      "duration": 0.25,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim_end",
+      "duration": 0.15,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim_start",
+      "duration": 0.15,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "draw",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "idle",
+      "duration": 7.2667,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "inspect",
+      "duration": 3,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_1",
+      "duration": 0.8,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_2",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_3",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_push",
+      "duration": 0.7083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_stock",
+      "duration": 0.7083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "put_away",
+      "duration": 0.016666666666666666,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "reload_empty",
+      "duration": 2.25,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "reload_tactical",
+      "duration": 2.25,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run",
+      "duration": 0.8,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_end",
+      "duration": 0.65,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_hold",
+      "duration": 0.2917,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_start",
+      "duration": 0.3,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "shoot",
+      "duration": 2.25,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "shoot_aim",
+      "duration": 2.25,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide",
+      "duration": 0.75,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide_back",
+      "duration": 0.85,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide_idle",
+      "duration": 7.3333,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "static_idle",
+      "duration": 0.0833,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_aiming",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_backward",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_forward",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_sideway",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    }
+  ],
+  "view": {
+    "unitsPerMeter": 1,
+    "up": "Y",
+    "forward": "-Z",
+    "mountOffset": [
+      0.5006250143051147,
+      -0.9424999952316284,
+      -1.546875
+    ],
+    "verticalFov": 70,
+    "aimVerticalFov": 70,
+    "source": "Sheriff authoring Camera_FP alignment retained for temporary game integration"
+  },
+  "skins": {
+    "smite": {
+      "source": {
+        "path": "skin_work_folder/sheriff_skin_work/Sheriff_Smite_Animated.blend",
+        "sha256": "af5e9e848d204244c695ad71d96fa01605e4f1c7428bcac8e96c98cb569131b3"
+      },
+      "texture": {
+        "path": "skin_work_folder/sheriff_skin_work/sheriff_smite_weapon.png",
+        "sha256": "e91cd4043a7e40a36aaa8275ca0aa8b17a4fbb0d7708fd833b92f10fd8bf7582"
+      },
+      "textureSize": {
+        "width": 2048,
+        "height": 2048
+      },
+      "authoringSignature": {
+        "geometryUV": "fbb93c503dae12d5d7ec3861d3065fbea6d53e57961fbfd69d0953c956e832a0",
+        "rig": "7d8573c4009c88dda1b2e6d5fbca8b6ef76c21a4f236692e6759c22558f512df",
+        "clipSet": "ef437f723623a6867540e74ee5824aa4e0f4cb6aaed1828f4d702583bf31a500"
+      },
+      "inspection": {
+        "packedExternalPngIdentical": true,
+        "actualSceneArmsValidated": true,
+        "image": {
+          "name": "Sheriff Smite Custom Texture",
+          "channels": 4,
+          "alphaMode": "STRAIGHT",
+          "alphaMin": 0,
+          "alphaMax": 1,
+          "transparentPixels": 3575440
+        }
+      }
+    },
+    "sakura": {
+      "source": {
+        "path": "skin_work_folder/sheriff_skin_work/Sheriff_Sakura_Animated.blend",
+        "sha256": "547a361e45872dfa883d99cf545e66417c9b01ac9d5b5ca55b4f518706a1148f"
+      },
+      "texture": {
+        "path": "skin_work_folder/sheriff_skin_work/sheriff_sakura_weapon.png",
+        "sha256": "d6493ea8fae956e8f8329665c90b5e5320d4fe6907993d0a7453bc4440bf8d2a"
+      },
+      "textureSize": {
+        "width": 2048,
+        "height": 2048
+      },
+      "authoringSignature": {
+        "geometryUV": "fbb93c503dae12d5d7ec3861d3065fbea6d53e57961fbfd69d0953c956e832a0",
+        "rig": "7d8573c4009c88dda1b2e6d5fbca8b6ef76c21a4f236692e6759c22558f512df",
+        "clipSet": "ef437f723623a6867540e74ee5824aa4e0f4cb6aaed1828f4d702583bf31a500"
+      },
+      "inspection": {
+        "packedExternalPngIdentical": true,
+        "actualSceneArmsValidated": true,
+        "image": {
+          "name": "Sheriff Sakura Texture",
+          "channels": 4,
+          "alphaMode": "STRAIGHT",
+          "alphaMin": 0,
+          "alphaMax": 1,
+          "transparentPixels": 3575440
+        }
+      }
+    },
+    "convex": {
+      "source": {
+        "path": "skin_work_folder/sheriff_skin_work/Sheriff_Convex_Animated.blend",
+        "sha256": "d71e6cc2b8f9280631c15ce132c8bbab091b9c6c31e06c2f5a5ba2490c5d234d"
+      },
+      "texture": {
+        "path": "skin_work_folder/sheriff_skin_work/sheriff_convex_weapon.png",
+        "sha256": "79a0adab224a5a1173d25280435bd524a327a0a10bdadd5402f0abb1e332a46b"
+      },
+      "textureSize": {
+        "width": 2048,
+        "height": 2048
+      },
+      "authoringSignature": {
+        "geometryUV": "fbb93c503dae12d5d7ec3861d3065fbea6d53e57961fbfd69d0953c956e832a0",
+        "rig": "7d8573c4009c88dda1b2e6d5fbca8b6ef76c21a4f236692e6759c22558f512df",
+        "clipSet": "ef437f723623a6867540e74ee5824aa4e0f4cb6aaed1828f4d702583bf31a500"
+      },
+      "inspection": {
+        "packedExternalPngIdentical": true,
+        "actualSceneArmsValidated": true,
+        "image": {
+          "name": "Sheriff Convex Texture",
+          "channels": 4,
+          "alphaMode": "STRAIGHT",
+          "alphaMin": 0,
+          "alphaMax": 1,
+          "transparentPixels": 3575440
+        }
+      }
+    }
+  }
+}

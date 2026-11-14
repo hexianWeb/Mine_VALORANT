@@ -1,0 +1,323 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "sheriff",
+  "assetVersion": "v1",
+  "model": {
+    "url": "model.glb",
+    "sha256": "f571a8c2f073c1632037a8d1d7173f43828fd07c3e62ccd95a7dfbeffbcd3b26",
+    "bytes": 3156992
+  },
+  "compatibility": {
+    "rig": "512e9eddc386b1616c6e3c2076d21a86d48e3e440478e3efc316528223023a43",
+    "geometryUV": "856a9f3a47edf40269a403717f3094fc7ead2ef2de3a05b142f8de0953eeb5a9",
+    "clipSet": "1c57b4ae30eacb0cc36bb2dd758b64b89b9227491130e794724e2b7a68f5a997"
+  },
+  "armContract": {
+    "version": 1,
+    "textureSha256": "2c041879daf6509fe3da88a8e1b857e4b9a7c9b67279d012382f5f03529750e9"
+  },
+  "clips": [
+    {
+      "name": "ADS_down",
+      "duration": 0.6,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "ADS_up",
+      "duration": 0.6333,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim",
+      "duration": 0.25,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim_end",
+      "duration": 0.15,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim_start",
+      "duration": 0.15,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "draw",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "idle",
+      "duration": 7.2667,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "inspect",
+      "duration": 3,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_1",
+      "duration": 0.8,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_2",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_3",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_push",
+      "duration": 0.7083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_stock",
+      "duration": 0.7083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "put_away",
+      "duration": 0.016666666666666666,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "reload_empty",
+      "duration": 2.25,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "reload_tactical",
+      "duration": 2.25,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run",
+      "duration": 0.8,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_end",
+      "duration": 0.65,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_hold",
+      "duration": 0.2917,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_start",
+      "duration": 0.3,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "shoot",
+      "duration": 2.25,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "shoot_aim",
+      "duration": 2.25,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide",
+      "duration": 0.75,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide_back",
+      "duration": 0.85,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide_idle",
+      "duration": 7.3333,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "static_idle",
+      "duration": 0.0833,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_aiming",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_backward",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_forward",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_sideway",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    }
+  ],
+  "actions": {
+    "idle": "static_idle",
+    "draw": "draw",
+    "holster": "put_away",
+    "fire": "shoot",
+    "fireAds": "shoot_aim",
+    "reloadTactical": "reload_tactical",
+    "reloadEmpty": "reload_empty",
+    "inspect": "inspect",
+    "aimStart": "aim_start",
+    "aim": "aim",
+    "aimEnd": "aim_end"
+  },
+  "requiredActions": [
+    "idle",
+    "draw",
+    "holster",
+    "fire",
+    "reloadTactical",
+    "reloadEmpty",
+    "inspect"
+  ],
+  "materials": {
+    "weapon": [
+      "Weapon_Skin"
+    ],
+    "armsLeft": [
+      "Character_Left"
+    ],
+    "armsRight": [
+      "Character_Right"
+    ]
+  },
+  "meshes": [
+    "Arms_Left",
+    "Arms_Right",
+    "Weapon_Body",
+    "Weapon_Magazine"
+  ],
+  "sockets": {
+    "muzzle": "muzzle_flash",
+    "shell": "shell"
+  },
+  "defaultSkinId": "smite",
+  "skins": {
+    "smite": {
+      "url": "skins/smite.json",
+      "sha256": "7b69219c16a9f23e143db432e24a88d7e43092d50fc6f4b8061acd4b3741f140",
+      "bytes": 843
+    },
+    "sakura": {
+      "url": "skins/sakura.json",
+      "sha256": "c334061565123edf7270f6a783f42dc6a127629227761d2da0d110f479ee84a6",
+      "bytes": 844
+    },
+    "convex": {
+      "url": "skins/convex.json",
+      "sha256": "d1c1ba043c19137e47a5aa494bb156151a5f937793f56ee794a0db61476719c1",
+      "bytes": 844
+    }
+  },
+  "view": {
+    "unitsPerMeter": 1,
+    "up": "Y",
+    "forward": "-Z",
+    "mountOffset": [
+      0.5006250143051147,
+      -0.9424999952316284,
+      -1.546875
+    ],
+    "verticalFov": 70,
+    "aimVerticalFov": 70,
+    "source": "Sheriff authoring Camera_FP alignment retained for temporary game integration"
+  },
+  "runtimeProfile": {
+    "url": "runtime-profile.json",
+    "sha256": "c9f7ba22644cbdd0cae4883d184fe3d7322c79bbe4f84daf281c703b0aa015dc",
+    "bytes": 5046
+  },
+  "provenance": {
+    "kind": "blender-actions-with-temporary-public-runtime",
+    "sourceBlend": "skin_work_folder/sheriff_skin_work/Sheriff_Smite_Animated.blend",
+    "sourceBlendSha256": "af5e9e848d204244c695ad71d96fa01605e4f1c7428bcac8e96c98cb569131b3",
+    "sourceTextureSha256": "e91cd4043a7e40a36aaa8275ca0aa8b17a4fbb0d7708fd833b92f10fd8bf7582",
+    "authoringMetadataSha256": "bc2249de2b7f0b38debeeecabd988fc3f69c68412ccd1f175b3922bacb775317",
+    "runtimeProfileSha256": "c9f7ba22644cbdd0cae4883d184fe3d7322c79bbe4f84daf281c703b0aa015dc",
+    "releaseRecipeSha256": "9234118666c41c6428da7849a210687c0f318dd06206e8a25d5e3b790822b72d",
+    "originalRuntimeManifestAvailable": false,
+    "gameplayParameters": "temporary-public-reference",
+    "exportScene": "80_ThreeJS_Export",
+    "blenderVersion": "5.2.3 LTS"
+  }
+}

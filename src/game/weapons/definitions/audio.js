@@ -17,6 +17,10 @@ const hashes = {
   vandal_draw: '7f0caeb56f927a6af4d22daacc0e0d4a3b46d67768fa0c056d86e53148ea660b',
   vandal_reload: 'e05a8b1b9cbb58354ae476073d65cb7aaa9e1fd5e5ba7034e9d1d89a0af69ba7',
   vandal_inspect: 'b314467b86f512749cf0393564d0b544ef4c0f69977eb85c1fcd96ba8a6496cf',
+  sheriff_shoot: 'd24f978e0c83a49a6c4b5f800b847f661dece4776118981fae69a636d566112b',
+  sheriff_draw: '9ddbc34cf3167b82e50ce3410c1c532d076e7af3539c41aa399d657a4d282b54',
+  sheriff_reload: 'adc33e99c444dfe8659272aadd948fdf27efbd715fa10c8faa47ec0cd9c9657e',
+  sheriff_inspect: '9e87c98ad08771f392e2bfc3a69896a4bbb20d79f66a3e341a7461f98bcfd9f2',
 }
 
 function profile(weaponId) {
@@ -49,4 +53,5 @@ export const weaponAudioProfiles = Object.freeze({
   phantom: profile('phantom'),
   ghost: profile('ghost'),
   vandal: profile('vandal'),
+  sheriff: profile('sheriff'),
 })

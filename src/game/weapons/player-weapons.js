@@ -1,6 +1,7 @@
 import { classicDefinition } from './definitions/classic.js'
 import { ghostDefinition } from './definitions/ghost.js'
 import { phantomDefinition } from './definitions/phantom.js'
+import { sheriffDefinition } from './definitions/sheriff.js'
 import { vandalDefinition } from './definitions/vandal.js'
 import { EquipmentController } from './equipment-controller.js'
 import { WeaponAudio } from './weapon-audio.js'
@@ -22,6 +23,10 @@ export const practiceLoadout = Object.freeze([
   {
     id: 'quaternary',
     weapon: { instanceId: 'vandal', definitionId: 'vandal' },
+  },
+  {
+    id: 'quinary',
+    weapon: { instanceId: 'sheriff', definitionId: 'sheriff' },
   },
 ])
 
@@ -94,6 +99,7 @@ export class PlayerWeapons {
       phantomDefinition,
       ghostDefinition,
       vandalDefinition,
+      sheriffDefinition,
     ],
     loadout = practiceLoadout,
     initialSlot = 'secondary',
@@ -141,6 +147,7 @@ export class PlayerWeapons {
       'secondaryWeapon',
       'tertiaryWeapon',
       'quaternaryWeapon',
+      'quinaryWeapon',
       'nextWeapon',
       'previousWeapon',
       'previousEquipped',
@@ -155,6 +162,7 @@ export class PlayerWeapons {
         secondaryWeapon: { type: 'selectSlot', slotId: 'secondary' },
         tertiaryWeapon: { type: 'selectSlot', slotId: 'tertiary' },
         quaternaryWeapon: { type: 'selectSlot', slotId: 'quaternary' },
+        quinaryWeapon: { type: 'selectSlot', slotId: 'quinary' },
         nextWeapon: { type: 'cycle', direction: 1 },
         previousWeapon: { type: 'cycle', direction: -1 },
         previousEquipped: { type: 'selectPrevious' },

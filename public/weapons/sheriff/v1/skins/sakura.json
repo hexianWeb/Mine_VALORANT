@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "sheriff",
+  "assetVersion": "v1",
+  "skinId": "sakura",
+  "compatibility": {
+    "rig": "512e9eddc386b1616c6e3c2076d21a86d48e3e440478e3efc316528223023a43",
+    "geometryUV": "856a9f3a47edf40269a403717f3094fc7ead2ef2de3a05b142f8de0953eeb5a9",
+    "clipSet": "1c57b4ae30eacb0cc36bb2dd758b64b89b9227491130e794724e2b7a68f5a997"
+  },
+  "materials": {
+    "weapon": {
+      "map": {
+        "url": "../textures/d6493ea8fae956e8f8329665c90b5e5320d4fe6907993d0a7453bc4440bf8d2a.png",
+        "sha256": "d6493ea8fae956e8f8329665c90b5e5320d4fe6907993d0a7453bc4440bf8d2a",
+        "bytes": 718446,
+        "width": 2048,
+        "height": 2048,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    }
+  }
+}

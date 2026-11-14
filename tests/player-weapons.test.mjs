@@ -8,6 +8,7 @@ import { createAimProfile } from '../src/game/weapons/aim-profile.js'
 import { classicDefinition } from '../src/game/weapons/definitions/classic.js'
 import { ghostDefinition } from '../src/game/weapons/definitions/ghost.js'
 import { phantomDefinition } from '../src/game/weapons/definitions/phantom.js'
+import { sheriffDefinition } from '../src/game/weapons/definitions/sheriff.js'
 import { vandalDefinition } from '../src/game/weapons/definitions/vandal.js'
 import { PlayerWeapons } from '../src/game/weapons/player-weapons.js'
 import { createWeaponDefinition } from '../src/game/weapons/weapon-definition.js'
@@ -133,6 +134,7 @@ function setup(t, {
   thirdWeapon = false,
   ghost = false,
   vandal = false,
+  sheriff = false,
 } = {}) {
   const assets = fakeAssets()
   const aim = new AimState({ seed: 123, offsetSmoothing: 0 })
@@ -182,6 +184,13 @@ function setup(t, {
     loadout.push({
       id: 'quaternary',
       weapon: { instanceId: 'vandal', definitionId: 'vandal' },
+    })
+  }
+  if (sheriff) {
+    definitions.push(sheriffDefinition)
+    loadout.push({
+      id: 'quinary',
+      weapon: { instanceId: 'sheriff', definitionId: 'sheriff' },
     })
   }
   if (thirdWeapon) {
@@ -418,6 +427,86 @@ test('real Digit4 selects Vandal; held fire, ADS, reload deadlines and six skins
   assert.equal(weapon().magazine, 25)
 })
 
+test('real Digit5 selects Sheriff; semi-auto cooldown, no ADS, reload branches and three skins work', async (t) => {
+  const f = setup(t, { sheriff: true })
+  await f.ready()
+  f.key('keydown', 'Digit5')
+  f.key('keyup', 'Digit5')
+  f.weapons.collectInput(f.input)
+  f.fixed()
+  assert.equal(f.weapons.snapshot().pendingTarget, 'sheriff')
+  await f.assets.resolve('sheriff')
+  f.motion()
+  for (let index = 0; index < 30; index++) {
+    f.advance(1)
+    if (f.weapons.snapshot().activeId === 'sheriff' && f.weapons.snapshot().canAct)
+      break
+  }
+  f.motion(f.tick * h)
+  const weapon = () => f.weapons.snapshot().inventory.weapons.find(weapon => weapon.instanceId === 'sheriff')
+  const visual = f.assets.instances.find(instance => instance.weaponId === 'sheriff')
+  assert.equal(f.weapons.snapshot().view.renderActiveId, 'sheriff')
+  const press = () => {
+    f.mouse('mouseup', 0)
+    f.mouse('mousedown', 0)
+    f.weapons.collectInput(f.input)
+    f.fixed()
+  }
+  press()
+  f.advance(5)
+  assert.equal(weapon().magazine, 5, 'held fire remains semi-automatic')
+  press()
+  assert.equal(weapon().magazine, 4)
+  press()
+  assert.equal(weapon().magazine, 4, 'a new click before 0.25 seconds cannot fire')
+  f.advance(2)
+  assert.equal(weapon().magazine, 4, 'an early click is not queued into a later automatic shot')
+  press()
+  assert.equal(weapon().magazine, 3)
+  f.mouse('mouseup', 0)
+  f.mouse('mousedown', 2)
+  f.weapons.collectInput(f.input)
+  f.advance(4)
+  assert.equal(f.aim.sample(f.tick * h).ads, 0)
+  f.mouse('mouseup', 2)
+  f.key('keydown', 'KeyR')
+  f.key('keyup', 'KeyR')
+  f.weapons.collectInput(f.input)
+  f.fixed()
+  f.advance(22)
+  assert.equal(weapon().magazine, 3, 'no feed before the 2.25-second reload deadline')
+  f.advance(1)
+  assert.equal(weapon().magazine, 6)
+  assert.equal(weapon().reserve, 15)
+  for (const skinId of ['sakura', 'convex', 'smite']) {
+    f.key('keydown', 'KeyK')
+    f.key('keyup', 'KeyK')
+    f.weapons.collectInput(f.input)
+    f.fixed()
+    await f.assets.resolve('sheriff')
+    f.motion()
+    f.fixed()
+    f.motion(f.tick * h)
+    assert.equal(f.weapons.snapshot().view.skinId, skinId)
+    assert.equal(visual.disposed, false)
+    assert.equal(weapon().magazine, 6)
+  }
+  for (let index = 0; index < 6; index++) {
+    press()
+    f.advance(3)
+    assert.equal(weapon().magazine, 5 - index)
+  }
+  f.mouse('mouseup', 0)
+  f.key('keydown', 'KeyR')
+  f.key('keyup', 'KeyR')
+  f.weapons.collectInput(f.input)
+  f.fixed()
+  f.advance(22)
+  assert.equal(weapon().magazine, 0)
+  f.advance(1)
+  assert.equal(weapon().magazine, 6)
+  assert.equal(weapon().reserve, 9)
+})
 
 
 test('Editor handoff retains logically committed B even while the delayed visual still shows A', async (t) => {

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "sourceContract": "blender-actions-with-temporary-public-runtime",
+  "weaponId": "sheriff",
+  "assetVersion": "v1",
+  "defaultSkinId": "smite",
+  "authoring": {
+    "path": "tools/weapons/authored-releases/sheriff-authoring.json",
+    "sha256": "bc2249de2b7f0b38debeeecabd988fc3f69c68412ccd1f175b3922bacb775317"
+  },
+  "runtimeProfile": {
+    "path": "tools/weapons/authored-releases/sheriff-temporary-runtime.json",
+    "sha256": "c9f7ba22644cbdd0cae4883d184fe3d7322c79bbe4f84daf281c703b0aa015dc"
+  },
+  "scene": "80_ThreeJS_Export",
+  "meshes": [
+    "Arms_Left",
+    "Arms_Right",
+    "Weapon_Body",
+    "Weapon_Magazine"
+  ],
+  "armatures": [
+    "root",
+    "views",
+    "camera",
+    "positioning"
+  ],
+  "materials": {
+    "weapon": [
+      "Weapon_Skin"
+    ],
+    "armsLeft": [
+      "Character_Left"
+    ],
+    "armsRight": [
+      "Character_Right"
+    ]
+  },
+  "sockets": {
+    "muzzle": "muzzle_flash",
+    "shell": "shell"
+  },
+  "actions": {
+    "idle": "static_idle",
+    "draw": "draw",
+    "holster": "put_away",
+    "fire": "shoot",
+    "fireAds": "shoot_aim",
+    "reloadTactical": "reload_tactical",
+    "reloadEmpty": "reload_empty",
+    "inspect": "inspect",
+    "aimStart": "aim_start",
+    "aim": "aim",
+    "aimEnd": "aim_end"
+  },
+  "requiredActions": [
+    "idle",
+    "draw",
+    "holster",
+    "fire",
+    "reloadTactical",
+    "reloadEmpty",
+    "inspect"
+  ]
+}
