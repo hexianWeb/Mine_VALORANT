@@ -42,6 +42,8 @@ test('candidate URLs are dev-only, explicit and scoped to one weapon', () => {
   assert.deepEqual(weaponPreviewOptions('', false), { weapon: 'classic', candidate: null, baseUrl: '/weapons/' })
   const query = '?candidate=candidate-abc&weapon=classic&version=v4&skin=ag'
   assert.equal(weaponPreviewOptions(query, true).baseUrl, '/__weapon_preview__/candidate-abc/')
+  assert.equal(weaponPreviewOptions('?weapon=ghost', false).weapon, 'ghost')
+  assert.equal(weaponPreviewOptions('?candidate=candidate-ghost&weapon=ghost&version=v1&skin=freehand', true).weapon, 'ghost')
   assert.throws(() => weaponPreviewOptions(query, false), /development server/)
   assert.throws(() => weaponPreviewOptions('?weapon=unknown', true), /Unknown preview weapon/)
   assert.throws(() => weaponPreviewOptions('?candidate=..&version=v4&skin=ag', true), /Invalid candidate/)

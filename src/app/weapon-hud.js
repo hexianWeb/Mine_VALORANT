@@ -2,7 +2,7 @@
 export function mountWeaponHud({ canvas, player, engine }) {
   const root = canvas.ownerDocument.createElement('div')
   root.className = 'weapon-hud'
-  root.innerHTML = '<span class="weapon-crosshair">+</span><div class="weapon-readout"><strong></strong><span></span><small>1 Phantom · 2 Classic · R 换弹 · T 检视 · K 换肤 · Home 重生</small></div>'
+  root.innerHTML = '<span class="weapon-crosshair">+</span><div class="weapon-readout"><strong></strong><span></span><small>1 Phantom · 2 Classic · 3 Ghost · 3 临时参数 · R 换弹 · T 检视 · K 换肤 · Home 重生</small></div>'
   canvas.parentElement.append(root)
   const name = root.querySelector('strong')
   const ammo = root.querySelector('.weapon-readout > span')
@@ -15,8 +15,13 @@ export function mountWeaponHud({ canvas, player, engine }) {
     if (!view)
       return
     const weapon = view.weapon
+    const provisional = [
+      'ghost',
+    ].includes(weapon?.definitionId)
+      ? '（临时参数）'
+      : ''
     name.textContent = weapon
-      ? `${weapon.definitionId.toUpperCase()} · ${view.skinId}`
+      ? `${weapon.definitionId.toUpperCase()} · ${view.skinId}${provisional}`
       : '武器准备中'
     ammo.textContent = view.error
       ? `加载失败，可按槽位键重试：${view.error}`

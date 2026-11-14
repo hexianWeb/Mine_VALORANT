@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "ghost",
+  "assetVersion": "v1",
+  "skinId": "recon",
+  "compatibility": {
+    "rig": "5c6891717f8714285cb0dcf499f17552b8029de43e687e689fe7c87557b06fac",
+    "geometryUV": "bc96fa7e5a8c6bcdf06f600cffa851d65f0d5577d2a0bc268d4fbcf8d3d44f89",
+    "clipSet": "db96b76889d3603e2203624cab43bb5e99570db882fd3ecde7210c68723d82f0"
+  },
+  "materials": {
+    "weapon": {
+      "map": {
+        "url": "../textures/f65ee5018675272314b25be3168de1663c92dc257ca00fac9e8a57011c0d10c0.png",
+        "sha256": "f65ee5018675272314b25be3168de1663c92dc257ca00fac9e8a57011c0d10c0",
+        "bytes": 319091,
+        "width": 2048,
+        "height": 2048,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    }
+  }
+}

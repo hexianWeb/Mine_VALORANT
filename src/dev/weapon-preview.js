@@ -2,6 +2,7 @@ import * as THREE from 'three/webgpu'
 import { ResourceManager } from '../engine/runtime/resource/resource-manager.js'
 import { WeaponAssets } from '../game/weapons/assets/weapon-assets.js'
 import { classicDefinition } from '../game/weapons/definitions/classic.js'
+import { ghostDefinition } from '../game/weapons/definitions/ghost.js'
 import { phantomDefinition } from '../game/weapons/definitions/phantom.js'
 import { weaponPreviewOptions } from './weapon-preview-options.js'
 
@@ -28,6 +29,11 @@ renderer.setSize(innerWidth, innerHeight)
 renderer.toneMapping = THREE.ACESFilmicToneMapping
 renderer.toneMappingExposure = 1
 const entries = new Map()
+const definitions = {
+  classic: classicDefinition,
+  phantom: phantomDefinition,
+  ghost: ghostDefinition,
+}
 let active = null
 let frame = 0
 let disposed = false
@@ -42,9 +48,7 @@ async function load(weaponId) {
   if (entries.has(weaponId))
     return entries.get(weaponId)
   globalThis.__WEAPON_PREVIEW__.stage = `loading:${weaponId}`
-  const definition = weaponId === 'classic'
-    ? classicDefinition
-    : phantomDefinition
+  const definition = definitions[weaponId]
   const handle = await assets.load({
     weaponId,
     assetVersion: options.candidate ? options.version : definition.assets.assetVersion,
@@ -104,7 +108,7 @@ function meshState(root) {
 
 const defaultWeapons = options.candidate
   ? [options.weapon]
-  : ['classic', 'phantom']
+  : Object.keys(definitions)
 
 async function verify({ weapons = defaultWeapons, quick = false } = {}) {
   const checks = []

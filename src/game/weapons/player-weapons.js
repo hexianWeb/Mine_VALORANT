@@ -1,4 +1,5 @@
 import { classicDefinition } from './definitions/classic.js'
+import { ghostDefinition } from './definitions/ghost.js'
 import { phantomDefinition } from './definitions/phantom.js'
 import { EquipmentController } from './equipment-controller.js'
 import { WeaponAudio } from './weapon-audio.js'
@@ -12,6 +13,10 @@ export const practiceLoadout = Object.freeze([
   {
     id: 'secondary',
     weapon: { instanceId: 'pistol', definitionId: 'classic' },
+  },
+  {
+    id: 'tertiary',
+    weapon: { instanceId: 'ghost', definitionId: 'ghost' },
   },
 ])
 
@@ -82,6 +87,7 @@ export class PlayerWeapons {
     definitions = [
       classicDefinition,
       phantomDefinition,
+      ghostDefinition,
     ],
     loadout = practiceLoadout,
     initialSlot = 'secondary',
@@ -127,6 +133,7 @@ export class PlayerWeapons {
     const edges = input.consumePressedEvents?.() ?? [
       'primaryWeapon',
       'secondaryWeapon',
+      'tertiaryWeapon',
       'nextWeapon',
       'previousWeapon',
       'previousEquipped',
@@ -139,6 +146,7 @@ export class PlayerWeapons {
       const command = {
         primaryWeapon: { type: 'selectSlot', slotId: 'primary' },
         secondaryWeapon: { type: 'selectSlot', slotId: 'secondary' },
+        tertiaryWeapon: { type: 'selectSlot', slotId: 'tertiary' },
         nextWeapon: { type: 'cycle', direction: 1 },
         previousWeapon: { type: 'cycle', direction: -1 },
         previousEquipped: { type: 'selectPrevious' },

@@ -9,6 +9,10 @@ const hashes = {
   phantom_draw: 'e495efa46fb449a502c99c5809a6696ba2cea70ed75cc5b3e35ccf12be8b7850',
   phantom_reload: '51dc1c9f233451b1a62c0418d6bbad0bc6e4204dd7a99ee209ecefb1177c2fa4',
   phantom_inspect: '83ba2ab667d8c2a7965fd19e2ec8f022919d8f530655cc5b41f714d763238265',
+  ghost_shoot: 'ceab17e7a257808ada95f1720367c36218b99d78afefc5c064db23f4ad09457f',
+  ghost_draw: '76146cc5a899625979e247123660944113791181525bf88d30f5a50aefb371fa',
+  ghost_reload: 'c9bafa4819fa2b634d8656cd9da315ea265cf4b34646ed5e394bd77dc35e10e8',
+  ghost_inspect: 'ff3d3e466afb6beeedcee584092dcc5cf8236b1d876c0a8b51d1698cc5046009',
 }
 
 function profile(weaponId) {
@@ -39,4 +43,5 @@ function profile(weaponId) {
 export const weaponAudioProfiles = Object.freeze({
   classic: profile('classic'),
   phantom: profile('phantom'),
+  ghost: profile('ghost'),
 })

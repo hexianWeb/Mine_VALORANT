@@ -25,7 +25,11 @@ const url = new URL(args[0] && !args[0].startsWith('--')
 const weapon = weaponIndex === -1
   ? url.searchParams.get('weapon') ?? 'classic'
   : args[weaponIndex + 1]
-assert.ok(['classic', 'phantom'].includes(weapon), 'Pass --weapon classic or phantom')
+assert.ok([
+  'classic',
+  'phantom',
+  'ghost',
+].includes(weapon), 'Pass a supported --weapon: classic, phantom, ghost')
 assert.ok(quick || !url.searchParams.has('candidate'), 'Candidate smoke checks require --quick')
 assert.ok(quick || weaponIndex === -1, '--weapon requires --quick; omit both flags for the full regression')
 if (quick)

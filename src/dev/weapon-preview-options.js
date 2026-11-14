@@ -1,8 +1,13 @@
 export function weaponPreviewOptions(search, development) {
   const query = new URLSearchParams(search)
   const weapon = query.get('weapon') ?? 'classic'
-  if (!['classic', 'phantom'].includes(weapon))
+  if (![
+    'classic',
+    'phantom',
+    'ghost',
+  ].includes(weapon)) {
     throw new Error('Unknown preview weapon')
+  }
   const candidate = query.get('candidate')
   if (!candidate)
     return { weapon, baseUrl: '/weapons/', candidate: null }

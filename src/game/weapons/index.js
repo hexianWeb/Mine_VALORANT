@@ -1,5 +1,6 @@
 export { WeaponAssets } from './assets/weapon-assets.js'
 export { classicDefinition } from './definitions/classic.js'
+export { ghostDefinition, ghostGameplayProvenance } from './definitions/ghost.js'
 export { phantomDefinition } from './definitions/phantom.js'
 export { EquipmentController } from './equipment-controller.js'
 export { WeaponInventory } from './inventory.js'

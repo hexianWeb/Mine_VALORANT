@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "ghost",
+  "assetVersion": "v1",
+  "skinId": "spitfire",
+  "compatibility": {
+    "rig": "5c6891717f8714285cb0dcf499f17552b8029de43e687e689fe7c87557b06fac",
+    "geometryUV": "bc96fa7e5a8c6bcdf06f600cffa851d65f0d5577d2a0bc268d4fbcf8d3d44f89",
+    "clipSet": "db96b76889d3603e2203624cab43bb5e99570db882fd3ecde7210c68723d82f0"
+  },
+  "materials": {
+    "weapon": {
+      "map": {
+        "url": "../textures/6dd4402fc12a9ee09f8bbf5f92df49fb86f33e3f4238fce82b02bd9c4b38cd59.png",
+        "sha256": "6dd4402fc12a9ee09f8bbf5f92df49fb86f33e3f4238fce82b02bd9c4b38cd59",
+        "bytes": 344727,
+        "width": 2048,
+        "height": 2048,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "sourceContract": "blender-actions-with-temporary-public-runtime",
+  "weaponId": "ghost",
+  "assetVersion": "v1",
+  "defaultSkinId": "freehand",
+  "authoring": {
+    "path": "tools/weapons/authored-releases/ghost-authoring.json",
+    "sha256": "36e625178f5e4e99d1c20e0c23facca70216e4cf6e1d4bd0f950b8b95a88a4f9"
+  },
+  "runtimeProfile": {
+    "path": "tools/weapons/authored-releases/ghost-temporary-runtime.json",
+    "sha256": "4811d78fc46f3c644a8e799597de47e81e7db5c778cc70cdddbaa6146a0a6e98"
+  },
+  "scene": "80_ThreeJS_Export",
+  "meshes": [
+    "Arms_Left",
+    "Arms_Right",
+    "Weapon_Body",
+    "Weapon_Magazine"
+  ],
+  "armatures": [
+    "root",
+    "views",
+    "camera",
+    "positioning"
+  ],
+  "materials": {
+    "weapon": [
+      "Weapon_Skin"
+    ],
+    "armsLeft": [
+      "Character_Left"
+    ],
+    "armsRight": [
+      "Character_Right"
+    ]
+  },
+  "sockets": {
+    "muzzle": "muzzle_flash",
+    "shell": "shell"
+  },
+  "actions": {
+    "idle": "static_idle",
+    "draw": "draw",
+    "holster": "put_away",
+    "fire": "shoot",
+    "fireAds": "shoot_aim",
+    "reloadTactical": "reload_tactical",
+    "reloadEmpty": "reload_empty",
+    "inspect": "inspect",
+    "aimStart": "aim_start",
+    "aim": "aim",
+    "aimEnd": "aim_end"
+  },
+  "requiredActions": [
+    "idle",
+    "draw",
+    "holster",
+    "fire",
+    "reloadTactical",
+    "reloadEmpty",
+    "inspect"
+  ]
+}

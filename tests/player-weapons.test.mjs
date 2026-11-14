@@ -6,6 +6,7 @@ import { AnimationPlayer } from '../src/engine/runtime/function/animation/animat
 import { AimState } from '../src/game/player/aim-state.js'
 import { createAimProfile } from '../src/game/weapons/aim-profile.js'
 import { classicDefinition } from '../src/game/weapons/definitions/classic.js'
+import { ghostDefinition } from '../src/game/weapons/definitions/ghost.js'
 import { phantomDefinition } from '../src/game/weapons/definitions/phantom.js'
 import { PlayerWeapons } from '../src/game/weapons/player-weapons.js'
 import { createWeaponDefinition } from '../src/game/weapons/weapon-definition.js'
@@ -127,7 +128,10 @@ function fakeAssets() {
   }
 }
 
-function setup(t, { thirdWeapon = false } = {}) {
+function setup(t, {
+  thirdWeapon = false,
+  ghost = false,
+} = {}) {
   const assets = fakeAssets()
   const aim = new AimState({ seed: 123, offsetSmoothing: 0 })
   aim.reset({
@@ -164,6 +168,13 @@ function setup(t, { thirdWeapon = false } = {}) {
       weapon: { instanceId: 'pistol', definitionId: 'classic' },
     },
   ]
+  if (ghost) {
+    definitions.push(ghostDefinition)
+    loadout.push({
+      id: 'tertiary',
+      weapon: { instanceId: 'ghost', definitionId: 'ghost' },
+    })
+  }
   if (thirdWeapon) {
     loadout.push({
       id: 'reserve',
@@ -272,6 +283,62 @@ test('initial loading warms asynchronously, instantiates only in motion and equi
   assert.equal(f.weapons.snapshot().phase, 'Ready')
   assert.equal(f.assets.requests.length, 1, 'initial readiness does not wait for every loadout asset')
 })
+
+test('real Digit3 selects Ghost and its semi-auto, reload and four-skin inputs preserve the visual', async (t) => {
+  const f = setup(t, { ghost: true })
+  await f.ready()
+  f.key('keydown', 'Digit3')
+  f.key('keyup', 'Digit3')
+  f.weapons.collectInput(f.input)
+  f.fixed()
+  assert.equal(f.weapons.snapshot().pendingTarget, 'ghost')
+  await f.assets.resolve('ghost')
+  f.motion()
+  for (let index = 0; index < 30; index++) {
+    f.advance(1)
+    if (f.weapons.snapshot().activeId === 'ghost' && f.weapons.snapshot().canAct)
+      break
+  }
+  f.motion(f.tick * h)
+  assert.equal(f.weapons.snapshot().view.renderActiveId, 'ghost')
+  const visual = f.assets.instances.find(instance => instance.weaponId === 'ghost')
+  const ghost = () => f.weapons.snapshot().inventory.weapons.find(weapon => weapon.instanceId === 'ghost')
+  f.mouse('mousedown', 0)
+  f.weapons.collectInput(f.input)
+  f.fixed()
+  f.advance(5)
+  assert.equal(ghost().magazine, 12, 'held input cannot turn Ghost into an automatic weapon')
+  f.mouse('mouseup', 0)
+  f.mouse('mousedown', 0)
+  f.weapons.collectInput(f.input)
+  f.fixed()
+  assert.equal(ghost().magazine, 11)
+  f.key('keydown', 'KeyR')
+  f.key('keyup', 'KeyR')
+  f.weapons.collectInput(f.input)
+  f.fixed()
+  f.advance(14)
+  assert.equal(ghost().magazine, 11, 'temporary reload commits only at its 1.5-second endpoint')
+  f.advance(1)
+  assert.equal(ghost().magazine, 13)
+  assert.equal(ghost().reserve, 37)
+  for (const skinId of ['recon', 'ego', 'spitfire', 'freehand']) {
+    f.key('keydown', 'KeyK')
+    f.key('keyup', 'KeyK')
+    f.weapons.collectInput(f.input)
+    f.fixed()
+    await f.assets.resolve('ghost')
+    f.motion()
+    f.fixed()
+    f.motion(f.tick * h)
+    assert.equal(f.weapons.snapshot().view.skinId, skinId)
+    assert.equal(visual.disposed, false)
+    assert.equal(ghost().magazine, 13)
+  }
+})
+
+
+
 
 test('Editor handoff retains logically committed B even while the delayed visual still shows A', async (t) => {
   const f = setup(t)
