@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "judge",
+  "assetVersion": "v1",
+  "skinId": "smite",
+  "compatibility": {
+    "rig": "24cc46d470afd3642d3d329ad5af032194a0dc66c7aa6d343106cb299c3a615b",
+    "geometryUV": "0fe8673310e26337ac75d43d2297e346e7a78ccd193575f599aed59489d8ae0c",
+    "clipSet": "75c71cbc91cfc50ab3376fab3990514640167a447e66025b507fc68a0f9b7c78"
+  },
+  "materials": {
+    "weapon": {
+      "map": {
+        "url": "../textures/33b89dc57534feaee6c628d99ef44cc9002de02029d8ecde0aacdf8ef7dade4a.png",
+        "sha256": "33b89dc57534feaee6c628d99ef44cc9002de02029d8ecde0aacdf8ef7dade4a",
+        "bytes": 329349,
+        "width": 2048,
+        "height": 2048,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    }
+  }
+}

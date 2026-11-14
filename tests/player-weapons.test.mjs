@@ -7,6 +7,7 @@ import { AimState } from '../src/game/player/aim-state.js'
 import { createAimProfile } from '../src/game/weapons/aim-profile.js'
 import { classicDefinition } from '../src/game/weapons/definitions/classic.js'
 import { ghostDefinition } from '../src/game/weapons/definitions/ghost.js'
+import { judgeDefinition } from '../src/game/weapons/definitions/judge.js'
 import { phantomDefinition } from '../src/game/weapons/definitions/phantom.js'
 import { sheriffDefinition } from '../src/game/weapons/definitions/sheriff.js'
 import { vandalDefinition } from '../src/game/weapons/definitions/vandal.js'
@@ -135,6 +136,7 @@ function setup(t, {
   ghost = false,
   vandal = false,
   sheriff = false,
+  judge = false,
 } = {}) {
   const assets = fakeAssets()
   const aim = new AimState({ seed: 123, offsetSmoothing: 0 })
@@ -191,6 +193,13 @@ function setup(t, {
     loadout.push({
       id: 'quinary',
       weapon: { instanceId: 'sheriff', definitionId: 'sheriff' },
+    })
+  }
+  if (judge) {
+    definitions.push(judgeDefinition)
+    loadout.push({
+      id: 'senary',
+      weapon: { instanceId: 'judge', definitionId: 'judge' },
     })
   }
   if (thirdWeapon) {
@@ -508,6 +517,85 @@ test('real Digit5 selects Sheriff; semi-auto cooldown, no ADS, reload branches a
   assert.equal(weapon().reserve, 9)
 })
 
+for (const [id, code, option, capacity, reloadTicks, skinIds] of [
+  [
+    'judge',
+    'Digit6',
+    'judge',
+    5,
+    22,
+    ['rush', 'smite'],
+  ],
+]) {
+  test(`${code} selects ${id}; automatic fire, ammo conservation, reload and skins preserve existing weapons`, async (t) => {
+    const f = setup(t, { [option]: true })
+    await f.ready()
+    f.key('keydown', code)
+    f.key('keyup', code)
+    f.weapons.collectInput(f.input)
+    f.fixed()
+    assert.equal(f.weapons.snapshot().pendingTarget, id)
+    await f.assets.resolve(id)
+    f.motion()
+    for (let index = 0; index < 30; index++) {
+      f.advance(1)
+      if (f.weapons.snapshot().activeId === id && f.weapons.snapshot().canAct)
+        break
+    }
+    f.motion(f.tick * h)
+    const weapon = () => f.weapons.snapshot().inventory.weapons.find(weapon => weapon.instanceId === id)
+    assert.equal(f.weapons.snapshot().view.renderActiveId, id)
+    f.mouse('mousedown', 0)
+    f.weapons.collectInput(f.input)
+    const batch = f.fixed()
+    const shot = batch.events.find(event => event.type === 'ShotFired')
+    assert.equal(batch.events.filter(event => event.type === 'ShotFired').length, 1)
+    assert.equal(weapon().magazine, capacity - 1)
+    if (id === 'judge') {
+      assert.equal(shot.payload.pellets.length, 12)
+      assert.ok(shot.payload.pellets.every(pellet => pellet.impact.hit === 'target'))
+      assert.ok(shot.payload.pellets.every(pellet => Math.abs(Math.hypot(...pellet.direction) - 1) < 1e-10))
+    }
+    else {
+      assert.equal(shot.payload.pellets, undefined)
+    }
+    f.advance(id === 'judge'
+      ? 18
+      : 115)
+    assert.equal(weapon().magazine, 0)
+    assert.equal(weapon().shotSequence, capacity, 'one shell or round is spent per committed shot')
+    f.mouse('mouseup', 0)
+    f.mouse('mousedown', 2)
+    f.weapons.collectInput(f.input)
+    f.advance(4)
+    assert.equal(f.aim.sample(f.tick * h).ads, id === 'odin'
+      ? 1
+      : 0)
+    f.mouse('mouseup', 2)
+    f.key('keydown', 'KeyR')
+    f.key('keyup', 'KeyR')
+    f.weapons.collectInput(f.input)
+    f.fixed()
+    f.advance(reloadTicks - 1)
+    assert.equal(weapon().magazine, 0)
+    f.advance(1)
+    assert.equal(weapon().magazine, capacity)
+    assert.equal(weapon().reserve, capacity * 2)
+    const visual = f.assets.instances.find(instance => instance.weaponId === id)
+    for (const skinId of skinIds) {
+      f.key('keydown', 'KeyK')
+      f.key('keyup', 'KeyK')
+      f.weapons.collectInput(f.input)
+      f.fixed()
+      await f.assets.resolve(id)
+      f.motion()
+      f.fixed()
+      f.motion(f.tick * h)
+      assert.equal(f.weapons.snapshot().view.skinId, skinId)
+      assert.equal(visual.disposed, false)
+    }
+  })
+}
 
 test('Editor handoff retains logically committed B even while the delayed visual still shows A', async (t) => {
   const f = setup(t)

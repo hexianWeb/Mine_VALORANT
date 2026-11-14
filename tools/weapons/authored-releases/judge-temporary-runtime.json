@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "originalRuntimeManifestAvailable": false,
+  "provenance": {
+    "status": "temporary-public-reference",
+    "observedAt": "2026-11-14",
+    "referenceUrl": "https://valorant-api.com/v1/weapons/ec845bf4-4f79-ddda-a3da-0db3774b2794",
+    "wikiAccess": "Wiki inaccessible earlier in this session; community game-data API snapshot used instead",
+    "fireMode": "Full-auto project mapping; API fireMode is null",
+    "recoil": "Classic project curves reused temporarily; not Judge source curves",
+    "pelletPattern": "12 deterministic independent ray samples; triangular per-axis project spread, not VALORANT pellet layout",
+    "spread": "Project stand/move/crouch/ads noise scales 0.045/0.08/0.04/0.045, not converted API first-bullet accuracy",
+    "reserve": "Three spare magazines, project practice policy",
+    "reloadCommit": "At the end of the public 2.2-second duration; authoring clips stay 2.5 seconds",
+    "holster": "Zero-duration switch, project policy",
+    "inspect": "Four-second authoring clip used as a project deadline",
+    "unimplementedReferenceFields": "Damage, penetration and weapon-specific movement are recorded only"
+  },
+  "reference": {
+    "provider": "Valorant-API community game data (not Riot official API)",
+    "url": "https://valorant-api.com/v1/weapons/ec845bf4-4f79-ddda-a3da-0db3774b2794",
+    "observedAt": "2026-11-14",
+    "requestUrl": "https://valorant-api.com/v1/weapons",
+    "snapshotKind": "selected Judge and Odin record fields from the successful HTTP tool response",
+    "selectedSnapshotSha256": "b52c020bdbf370a0eee4c826b77b5708dc0a2b715e82ec35ac348c7d0eeeea58",
+    "uuid": "ec845bf4-4f79-ddda-a3da-0db3774b2794",
+    "displayName": "Judge",
+    "weaponStats": {
+      "fireRate": 3.5,
+      "magazineSize": 5,
+      "runSpeedMultiplier": 0.75,
+      "equipTimeSeconds": 1,
+      "reloadTimeSeconds": 2.2,
+      "firstBulletAccuracy": 2.5,
+      "shotgunPelletCount": 12,
+      "wallPenetration": "EWallPenetrationDisplayType::Low",
+      "feature": null,
+      "fireMode": null,
+      "altFireType": null,
+      "adsStats": null,
+      "altShotgunStats": null,
+      "airBurstStats": null,
+      "damageRanges": [
+        {
+          "rangeStartMeters": 0,
+          "rangeEndMeters": 10,
+          "headDamage": 34,
+          "bodyDamage": 17,
+          "legDamage": 14.450001
+        },
+        {
+          "rangeStartMeters": 10,
+          "rangeEndMeters": 15,
+          "headDamage": 20,
+          "bodyDamage": 10,
+          "legDamage": 8.5
+        },
+        {
+          "rangeStartMeters": 15,
+          "rangeEndMeters": 50,
+          "headDamage": 14,
+          "bodyDamage": 7,
+          "legDamage": 5.9500003
+        }
+      ]
+    },
+    "cost": 1850
+  },
+  "definition": {
+    "recoil": {
+      "pitch": [
+        {
+          "time": 0,
+          "min": 0.005235987755982988,
+          "max": 0.005235987755982988
+        },
+        {
+          "time": 0.25,
+          "min": 0.006981317007977318,
+          "max": 0.006981317007977318
+        },
+        {
+          "time": 0.45,
+          "min": -0.0017453292519943296,
+          "max": -0.0017453292519943296
+        },
+        {
+          "time": 0.6,
+          "min": 0,
+          "max": 0
+        }
+      ],
+      "yaw": [
+        {
+          "time": 0,
+          "min": -0.002617993877991494,
+          "max": 0.002617993877991494
+        },
+        {
+          "time": 0.45,
+          "min": 0,
+          "max": 0
+        }
+      ]
+    },
+    "spread": {
+      "stand": 0.045,
+      "move": 0.08,
+      "crouch": 0.04,
+      "ads": 0.045
+    },
+    "aim": {
+      "duration": 0.005,
+      "worldFov": 70,
+      "viewmodelFov": 70
+    },
+    "id": "judge",
+    "capacity": 5,
+    "initialReserve": 15,
+    "fire": {
+      "mode": "auto",
+      "interval": 0.2857142857142857,
+      "pellets": 12
+    },
+    "equip": {
+      "draw": 1,
+      "holster": 0
+    },
+    "reload": {
+      "tactical": {
+        "feed": 2.2,
+        "duration": 2.2
+      },
+      "empty": {
+        "feed": 2.2,
+        "duration": 2.2
+      }
+    },
+    "inspectDuration": 4,
+    "capabilities": {
+      "ads": false
+    },
+    "assets": {
+      "modelId": "judge",
+      "assetVersion": "v1",
+      "defaultSkinId": "smite",
+      "skinIds": [
+        "smite",
+        "rush"
+      ]
+    }
+  },
+  "audio": {
+    "cues": {
+      "judge_shoot": {
+        "id": "judge_shoot",
+        "url": "/audio/judge/judge_shoot.ogg",
+        "sha256": "c4e9ad88e3f87bbeac15b17f5a348c5517b06289ed8f92583694724c03af7855",
+        "gain": 0.25
+      },
+      "judge_draw": {
+        "id": "judge_draw",
+        "url": "/audio/judge/judge_draw.ogg",
+        "sha256": "0a1325afff59ce1741b2eb37b6bec4f946b221679dd2bfa81b1aa6e5a668070a",
+        "gain": 0.22
+      },
+      "judge_reload": {
+        "id": "judge_reload",
+        "url": "/audio/judge/judge_reload.ogg",
+        "sha256": "886c964a93a49ec6533fe5fca0f71a61acc7b39821ae32bd3f99b05b299eb129",
+        "gain": 0.22
+      },
+      "judge_inspect": {
+        "id": "judge_inspect",
+        "url": "/audio/judge/judge_inspect.ogg",
+        "sha256": "0317c5a08fc88ea7acd1b038a30ca61e9a5c64e44666f15027a964a6ac716dcf",
+        "gain": 0.22
+      }
+    },
+    "fire": "judge_shoot",
+    "draw": "judge_draw",
+    "reloadTactical": "judge_reload",
+    "reloadEmpty": "judge_reload",
+    "inspect": "judge_inspect"
+  }
+}

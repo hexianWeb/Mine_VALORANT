@@ -1,0 +1,386 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "judge",
+  "assetVersion": "v1",
+  "model": {
+    "url": "model.glb",
+    "sha256": "ce23cf0aad40e0f2e47681988a4e8abe95db94929a767067ddc58d0aad0498e8",
+    "bytes": 1090500
+  },
+  "compatibility": {
+    "rig": "24cc46d470afd3642d3d329ad5af032194a0dc66c7aa6d343106cb299c3a615b",
+    "geometryUV": "0fe8673310e26337ac75d43d2297e346e7a78ccd193575f599aed59489d8ae0c",
+    "clipSet": "75c71cbc91cfc50ab3376fab3990514640167a447e66025b507fc68a0f9b7c78"
+  },
+  "armContract": {
+    "version": 1,
+    "textureSha256": "2c041879daf6509fe3da88a8e1b857e4b9a7c9b67279d012382f5f03529750e9"
+  },
+  "clips": [
+    {
+      "name": "ADS_down",
+      "duration": 0.6,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "ADS_up",
+      "duration": 0.6333,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim",
+      "duration": 0.25,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim_end",
+      "duration": 0.2,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim_start",
+      "duration": 0.2,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "ammo_display",
+      "duration": 4,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "draw",
+      "duration": 1.25,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "idle",
+      "duration": 7.2667,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "inspect",
+      "duration": 4,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "inspect_empty",
+      "duration": 4,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_1",
+      "duration": 0.8,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_2",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_3",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_push",
+      "duration": 0.7083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_stock",
+      "duration": 0.7083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "put_away",
+      "duration": 0.4667,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "reload_empty",
+      "duration": 2.5,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "reload_tactical",
+      "duration": 2.5,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run",
+      "duration": 0.8,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_end",
+      "duration": 0.65,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_hold",
+      "duration": 0.2917,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_start",
+      "duration": 0.3,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "shoot",
+      "duration": 1.1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "shoot_aim",
+      "duration": 1.1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide",
+      "duration": 0.75,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide_back",
+      "duration": 0.85,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide_idle",
+      "duration": 7.3333,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "static_bolt_caught",
+      "duration": 0.05,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "static_idle",
+      "duration": 2,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_aiming",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_backward",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_forward",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_sideway",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    }
+  ],
+  "actions": {
+    "idle": "static_idle",
+    "draw": "draw",
+    "holster": "put_away",
+    "fire": "shoot",
+    "fireAds": "shoot_aim",
+    "reloadTactical": "reload_tactical",
+    "reloadEmpty": "reload_empty",
+    "inspect": "inspect",
+    "aimStart": "aim_start",
+    "aim": "aim",
+    "aimEnd": "aim_end"
+  },
+  "requiredActions": [
+    "idle",
+    "draw",
+    "holster",
+    "fire",
+    "reloadTactical",
+    "reloadEmpty",
+    "inspect"
+  ],
+  "materials": {
+    "weapon": [
+      "Weapon_Skin"
+    ],
+    "armsLeft": [
+      "Character_Left"
+    ],
+    "armsRight": [
+      "Character_Right"
+    ]
+  },
+  "meshes": [
+    "Arms_Left",
+    "Arms_Right",
+    "Weapon_Body",
+    "Weapon_Magazine"
+  ],
+  "sockets": {
+    "muzzle": "muzzle_flash",
+    "shell": "shell"
+  },
+  "defaultSkinId": "smite",
+  "skins": {
+    "smite": {
+      "url": "skins/smite.json",
+      "sha256": "8f14be4318dc8916aab40b6e2a9e548757c2c692fe9e0a17f26ebeb90c824543",
+      "bytes": 841
+    },
+    "rush": {
+      "url": "skins/rush.json",
+      "sha256": "626b6a8dfcfc8c91ff29fd8aa58e74180adf7b777db0097a5fe75bc9a2318ca6",
+      "bytes": 840
+    }
+  },
+  "view": {
+    "unitsPerMeter": 1,
+    "up": "Y",
+    "forward": "-Z",
+    "mountOffset": [
+      0.32499998807907104,
+      -0.875,
+      -0.875
+    ],
+    "verticalFov": 70,
+    "aimVerticalFov": 70,
+    "source": "Camera_FP authoring alignment, public-reference trial gameplay"
+  },
+  "runtimeControls": {
+    "ammoDisplay": {
+      "clip": "ammo_display",
+      "tracks": [
+        "bullet4.scale",
+        "bullet3.scale",
+        "bullet2.scale",
+        "bullet1.scale",
+        "bullet0.scale"
+      ]
+    },
+    "boltCaught": {
+      "clip": "static_bolt_caught",
+      "tracks": [
+        "bullets.scale"
+      ]
+    }
+  },
+  "ammoDisplay": {
+    "control": "ammoDisplay",
+    "levels": [
+      {
+        "minimum": 0,
+        "time": 1.1666666269302368
+      },
+      {
+        "minimum": 1,
+        "time": 0.9166666865348816
+      },
+      {
+        "minimum": 2,
+        "time": 0.6666666865348816
+      },
+      {
+        "minimum": 3,
+        "time": 0.4166666567325592
+      },
+      {
+        "minimum": 4,
+        "time": 0.1666666716337204
+      },
+      {
+        "minimum": 5,
+        "time": 0
+      }
+    ]
+  },
+  "runtimeProfile": {
+    "url": "runtime-profile.json",
+    "sha256": "5b3c158f6e6b1a46ab1693f339dc50ed0623c891bbc808789b29f8be9ccb7dfe",
+    "bytes": 5390
+  },
+  "provenance": {
+    "kind": "blender-actions-with-temporary-public-runtime",
+    "sourceBlend": "skin_work_folder/judge_skin_work/Judge_Smite_Animated.blend",
+    "sourceBlendSha256": "8b1ee764a4981cb05267a00441669a33305ed083f034eeb871afbf007f1b6a19",
+    "sourceTextureSha256": "33b89dc57534feaee6c628d99ef44cc9002de02029d8ecde0aacdf8ef7dade4a",
+    "authoringMetadataSha256": "b1527f9fedafc3690fcc92402c1060d2f4d4c9b69bd473c901b6855bab99f9fb",
+    "runtimeProfileSha256": "5b3c158f6e6b1a46ab1693f339dc50ed0623c891bbc808789b29f8be9ccb7dfe",
+    "releaseRecipeSha256": "f01040a6e3ca60ad1db180aed521da04e56f902cdb3d36a4c9b87c7b3f2c3c7e",
+    "originalRuntimeManifestAvailable": false,
+    "gameplayParameters": "temporary-public-reference",
+    "exportScene": "80_ThreeJS_Export",
+    "blenderVersion": "5.2.3 LTS"
+  }
+}

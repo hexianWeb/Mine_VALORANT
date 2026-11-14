@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "sourceContract": "blender-actions-with-temporary-public-runtime",
+  "weaponId": "judge",
+  "assetVersion": "v1",
+  "defaultSkinId": "smite",
+  "authoring": {
+    "path": "tools/weapons/authored-releases/judge-authoring.json",
+    "sha256": "b1527f9fedafc3690fcc92402c1060d2f4d4c9b69bd473c901b6855bab99f9fb"
+  },
+  "runtimeProfile": {
+    "path": "tools/weapons/authored-releases/judge-temporary-runtime.json",
+    "sha256": "5b3c158f6e6b1a46ab1693f339dc50ed0623c891bbc808789b29f8be9ccb7dfe"
+  },
+  "scene": "80_ThreeJS_Export",
+  "meshes": [
+    "Arms_Left",
+    "Arms_Right",
+    "Weapon_Body",
+    "Weapon_Magazine"
+  ],
+  "armatures": [
+    "root",
+    "views",
+    "camera",
+    "positioning"
+  ],
+  "materials": {
+    "weapon": [
+      "Weapon_Skin"
+    ],
+    "armsLeft": [
+      "Character_Left"
+    ],
+    "armsRight": [
+      "Character_Right"
+    ]
+  },
+  "sockets": {
+    "muzzle": "muzzle_flash",
+    "shell": "shell"
+  },
+  "actions": {
+    "idle": "static_idle",
+    "draw": "draw",
+    "holster": "put_away",
+    "fire": "shoot",
+    "fireAds": "shoot_aim",
+    "reloadTactical": "reload_tactical",
+    "reloadEmpty": "reload_empty",
+    "inspect": "inspect",
+    "aimStart": "aim_start",
+    "aim": "aim",
+    "aimEnd": "aim_end"
+  },
+  "requiredActions": [
+    "idle",
+    "draw",
+    "holster",
+    "fire",
+    "reloadTactical",
+    "reloadEmpty",
+    "inspect"
+  ]
+}
