@@ -2,9 +2,19 @@ import * as THREE from 'three/webgpu'
 import { AnimationPlayer } from '../../../engine/runtime/function/animation/animation-player.js'
 import { ClipLibrary } from '../../../engine/runtime/function/animation/clip-library.js'
 import { validateAmmoDisplay } from './weapon-control-profile.js'
-import { applyWeaponMaterialProfile } from './weapon-materials.js'
+import { applyWeaponMaterialProfile, validateWeaponSkinMaterial } from './weapon-materials.js'
 
 let nextScope = 0
+
+const indoorReflectionIntensity = 0.3
+const defaultEmissiveIntensity = 0.4
+const skinTextureSettings = Object.freeze({
+  colorSpace: THREE.SRGBColorSpace,
+  flipY: false,
+  magFilter: THREE.NearestFilter,
+  minFilter: THREE.NearestFilter,
+  generateMipmaps: false,
+})
 
 function identifier(value, label) {
   if (typeof value !== 'string' || !value.length || value.trim() !== value)
@@ -119,19 +129,25 @@ function validateSkin(manifest, skin, request) {
     throw new Error('[WeaponAssets] Skins may only replace weapon/scope materials, never character arms')
 }
 
-function textureSettings(map) {
-  if (!map || typeof map.url !== 'string' || map.colorSpace !== 'srgb'
-    || map.flipY !== false || map.magFilter !== 'nearest' || map.minFilter !== 'nearest'
-    || map.generateMipmaps !== false) {
-    throw new Error('[WeaponAssets] Unsupported skin map sampling profile')
+function applySkinBinding(material, source, binding) {
+  const map = binding?.map ?? source.map
+  let changed = material.map !== map
+  material.map = map
+  if (material.isMeshStandardMaterial) {
+    const emissiveMap = binding?.emissiveMap ?? source.emissiveMap
+    changed ||= material.emissiveMap !== emissiveMap
+    material.emissiveMap = emissiveMap
+    if (binding?.emissiveMap) {
+      material.emissive.setScalar(1)
+      material.emissiveIntensity = binding.emissiveIntensity
+    }
+    else {
+      material.emissive.copy(source.emissive)
+      material.emissiveIntensity = source.emissiveIntensity
+    }
   }
-  return {
-    colorSpace: THREE.SRGBColorSpace,
-    flipY: false,
-    magFilter: THREE.NearestFilter,
-    minFilter: THREE.NearestFilter,
-    generateMipmaps: false,
-  }
+  if (changed)
+    material.needsUpdate = true
 }
 
 /**
@@ -158,16 +174,17 @@ export class WeaponAssets {
   #manifests = new Map()
   // The first validated package owns the map; all contract-compatible weapons borrow it.
   #armMaps = new Map()
-  #materialStudy
+  #reflectionTexture
+  #reflectionIntensity = indoorReflectionIntensity
 
-  constructor({ resources, scopeId, baseUrl = '/weapons/', signal, audio = null, materialStudy = null } = {}) {
+  constructor({ resources, scopeId, baseUrl = '/weapons/', signal, audio = null, reflectionTexture = null } = {}) {
     identifier(scopeId, 'scopeId')
     if (!resources || !['load', 'get', 'instantiate', 'unload'].every(key => typeof resources[key] === 'function'))
       throw new TypeError('[WeaponAssets] Expected a ResourceManager')
     identifier(baseUrl, 'baseUrl')
     this.#resources = resources
     this.#audio = audio
-    this.#materialStudy = materialStudy
+    this.#reflectionTexture = reflectionTexture
     this.#baseUrl = baseUrl.endsWith('/')
       ? baseUrl
       : `${baseUrl}/`
@@ -253,6 +270,22 @@ export class WeaponAssets {
     return this.#resources.get(entry.name, entry.type)
   }
 
+  async #loadSkinTexture(packageKey, skinId, role, skinURL, descriptor) {
+    const url = resolveURL(descriptor.url, skinURL)
+    const name = `${packageKey}:texture:${JSON.stringify([skinId, role, url])}`
+    const texture = await this.#loadEntry({
+      name,
+      type: 'texture',
+      url,
+      options: { colorSpace: skinTextureSettings.colorSpace },
+    })
+    if (Object.entries(skinTextureSettings).some(([key, value]) => texture[key] !== value)) {
+      Object.assign(texture, skinTextureSettings)
+      texture.needsUpdate = true
+    }
+    return texture
+  }
+
   async #loadShared(request) {
     const packageKey = `${this.#prefix}:${JSON.stringify([request.weaponId, request.assetVersion])}`
     const manifestURL = resolveURL(`${encodeURIComponent(request.weaponId)}/${encodeURIComponent(request.assetVersion)}/manifest.json`, this.#baseUrl)
@@ -284,7 +317,6 @@ export class WeaponAssets {
     })
     for (const role of manifest.requiredActions) library.get(role)
     validateAmmoDisplay(manifest, library)
-    const bindings = new Map()
     const materialRoles = new Map()
     for (const [role, names] of Object.entries(manifest.materials ?? {})) {
       if (!Array.isArray(names))
@@ -303,6 +335,13 @@ export class WeaponAssets {
         if (material)
           sourceMaterials.set(material.name, material)
       }
+    })
+    const skinMaterials = Object.entries(skin.materials).map(([role, input]) => {
+      const names = manifest.materials?.[role]
+      if (!Array.isArray(names) || !names.length || names.some(name => !sourceMaterials.has(name)))
+        throw new Error(`[WeaponAssets] Missing material binding for role: ${role}`)
+      validateWeaponSkinMaterial(input, role)
+      return { role, names, input }
     })
     let sharedArmMap = null
     const armMaterialNames = new Set()
@@ -333,28 +372,21 @@ export class WeaponAssets {
         this.#armMaps.set(key, sharedArmMap)
       }
     }
-    await Promise.all(Object.entries(skin.materials).map(async ([role, materialInput]) => {
-      const names = manifest.materials?.[role]
-      if (!Array.isArray(names) || !names.length || names.some(name => !sourceMaterials.has(name)))
-        throw new Error(`[WeaponAssets] Missing material binding for role: ${role}`)
-      if (!materialInput || Object.keys(materialInput).some(key => key !== 'map'))
-        throw new Error(`[WeaponAssets] Unsupported material inputs for role: ${role}`)
-      const settings = textureSettings(materialInput.map)
-      const url = resolveURL(materialInput.map.url, skinURL)
-      const name = `${packageKey}:texture:${JSON.stringify([request.skinId, role, url, settings])}`
-      const texture = await this.#loadEntry({
-        name,
-        type: 'texture',
-        url,
-        options: { colorSpace: settings.colorSpace },
-      })
-      Object.assign(texture, settings)
-      texture.needsUpdate = true
-      for (const materialName of names) {
-        if (bindings.has(materialName))
-          throw new Error(`[WeaponAssets] Material has multiple skin roles: ${materialName}`)
-        bindings.set(materialName, texture)
+    const bindings = new Map()
+    await Promise.all(skinMaterials.map(async ({ role, names, input }) => {
+      const [map, emissiveMap] = await Promise.all([
+        this.#loadSkinTexture(packageKey, request.skinId, role, skinURL, input.map),
+        input.emissiveMap && this.#loadSkinTexture(packageKey, request.skinId, role, skinURL, input.emissiveMap),
+      ])
+      const fallbackEmission = role === 'weapon'
+        ? map
+        : undefined
+      const binding = {
+        map,
+        emissiveMap: emissiveMap ?? fallbackEmission,
+        emissiveIntensity: input.emissiveIntensity ?? defaultEmissiveIntensity,
       }
+      for (const name of names) bindings.set(name, binding)
     }))
     this.#assertOpen()
     const handle = Object.freeze({ ...request, manifest })
@@ -384,7 +416,6 @@ export class WeaponAssets {
     let player
     let released = false
     let instance
-    let studyBinding
     const dispose = () => {
       if (released)
         return
@@ -393,7 +424,6 @@ export class WeaponAssets {
       const errors = []
       for (const release of [
         () => player?.dispose(),
-        () => studyBinding?.dispose(),
         () => root.removeFromParent(),
         ...Array.from(skeletons, skeleton => () => skeleton.dispose()),
         ...Array.from(materials.values(), material => () => material.dispose()),
@@ -420,15 +450,20 @@ export class WeaponAssets {
           if (!materials.has(source)) {
             const material = source.clone()
             materials.set(source, material)
-            applyWeaponMaterialProfile(material, record.materialRoles.get(source.name))
+            const role = record.materialRoles.get(source.name)
+            applyWeaponMaterialProfile(material, role)
+            if (role === 'weapon' && material.isMeshStandardMaterial) {
+              material.envMap = this.#reflectionTexture
+              if (this.#reflectionTexture)
+                material.envMapIntensity = this.#reflectionIntensity
+            }
             if (record.armMaterialNames.has(source.name)) {
               material.map = record.sharedArmMap
               material.needsUpdate = true
             }
-            if (record.bindings.has(source.name)) {
-              material.map = record.bindings.get(source.name)
-              material.needsUpdate = true
-            }
+            const binding = record.bindings.get(source.name)
+            if (binding)
+              applySkinBinding(material, source, binding)
           }
           return materials.get(source)
         }
@@ -436,14 +471,13 @@ export class WeaponAssets {
           ? object.material.map(cloneMaterial)
           : cloneMaterial(object.material)
       })
-      studyBinding = this.#materialStudy?.attach(root, handle, record.materialRoles)
       player = new AnimationPlayer({
         root,
         clips: record.clips,
         actions: record.actions,
         controls: record.controls,
       })
-      const state = { handle, materials, studyBinding }
+      const state = { handle, materials }
       instance = Object.freeze({
         root,
         player,
@@ -487,17 +521,28 @@ export class WeaponAssets {
       const matches = [...state.materials].filter(([source]) => source.name === name)
       if (!matches.length)
         throw new Error(`[WeaponAssets] Missing instance material: ${name}`)
+      const binding = next.bindings.get(name)
       for (const [source, material] of matches)
-        updates.push([material, next.bindings.get(name) ?? source.map])
+        updates.push([material, source, binding])
     }
-    for (const [material, map] of updates) {
-      if (material.map !== map) {
-        material.map = map
-        material.needsUpdate = true
+    for (const [material, source, binding] of updates)
+      applySkinBinding(material, source, binding)
+    state.handle = handle
+  }
+
+  setReflectionEnabled(enabled) {
+    this.#assertOpen()
+    if (!this.#reflectionTexture)
+      return
+    this.#reflectionIntensity = enabled ? indoorReflectionIntensity : 0
+    for (const instance of this.#instances) {
+      const { handle, materials } = this.#instanceRecords.get(instance)
+      const { materialRoles } = this.#handles.get(handle)
+      for (const [source, material] of materials) {
+        if (materialRoles.get(source.name) === 'weapon' && material.isMeshStandardMaterial)
+          material.envMapIntensity = this.#reflectionIntensity
       }
     }
-    state.handle = handle
-    state.studyBinding?.setSkin(handle)
   }
 
   #assertOpen() {
@@ -536,6 +581,7 @@ export class WeaponAssets {
     this.#audioCues.clear()
     this.#manifests.clear()
     this.#armMaps.clear()
+    this.#reflectionTexture = null
     this.#handles = new WeakMap()
     this.#instanceRecords = new WeakMap()
     if (errors.length)

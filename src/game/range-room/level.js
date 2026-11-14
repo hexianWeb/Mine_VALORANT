@@ -4,7 +4,6 @@ import { GameObject, Level, MeshComponent, TransformComponent } from '../../engi
 import { createEnvironmentProxy } from '../../engine/runtime/function/render/sky-environment.js'
 import { createPlayer, PlayerComponent } from '../player/player.js'
 import { WeaponAssets } from '../weapons/assets/weapon-assets.js'
-import { createWeaponMaterialStudy } from '../weapons/assets/weapon-material-study.js'
 import { classicDefinition } from '../weapons/definitions/classic.js'
 import { loadRoomAssets } from './assets/room-assets.js'
 import { loadCollisionLayer } from './collision.js'
@@ -28,10 +27,10 @@ export class RangeRoomLevel extends Level {
   shadows = null
   environmentProxy = null
   reflection = null
-  weaponStudy = null
   ready = false
   #loading = false
   #probesLoading = false
+  #weaponAssets = null
   #controller = new AbortController()
   #bindings = new Disposer()
 
@@ -113,8 +112,7 @@ export class RangeRoomLevel extends Level {
       camera.updateProjectionMatrix()
       if (this.render && settings.probes && room.manifest.schemaVersion === 4)
         await this.loadProbes(this.render.renderer, onProgress, token)
-      if (this.render && (settings.weaponStudy || settings.reflectionPreview) && room.manifest.schemaVersion === 4) {
-        let reflectionError = null
+      if (this.render && room.manifest.schemaVersion === 4) {
         try {
           this.reflection = this.disposer.add(await loadRoomReflection({
             renderer: this.render.renderer,
@@ -128,11 +126,8 @@ export class RangeRoomLevel extends Level {
         }
         catch (error) {
           token.throwIfAborted()
-          reflectionError = error.message
           console.warn('[Range room] Indoor reflection unavailable; using sky', error)
         }
-        if (settings.weaponStudy)
-          this.weaponStudy = this.disposer.add(createWeaponMaterialStudy({ scene, reflection: this.reflection, error: reflectionError }))
       }
       token.throwIfAborted()
       if (this.input && this.physics) {
@@ -155,8 +150,10 @@ export class RangeRoomLevel extends Level {
               scopeId: 'range-room-weapons',
               signal: token,
               audio: this.audio,
-              materialStudy: this.weaponStudy,
+              reflectionTexture: this.reflection?.texture,
             }))
+            this.#weaponAssets = assets
+            assets.setReflectionEnabled(this.lights.root.visible)
             weapons = { assets, layer: this.render.viewmodel, audio: this.audio }
             // Prewarm shared data only. VisualPrepared requires motion ticks after load completes.
             const initial = classicDefinition.assets
@@ -252,10 +249,9 @@ export class RangeRoomLevel extends Level {
       throw new Error('[Range room] Room is not ready')
     this.lights.setEnabled(enabled)
     this.probes?.setRuntimeEnabled(enabled)
-    this.reflection?.setRuntimeEnabled(enabled)
     this.ground?.setLightingEnabled(enabled)
     this.scene.environmentIntensity = enabled ? this.settings.environmentIntensity : 0
-    this.weaponStudy?.refresh()
+    this.#weaponAssets?.setReflectionEnabled(enabled)
   }
 
   snapshot() {
@@ -297,7 +293,7 @@ export class RangeRoomLevel extends Level {
         : null,
       lightCalibration: 'initial fit; RectAreaLight shadows/Spread unavailable; visual acceptance required',
       probes: this.probes?.getDebugState() ?? null,
-      weaponStudy: this.weaponStudy?.getDebugState() ?? null,
+      reflection: this.reflection?.getDebugState() ?? null,
       reflectionPreview: this.reflection?.preview?.getDebugState() ?? null,
       ground: this.ground?.snapshot() ?? null,
     }

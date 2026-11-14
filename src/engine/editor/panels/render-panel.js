@@ -1,10 +1,9 @@
 import { Pane } from 'tweakpane'
 import { gradingPresets, renderConfig } from '../../runtime/function/render/index.js'
 import { addProbePanel } from './probe-panel.js'
-import { addWeaponStudyPanel } from './weapon-study-panel.js'
 
 /** 场景光照、AO 和 LUT 控件。 */
-export function createDebugPanel(render, container, lightingMode = 'lightmap', probes = null, weaponStudy = null) {
+export function createDebugPanel(render, container, lightingMode = 'lightmap', probes = null) {
   const state = render.getDebugState()
   const params = {
     ...state,
@@ -35,9 +34,6 @@ export function createDebugPanel(render, container, lightingMode = 'lightmap', p
   file.hidden = true
   container.append(file)
   let disposed = false
-  const studyPanel = weaponStudy
-    ? addWeaponStudyPanel(pane, weaponStudy)
-    : null
   const probePanel = probes
     ? addProbePanel(pane, probes)
     : null
@@ -205,7 +201,6 @@ export function createDebugPanel(render, container, lightingMode = 'lightmap', p
       disposed = true
       file.removeEventListener('change', onFile)
       probePanel?.dispose()
-      studyPanel?.dispose()
       pane.dispose()
       file.remove()
       message.remove()

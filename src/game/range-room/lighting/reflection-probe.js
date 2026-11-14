@@ -41,19 +41,15 @@ export async function loadRoomReflection({ renderer, room, skyboxUrl, signal, pr
     for (const face of cube.images) face.dispose()
   }
   target.texture.name = roomReflectionDefinition.id
-  let enabled = true
   let disposed = false
   const loadMs = performance.now() - started
   return {
     texture: target.texture,
     preview: previewPlane,
     definition: roomReflectionDefinition,
-    get enabled() { return enabled && !disposed },
-    setRuntimeEnabled(value) { enabled = !!value },
     getDebugState: () => ({
       id: manifest.id,
       ready: !disposed,
-      enabled,
       source: 'precomputed',
       bytes: manifest.bytes,
       loadMs,

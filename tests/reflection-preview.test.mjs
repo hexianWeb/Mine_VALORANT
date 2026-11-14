@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
+import fs from 'node:fs'
 import test from 'node:test'
 import * as THREE from 'three/webgpu'
-import { reflectionCubeFromBytes } from '../src/game/range-room/lighting/reflection-data.js'
+import { reflectionCubeFromBytes, reflectionEncoding, roomReflectionDefinition, validateReflectionManifest } from '../src/game/range-room/lighting/reflection-data.js'
 import { createReflectionPreview } from '../src/game/range-room/lighting/reflection-preview.js'
 
 function fixture() {
@@ -70,6 +72,38 @@ test('preview disposal removes only its own plane and resources, not the source 
   assert.equal(ownedDisposals, 3)
   assert.equal(borrowedDisposals, 0)
   assert.equal(preview.getDebugState().ready, false)
+  cube.dispose()
+  for (const face of cube.images) face.dispose()
+})
+
+test('published reflection source is finite scene-linear HDR, versioned and bound to the room and sky', () => {
+  const base = new URL('../public/lighting/range-room-reflections/v1/', import.meta.url)
+  const manifest = JSON.parse(fs.readFileSync(new URL('manifest.json', base), 'utf8'))
+  const room = JSON.parse(fs.readFileSync(new URL('../public/lighting/range-room-lightmap/manifest.json', import.meta.url), 'utf8'))
+  const hash = bytes => createHash('sha256').update(bytes).digest('hex')
+  const source = {
+    version: 1,
+    three: THREE.REVISION,
+    room: hash(JSON.stringify(room)),
+    sky: hash(fs.readFileSync(new URL('../public/hdr/skybox-day.png', import.meta.url))),
+    capture: roomReflectionDefinition,
+    encoding: reflectionEncoding,
+  }
+  validateReflectionManifest(manifest, source)
+  assert.throws(() => validateReflectionManifest(manifest, { ...source, sky: 'changed' }), /stale/)
+  const bytes = fs.readFileSync(new URL(manifest.url, base))
+  assert.equal(hash(bytes), manifest.sha256)
+  const cube = reflectionCubeFromBytes(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength))
+  assert.equal(cube.colorSpace, THREE.LinearSRGBColorSpace)
+  assert.equal(cube.type, THREE.HalfFloatType)
+  assert.equal(cube.flipY, false)
+  assert.equal(cube.images.length, 6)
+  assert.ok(manifest.stats.every(face => face.rgbMean > 0))
+  assert.ok(manifest.stats.some(face => face.rgbMax > 1), 'the stored reflection must retain HDR energy')
+  assert.throws(() => reflectionCubeFromBytes(new ArrayBuffer(8)), /length/)
+  const invalid = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+  new DataView(invalid).setUint16(0, 0x7C00, true)
+  assert.throws(() => reflectionCubeFromBytes(invalid), /Non-finite/)
   cube.dispose()
   for (const face of cube.images) face.dispose()
 })

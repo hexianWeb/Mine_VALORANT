@@ -1,6 +1,6 @@
 # 武器资源发布与动画播放
 
-> 本文描述现行发布、播放与材质兼容行为。`?weaponStudy=1` 已提供 Classic v4／AG 的平直着色、全金属、零自发光和静态局部反射小样，默认及其他皮肤不变，见[材质路线图](material-quality-roadmap.md#当前小样入口与验证)；不把旧发光路径作为新皮肤制作方案。
+> 枪身默认使用平直着色、全金属、跟随皮肤的自发光和静态室内反射。[材质参数与验证](material-quality-roadmap.md#当前默认材质与验证)
 
 [整体设计](../superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md)的发布与播放模块已接入主游戏：Classic 默认 AG、Phantom 默认 Tactiplay，由关卡作用域加载，每个视觉实例拥有独立 AnimationPlayer。主页面通过装备事实驱动双枪视模；专用预览页仍用于资产采样验收。Classic 的精简网格与 336 图集见[裁图、UV 与发布工作流](gun-only-uv-workflow.md)。固定瞄准和控件见[武器玩法](gameplay.md)，双枪的声音及独立 cue 时钟见[运行时音频](audio.md)。
 
@@ -44,7 +44,7 @@ visual.dispose()
 assets.dispose()
 ```
 
-`assets.applySkin(visual, compatibleHandle)` 同步、原子地替换该实例武器/镜体的兼容皮肤材质绑定，保留材质对象、骨架与播放器；当前绑定仍包含下述待迁移的旧材质状态。句柄和实例必须属于同一存活作用域及同一模型版本；外来/已释放对象、跨版本替换会拒绝。皮肤不得覆盖角色手臂。PlayerWeapons 的准备票据与 SkinChanged 事实决定实际调用时刻，异步回调本身不会换肤。
+`assets.applySkin(visual, compatibleHandle)` 同步、原子地替换该实例武器和镜体的皮肤材质绑定，保留材质对象、骨架与播放器。句柄和实例必须属于同一存活作用域及同一模型版本。皮肤仅能绑定枪身和镜体材质。PlayerWeapons 的准备票据与 SkinChanged 事实决定实际调用时刻。
 
 `load()` 只预热模板和皮肤，返回冻结的 AssetReady 句柄，未创建模型或 Mixer。`instantiate()` 同步创建 detached root 和播放器，并验证实际加载节点的轨道绑定。缺少必需动作、材质、节点或皮肤签名不匹配都会拒绝准备。
 
@@ -54,15 +54,11 @@ assets.dispose()
 
 epoch/requestId 的裁定由 EquipmentController 完成；WeaponViewModel 管理 active/staged 两个槽位及已接受事务的保留状态。Promise 只预热，motion 才实例化并投递 prepared，下一固定步裁定装备。逻辑提交后旧模型仍可显示到公共表现时间 P 到达交接点；释放旧实例后才腾出下一目标的 staged 槽。当前 loader 在运行时校验 GLB 哈希；JSON 和 PNG 的完整性在发布验证阶段检查，运行时尚未逐文件校验其哈希。
 
-### 旧材质兼容状态
+### 皮肤自发光
 
-**以下是仍在代码中的待迁移行为，不是新材质的推荐配置：**
-
-- 默认加载与换肤主要更新颜色图，仍可能继承 GLB 的自发光和清漆；旧独立发光接口及回归预期尚未统一，不应将它们当成新版皮肤契约。
-- 角色级配置目前主要覆盖粗糙度和金属度，不能据此认为导入材质的清漆、发光和法线策略已全部统一。
-- AG 可选小样已在实例创建、换肤和重新装备时显式关闭发光与清漆，并借用场景所有的静态反射；关闭小样或切到其他皮肤恢复原材质参数。其他路径不能仅因文档或字段变化就宣称已完成迁移。
-
-旧路径仅供定位现行行为与兼容回归，不再提供额外发光素材的制作／发布指引。新的材质参数、静态反射与迁移验收统一以[材质路线图](material-quality-roadmap.md)为准；既有资产、动作和手臂契约保持不变。
+- 枪身优先使用皮肤的 `emissiveMap`，只提供 `map` 时共用这张底色图。发光颜色为白色，强度默认 `0.4`。只有提供了独立发光图，皮肤才能用 `emissiveIntensity` 覆盖默认值。
+- 镜体沿用源材质的发光通道，皮肤可用独立发光图覆盖。移除镜体覆盖时恢复源材质的底色、发光图、发光颜色和强度。
+- 底色图和独立发光图都按 sRGB、最近邻、无 mipmap 加载。两张图准备完成后一起切换，下载失败时当前皮肤继续显示。
 
 ## function/animation 的接口
 
@@ -108,7 +104,7 @@ RenderSystem 拥有稳定的 `viewmodel` layer，包括独立 Scene、Perspectiv
 
 世界灯光通过独立 Lighting/LightsNode 借用，不重设 parent，不复制或释放世界灯光、探针 atlas 和天空纹理；灯光可见性、layers 和移除会在下一次绘制同步。保留 `viewmodelLightIntensity` 作为弱暗部补光，默认从 3 降到 **0.18**，可在右侧「武器 · 场景光照」中调节和重置。
 
-`assets/weapon-materials.js` 的 `weaponMaterialProfiles` 默认仍按 weapon / scope / armsLeft / armsRight 角色配置 roughness 与 metalness。可选的 `weapon-material-study.js` 仅对 Classic v4／AG 覆盖平直着色、全金属、零发光／零清漆与局部镜面环境，实例释放时撤销绑定；不重建骨架、修改皮肤像素或影响手臂。反射由关卡拥有，材质借用，不为每把枪复制 PMREM。手臂采样与纹理所有权见[手臂规范](arm-uv-contract.md)。默认路径和新小样分开验收，完整推广仍按路线图推进。
+`assets/weapon-materials.js` 按 weapon / scope / armsLeft / armsRight 配置材质。枪身的金属度和粗糙度为 `1`，启用平直着色并清除法线贴图。Physical 材质保留源资产的清漆强度，清漆粗糙度为 `0.18`。枪身材质借用关卡共享的室内 PMREM，倍率为 `0.3`，资源缺失时由视模场景提供天空环境。[手臂采样与纹理所有权](arm-uv-contract.md)
 
 ## 浏览器预览与验证
 
@@ -125,7 +121,7 @@ Node 专项测试为 animation.test.mjs、weapon-assets.test.mjs、weapon-public
 
 主游戏检查使用 `check-weapon-gameplay-browser.mjs`，与预览检查分开运行；输出默认在 `D:/opencode-temp/opencode/weapon-gameplay-browser`，可用 `WEAPON_GAME_TEST_OUTPUT` 修改。其结果以当次 report.json 为准；该工具覆盖输入、装备事件、固定瞄准与视模接线，并隔离左右手、读取视模 HDR alpha，检查 Classic → Phantom → Classic 重复切换后的实际手臂像素和共享贴图。声音实际解码、输出波形和生命周期另用 `check-weapon-audio-browser.mjs` 验证。
 
-`check-weapon-lighting-browser.mjs` 使用启用探针的主页面及真实武器 HDR 读回，验证现行直接光、探针、环境反射、移动/转向受光、世界 AO 隔离和轮廓不漂移；另在隔离作用域对待迁移的旧材质路径做兼容回归，保存 AG / Sakura / Tactiplay 截图，并核对换肤后材质参数。旧兼容测试通过不代表已完成零自发光全金属、平直着色或局部反射验收。默认输出 `D:/opencode-temp/opencode/weapon-lighting-browser`，可用 `WEAPON_LIGHTING_TEST_OUTPUT` 修改；需要开发服务器加载 GPU 测试模块。独立 `/weapon-preview.html` 的展示灯光与 ACES 仅用于资产验收，不作为主游戏材质校准的参考。
+`check-weapon-lighting-browser.mjs` 在练枪房主页面检查默认材质、全局灯光开关和 HDR 采样，验证底色图与独立发光图切换。脚本保存 AG、Smite、Sakura 和 Tactiplay 的截图。默认输出 `D:/opencode-temp/opencode/weapon-lighting-browser`，可用 `WEAPON_LIGHTING_TEST_OUTPUT` 修改。脚本需要开发服务器提供 GPU 测试模块。
 
 ## 后续阶段的本地输入缺口
 

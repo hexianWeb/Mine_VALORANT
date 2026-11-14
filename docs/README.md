@@ -42,7 +42,7 @@
 | 文档 | 范围 | 状态 |
 | --- | --- | --- |
 | [动画运行时与多枪切换](superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md) | animation 层、武器实例与背包、切换事务、资源发布、换肤、音频与验收 | 阶段 1—4、双枪本地音频、稀疏控制及弹药事实采样已实现；其余枪型完整发布/空间声待实施，后续皮肤素材由用户处理 |
-| [武器材质与质感优化路线图](weapons/material-quality-roadmap.md) | 平直着色、全金属、零自发光与静态局部反射；后续空间校正和表面细节 | `?weaponStudy=1` 可选 Classic v4／AG 小样已接入；主房间离线 HDR Cubemap＋PMREM，默认外观不变，盒投影／走廊混合待实施 |
+| [武器材质与质感优化路线图](weapons/material-quality-roadmap.md) | 平直着色、全金属、皮肤自发光和静态室内反射 | Classic 与 Phantom 已使用默认材质，盒投影和走廊混合待评估 |
 
 ## 设计过程
 

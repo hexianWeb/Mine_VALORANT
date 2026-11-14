@@ -89,7 +89,7 @@ function fixture() {
   }
 }
 
-function setup(t, data = fixture(), overrides = {}) {
+function setup(t, data = fixture(), overrides = {}, options = {}) {
   const calls = []
   const textures = []
   for (const type of ['json', 'gltf', 'texture']) {
@@ -110,7 +110,12 @@ function setup(t, data = fixture(), overrides = {}) {
     })
   }
   const resources = new ResourceManager()
-  const assets = new WeaponAssets({ resources, scopeId: 'test-level', baseUrl: 'https://assets.test/weapons/' })
+  const assets = new WeaponAssets({
+    resources,
+    scopeId: 'test-level',
+    baseUrl: 'https://assets.test/weapons/',
+    ...options,
+  })
   t.after(() => assets.dispose())
   t.after(() => resources.dispose())
   return {
@@ -211,23 +216,71 @@ test('aborting one request rejects it promptly without cancelling another waiter
   assert.equal(f.calls.filter(entry => entry.type === 'gltf').length, 1)
 })
 
-test('runtime material roles distinguish painted weapons from matte arms without changing source assets', async (t) => {
+test('runtime materials use flat full metal for the gun and keep matte arms and source materials', async (t) => {
   const f = setup(t)
+  const normalMap = new THREE.Texture()
+  f.data.weaponMaterial.normalMap = normalMap
   const handle = await f.assets.load(request)
   const instance = f.assets.instantiate(handle)
   const weapon = instance.root.getObjectByName('WeaponMesh').material
   const arms = instance.root.getObjectByName('Arms').material
-  assert.equal(weapon.roughness, weaponMaterialProfiles.weapon.roughness)
-  assert.equal(weapon.metalness, weaponMaterialProfiles.weapon.metalness)
+  assert.equal(weapon.roughness, 1)
+  assert.equal(weapon.metalness, 1)
+  assert.equal(weapon.flatShading, true)
+  assert.equal(weapon.normalMap, null)
+  assert.equal(weapon.isMeshPhysicalMaterial, undefined)
+  assert.equal(weapon.envMap, null, 'the material falls back to the scene environment')
   assert.equal(arms.roughness, weaponMaterialProfiles.armsLeft.roughness)
   assert.equal(arms.metalness, weaponMaterialProfiles.armsLeft.metalness)
   assert.equal(f.data.weaponMaterial.roughness, 1)
   assert.equal(f.data.weaponMaterial.metalness, 0)
+  assert.equal(f.data.weaponMaterial.flatShading, false)
+  assert.equal(f.data.weaponMaterial.normalMap, normalMap)
   assert.equal(f.data.armsMaterial.roughness, 1)
   assert.equal(weapon.alphaTest, f.data.weaponMaterial.alphaTest)
   assert.equal(weapon.side, f.data.weaponMaterial.side)
   assert.deepEqual(weapon.color.toArray(), f.data.weaponMaterial.color.toArray())
   assert.equal(weapon.map, f.textures[0])
+})
+
+test('the room reflection is borrowed by gun materials and follows lighting for all live instances', async (t) => {
+  const data = fixture()
+  const source = new THREE.MeshPhysicalMaterial({ name: data.weaponMaterial.name, clearcoat: 0.29, clearcoatRoughness: 0.05 })
+  data.mesh.material = source
+  const scope = new THREE.MeshStandardMaterial({ name: 'Scope' })
+  data.gltf.scene.add(new THREE.Mesh(data.geometry, scope))
+  data.manifest.materials.scope = ['Scope']
+  const reflectionTexture = new THREE.Texture()
+  let reflectionDisposals = 0
+  reflectionTexture.addEventListener('dispose', () => reflectionDisposals++)
+  const { assets } = setup(t, data, {}, { reflectionTexture })
+  const handle = await assets.load(request)
+  const first = assets.instantiate(handle)
+  const gun = first.root.getObjectByName('WeaponMesh').material
+  const arms = first.root.getObjectByName('Arms').material
+  const sight = first.root.children.find(object => object.material?.name === 'Scope').material
+  assert.equal(gun.envMap, reflectionTexture)
+  assert.equal(gun.envMapIntensity, 0.3)
+  assert.equal(gun.clearcoat, 0.29)
+  assert.equal(gun.clearcoatRoughness, 0.18)
+  assert.equal(source.clearcoatRoughness, 0.05)
+  assert.equal(arms.envMap, null)
+  assert.equal(sight.envMap, null)
+  assets.setReflectionEnabled(false)
+  assert.equal(gun.envMapIntensity, 0)
+  assert.equal(gun.emissiveIntensity, 0.4)
+  const second = assets.instantiate(handle)
+  const stagedGun = second.root.getObjectByName('WeaponMesh').material
+  assert.equal(stagedGun.envMap, reflectionTexture)
+  assert.equal(stagedGun.envMapIntensity, 0)
+  assets.setReflectionEnabled(true)
+  assert.equal(gun.envMapIntensity, 0.3)
+  assert.equal(stagedGun.envMapIntensity, 0.3)
+  assert.equal(arms.envMapIntensity, 1)
+  assert.equal(sight.envMapIntensity, 1)
+  assets.dispose()
+  assert.equal(reflectionDisposals, 0)
+  reflectionTexture.dispose()
 })
 
 test('a compatible skin swap is atomic and preserves the exact player, skeleton, materials and other instances', async (t) => {
@@ -264,6 +317,8 @@ test('a compatible skin swap is atomic and preserves the exact player, skeleton,
   assert.equal(arms.map, null)
   assert.equal(material.roughness, weaponMaterialProfiles.weapon.roughness)
   assert.equal(material.metalness, weaponMaterialProfiles.weapon.metalness)
+  assert.equal(material.emissiveMap, material.map)
+  assert.equal(material.emissiveIntensity, 0.4)
   assert.equal(arms.roughness, weaponMaterialProfiles.armsLeft.roughness)
   assert.deepEqual(a.player.snapshot(), playback)
   assert.notEqual(mesh.material.map, b.root.getObjectByName('WeaponMesh').material.map)
@@ -293,7 +348,7 @@ test('albedo-only weapon skins glow with their color map and ignore embedded emi
   assert.equal(material.emissiveMap, material.map)
   assert.notEqual(material.emissiveMap, embedded)
   assert.equal(material.emissive.getHex(), 0xFFFFFF)
-  assert.equal(material.emissiveIntensity, 1)
+  assert.equal(material.emissiveIntensity, 0.4)
   assert.equal(data.weaponMaterial.emissiveMap, embedded, 'the shared template is untouched')
   assert.deepEqual(data.weaponMaterial.emissive.toArray(), [0.6, 0.6, 0.6])
   assert.equal(data.weaponMaterial.emissiveIntensity, 2)
@@ -346,7 +401,7 @@ test('skin emission is loaded, replaced and removed together with albedo without
   assert.notEqual(smiteEmission, sakuraEmission)
   assert.equal(material.emissive.getHex(), 0xFFFFFF)
   assert.equal(material.emissiveIntensity, 2.5)
-  assert.equal(other.emissiveIntensity, 1)
+  assert.equal(other.emissiveIntensity, 0.4)
   assert.equal(smiteEmission.colorSpace, THREE.SRGBColorSpace)
   assert.equal(smiteEmission.flipY, false)
   assert.equal(smiteEmission.magFilter, THREE.NearestFilter)
@@ -362,13 +417,13 @@ test('skin emission is loaded, replaced and removed together with albedo without
     f.assets.applySkin(a, alternate)
     assert.equal(material.map, sakuraMap)
     assert.equal(material.emissiveMap, sakuraEmission)
-    assert.equal(material.emissiveIntensity, 1)
+    assert.equal(material.emissiveIntensity, 0.4)
     f.assets.applySkin(a, plain)
     assert.equal(material.emissiveMap, material.map)
     assert.notEqual(material.map, smiteMap)
     assert.notEqual(material.map, sakuraMap)
     assert.equal(material.emissive.getHex(), 0xFFFFFF)
-    assert.equal(material.emissiveIntensity, 1)
+    assert.equal(material.emissiveIntensity, 0.4)
     f.assets.applySkin(a, original)
     assert.equal(material.map, smiteMap)
     assert.equal(material.emissiveMap, smiteEmission)

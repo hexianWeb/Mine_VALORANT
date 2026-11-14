@@ -133,7 +133,7 @@ assets: {
 
 继续通过 WeaponAssets／ResourceManager 加载，不另建 GLTFLoader，不改射速、弹药、后坐力、动作时钟或持枪位置。颜色图为 sRGB、最近邻、无 mipmap、`flipY=false`。
 
-本工作流负责几何／图集发布，不把额外发光图作为皮肤制作要求。平直着色、全金属、不依赖自发光和静态局部反射的后续工作以[材质路线图](material-quality-roadmap.md)为准；当前加载器的[旧材质兼容状态](animation-and-assets.md#旧材质兼容状态)仍待迁移。
+几何和图集发布只要求提供底色图。枪身默认材质见[材质路线图](material-quality-roadmap.md)，独立发光图的格式与绑定见[皮肤自发光](animation-and-assets.md#皮肤自发光)。
 
 以下是集成交付/相关公共代码修改时的检查清单，不是每次裁图或 Blender 编辑的必跑步骤。日常候选用单枪 `--quick`；玩法或光照公共代码变更再补对应专项。
 

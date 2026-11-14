@@ -8,12 +8,10 @@ test('application config supplies the game bindings from configs', () => {
   assert.equal(options.inputBindings, inputBindings)
 })
 
-test('the hall reflection preview is opt-in and independent of the weapon material study', () => {
+test('the hall reflection preview is opt-in', () => {
   assert.equal(readAppConfig('').level.reflectionPreview, false)
   const preview = readAppConfig('?reflectionPreview=1')
   assert.equal(preview.level.reflectionPreview, true)
-  assert.equal(preview.level.weaponStudy, false)
-  assert.equal(readAppConfig('?weaponStudy=1&reflectionPreview=1').level.reflectionPreview, true)
   assert.equal(readAppConfig('?reflectionPreview=0').level.reflectionPreview, false)
 })
 

@@ -81,8 +81,8 @@ EXR 解码和 alpha 加权 mip 生成在独立 Worker 中完成，通过 transfe
 - **烘焙 atlas**：线性放大、三线性缩小、最高 16× 各向异性（受设备上限限制）；仅生成 0–2 级 mip，透明空白不参与颜色平均。Lightmap 重烘复用原 BakeUV，并修正两处因底色材质更换而错误指向其他图集的绑定。WebGPU 各向异性要求三种过滤均为 linear；Lightmap 底色通过 shader 重建近处像素感，实时最近邻贴图使用 anisotropy 1。
 - **显示**：`ReinhardToneMapping`，`toneMappingExposure = 1.2`，不是 1.2 EV。顺序为线性 tone mapping → SMAA → sRGB → LUT；中性默认 LUT 为 33³ 半浮点 identity，identity 或关闭 LUT 时走真正的 shader 旁路。
 - **天空与灯光**：`skybox-day.png` 是 LDR PNG，保留 4096×2048 背景，用 1024×512 代理生成低成本环境光，关闭旧 AmbientLight 避免叠加。三盏走廊顶棚补光灯已移除。原三排矩形顶灯用于实时物体。Lightmap 通过空的显式灯光列表排除重复照明并接收 GTAO；旧完整外观使用 unlit 材质。
-- **第一人称武器（现状）**：独立深度的 HDR 视模共享世界灯光、三个 LightProbeGrid 与天空环境，移动/转身同步受光，但不叠加世界 AO。当前采用角色级材质参数，手臂保持哑光；弱暗部补光默认为 0.18，可在右侧「武器 · 场景光照」调节。加载与换肤仍保留[待迁移的旧材质兼容状态](docs/weapons/animation-and-assets.md#旧材质兼容状态)，不作为新皮肤的制作要求。手臂 UV 与 32×32 共用贴图见[手臂规范](docs/weapons/arm-uv-contract.md)。
-- **武器材质（可选小样）**：添加 `?weaponStudy=1` 启用 Classic v4／AG 的平直着色、全金属、零自发光／零清漆小样，右侧「Classic AG · 金属小样」可切换旧外观、粗糙度和室内／天空／关闭镜面环境；室内反射倍率候选为 `1.6`，不影响天空回退或曝光。室内反射为游戏离线捕获的 256² HDR Cubemap＋加载时 PMREM，正常进入不重新捕获；默认外观、手臂及其他皮肤不变。当前仅主房间单探针，尚无盒投影和走廊混合，详见[入口与验证](docs/weapons/material-quality-roadmap.md#当前小样入口与验证)。
+- **第一人称武器**的独立 HDR 视模共享世界灯光、三个 LightProbeGrid 和天空环境。视模使用独立深度，移动和转身时同步受光。弱补光默认为 `0.18`，可在右侧「武器 · 场景光照」调节。[手臂 UV 与 32×32 共用贴图](docs/weapons/arm-uv-contract.md)
+- **武器材质**默认使用平直着色、金属度与粗糙度 `1`。枪身自发光跟随当前皮肤，默认强度 `0.4`。Lightmap 房间加载离线 HDR Cubemap 并生成共享的 PMREM，枪身室内反射倍率为 `0.3`。可用 `?reflectionPreview=1` 查看原始六面。[材质参数与验证](docs/weapons/material-quality-roadmap.md#当前默认材质与验证)
 - **AO 面板**：开关、仅 AO 预览、强度、半径、厚度、采样、分辨率、去噪与重置。默认 GTAO 为 50%/16 samples，去噪分辨率默认跟随 AO，也可独立选择；R16F 去噪结果经深度/法线引导的四点重建接入材质间接光（包含 lightMap）。修改 samples/分辨率保留现有 render targets。
 - **LUT 面板**：曝光、开关/混合强度、中性/暖/冷/柔和电影预设、对比度/饱和度/色温/色偏、`.cube` 导入与重置。导入支持 2–64³、0–1 显示域，不直接接受 Log LUT；错误文件保留上一个有效 LUT。
 

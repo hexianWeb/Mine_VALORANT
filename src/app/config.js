@@ -17,7 +17,6 @@ export function readAppConfig(search = globalThis.location.search) {
     },
     level: {
       probes: parameters.get('probes') !== '0',
-      weaponStudy: parameters.get('weaponStudy') === '1',
       reflectionPreview: parameters.get('reflectionPreview') === '1',
       ...(parameters.get('lighting') === 'appearance'
         ? { manifestUrl: '/lighting/range-room/manifest.json' }

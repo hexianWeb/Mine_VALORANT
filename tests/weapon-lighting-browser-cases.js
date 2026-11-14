@@ -1,15 +1,13 @@
 import * as THREE from 'three/webgpu'
 
-export { weaponMaterialProfiles } from '../src/game/weapons/assets/weapon-materials.js'
-
 function check(value, message) {
   if (!value)
     throw new Error(message)
 }
 
-/** Real weapon HDR readbacks: each lighting source must contribute without moving its silhouette. */
+/** Real viewmodel HDR readbacks with indoor and sky environment gains controlled separately. */
 export async function checkWeaponLighting(app) {
-  const { render, scene, camera } = app
+  const { render, scene, camera, world } = app
   const layer = render.viewmodel
   const settings = render.getDebugState()
   const position = camera.position.clone()
@@ -20,6 +18,17 @@ export async function checkWeaponLighting(app) {
     if (object.isLight)
       lights.push({ light: object, intensity: object.intensity })
   })
+  const guns = new Set()
+  layer.scene.traverseVisible(({ material }) => {
+    if (material?.envMap === world.reflection.texture)
+      guns.add(material)
+  })
+  check(guns.size > 0, 'The viewmodel has no gun material using the indoor reflection')
+  const gunGains = Array.from(guns, material => [material, material.envMapIntensity])
+  const setIndoor = (enabled) => {
+    for (const [material, gain] of gunGains)
+      material.envMapIntensity = enabled ? gain : 0
+  }
   const candidates = []
   const width = render.renderer.domElement.width
   const height = render.renderer.domElement.height
@@ -54,14 +63,19 @@ export async function checkWeaponLighting(app) {
     const full = await sample()
     select(() => false)
     scene.environmentIntensity = 0
+    setIndoor(false)
     const fill = await sample()
     select(light => !light.isLightProbeGrid && !light.isLightProbe)
     const direct = await sample()
     select(light => light.isLightProbeGrid || light.isLightProbe)
     const probes = await sample()
     select(() => false)
+    setIndoor(true)
+    const indoor = await sample()
+    setIndoor(false)
     scene.environmentIntensity = environmentIntensity
-    const environment = await sample()
+    const sky = await sample()
+    setIndoor(true)
     select(() => true)
     const restored = await sample()
     render.setEffects({ aoStrength: 0 })
@@ -79,7 +93,8 @@ export async function checkWeaponLighting(app) {
       probeGrids: lights.filter(({ light }) => light.isLightProbeGrid).length,
       directDelta: delta(direct, fill),
       probeDelta: delta(probes, fill),
-      environmentDelta: delta(environment, fill),
+      indoorReflectionDelta: delta(indoor, fill),
+      skyReflectionDelta: delta(sky, fill),
       restoreDelta: delta(full, restored),
       worldAODelta: delta(noWorldAO, strongWorldAO),
       turnDelta: delta(full, turned),
@@ -88,8 +103,9 @@ export async function checkWeaponLighting(app) {
       borrowedEnvironment: layer.scene.environment === scene.environment,
     }
     check(result.directDelta > 0.001, 'Room lighting does not affect the weapon')
-    check(result.probeGrids > 0 && result.probeDelta > 0.001, 'Room probes do not affect the weapon')
-    check(result.environmentDelta > 0.001, 'Room environment does not affect the weapon')
+    check(result.probeGrids > 0 && result.probeDelta > 0.001, 'Room probes do not affect the viewmodel')
+    check(result.indoorReflectionDelta > 0.001, 'Indoor reflections do not affect the gun')
+    check(result.skyReflectionDelta > 0.001, 'The sky environment does not affect the viewmodel')
     check(result.restoreDelta < 0.0001, 'Restoring room lighting changed the weapon pose or materials')
     check(result.worldAODelta < 0.0001, 'World AO leaked into the independent weapon pass')
     check(result.turnDelta > 0.001 && result.moveDelta > 0.001, 'Weapon lighting does not follow world pose')
@@ -98,6 +114,7 @@ export async function checkWeaponLighting(app) {
     return result
   }
   finally {
+    setIndoor(true)
     select(() => true)
     scene.environmentIntensity = environmentIntensity
     camera.position.copy(position)

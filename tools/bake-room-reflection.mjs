@@ -8,7 +8,6 @@ import { openBrowser } from './browser-session.mjs'
 const output = process.env.REFLECTION_BAKE_OUTPUT ?? 'D:/opencode-temp/opencode/weapon-material-study/bake'
 const destination = path.resolve(process.env.REFLECTION_OUTPUT ?? 'public/lighting/range-room-reflections/v1')
 const url = new URL(process.argv[2] ?? 'http://127.0.0.1:5173/')
-url.searchParams.delete('weaponStudy')
 url.searchParams.set('editor', '0')
 const session = await openBrowser({ output })
 try {
