@@ -44,7 +44,7 @@
 
 ## 本地音频
 
-沿用现有 WeaponAudio 和 AudioSystem，新增 Ghost 的 shoot、draw、reload、inspect 四个 cue；战术/空仓换弹共用 reload。源 Ogg 原样保留，`shoot_3p` 不在本地叠加播放。三个持有枪型共预热 12 个本地声音，不加载其他未持有枪型。
+沿用现有 WeaponAudio 和 AudioSystem，新增 Ghost 的 shoot、draw、reload、inspect 四个 cue；战术/空仓换弹共用 reload。源 Ogg 原样保留，`shoot_3p` 不在本地叠加播放。Ghost 接入当时三个持有枪型共预热 12 个本地声音，不加载未持有枪型；当前七枪为 28 个，见[判官／奥丁接入](judge-odin-integration.md)。下述仍为 Ghost 当次验收，不冒充七枪回归。
 
 ## 本次验收
 

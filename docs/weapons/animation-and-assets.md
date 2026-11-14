@@ -2,7 +2,7 @@
 
 > 枪身默认使用平直着色、全金属、跟随皮肤的自发光和静态室内反射。[材质参数与验证](material-quality-roadmap.md#当前默认材质与验证)
 
-[整体设计](../superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md)的发布与播放模块已接入主游戏：Classic 默认 AG、Phantom 默认 Tactiplay，由关卡作用域加载，每个视觉实例拥有独立 AnimationPlayer。主页面通过装备事实驱动双枪视模；专用预览页仍用于资产采样验收。Classic 的精简网格与 336 图集见[裁图、UV 与发布工作流](gun-only-uv-workflow.md)。固定瞄准和控件见[武器玩法](gameplay.md)，双枪的声音及独立 cue 时钟见[运行时音频](audio.md)。
+[整体设计](../superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md)的发布与播放模块已接入七枪主游戏，由关卡作用域加载，每个视觉实例拥有独立 AnimationPlayer。主页面通过装备事实驱动视模；专用预览页仍用于资产采样验收。Classic 默认 AG、Phantom 默认 Tactiplay，其余枪型采用明确标注的临时参考玩法。Classic 的精简网格与 336 图集见[裁图、UV 与发布工作流](gun-only-uv-workflow.md)。固定瞄准和控件见[武器玩法](gameplay.md)，声音及独立 cue 时钟见[运行时音频](audio.md)。
 
 ## 发布结果与来源
 
@@ -15,8 +15,15 @@
 | `public/weapons/phantom/v1/` | `Phantom_Tactiplay_Animated.blend` | 30 / 1620 / 8 | 5 |
 | `public/weapons/phantom/v2/` | v1 模型统一手臂 UV 与 32×32 贴图 | 30 / 1620 / 8 | 5 |
 | `public/weapons/phantom/v3/`（当前） | 原样复用 v2 模型，使用制作源中的 Tactiplay / Smite / Rush / Prism 四款贴图 | 30 / 1620 / 8 | 5 |
+| `public/weapons/ghost/v1/`（当前） | 当前 Ghost 作者源，Freehand / Recon / Ego / Spitfire，共享 32×32 手臂；公开参考临时玩法 | 30 / 1080 / 4 | 4 |
+| `public/weapons/vandal/v1/`（当前） | 当前 edge_fixed 六款狂徒；后台无损转换实际手臂，共享 32×32 图；公开参考临时玩法 | 30 / 1710 / 4 | 5 |
+| `public/weapons/sheriff/v1/`（当前） | Smite / Sakura / Convex，保留快速装填器、共享 32×32 手臂；公开参考临时玩法 | 30 / 2700 / 22 | 4 |
+| `public/weapons/judge/v1/`（当前） | Smite / Rush，实际场景标准手臂、稀疏弹药显示；公开参考临时玩法 | 33 / 1485 / 2 | 4 |
+| `public/weapons/odin/v1/`（当前） | Smite / Prime / BlastX，后台无损转换实际 `.008` 手臂、稀疏弹链窗口；公开参考临时玩法 | 33 / 2475 / 15 | 4 |
 
 发布器使用 `tools/weapons/recipes.mjs` 显式指定源文件、场景、网格、动画对象、皮肤 PNG、角色与挂点。后台 Blender 打开当前制作源导出，不保存源 `.blend`；源 SHA256 前后必须一致。原始资源包提供动作元数据和对照依据，不用旧 GLB 替代当前美术源。
+
+Ghost／Vandal／Sheriff／Judge／Odin 在原始 runtime 缺失时，采用用户授权的独立固定作者来源配方与公开参考临时玩法，不冒充恢复了原数据。Vandal 的多枪场景、动作别名和实际手臂适配见[狂徒接入](vandal-integration.md)；Original 保持 256×256，另外五皮肤为 2048×2048。Sheriff 从自身 `80_ThreeJS_Export` 直接导出，三款为 2048×2048，无需手臂转换，见[正义接入](sheriff-integration.md)。Judge／Odin 保留五张 2048×2048 图及每枪 33 动作；固定配方、实际对象和控制阈值归一化见[判官／奥丁接入](judge-odin-integration.md)。
 
 每包包含 model.glb、manifest.json、skins 下的皮肤定义，以及 source-audit.json、validation.json。Classic v2 使用内容哈希 PNG，包含 smite / sakura；它的 GLB 与 v1 字节相同。Classic v3 和 Phantom v2 是手臂专用迁移，保留原枪械几何及动作。当前 Classic v4 则从新的作者快照导入精简网格与 336 UV，校验 Rest 骨架及 31 个动作曲线后使用标准导出骨架和手臂；Sakura 的旧图集也按同一布局裁剪。既有旧版本的本地外观予以保留。manifest 描述模型哈希、骨架/几何 UV/动作集兼容签名、语义动作、材质角色、挂点与坐标约定；运行时完全不访问 skin_work_folder。
 
@@ -87,7 +94,7 @@ actions 是 `role -> { clip, loop?, rate?, fade?, markers? }`。rate 默认 1，
 
 内部 AnimationStateMachine 管理播放代次、局部时间和混合权重；Mixer 仅采样。被打断动作可继续淡出，但不再发 marker/finished；再次打断从当前所有权重继续过渡。同一片段重播拥有独立 Action 身份，保留旧层姿态，轨道数组仍共享。权重低于 1e-5 的旧层会退出并归一剩余权重，防止持续连射无限累积采样成本。
 
-时间采用补偿累计，并统一处理循环、marker、结束及淡入淡出边界；不同帧拆分不会在精确边界重复或漏发。STEP 沿用原插值器，不重采样成线性。当前支持标准 GLTF 的直接节点属性和索引属性；复合 `.bones[...]` 绑定会明确拒绝。[稀疏控制轨道](runtime-controls.md)已实现，并通过 Judge/Odin 源曲线数值验收；两枪完整发布、Blend Tree、IK 仍未交付。
+时间采用补偿累计，并统一处理循环、marker、结束及淡入淡出边界；不同帧拆分不会在精确边界重复或漏发。STEP 沿用原插值器，不重采样成线性。当前支持标准 GLTF 的直接节点属性和索引属性；复合 `.bones[...]` 绑定会明确拒绝。[稀疏控制轨道](runtime-controls.md)已通过源曲线测试，并随 Judge/Odin 完整发布接入主游戏；Blend Tree、IK 仍未交付。
 
 AnimationPlayer 返回的声音 marker 仍只是数据事件，不能自行发声。普通 draw/fire/reload 的零时刻重复 cue 在发布时移除，独立 cue 保留；主游戏由 WeaponAudio 的独立已提交动作游标调度，不等待延迟 Mixer 回调，也不重复播放。WeaponViewModel 已按 `P = max(0, C - h + alpha * h)` 分段推进：先推进旧动作到事件 at，执行该事件，再推进剩余区间。装备、换弹、检视与射击事实选择语义动作；同片段射击使用显式 restart。片段时长不决定装备、补弹或可开火时间，适配者按玩法动作期限配置速度或结束恢复段。
 
@@ -124,9 +131,9 @@ node tools/check-weapon-gameplay-browser.mjs http://localhost:5173/
 node tools/check-weapon-lighting-browser.mjs http://localhost:5173/
 ```
 
-浏览器手动打开 `/weapon-preview.html` 可选择枪型和待机、掏枪、开火、两种换弹、检视。该页面是独立资源验收工具，没有修改练枪房启动流程。检查脚本使用真实 Chrome、WebGPU、像素解码和 ResourceManager；验证所有已映射角色的多个采样点、双实例骨架/材质隔离、实例释放后另一实例仍能渲染、作用域关闭后的缓存清理，并输出四张截图和 report.json。输出位置默认 `D:/opencode-temp/opencode/weapons-browser`，可用 WEAPON_TEST_OUTPUT 修改。
+浏览器手动打开 `/weapon-preview.html` 可选择七枪和待机、掏枪、开火、两种换弹、检视。该页面是独立资源验收工具，没有修改练枪房启动流程。完整检查默认遍历七枪所有已映射角色的多个采样点、双实例骨架/材质隔离、实例释放后另一实例仍能渲染及作用域关闭后的缓存清理，保留 Classic/Phantom 四张截图和 report.json。日常只用 `--quick --weapon <id>` 检查目标枪与三张截图，不默认跑全套。输出位置默认 `D:/opencode-temp/opencode/weapons-browser`，可用 WEAPON_TEST_OUTPUT 修改。
 
-Node 专项测试为 animation.test.mjs、weapon-assets.test.mjs、weapon-publication.test.mjs。发布还对照每枪九组 Blender/Three.js 变形包围盒，最大误差分别约 3.31e-7、4.86e-7 米；两包 glTF Validator 均为零 error / 零 warning。连续 500 次射击重播与 300 个 60 Hz 动画步覆盖混合层退场和浮点边界回归。
+Node 专项测试为 animation.test.mjs、weapon-assets.test.mjs、weapon-publication.test.mjs。初批 Classic／Phantom 发布对照每枪九组 Blender/Three.js 变形包围盒，最大误差分别约 3.31e-7、4.86e-7 米；两包 glTF Validator 均为零 error / 零 warning。连续 500 次射击重播与 300 个 60 Hz 动画步覆盖混合层退场和浮点边界回归。后续各枪结果见对应接入文档；Judge/Odin 新包同样完整验证，当前相关回归有一项既有材质断言失败，不能把历史通过结果当作本次全绿。
 
 主游戏检查使用 `check-weapon-gameplay-browser.mjs`，与预览检查分开运行；输出默认在 `D:/opencode-temp/opencode/weapon-gameplay-browser`，可用 `WEAPON_GAME_TEST_OUTPUT` 修改。其结果以当次 report.json 为准；该工具覆盖输入、装备事件、固定瞄准与视模接线，并隔离左右手、读取视模 HDR alpha，检查 Classic → Phantom → Classic 重复切换后的实际手臂像素和共享贴图。声音实际解码、输出波形和生命周期另用 `check-weapon-audio-browser.mjs` 验证。
 
@@ -134,6 +141,8 @@ Node 专项测试为 animation.test.mjs、weapon-assets.test.mjs、weapon-public
 
 ## 后续阶段的本地输入缺口
 
+Ghost／Vandal／Sheriff／Judge／Odin 后续已经用户授权改用「当前 Blender 作者数据 + 公开参考临时玩法」独立来源契约发布，并不表示找回了原始 runtime；具体来源与取舍见各接入文档。剩余 Operator／Outlaw 不自动继承这项授权。
+
 2026-11-12 已确认九枪制作源存在于 skin_work_folder，Judge 的独立动作场景与 Odin/Vandal 的 E08/E09/E04 动作场景也能只读打开；不需要重新生成美术。仓库与便携交付目录中没有原始九枪 manifest/runtime JSON；设计记录中的 `D:/Projects/vandal-roundtrip/valorant-first-person-pack` 和发布器默认的相邻源包目录均不存在。制作源仅保留 `asset_manifest=//manifest.json` 引用和动作时长等元数据，不能替代原始 runtime_control、control_bones、recoil、动作声音映射及玩法时刻。
 
-按阶段 5 的来源归一化契约继续完整发布前，需要提供完整 valorant-first-person-pack 的实际目录（各枪 manifest.json 及其引用的玩法数据）。不能从动画时长猜射速/补弹时刻，也不能拿旧便携 GLB 替代当前 Odin 网格。阶段 4 以及已完成的稀疏控制采样/源曲线数值验收不依赖该缺失源包；后者使用显式的本地显示窗口策略，不冒充原始 runtime 映射。
+要按原阶段 5 契约恢复原始 runtime，仍需要完整 valorant-first-person-pack 的实际目录（各枪 manifest.json 及引用的玩法数据）。不能从动画时长猜射速／补弹时刻，也不能拿旧便携 GLB 替代当前制作源。已发布五枪使用独立固定来源、公开参考与显式项目策略绕开缺口，没有声称恢复原始数据；Judge/Odin 的显示窗口与手动控制边界见[稀疏控制](runtime-controls.md)。

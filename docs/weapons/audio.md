@@ -1,12 +1,14 @@
 # 武器运行时音频
 
-Classic / Phantom 的本地射击、掏枪、换弹、检视已接入主游戏。本轮没有改写纹理像素或 Ogg 音频采样；其他七枪、3p 空间声、齐射、Operator 拉栓和 Outlaw 分支的实际游戏接线尚未交付。原设计及算例见[第 13 节](../superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md#13-新增音频盘点与接入)。
+Ghost、Vandal、Sheriff、Judge 与 Odin 后续各新增 shoot、draw、reload、inspect 四个本地 cue，沿用相同的独立事实时钟与取消机制；**当前七枪共预热 28 个本地 Ogg**，见 [Ghost 接入](ghost-integration.md)、[狂徒接入](vandal-integration.md)、[正义接入](sheriff-integration.md)与[判官／奥丁接入](judge-odin-integration.md)。下述双枪历史验收不冒充后续枪型本次验收，结果分别记录。
+
+Classic / Phantom / Ghost / Vandal / Sheriff / Judge / Odin 的本地射击、掏枪、换弹、检视已接入主游戏。没有改写 Ogg 音频采样；Operator／Outlaw、3p 空间声、齐射、Operator 拉栓和 Outlaw 分支的实际游戏接线尚未交付。原设计及算例见[第 13 节](../superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md#13-新增音频盘点与接入)。
 
 ## 所有权与资源
 
 - RuntimeContext 唯一拥有 `function/audio/AudioSystem`，每个 runtime 最多一个 AudioContext，按需创建。可信的画布 pointerdown/keydown 调用 unlock；只有 resume 成功并且 context.running 才建锚点。无 API、未解锁或解码失败不阻塞装备和射击。
 - resource 的 `binary` 复用下载、SHA256 校验和取消逻辑，不依赖音频功能模块。AudioSystem.decode 复制 bytes 后调用 decodeAudioData，不会分离 ResourceManager 缓存的 ArrayBuffer。
-- WeaponAssets 用关卡信号加载 AudioBank。两枪各四个唯一文件，共八个；战术/空仓换弹显式共享 reload cue。重复预热共享下载与解码，成功的兄弟资源保留，失败可显式重试；关闭作用域后迟到解码不得回填。
+- WeaponAssets 用关卡信号加载 AudioBank。当前七枪各四个唯一文件，共二十八个；战术/空仓换弹显式共享 reload cue。重复预热共享下载与解码，成功的兄弟资源保留，失败可显式重试；关闭作用域后迟到解码不得回填。
 - 当前 loadout 的音频异步预热，不参与 VisualPrepared，也不延迟启动 Player。暂未就绪的瞬态声音直接丢弃；仍有效的长动作可在正确 offset 接入，已取消的动作不会复活。
 - 配置在 `src/game/weapons/definitions/audio.js`，包含实际 Ogg 的 SHA256 和逐 cue 增益。枪声 gain=0.25、动作 gain=0.22，master=0.6；不修改源音频采样。主观响度仍需实际试听。
 
@@ -16,9 +18,9 @@ PlayerWeapons 将同一装备事实批次分给 WeaponViewModel 与 WeaponAudio�
 
 | 来源 | 音频副作用 |
 | --- | --- |
-| ShotFired | 一个本地 shoot cue，每发新的 source，可受控重叠；不同时播放 shoot_3p |
+| ShotFired | 一个本地 shoot cue，每发新的 source，可受控重叠；Judge 每发 12 弹丸仍只播放一次，不同时播放 shoot_3p |
 | DrawStarted(initial/switch/resume) | 唯一的 draw 来源；EquipCommitted 不再播放第二次 |
-| ReloadStarted | 使用已经选定的 tactical/empty 分支，当前两枪均指向同一 reload 文件 |
+| ReloadStarted | 使用已经选定的 tactical/empty 分支，当前七枪均指向各自同一 reload 文件 |
 | InspectStarted | 一个整段 inspect cue |
 | SwitchStarted、动作取消 | 撤销同实例的未来动作 cue，映射到取消时刻并淡出；普通切枪不停止已发生的枪声尾音 |
 | PresentationReset / dispose | 立即失效该玩家旧 epoch 的 cue/source，包括保留的尾音 |
@@ -53,10 +55,12 @@ npm run dev
 node tools/check-weapon-audio-browser.mjs http://localhost:5173/
 ```
 
-Node 专项为 `audio.test.mjs`、`weapon-audio.test.mjs` 和 resource-loading 的 binary 检查，覆盖 30/60/144 FPS 同一绝对起音、1/2/5 步批次、250 ms 裁剪重锚、动作接续、取消/中断、变速、暂停、解锁拒绝、解码乱序及作用域关闭。PlayerWeapons 还验证只预热持有枪型而非整个 catalog。音频阶段交付时全量 317 项通过；后续控制轨道阶段的 352 项及再次音频浏览器回归见[稀疏控制](runtime-controls.md)。
+Node 专项为 `audio.test.mjs`、`weapon-audio.test.mjs` 和 resource-loading 的 binary 检查，覆盖 30/60/144 FPS 同一绝对起音、1/2/5 步批次、250 ms 裁剪重锚、动作接续、取消/中断、变速、暂停、解锁拒绝、解码乱序及作用域关闭。PlayerWeapons 还验证只预热持有枪型而非整个 catalog。音频初次交付时全量 317 项通过；控制轨道阶段的历史 352 项及再次音频浏览器回归见[稀疏控制](runtime-controls.md)。这些不是七枪现状的全量测试结果；最新验收范围及既有材质测试失败见[判官／奥丁接入](judge-odin-integration.md#本次验收与耗时)。
 
-浏览器工具使用真实 Chrome/Web Audio：可信点击解锁、八个 Ogg 实际解码、最终输出 Analyser 波形、单发和至少 16 发连续射击、换弹打断、暂停不补播、0/0.5/2 倍速、相同语义 ID 的正确动作 offset、控制权交接、卸载与 context 关闭。最新生产构建报告在 `D:/opencode-temp/opencode/weapon-audio/production-final/report.json`，本次 Phantom 连射 20 条 cue，Classic/Phantom 输出峰值约 0.094/0.132；暂停前后 currentTime 均为 4.28 秒，卸载后 voice/cue 为 0、context.closed。非零波形及低于满幅不是主观音量或 true-peak 验收。原有全套双枪玩法浏览器回归也通过，报告在同级 `gameplay-final/report.json`。
+音频初次交付的浏览器专项使用真实 Chrome/Web Audio：可信点击解锁、当时八个 Ogg 实际解码、最终输出 Analyser 波形、单发和至少 16 发连续射击、换弹打断、暂停不补播、0/0.5/2 倍速、相同语义 ID 的正确动作 offset、控制权交接、卸载与 context 关闭。历史生产构建报告在 `D:/opencode-temp/opencode/weapon-audio/production-final/report.json`，该次 Phantom 连射 20 条 cue，Classic/Phantom 输出峰值约 0.094/0.132；暂停前后 currentTime 均为 4.28 秒，卸载后 voice/cue 为 0、context.closed。原有全套双枪玩法报告在同级 `gameplay-final/report.json`。当前工具按配置计算七枪预热数量，动作回归仍以双枪为主。
 
-首轮开发版冷启动出现 Vite 模块请求 net::ERR_ABORTED，另一次在房间 manifest fetch 时中止，均未进入音频断言；报告保留在 browser / browser-verified。browser-final 还保留了过严浮点相等断言失败，现已改为容差和锚点公式验证。未修改运行时加载逻辑来隐藏这些启动请求中断；开发版独立通过结果见 browser-second，最终结果以生产构建回归为准。生产路径也可用 `npm run build`、`npm run preview` 后对 `http://localhost:4173/` 运行同一脚本复核。
+Judge/Odin 本次另用 `check-judge-odin-browser.mjs` 验证两枪各四种 cue、打空时每发一个枪声及最终输出，峰值约 0.105／0.226；成功报告为 `D:/opencode-temp/opencode/judge-odin-integration-20261114-d6a42f/gameplay-browser-retry/report.json`。未重新运行上述完整音频专项。非零波形及低于满幅不是主观音量或 true-peak 验收。
+
+上述历史音频阶段的首轮开发版冷启动出现 Vite 模块请求 net::ERR_ABORTED，另一次在房间 manifest fetch 时中止，均未进入音频断言；报告保留在 browser / browser-verified。browser-final 还保留了过严浮点相等断言失败，现已改为容差和锚点公式验证。未修改运行时加载逻辑来隐藏这些启动请求中断；该阶段开发版通过结果见 browser-second，最终结果以其生产构建回归为准。生产路径也可用 `npm run build`、`npm run preview` 后对 `http://localhost:4173/` 运行同一脚本复核。
 
 `__RANGE_ROOM__.audio.snapshot()` 返回锚点、段原因、voice 数量、cue 状态和失败统计；`player.weapons.audio.bank` 返回缓存 cue 数与实际解码字节数。浏览器默认输出 `D:/opencode-temp/opencode/weapon-audio/browser`，可用 WEAPON_AUDIO_TEST_OUTPUT 指定新目录，判断结果以当次 report.json 为准。

@@ -1,20 +1,28 @@
 # 武器玩法模块
 
-本模块已将[动画与多枪设计](../superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md)的前四阶段接入练枪房：Classic 与 Phantom 的准备、切换、射击、换弹、检视、固定步瞄准、视模播放及兼容皮肤替换形成同一条更新链。装备裁定仍只处理普通数据；PlayerWeapons 连接输入、AimState、资源和表现。双枪的本地[运行时音频](audio.md)也已接入；后续皮肤素材由用户处理，不再自动生成或替换纹理。
+本模块从[动画与多枪设计](../superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md)的 Classic／Phantom 前四阶段扩展到七枪：准备、切换、射击、换弹、检视、固定步瞄准、视模播放及兼容皮肤替换形成同一条更新链。装备裁定仍只处理普通数据；PlayerWeapons 连接输入、AimState、资源和表现。七枪的本地[运行时音频](audio.md)也已接入；后续皮肤素材由用户处理，不自动生成或替换纹理。
 
 ## 游戏入口与控件
 
-运行 `npm run dev` 后打开主页面。默认背包为主武器 Phantom（rifle）与副武器 Classic（pistol），初始选择 Classic。`?editor=0` 关闭工具 UI，仍保留玩家、武器输入和 HUD。`/weapon-preview.html` 是独立资产预览页，不运行装备玩法。
+Ghost 已以公开参考临时参数接入，默认 Freehand，保留四皮肤和标准手臂；精确来源与暂定项见 [Ghost 接入](ghost-integration.md)。不是原始 Ghost runtime 或 VALORANT 手感复刻。
+
+狂徒也已接入，默认 Sakura，六皮肤、共享手臂，全自动／ADS／本地声音均可用；后坐力暂借 Phantom，ADS 独立射速尚未实现，见[狂徒接入与临时参数](vandal-integration.md)。
+
+正义已接入，默认 Smite，三皮肤、共享手臂与完整换弹动画；6 发、半自动 4 发/秒，无 ADS，后坐力暂借 Classic，见[正义接入与临时参数](sheriff-integration.md)。
+
+判官与奥丁已接入，默认均为 Smite，分别两款／三款皮肤，每枪 33 动作。判官为 5 发、3.5 发/秒、每发 12 弹丸；奥丁为 100 发、固定 12 发/秒并支持 ADS，未实现连射加速／独立 ADS 射速，详见[判官／奥丁接入与临时参数](judge-odin-integration.md)。
+
+运行 `npm run dev` 后打开主页面。默认背包为 Phantom（rifle）、Classic（pistol）、Ghost（ghost）、Vandal（vandal）、Sheriff（sheriff）、Judge（judge）、Odin（odin），初始选择 Classic。`?editor=0` 关闭工具 UI，仍保留玩家、武器输入和 HUD。`/weapon-preview.html` 是独立资产预览页，不运行装备玩法。
 
 | 操作 | 控件 |
 | --- | --- |
 | 捕获鼠标 | 点击画面；首次捕获点击不射击 |
-| 开火 | 左键；Classic 单发，Phantom 按住连射 |
-| ADS | 按住右键；仅 Phantom 支持 |
-| 主 / 副武器 | 1 / 2 |
+| 开火 | 左键；Classic/Ghost/Sheriff 单发，Phantom/Vandal/Judge/Odin 按住连射 |
+| ADS | 按住右键；Phantom/Vandal/Odin 支持 |
+| 主 / 副 / 额外试玩武器 | 1 Phantom / 2 Classic / 3 Ghost / 4 Vandal / 5 Sheriff / 6 Judge / 7 Odin；3–7 为临时参数 |
 | 循环切枪 / 上一把 | 滚轮 / Q；上一把在完成掏枪后更新 |
 | 换弹 / 检视 | R / T |
-| 循环当前枪皮肤 | K；Classic 为 AG → Smite → Sakura，Phantom 为 Tactiplay → Smite → Rush → Prism |
+| 循环当前枪皮肤 | K；Classic 为 AG → Smite → Sakura，Phantom 为 Tactiplay → Smite → Rush → Prism，Ghost 为 Freehand → Recon → Ego → Spitfire，Vandal 为 Sakura → Wood & Metal → Smite → Royal Gold → EGO → Original，Sheriff 为 Smite → Sakura → Convex，Judge 为 Smite → Rush，Odin 为 Smite → Prime → BlastX |
 | 回出生点 | Home；玩家复位按钮走同一排队入口 |
 | 移动 / 静步 / 蹲下 / 跳跃 | WASD / Shift / C / 空格 |
 | 释放鼠标 / 飞行观察 | Esc / V（飞行观察需要 Editor） |
@@ -74,6 +82,8 @@ equipment.step({ fixedTick: 2, fixedElapsed: 2 * fixedDelta, fixedDelta })
 
 本阶段支持 semi 与 auto 两种 fire.mode。控制器每固定步最多接受一次射击，构造时要求 `fire.interval >= fixedDelta`；不支持的频率直接报错。持续自动射击沿原有 deadline 累加间隔，避免每发向上取整后持续拖慢；实际 ShotFired.at 仍是接受该发的固定步时间。停止按火、切枪或换弹结束后不补发期间错过的射击。
 
+`fire.pellets` 是显式可选的 1–64 整数；未声明时不增加旧定义字段。Judge 为 12，但每发仍只扣一次弹、施加一次后坐力并生成一个 ShotFired／本地枪声。
+
 | 配置 | Classic | Phantom |
 | --- | --- | --- |
 | 弹匣 / 初始备用弹药 | 12 / 36 | 30 / 90 |
@@ -89,7 +99,7 @@ equipment.step({ fixedTick: 2, fixedElapsed: 2 * fixedDelta, fixedDelta })
 
 loadout 可覆盖实例的初始 magazine、reserve、skinId；其他状态从零开始。`reset()` 保留 loadout 的槽位、枪型、实例标识和皮肤，将弹药补至定义的 capacity / initialReserve，并清零冷却与射击序号。跨重生身份以 `(epoch, instanceId)` 区分。
 
-EquipmentController 的 ShotFired 只包含射击序号和弹药事实；PlayerWeapons 在同一 postPhysics 步调用 AimState，补充 eyeOrigin、aimDirection、shotDirection、seed、aiming 与 impact。impact 是最远 200 米的碰撞盒射线查询，提供盒名、距离和交点；当前没有敌人生命值、伤害、穿透或联网同步。枪口闪光与命中准星只提供表现反馈。
+EquipmentController 的 ShotFired 只包含射击序号和弹药事实；PlayerWeapons 在同一 postPhysics 步调用 AimState，补充 eyeOrigin、aimDirection、shotDirection、seed、aiming 与 impact。impact 是最远 200 米的碰撞盒射线查询，提供盒名、距离和交点；多弹丸还提供逐条方向／命中的 pellets，兼容 impact 取最近命中或第一条未命中结果。额外弹丸使用独立确定性随机流，不扰动旧射线／后坐力序列。当前没有敌人生命值、伤害、穿透或联网同步。枪口闪光与命中准星只提供表现反馈。
 
 ## 固定瞄准与统一表现时间
 
@@ -176,4 +186,4 @@ Home 与工具重生请求在下一实际 postPhysics 固定步执行，恢复�
 
 第三阶段另由 input、player-input、player、player-weapons、aim-state 相关测试验证真实动作输入、固定视角、异步准备、历史交接、Editor、暂停和重生。主游戏浏览器验收入口为 `tools/check-weapon-gameplay-browser.mjs`；资源预览检查仍使用 `tools/check-weapons-browser.mjs`。
 
-当前主游戏范围是双枪练习与 Classic 双皮肤闭环，K 输入及 HUD 已接入。Classic/Phantom 八个本地声音文件由玩法事实和独立音频游标驱动；未映射的其他素材不会自行播放，详见[运行时音频](audio.md)。[稀疏控制与弹药事实采样](runtime-controls.md)已实现并通过 Judge/Odin 源曲线数值测试，但其余七枪完整发布、Judge/Odin 整枪接入、完整伤害系统及 3p 空间声尚未交付。换肤相关专项还包括 weapon-skin-publication.test.mjs；主游戏浏览器报告包含 skinSwap 身份检查与 repeatCycles/销毁结果。
+当前主游戏已接入七枪和各自兼容皮肤，28 个本地 cue 由玩法事实与独立音频游标驱动，详见[运行时音频](audio.md)。[稀疏控制与弹药事实采样](runtime-controls.md)已用于 Judge/Odin 正式包和实际游戏；目标检查使用 `tools/check-judge-odin-browser.mjs`。Operator／Outlaw、完整伤害系统及 3p 空间声尚未交付。各接入文档分别记录本次验收，不以历史双枪通过结果代替；最新相关测试有一项既有材质断言失败，见[判官／奥丁验收](judge-odin-integration.md#本次验收与耗时)。换肤专项另包括 weapon-skin-publication.test.mjs。

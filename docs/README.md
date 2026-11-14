@@ -12,11 +12,16 @@
 | [阶段优先组件 Tick](superpowers/specs/2026-11-11-phase-first-component-tick.md) | 当前更新契约：Engine 编排阶段，Level 扫描对象，组件承载行为 |
 | [function 层结构](superpowers/specs/2026-11-11-function-layer-layout.md) | `component / level / object / world` 与 `function/global` 的目录迁移 |
 | [CameraComponent](superpowers/specs/2026-11-11-camera-component.md) | 相机组件提取时的记录；当前玩家固定 AimState 历史接线以运行时架构为准 |
-| [武器玩法模块](weapons/gameplay.md) | Classic/Phantom 游戏闭环、控件、装备事务、固定瞄准、延迟 HUD 与生命周期 |
+| [武器玩法模块](weapons/gameplay.md) | 七枪控件、临时参数边界、装备事务、固定瞄准、多弹丸、延迟 HUD 与生命周期 |
 | [武器发布与动画播放](weapons/animation-and-assets.md) | 发布包、AnimationPlayer、WeaponAssets、独立视模 pass、现行旧材质兼容边界与验收 |
 | [枪械图集与发布工作流](weapons/gun-only-uv-workflow.md) | Classic 精简网格、336 图集与 UV、动作／手臂兼容及 Three.js 接入 |
-| [武器运行时音频](weapons/audio.md) | 双枪本地声音、AudioBank、Web Audio 时钟、取消/暂停/变速与实际波形验收 |
+| [武器运行时音频](weapons/audio.md) | 七枪 28 个本地 cue、AudioBank、Web Audio 时钟、取消/暂停/变速与实际波形验收 |
 | [稀疏控制与弹药显示](weapons/runtime-controls.md) | Mixer 后的显式属性覆盖、Judge/Odin 源曲线、弹药事实与数值验收边界 |
+| [Ghost 美术导出](weapons/ghost-art-export.md) | 原非发布美术交接包：四皮肤、完整动画、共享 32×32 手臂与音频；后续游戏接入见下项 |
+| [Ghost 接入与临时参数](weapons/ghost-integration.md) | 3 号键、四皮肤、本地音效；公开数据与项目暂定项、独立发布及验收 |
+| [狂徒接入与临时参数](weapons/vandal-integration.md) | 4 号键、六皮肤、无损共享手臂；全自动、ADS 与明确记录的玩法近似 |
+| [正义接入与临时参数](weapons/sheriff-integration.md) | 5 号键、三皮肤、共享手臂与快速装填器；半自动、换弹及本地声音 |
+| [判官／奥丁接入与临时参数](weapons/judge-odin-integration.md) | 6／7 号键、五款皮肤、判官 12 弹丸、弹药显示、奥丁 ADS 与固定射速近似 |
 
 ### 光照与场景
 
@@ -41,7 +46,7 @@
 
 | 文档 | 范围 | 状态 |
 | --- | --- | --- |
-| [动画运行时与多枪切换](superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md) | animation 层、武器实例与背包、切换事务、资源发布、换肤、音频与验收 | 阶段 1—4、双枪本地音频、稀疏控制及弹药事实采样已实现；其余枪型完整发布/空间声待实施，后续皮肤素材由用户处理 |
+| [动画运行时与多枪切换](superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md) | animation 层、武器实例与背包、切换事务、资源发布、换肤、音频与验收 | 阶段 1—4、七枪发布／本地音频、稀疏控制及弹药事实采样已实现；Operator／Outlaw 与空间声待实施，五枪玩法明确为临时参考配置 |
 | [武器材质与质感优化路线图](weapons/material-quality-roadmap.md) | 平直着色、全金属、皮肤自发光和静态室内反射 | Classic 与 Phantom 已使用默认材质，盒投影和走廊混合待评估 |
 
 ## 设计过程

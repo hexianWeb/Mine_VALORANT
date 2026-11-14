@@ -58,7 +58,7 @@ node tools/weapons/publish-authored.mjs tools/weapons/authored-releases/sheriff-
 
 新包在项目外重新导出并完成正式校验与单枪预览后安装；没有把非发布候选删除标记后提升，也没有改动 Ghost／Vandal 旧配方或已发布资源。
 
-本地声音沿用已有 `sheriff_shoot`、`sheriff_draw`、`sheriff_reload`、`sheriff_inspect` 四个 Ogg，战术与空仓共用 reload，不叠加 shoot_3p。当前五枪默认背包共预热 **20 个本地 cue**；已有浏览器工具按配置计算数量，无需硬改预热数。
+本地声音沿用已有 `sheriff_shoot`、`sheriff_draw`、`sheriff_reload`、`sheriff_inspect` 四个 Ogg，战术与空仓共用 reload，不叠加 shoot_3p。正义接入当时五枪默认背包预热 **20 个本地 cue**；当前七枪为 28 个，见[判官／奥丁接入](judge-odin-integration.md)。已有浏览器工具按配置计算数量，下述仍为正义当次验收。
 
 ## 本次验收
 

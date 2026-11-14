@@ -2,7 +2,7 @@
 
 AnimationPlayer 已支持**主 Mixer 之后的显式属性覆盖**；WeaponAssets 负责 manifest 预检和实例化，WeaponViewModel 在表现事实到达时选择弹药显示档位。没有把整段 `ammo_display` 作为全权重动作叠加，也没有为控制片段增加第二个时钟。
 
-本次完成的是阶段 5 的运行时与源曲线数值验收。**Judge/Odin 尚未作为完整发布包接入主游戏**：原始九枪 manifest/runtime 源包仍缺失，不能从动作名或时长猜射速、容量、补弹时刻或热量规则。没有生成、导出或替换任何枪械纹理，没有保存制作源。
+初次交付完成阶段 5 的运行时与源曲线数值验收；**2026-11-14 Judge/Odin 已分别以 v1 完整发布并接入主游戏**，使用用户授权的公开参考临时玩法，见[判官／奥丁接入](judge-odin-integration.md)。原始九枪 manifest/runtime 仍缺失，不能从动作名或时长猜射速、容量、补弹时刻或热量规则。本次保留既有枪械纹理像素，没有生成新皮肤或保存制作源。
 
 ## 接口与顺序
 
@@ -45,9 +45,9 @@ player.clearControls()
       { "minimum": 0, "time": 0.800000011920929 },
       { "minimum": 1, "time": 0.699999988079071 },
       { "minimum": 2, "time": 0.6000000238418579 },
-      { "minimum": 3, "time": 0.5 },
-      { "minimum": 4, "time": 0.4000000059604645 },
-      { "minimum": 5, "time": 0.30000001192092896 },
+      { "minimum": 3, "time": 0.4999999701976776 },
+      { "minimum": 4, "time": 0.3999999761581421 },
+      { "minimum": 5, "time": 0.29999998211860657 },
       { "minimum": 6, "time": 0.20000000298023224 },
       { "minimum": 7, "time": 0.10000000149011612 },
       { "minimum": 8, "time": 0 }
@@ -60,7 +60,7 @@ levels 的 minimum 必须从 0 开始、严格递增且为非负安全整数；t
 
 WeaponViewModel 只使用到达 `P` 的事件 payload.weapon，不读取更新的逻辑背包来改显示。射击在 ShotFired 到达时减档；换弹在 AmmoCommitted 到达时补档，ReloadStarted、动画结束或迟到加载都不能补弹。控制样本在后续主动作采样、淡入淡出中持续保留；Editor/suspend 的 stop 清除它们，resume 根据新 epoch 的已提交武器重建。HUD 与模型共用已展示事实。
 
-上面的 Odin 示例和两份数值夹具使用明确的**近供弹端可见窗口**策略：可见数为 `min(magazine, 指示数量)`，Judge 为 5、Odin 为 8，多于窗口的弹药仍显示完整窗口。这是本地显示策略，不是从制作源重建出的原始容量或“每发都可见”的承诺；其他表现策略只需改 levels。完整发布时间应对照原始 runtime 数据审核。
+上面的 Odin v1 示例和两份数值夹具使用明确的**近供弹端可见窗口**策略：可见数为 `min(magazine, 指示数量)`，Judge 为 5、Odin 为 8，多于窗口的弹药仍显示完整窗口。这是本地显示策略，不是从制作源重建出的原始容量或“每发都可见”的承诺；其他表现策略只需改 levels。当前 Judge 5 发／Odin 100 发来自独立公开参考记录，不冒充原始 runtime 映射。
 
 ## 制作源审计
 
@@ -75,9 +75,9 @@ WeaponViewModel 只使用到达 `P` 的事件 payload.weapon，不读取更新�
 
 Judge 五个 bullet 各有 32 个 Weapon_Magazine 顶点；Odin group 本身没有直接权重，但其 bullet_N/chain_N 子骨有实际弹药/弹链权重。red_1/red_2 各影响当前 Weapon_Body.008 的 432 个顶点。审计没有把“父骨没有直接权重”误判成无效控制。
 
-Judge 源为 `skin_work_folder/judge_skin_work/Judge_Smite_Animated.blend` / `80_ThreeJS_Export`。Odin 源为 `skin_work_folder/odin_skin_work/Odin_Smite.blend` / `E09_ODIN_Actions`，主骨架为 root.006，Action slot 显示名仍为 root，动作前缀为 `odin / `。barrelIndicators 与 boltCaught 当前只接受显式采样输入；缺少玩法来源时不虚构热量/旋转速度或自动空仓规则。
+Judge 源为 `skin_work_folder/judge_skin_work/Judge_Smite_Animated.blend` / `80_ThreeJS_Export`。历史数值夹具的 Odin 源为 `skin_work_folder/odin_skin_work/Odin_Smite.blend`；当前发布从同目录 `three_odin_skins/Odin_Smite.blend` 重新审计，实际场景仍为 `E09_ODIN_Actions`，主骨架为 root.006，Action slot 显示名仍为 root，动作前缀为 `odin / `。barrelIndicators 与 boltCaught 当前只接受显式采样输入；没有虚构热量／旋转速度或自动空仓规则。
 
-STEP 边界必须使用**实际导出输入键值**。例如 Float32 的 0.1 是 0.10000000149011612，在局部时间 0.1 仍可能处于前一档。夹具阈值按其时间编码量化；不能在通用播放器中用误差吸附破坏 STEP 的精确语义。正式发布应从最终归一化 GLB 的输入键确定对应样本。
+STEP 边界必须使用**实际导出输入键值**。例如 Float32 的 0.1 是 0.10000000149011612，在局部时间 0.1 仍可能处于前一档。夹具阈值按其时间编码量化；不能在通用播放器中用误差吸附破坏 STEP 的精确语义。当前 `publish-authored.mjs` 的 `authoredControlProfile()` 已从最终归一化 GLB 输入键确定对应样本；上例保留最终值，不能从历史夹具机械复制。发布器还验证控制声明、实际轨道绑定、档位范围和有限采样，相关源码参与预览缓存指纹。
 
 ## 复现与验收范围
 
@@ -86,10 +86,12 @@ STEP 边界必须使用**实际导出输入键值**。例如 Float32 的 0.1 是
 npm test
 ```
 
-脚本只读取制作源和权重；检查源文件前后 SHA256 一致，输出数值 JSON，不导出模型、材质或图像。保存的夹具在 `tests/fixtures/weapon-controls/`；本次用 Blender 5.2.3 LTS 逐字节复现成功，目录名称 Blender5.3 不代表实际版本。
+脚本只读取制作源和权重；检查源文件前后 SHA256 一致，输出数值 JSON，不导出模型、材质或图像。保存的夹具在 `tests/fixtures/weapon-controls/`；初次交付用 Blender 5.2.3 LTS 逐字节复现成功，目录名称 Blender5.3 不代表实际版本。该命令复现历史夹具，不替代当前发布来源审计。
 
 夹具保留选定 scale 通道、真实无关 righthand.scale、相关层级/权重证据及源哈希，仅移除等值平台内部的冗余键。均匀 XYZ 缩放不依赖坐标基转换；测试骨架不重建整枪 rest pose，不能代替完整 GLB 的变形包围盒或视觉发布验收。
 
-当前全量 **352/352** 测试通过，新增 35 项（含子测试）覆盖：源 STEP 边界、线性/恒定控制、无关轨道排除、乱序/重复绝对采样、30/60/144 FPS 和批量追帧、实例隔离、缓存姿态恢复、stop/dispose、原子失败、真实 GLTF CUBICSPLINE、manifest 预检、补弹事实、取消与 suspend/resume。
+控制模块初次交付时全量 **352/352** 测试通过，新增 35 项（含子测试）覆盖：源 STEP 边界、线性/恒定控制、无关轨道排除、乱序/重复绝对采样、30/60/144 FPS 和批量追帧、实例隔离、缓存姿态恢复、stop/dispose、原子失败、真实 GLTF CUBICSPLINE、manifest 预检、补弹事实、取消与 suspend/resume。这是历史结果，不是当前七枪版本的全量验收。
 
-修改文件 ESLint 与生产构建通过。原有 Classic/Phantom 的生产版玩法、音频浏览器回归也通过，无浏览器错误；报告分别在 `D:/opencode-temp/opencode/weapon-controls/gameplay-browser/report.json` 与 `audio-browser/report.json`。这两项证明已有双枪没有回归，**不是 Judge/Odin 整枪已经进游戏的验收**。构建仍有既有的大 chunk 警告。
+该阶段修改文件 ESLint 与生产构建通过，Classic/Phantom 生产版玩法与音频浏览器回归也通过；历史报告分别在 `D:/opencode-temp/opencode/weapon-controls/gameplay-browser/report.json` 与 `audio-browser/report.json`，不是 Judge/Odin 整枪验收。
+
+2026-11-14 的两枪完整发布、实际 GLB 各档位与主游戏检查另行通过：Judge 5→0，Odin 100 发饱和窗口及末端 8→0，换弹均不提前补满；两枪每个手动控制 profile 保留但无自动驱动。`tests/judge-odin-integration.test.mjs` 还覆盖错误控制声明在发布时拒绝。完整报告、相关回归中既有的一项材质断言失败及未跑范围见[本次验收](judge-odin-integration.md#本次验收与耗时)；没有把历史 352 项冒充本次全绿。

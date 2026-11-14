@@ -59,7 +59,7 @@ node tools/weapons/publish-authored.mjs tools/weapons/authored-releases/vandal-v
 
 发布器固定全部源文件、贴图、作者证据、玩法和本地音频哈希，从制作源新导出，保留源文件前后 SHA-256、完整动作／权重、九组姿态和 glTF Validator 零 error／零 warning 门槛；拒绝覆盖内容不同的旧版本。新包先在项目外完整校验并进行单枪预览，然后安装。没有从非发布预览删除标记来“升级”资产，也没有修改 Ghost 配方原始字节。
 
-本地声音使用已有 Vandal shoot／draw／reload／inspect 四个 Ogg，战术与空仓共用 reload，不叠加 shoot_3p。狂徒接入当时四枪默认背包预热 **16 个**本地 cue；浏览器检查按实际配置计算数量，不再硬编码 12。
+本地声音使用已有 Vandal shoot／draw／reload／inspect 四个 Ogg，战术与空仓共用 reload，不叠加 shoot_3p。狂徒接入当时四枪默认背包预热 **16 个**本地 cue，加入正义后为 20 个，当前七枪为 28 个，见[判官／奥丁接入](judge-odin-integration.md)；浏览器检查按实际配置计算数量。下述仍为狂徒当次验收，不冒充七枪回归。
 
 ## 本次实际验收
 

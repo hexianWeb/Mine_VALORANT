@@ -19,7 +19,7 @@ npm ci
 npm run dev
 ```
 
-使用支持 WebGPU 的最新版 Chrome / Edge。加载后默认进入**玩家模式**，站在碰撞层出生点：点击画面锁定鼠标，WASD 移动、Shift 静步、C 下蹲、空格跳跃，R 回到出生点，Esc 释放鼠标。V 在玩家与飞行（noclip）之间切换；飞行模式下 WASD 移动、Q/E 升降、右键拖动视角、Shift 加速、滚轮调速，F 定位浮动茶壶，R 复位。左下角可切换轨道模式、碰撞线框、暂停漂浮及动态阴影，右上角提供 AO 和 LUT 调试面板。`?player=0` 启动时保持 Blender 参考机位与飞行模式。碰撞层见 [练枪房碰撞层](docs/physics/collision-layer.md)，模块与操作见 [茶壶与飞行观察](docs/lighting/room-inspection.md)。
+使用支持 WebGPU 的最新版 Chrome / Edge。加载后默认进入**玩家模式**，站在碰撞层出生点：点击画面锁定鼠标，WASD 移动、Shift 静步、C 下蹲、空格跳跃，Home 回到出生点，Esc 释放鼠标。武器左键开火、右键 ADS（支持的枪型）、R 换弹、T 检视、K 换肤；**1 Phantom / 2 Classic / 3 Ghost / 4 Vandal / 5 Sheriff / 6 Judge / 7 Odin**，初始 Classic，3–7 为临时参数。V 在玩家与飞行（noclip）之间切换；飞行模式下 WASD 移动、Q/E 升降、右键拖动视角、Shift 加速、滚轮调速，F 定位浮动茶壶，R 复位。左下角可切换轨道模式、碰撞线框、暂停漂浮及动态阴影，右上角提供 AO 和 LUT 调试面板。`?player=0` 启动时保持 Blender 参考机位与飞行模式。碰撞层见 [练枪房碰撞层](docs/physics/collision-layer.md)，模块与操作见 [茶壶与飞行观察](docs/lighting/room-inspection.md)。
 
 当前 `package-lock.json` 与 r187 依赖一致，已验证 `npm ci --dry-run --ignore-scripts`。保留现有 pnpm 锁文件，不删除或自动互相转换；安装时选择一种包管理器。部分 ESLint 开发依赖要求 Node 22.22.2+ 或 24.15+。
 
@@ -64,7 +64,7 @@ EXR 解码和 alpha 加权 mip 生成在独立 Worker 中完成，通过 transfe
 - `src/engine/editor/`：自由／轨道相机、渲染面板、探针面板、观察 HUD 与碰撞辅助线。
 - `src/game/`：玩家规则与练枪房内容；RangeRoomLevel 直接组装房间、地面、玩家、茶壶、阴影和探针。
 - `src/app/`：选择关卡、连接游戏与 Editor、URL 配置及诊断接口。`main.js` 只启动应用并接入 HMR。
-- `src/configs/input-bindings.js`：练枪房玩法键位，由 app 经 RuntimeContext 注入输入系统。runtime 提供通用动作状态与按下／释放边沿，由 Player 映射为玩法命令；省略 bindings 时不绑定键盘动作。R 回出生点在 `?editor=0` 下同样可用，键盘与玩家复位按钮都在 Tick 中执行，暂停时只排队。
+- `src/configs/input-bindings.js`：练枪房玩法键位，由 app 经 RuntimeContext 注入输入系统。runtime 提供通用动作状态与按下／释放边沿，由 Player 映射为玩法命令；省略 bindings 时不绑定键盘动作。Home 回出生点在 `?editor=0` 下同样可用，键盘与玩家复位按钮都在 Tick 中执行，暂停时只排队。
 
 文档索引见 [docs/README.md](docs/README.md)。完整目录、tick 调用链、生命周期、公共 API 与验收见 [运行时架构](docs/architecture.md)，最新调度契约见[阶段优先组件 Tick](docs/superpowers/specs/2026-11-11-phase-first-component-tick.md)，目录映射见[function 结构重构](docs/superpowers/specs/2026-11-11-function-layer-layout.md)，组件粒度取舍见[消融 Spec](docs/superpowers/specs/2026-11-10-component-based-game-objects.md)。runtime 不反向依赖 game/editor/app，game 与 editor 由 app 连接。`?editor=0` 可验证无工具界面的玩家与关卡运行。`npm test` 包含分层、阶段扫描、固定步与重入防护、运动数值、初始化回滚、关卡取消和资源归属检查。
 
@@ -93,6 +93,14 @@ Blender 日常制作、单枪候选预览与正式发布已分级，见[快速�
 Classic 已使用精简后的 `classic/v4`：枪械图集为 336×336，默认 AG，保留 Smite／Sakura；完整动作与统一手臂保持兼容。可复用的裁图、UV 调整、版本化导出和验收步骤见[枪械专用图集工作流](docs/weapons/gun-only-uv-workflow.md)。
 
 Phantom 当前使用 `phantom/v3`，复用 v2 模型，接入预览图同款的 Tactiplay／Smite／Rush／Prism 四张 2048×2048 贴图；默认 Tactiplay，K 循环换肤。未改变枪械、手臂或动画，来源与发布记录见[Phantom 四款皮肤](docs/weapons/animation-and-assets.md#phantom-四款皮肤--2026-11-14)。
+
+Ghost 已接入 `ghost/v1`：按 **3** 切换，**K** 循环 Freehand／Recon／Ego／Spitfire，保留共享 32×32 手臂。使用明确标注的公开参考临时玩法，当前为 13 发、半自动 6.75 发/秒、1.5 秒换弹；后坐力等暂定项与来源见 [Ghost 接入](docs/weapons/ghost-integration.md)。
+
+狂徒已接入 `vandal/v1`：按 **4** 切换，**K** 循环 Sakura／Wood & Metal／Smite／Royal Gold／EGO／Original，共享同一 32×32 手臂。公开参考临时玩法为 25 发、全自动 9.75 发/秒、2.5 秒换弹；可 ADS，但独立 ADS 射速暂未实现，后坐力暂借 Phantom，见[狂徒接入](docs/weapons/vandal-integration.md)。
+
+正义已接入 `sheriff/v1`：按 **5** 切换，**K** 循环 Smite／Sakura／Convex，保留 30 动作、快速装填器和共享手臂。公开参考临时玩法为 6 发、半自动 4 发/秒、2.25 秒换弹，无 ADS；后坐力暂借 Classic，见[正义接入](docs/weapons/sheriff-integration.md)。
+
+判官已接入 `judge/v1`：按 **6** 切换，K 循环 Smite／Rush；5 发、全自动 3.5 发/秒，每发实际查询 12 条弹丸射线，2.2 秒换弹，无 ADS。奥丁已接入 `odin/v1`：按 **7** 切换，K 循环 Smite／Prime／BlastX；100 发、固定 12 发/秒、5 秒换弹，支持 ADS，**未实现连射加速或 ADS 15.6 发/秒**。两枪各保留 33 动作、共享手臂和弹药显示，七枪共预热 28 个本地 cue；临时后坐力、控制策略与实测结果见[判官／奥丁接入](docs/weapons/judge-odin-integration.md)。
 
 `tools/export_range_room.py` 只允许在后台 Blender 副本中运行，要求显式对象 scope，拒绝覆盖已存在的正式资产。副本中调用 `repair_blender_alpha.py` 按图像实际 alpha 分类，防止后续重新导出时退回全部 BLEND；不改源 `.blend`，不重新展开或烘焙。
 

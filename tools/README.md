@@ -19,6 +19,21 @@ node tools/check-weapons-browser.mjs '<开发服务器地址 + previewUrl>' --qu
 
 ## 武器发布
 
+Ghost 的公开参考临时玩法采用独立来源契约：`node tools/weapons/publish-authored.mjs tools/weapons/authored-releases/ghost-v1.json F:/Blender5.3/blender.exe`。它从固定哈希的制作源重新导出并完成完整发布校验，不提升旧美术候选。针对接入的实际输入/四皮肤/共享手臂/半自动/换弹/音频检查使用 `node tools/check-ghost-browser.mjs http://localhost:5173/`，输出可由 `GHOST_TEST_OUTPUT` 指定；详情见 [Ghost 接入](../docs/weapons/ghost-integration.md)。
+
+狂徒使用同一发布器及 `tools/weapons/authored-releases/vandal-v1.json`。`authored_adapter.py` 根据固定配方在后台内存中处理多枪场景的对象／动作／材质别名，验证外观后无损转换实际手臂；不保存制作源。Original 以显式尺寸保留 256×256，另外五图为 2048×2048。目标实际游戏检查为 `node tools/check-vandal-browser.mjs http://localhost:5173/`，输出由 `VANDAL_TEST_OUTPUT` 指定，见[狂徒接入](../docs/weapons/vandal-integration.md)。Windows 浏览器检查请将 `TEMP`／`TMP` 设为原生反斜杠路径 `D:\opencode-temp\opencode`，避免较大 PNG fetch 的临时文件问题。
+
+正义使用同一发布器及 `tools/weapons/authored-releases/sheriff-v1.json`，从实际 `80_ThreeJS_Export` 直接导出，无需手臂转换。目标检查 `node tools/check-sheriff-browser.mjs http://localhost:5173/` 覆盖 5 号键、三皮肤、半自动／无 ADS、两种换弹与装填器变形及实际声音输出，报告由 `SHERIFF_TEST_OUTPUT` 指定，见[正义接入](../docs/weapons/sheriff-integration.md)。
+
+判官／奥丁使用同一发布器及 `tools/weapons/authored-releases/judge-v1.json`、`odin-v1.json`。判官从 `80_ThreeJS_Export` 直接导出；奥丁从当前 `three_odin_skins/` 的 `E09_ODIN_Actions` 导出，在后台无损适配实际 `.008` 手臂。`authoredControlProfile()` 从最终归一化 GLB 的实际 Float32 输入键解析弹药档位，发布同时验证稀疏控制绑定与有限采样。固定来源、临时玩法、实际计时与回归边界见[判官／奥丁接入](../docs/weapons/judge-odin-integration.md)。
+
+```powershell
+node tools/weapons/publish-authored.mjs tools/weapons/authored-releases/judge-v1.json F:/Blender5.3/blender.exe
+node tools/weapons/publish-authored.mjs tools/weapons/authored-releases/odin-v1.json F:/Blender5.3/blender.exe
+```
+
+目标实机检查 `node tools/check-judge-odin-browser.mjs http://localhost:5173/` 覆盖 6／7 号键、五皮肤、判官 12 弹丸、两枪打空与弹药显示、两种换弹、奥丁 ADS、每发一个本地声音和七枪切回。输出由 `JUDGE_ODIN_TEST_OUTPUT` 指定，默认 `D:/opencode-temp/opencode/judge-odin-gameplay-browser/`；工具读取当前配置的 28 个预热 cue，不硬编码旧五枪数量。
+
 枪身默认使用平直着色、全金属、跟随皮肤的自发光和静态室内反射。练枪房实景验收使用 `check-weapon-lighting-browser.mjs`。[武器材质路线图](../docs/weapons/material-quality-roadmap.md)
 
 Classic 当前的精简网格／336 图集使用独立发布入口，不覆盖历史包：
@@ -67,7 +82,7 @@ Phantom 四款皮肤使用 `node tools/weapons/publish-skins.mjs tools/weapons/s
 
 导出只选择配方列出的运行时网格与四套动画 Armature，排除 Icosphere 自定义骨形和预览摄像机。保留多对象 Action 和 STEP 可见性，检查手臂 SourceUV/标准贴图；规范化时间原点、skinned mesh 根节点、材质 UV 及重复节点名。材质角色区分 weapon / armsLeft / armsRight，皮肤只覆盖 weapon。GLB 内含初始贴图；皮肤 JSON 的纹理 URL 相对皮肤 JSON，其他资源 URL 相对 manifest。挂载位置在 `view.mountOffset`，单位为米，写到 Mixer 根节点外的 anchor，GLB 不再缩放。
 
-发布门槛包括源文件前后 SHA256 一致、packed 皮肤与显式 PNG 一致、完整 clip/mesh/material/socket 绑定、时间原点、循环端点、有限骨骼矩阵、权重非负且归一化（旧包默认刚性，新包可显式声明最多 4 骨骼）、每枪九个 Blender/Three.js 变形包围盒比较，以及 glTF Validator 零 error/零 warning。`source-audit.json` 保存源姿态证据，`validation.json` 保存检查结果。Node 贴图检查不代替真实浏览器的像素解码和 WebGPU 画面验收。普通动作零时刻音效不重复导入为 marker；Classic salvo 等独立 cue 保留。已发布两枪接入主游戏，操作与时钟契约见[武器玩法](../docs/weapons/gameplay.md)；本地声音见[运行时音频](../docs/weapons/audio.md)。后续枪皮肤素材由用户处理，不自动生成或替换。
+发布门槛包括源文件前后 SHA256 一致、packed 皮肤与显式 PNG 一致、完整 clip/mesh/material/socket 绑定、时间原点、循环端点、有限骨骼矩阵、权重非负且归一化（旧包默认刚性，新包可显式声明最多 4 骨骼）、每枪九个 Blender/Three.js 变形包围盒比较，以及 glTF Validator 零 error/零 warning。`source-audit.json` 保存源姿态证据，`validation.json` 保存检查结果。Node 贴图检查不代替真实浏览器的像素解码和 WebGPU 画面验收。普通动作零时刻音效不重复导入为 marker；Classic salvo 等独立 cue 保留。当前七枪已发布接入主游戏，操作与时钟契约见[武器玩法](../docs/weapons/gameplay.md)；本地声音见[运行时音频](../docs/weapons/audio.md)。后续枪皮肤素材由用户处理，不自动生成或替换。
 
 `weapons/audit_controls.py` 只读审计 Judge/Odin 的显式 scale 白名单、插值、层级及权重，输出 `tests/fixtures/weapon-controls/` 的可复现数值夹具；不导出模型、材质或图像，也不保存 blend。复核时输出到 `D:/opencode-temp/opencode/weapon-controls/reproduced` 再与保存的夹具比较，运行方式及验收边界见[稀疏控制](../docs/weapons/runtime-controls.md)。正常 npm test 不需要启动 Blender。
 
@@ -84,10 +99,11 @@ Phantom 四款皮肤使用 `node tools/weapons/publish-skins.mjs tools/weapons/s
 | `check-player-browser.mjs` | 出生、撞墙、跳跃、掉出地图 | `pnpm dev` 后跑，会自己设 `probes=0` |
 | `check-pipeline-browser.mjs` | 法线预通道、lightmap 材质、AO、分辨率 | **必须**开发服务器 `http://localhost:5173/` |
 | `check-runtime-browser.mjs` | 有 / 无 Editor 重载、独立渲染 | 同上，必须开发服务器 |
-| `check-weapons-browser.mjs` | Classic/Phantom 真实皮肤、动作采样、实例隔离与释放 | `npm run dev` 后 `node tools/check-weapons-browser.mjs http://localhost:5173/weapon-preview.html`；输出目录用 `WEAPON_TEST_OUTPUT` |
+| `check-weapons-browser.mjs` | 七枪动作采样、实例隔离与释放；不带 quick 时遍历七枪，截图仍为 Classic/Phantom | 日常只跑 `node tools/check-weapons-browser.mjs <preview-url> --quick --weapon judge`（可选 classic/phantom/ghost/vandal/sheriff/judge/odin）；输出目录用 `WEAPON_TEST_OUTPUT` |
 | `check-weapon-gameplay-browser.mjs` | 主游戏真实输入、切枪／打断、射击／ADS、统一表现时间与生命周期 | `npm run dev` 后 `node tools/check-weapon-gameplay-browser.mjs http://localhost:5173/`；输出目录用 `WEAPON_GAME_TEST_OUTPUT` |
 | `check-weapon-lighting-browser.mjs` | 主游戏四款皮肤截图、双枪 HDR 光照、换肤自发光、室内反射和全局灯光开关 | 开发服务器下 `node tools/check-weapon-lighting-browser.mjs http://localhost:5173/`，输出目录用 `WEAPON_LIGHTING_TEST_OUTPUT` |
 | `check-weapon-audio-browser.mjs` | 双枪真实 Ogg 解码与输出波形、音频解锁、连射、取消、暂停/变速及卸载 | `npm run dev` 后 `node tools/check-weapon-audio-browser.mjs http://localhost:5173/`；输出目录用 `WEAPON_AUDIO_TEST_OUTPUT` |
+| `check-judge-odin-browser.mjs` | 两枪五皮肤、12 弹丸／弹药显示、固定射速／ADS、换弹、实际声音及七枪切回 | `npm run dev` 后 `node tools/check-judge-odin-browser.mjs http://localhost:5173/`；输出目录用 `JUDGE_ODIN_TEST_OUTPUT` |
 
 下面是一整套房间集成交付示例，**不是每次 Blender 小改的默认步骤**；武器资源小改使用上面的快速迭代入口。
 
