@@ -5,6 +5,8 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { ClipLibrary } from '../../src/engine/runtime/function/animation/clip-library.js'
+import { validateAmmoDisplay } from '../../src/game/weapons/assets/weapon-control-profile.js'
 import { validateWeaponSkinMaterial } from '../../src/game/weapons/assets/weapon-materials.js'
 
 export function sha256(bytes) {
@@ -350,6 +352,42 @@ export async function validateWeaponModel({ manifest, bytes }, { validator, pose
       }
     }
     assert.ok(maxPoseBoundsError < 0.001, `Blender/Three pose mismatch: ${maxPoseBoundsError}`)
+    let controls
+    if (manifest.runtimeControls !== undefined || manifest.ammoDisplay !== undefined) {
+      const library = new ClipLibrary({
+        root: loaded.scene,
+        clips: loaded.animations,
+        actions: Object.fromEntries(Object.entries(manifest.actions).map(([role, name]) => [
+          role,
+          { clip: name, loop: manifest.clips.find(clip => clip.name === name).loop },
+        ])),
+        controls: manifest.runtimeControls,
+      })
+      validateAmmoDisplay(manifest, library)
+      let samples = 0
+      for (const role of Object.keys(manifest.runtimeControls)) {
+        const control = library.getControl(role)
+        const times = [
+          0,
+          control.clip.duration / 2,
+          control.clip.duration,
+        ]
+        if (manifest.ammoDisplay?.control === role)
+          times.push(...manifest.ammoDisplay.levels.map(level => level.time))
+        for (const time of times) {
+          for (const { track } of control.tracks) {
+            assert.ok([
+              ...track.createInterpolant().evaluate(time),
+            ].every(Number.isFinite), `Nonfinite control: ${role}`)
+          }
+          samples++
+        }
+      }
+      controls = {
+        profiles: Object.keys(manifest.runtimeControls).length,
+        samples,
+      }
+    }
     let gltfIssues = null
     if (validator && profile === 'release') {
       const result = await validator.validateBytes(new Uint8Array(bytes), { maxIssues: 100 })
@@ -366,6 +404,9 @@ export async function validateWeaponModel({ manifest, bytes }, { validator, pose
       poseSamples: selectedSamples.length,
       maxPoseBoundsError,
       gltfIssues,
+      ...(controls
+        ? { controls }
+        : {}),
       ...(profile === 'preview'
         ? { profile, publishable: false, sampledClips: previewClips.size }
         : {}),

@@ -73,7 +73,20 @@ export class PlayerWeapons {
   #initialSelectionId
   #disposed = false
 
-  constructor({ assets, layer, aim, world, audio = null, definitions = [classicDefinition, phantomDefinition], loadout = practiceLoadout, initialSlot = 'secondary', fixedDelta = 1 / 60 }) {
+  constructor({
+    assets,
+    layer,
+    aim,
+    world,
+    audio = null,
+    definitions = [
+      classicDefinition,
+      phantomDefinition,
+    ],
+    loadout = practiceLoadout,
+    initialSlot = 'secondary',
+    fixedDelta = 1 / 60,
+  }) {
     this.#controller = new EquipmentController({
       definitions,
       loadout,
@@ -194,6 +207,14 @@ export class PlayerWeapons {
         }
       }
       const shot = this.#aim.fire({ instanceId: event.instanceId, shotSequence: event.payload.shotSequence, definition })
+      const pellets = shot.pelletDirections?.map((direction, index) => ({
+        index,
+        direction,
+        impact: trace(shot.eyeOrigin, direction, this.#world),
+      }))
+      const impact = pellets
+        ? pellets.filter(pellet => pellet.impact.hit).sort((a, b) => a.impact.distance - b.impact.distance)[0]?.impact ?? pellets[0].impact
+        : trace(shot.eyeOrigin, shot.shotDirection, this.#world)
       const enriched = {
         ...event,
         payload: {
@@ -201,7 +222,10 @@ export class PlayerWeapons {
           ...shot,
           weapon,
           aiming,
-          impact: trace(shot.eyeOrigin, shot.shotDirection, this.#world),
+          impact,
+          ...(pellets
+            ? { pellets }
+            : {}),
         },
       }
       this.#lastShot = enriched

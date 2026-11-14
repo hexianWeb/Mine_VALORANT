@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
+import { weaponAudioProfiles } from '../src/game/weapons/definitions/audio.js'
 import { openBrowser } from './browser-session.mjs'
 
 const output = path.resolve(process.env.WEAPON_AUDIO_TEST_OUTPUT ?? 'D:/opencode-temp/opencode/weapon-audio/browser')
@@ -10,6 +11,7 @@ const url = new URL(process.argv[2] ?? 'http://localhost:5173/')
 url.searchParams.set('probes', '0')
 url.searchParams.set('editor', '0')
 const report = { url: url.href, errors: [], messages: [] }
+const audioCueCount = Object.values(weaponAudioProfiles).reduce((sum, profile) => sum + Object.keys(profile.cues).length, 0)
 let session
 try {
   session = await openBrowser({ output, errors: report.errors, messages: report.messages })
@@ -87,12 +89,12 @@ try {
   await session.navigate(report.url)
   await send('Page.bringToFront')
   await send('Emulation.setFocusEmulationEnabled', { enabled: true })
-  await until('globalThis.__RANGE_ROOM__?.ready && __RANGE_ROOM__.inspection.player.snapshot().weapons.audio.bank.cues===8')
+  await until(`globalThis.__RANGE_ROOM__?.ready && __RANGE_ROOM__.inspection.player.snapshot().weapons.audio.bank.cues===${audioCueCount}`)
   await ready('pistol')
   report.initial = { audio: await audio(), decoded: await evaluate('__AUDIO_PROBE__.decoded') }
   assert.equal(report.initial.audio.unlocked, false)
   assert.equal(await evaluate('__AUDIO_PROBE__.sources.length'), 0, 'locked initial draw never produces a source')
-  assert.equal(report.initial.decoded.length, 8)
+  assert.equal(report.initial.decoded.length, audioCueCount)
   assert.ok(report.initial.decoded.every(buffer => buffer.duration > 0 && buffer.channels > 0))
   await click()
   await until('!!document.pointerLockElement && __RANGE_ROOM__.audio.snapshot().state===\'running\' && __RANGE_ROOM__.audio.snapshot().unlocked')

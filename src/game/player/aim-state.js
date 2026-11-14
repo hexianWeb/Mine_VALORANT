@@ -48,6 +48,13 @@ function random(seed) {
   }
 }
 
+function spreadDirection(next, spread, orientation) {
+  return new Vector3((next() - next()) * spread, (next() - next()) * spread, -1 + (next() - next()) * spread)
+    .normalize()
+    .applyQuaternion(orientation)
+    .toArray()
+}
+
 function curveAt(curve, time) {
   if (!curve.length || time < 0 || time > curve.at(-1).time)
     return 0
@@ -309,13 +316,25 @@ export class AimState {
       || shotSequence <= (this.#shots.get(instanceId) ?? 0)) {
       throw new Error('[AimState] Expected a new accepted shot identity')
     }
+    const pelletCount = definition?.fire?.pellets ?? 1
+    if (!Number.isSafeInteger(pelletCount) || pelletCount < 1 || pelletCount > 64)
+      throw new RangeError('[AimState] Invalid pellet count')
     const before = this.#step.current
     const seed = hashSeed(this.#seed, instanceId, shotSequence)
     const next = random(seed)
     const orientation = new Quaternion().fromArray(before.quaternion)
     const aimDirection = new Vector3(0, 0, -1).applyQuaternion(orientation).toArray()
     const spread = before.spread
-    const shotDirection = new Vector3((next() - next()) * spread, (next() - next()) * spread, -1 + (next() - next()) * spread).normalize().applyQuaternion(orientation).toArray()
+    const shotDirection = spreadDirection(next, spread, orientation)
+    // A separate stream keeps the original first ray and ONE recoil impulse byte-for-byte stable.
+    let pelletDirections
+    if (pelletCount > 1) {
+      const pelletRandom = random(hashSeed(this.#seed, `${instanceId}:pellets`, shotSequence))
+      pelletDirections = [
+        shotDirection,
+        ...Array.from({ length: pelletCount - 1 }, () => spreadDirection(pelletRandom, spread, orientation)),
+      ]
+    }
     const source = definition?.recoil ?? neutral.recoil
     const sampleCurve = curve => curve.map(frame => ({
       time: frame.time,
@@ -334,6 +353,9 @@ export class AimState {
       eyeOrigin: before.position,
       aimDirection,
       shotDirection,
+      ...(pelletDirections
+        ? { pelletDirections }
+        : {}),
       seed,
       shotId: `${instanceId}:${shotSequence}`,
       patternIndex: shotSequence - 1,

@@ -63,6 +63,30 @@ test('definitions copy and deeply freeze configuration without freezing the sour
   assert.equal(Object.isFrozen(source.reload.empty), false)
 })
 
+test('multi-pellet declarations are explicit, bounded and do not rewrite legacy definition shapes', () => {
+  assert.equal(Object.hasOwn(createWeaponDefinition(classicDefinition).fire, 'pellets'), false)
+  const source = structuredClone(classicDefinition)
+  source.fire.pellets = 12
+  const result = createWeaponDefinition(source)
+  source.fire.pellets = 3
+  assert.equal(result.fire.pellets, 12)
+  assert.ok(Object.isFrozen(result.fire))
+  for (const pellets of [
+    0,
+    -1,
+    1.5,
+    65,
+    Infinity,
+    NaN,
+    '12',
+    undefined,
+  ]) {
+    assert.throws(() => createWeaponDefinition({
+      ...classicDefinition,
+      fire: { ...classicDefinition.fire, pellets },
+    }), /fire.pellets/)
+  }
+})
 test('definition validation rejects unsupported capabilities and invalid gameplay timing', () => {
   const cases = [
     [

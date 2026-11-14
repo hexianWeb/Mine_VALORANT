@@ -11,7 +11,7 @@ import { classicDefinition } from '../src/game/weapons/definitions/classic.js'
 import { WeaponAudio } from '../src/game/weapons/weapon-audio.js'
 import { audioTime, cue, FakeAudioContext, h } from './audio-fixture.mjs'
 
-test('all eight explicit local sound inputs match the supplied Ogg files; reload aliases share one cue', async () => {
+test('all configured local sound inputs match the supplied Ogg files; reload aliases share one cue', async () => {
   for (const profile of Object.values(weaponAudioProfiles)) {
     assert.equal(profile.reloadEmpty, profile.reloadTactical)
     for (const descriptor of Object.values(profile.cues)) {

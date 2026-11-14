@@ -17,3 +17,4 @@
 # Preserve published checksums and byte-identical exports on every platform.
 /public/weapons/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /tools/weapons/optimized-releases/*.json -text
+/tools/weapons/authored-releases/*.json -text

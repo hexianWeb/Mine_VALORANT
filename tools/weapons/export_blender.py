@@ -12,6 +12,7 @@ import bpy
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from arm_contract import load_contract, validate_arms
+from authored_adapter import prepare_authored_source
 from optimized_geometry import install_optimized_geometry
 
 
@@ -154,6 +155,11 @@ def main():
     mark('read-inputs')
     bpy.ops.wm.open_mainfile(filepath=str(source), load_ui=False)
     mark('load-authoring')
+    scene = bpy.data.scenes[request['scene']]
+    bpy.context.window.scene = scene
+    adapter = None
+    if request.get('authoringAdapter'):
+        adapter = prepare_authored_source(request['authoringAdapter'], scene)
     arm_contract, _ = load_contract()
     validate_arms(arm_contract)
     mark('arm-contract')
@@ -229,6 +235,8 @@ def main():
     }
     if optimized is not None:
         report['optimizedGeometry'] = optimized
+    if adapter is not None:
+        report['authoringAdapter'] = adapter
     Path(request['report']).write_text(json.dumps(report, indent=2), encoding='utf8')
     mark('source-unchanged-and-audit')
     if request.get('timingReport'):

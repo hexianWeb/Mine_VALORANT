@@ -55,7 +55,7 @@ export function createWeaponDefinition(input) {
     'spread',
     'aim',
   ])
-  record(input.fire, 'fire', ['mode', 'interval'])
+  record(input.fire, 'fire', ['mode', 'interval', 'pellets'])
   record(input.equip, 'equip', ['draw', 'holster'])
   record(input.reload, 'reload', ['tactical', 'empty'])
   record(input.capabilities, 'capabilities', ['ads'])
@@ -76,16 +76,23 @@ export function createWeaponDefinition(input) {
     throw new TypeError('assets.skinIds must be unique and include defaultSkinId')
   }
   for (const skinId of skinIds) identifier(skinId, 'assets.skinIds')
+  const fire = {
+    mode: input.fire.mode,
+    interval: seconds(input.fire.interval, 'fire.interval', true),
+  }
+  // Preserve the exact legacy definition shape unless multi-pellet fire is explicitly authored.
+  if (Object.hasOwn(input.fire, 'pellets')) {
+    fire.pellets = integer(input.fire.pellets, 'fire.pellets', 1)
+    if (fire.pellets > 64)
+      throw new RangeError('fire.pellets must not exceed 64')
+  }
 
   return Object.freeze({
     ...createAimProfile(input),
     id: identifier(input.id, 'id'),
     capacity: integer(input.capacity, 'capacity', 1),
     initialReserve: integer(input.initialReserve, 'initialReserve'),
-    fire: Object.freeze({
-      mode: input.fire.mode,
-      interval: seconds(input.fire.interval, 'fire.interval', true),
-    }),
+    fire: Object.freeze(fire),
     equip: Object.freeze({
       draw: seconds(input.equip.draw, 'equip.draw'),
       holster: seconds(input.equip.holster, 'equip.holster'),

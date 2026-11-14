@@ -96,6 +96,62 @@ test('same-time shots use the preceding accepted impulse and reject duplicate sh
   close(aim.endStep().pitch, 0.2)
 })
 
+test('multi-pellet fire adds deterministic pre-shot rays, not extra recoil impulses or random drift', () => {
+  const gun = {
+    ...definition({
+      spread: { stand: 0.045 },
+    }),
+    fire: { pellets: 12 },
+  }
+  const shoot = (pellets, extraSamples = false) => {
+    const aim = new AimState({ seed: 456 })
+    const definition = {
+      ...gun,
+      fire: { pellets },
+    }
+    step(aim, 0.1, { definition })
+    if (extraSamples) {
+      for (let index = 0; index < 10; index++) aim.sample(index / 100)
+    }
+    const shot = aim.fire({ instanceId: 'shotgun', shotSequence: 1, definition })
+    const pose = aim.endStep()
+    return { shot, pose }
+  }
+  const single = shoot(1)
+  const multi = shoot(12)
+  assert.equal(single.shot.pelletDirections, undefined)
+  assert.equal(multi.shot.pelletDirections.length, 12)
+  assert.deepEqual(multi.shot.shotDirection, single.shot.shotDirection)
+  assert.deepEqual(multi.shot.impulse, single.shot.impulse)
+  assert.deepEqual(multi.pose, single.pose, 'a shell applies one recoil segment, not twelve')
+  assert.deepEqual(multi, shoot(12, true))
+  assert.equal(new Set(multi.shot.pelletDirections.map(ray => JSON.stringify(ray))).size, 12)
+  for (const direction of multi.shot.pelletDirections) {
+    close(Math.hypot(...direction), 1)
+    assert.ok(Object.isFrozen(direction))
+  }
+  assert.ok(Object.isFrozen(multi.shot.pelletDirections))
+})
+
+test('invalid pellet counts fail before consuming the accepted shot identity', () => {
+  const aim = new AimState()
+  const gun = definition()
+  step(aim, 0.1, { definition: gun })
+  for (const pellets of [0, -1, 1.5, 65, NaN, Infinity]) {
+    assert.throws(() => aim.fire({
+      instanceId: 'shotgun',
+      shotSequence: 1,
+      definition: {
+        ...gun,
+        fire: { pellets },
+      },
+    }), /pellet count/)
+  }
+  const shot = aim.fire({ instanceId: 'shotgun', shotSequence: 1, definition: gun })
+  assert.equal(shot.shotId, 'shotgun:1')
+  close(aim.endStep().recoilPitch, 0.1)
+})
+
 test('eye and step smoothing advance once per fixed step, while shot safety is evaluated on both sides', () => {
   const checks = []
   const aim = new AimState({
