@@ -1,6 +1,6 @@
 # 第一人称武器材质与质感优化路线图
 
-> Classic v4 的 AG、Smite、Sakura 和 Phantom v2 的 Tactiplay 已采用默认枪身材质。
+> Classic v4 的 AG、Smite、Sakura 和 Phantom v3 的 Tactiplay、Smite、Rush、Prism 使用相同的默认枪身材质。
 
 ## 当前默认材质与验证
 

@@ -92,6 +92,8 @@ Blender 日常制作、单枪候选预览与正式发布已分级，见[快速�
 
 Classic 已使用精简后的 `classic/v4`：枪械图集为 336×336，默认 AG，保留 Smite／Sakura；完整动作与统一手臂保持兼容。可复用的裁图、UV 调整、版本化导出和验收步骤见[枪械专用图集工作流](docs/weapons/gun-only-uv-workflow.md)。
 
+Phantom 当前使用 `phantom/v3`，复用 v2 模型，接入预览图同款的 Tactiplay／Smite／Rush／Prism 四张 2048×2048 贴图；默认 Tactiplay，K 循环换肤。未改变枪械、手臂或动画，来源与发布记录见[Phantom 四款皮肤](docs/weapons/animation-and-assets.md#phantom-四款皮肤--2026-11-14)。
+
 `tools/export_range_room.py` 只允许在后台 Blender 副本中运行，要求显式对象 scope，拒绝覆盖已存在的正式资产。副本中调用 `repair_blender_alpha.py` 按图像实际 alpha 分类，防止后续重新导出时退回全部 BLEND；不改源 `.blend`，不重新展开或烘焙。
 
 Lightmap 重烘使用 `tools/bake_range_room_lightmaps.py`，完成后调用上述导出器的 `--lightmap-report` 路径写入独立版本；范围、UV 校验和复现命令见 [Lightmap 文档](docs/lighting/lightmap-v1.md)。

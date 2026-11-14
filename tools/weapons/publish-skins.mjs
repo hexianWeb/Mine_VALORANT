@@ -25,6 +25,13 @@ export async function publishSkinRelease({ baseDirectory, assetVersion, variants
   assert.match(manifest.weaponId, /^[\w-]+$/, 'Invalid weaponId')
   assert.match(assetVersion, /^[\w-]+$/, 'Invalid assetVersion')
   assert.notEqual(assetVersion, manifest.assetVersion, 'Skin changes need a new assetVersion')
+  assert.equal(new Set(variants.map(variant => variant.skinId)).size, variants.length, 'Duplicate skin variants')
+  for (const variant of variants) {
+    if (Object.hasOwn(manifest.skins, variant.skinId))
+      assert.equal(variant.replaceExisting, true, `Replacing ${variant.skinId} requires replaceExisting: true`)
+    else
+      assert.ok(variant.replaceExisting === undefined || variant.replaceExisting === false, `No existing skin to replace: ${variant.skinId}`)
+  }
   const audit = JSON.parse(await readFile(path.join(base, 'source-audit.json'), 'utf8'))
   await validateWeaponPackage(base, { validator, poseSamples: audit.poseSamples })
   await mkdir(workRoot, { recursive: true })
@@ -82,6 +89,8 @@ export async function publishSkinRelease({ baseDirectory, assetVersion, variants
       next.skins[skinId] = resource(`skins/${skinId}.json`, bytes)
     }
     for (const [skinId, descriptor] of Object.entries(manifest.skins)) {
+      if (variants.some(variant => variant.skinId === skinId && variant.replaceExisting === true))
+        continue
       const filename = path.resolve(base, descriptor.url)
       const skin = JSON.parse(await readFile(filename, 'utf8'))
       assert.deepEqual(Object.keys(skin.materials), ['weapon'], 'This release recipe supports weapon variants only')

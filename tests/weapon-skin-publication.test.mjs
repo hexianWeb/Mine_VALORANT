@@ -50,6 +50,37 @@ test('a material release preserves the exact base model and current local skin w
   await assert.rejects(publishSkinRelease(recipe), /Existing version differs/)
 })
 
+test('material releases replace an existing skin only with explicit audited authorization', async (t) => {
+  const { recipe } = await fixture(t)
+  const variant = recipe.variants[0]
+  variant.skinId = 'smite'
+  const baseManifest = await readFile(path.join(recipe.baseDirectory, 'manifest.json'))
+  const baseSkin = await readFile(path.join(recipe.baseDirectory, 'skins/smite.json'))
+  await assert.rejects(publishSkinRelease(recipe), /replaceExisting: true/)
+  variant.replaceExisting = true
+  const report = await publishSkinRelease(recipe)
+  assert.deepEqual(report.skins, ['smite'])
+  assert.equal(report.gltfIssues.numErrors, 0)
+  assert.equal(report.gltfIssues.numWarnings, 0)
+  const skin = JSON.parse(await readFile(path.join(report.directory, 'skins/smite.json'), 'utf8'))
+  assert.equal(skin.materials.weapon.map.sha256, sha256(await readFile(variant.texture)))
+  const manifest = JSON.parse(await readFile(path.join(report.directory, 'manifest.json'), 'utf8'))
+  assert.equal(manifest.defaultSkinId, 'smite')
+  assert.equal(manifest.model.sha256, JSON.parse(baseManifest).model.sha256)
+  assert.deepEqual(await readFile(path.join(recipe.baseDirectory, 'manifest.json')), baseManifest)
+  assert.deepEqual(await readFile(path.join(recipe.baseDirectory, 'skins/smite.json')), baseSkin)
+  await assert.rejects(publishSkinRelease({
+    ...recipe,
+    variants: [variant, variant],
+  }), /Duplicate skin variants/)
+  await assert.rejects(publishSkinRelease({
+    ...recipe,
+    variants: [
+      { ...variant, skinId: 'missing' },
+    ],
+  }), /No existing skin to replace/)
+})
+
 test('material releases preserve existing emission and publish a separately authored emission map', async (t) => {
   const { recipe } = await fixture(t)
   const manifestPath = path.join(recipe.baseDirectory, 'manifest.json')

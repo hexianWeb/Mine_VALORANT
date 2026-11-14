@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "phantom",
+  "assetVersion": "v3",
+  "skinId": "smite",
+  "compatibility": {
+    "rig": "a67ea3ce6c74d3fce223d736f080bd43a16ef408e6ae330a647c19f5a56dea8e",
+    "geometryUV": "f68ba37b28c874fb9b4e06b08d10e9ab3193f1d02272eb8daba13a9b7ed7cd5b",
+    "clipSet": "0296ab5257b15414bef1c57b883f9de41980564cce27af1b41658a00f4bbb514"
+  },
+  "materials": {
+    "weapon": {
+      "map": {
+        "url": "../textures/0425e9dcab4138e7ca44e02805ffb2cb131e45c9d896098ef2f246d4cf7b4553.png",
+        "sha256": "0425e9dcab4138e7ca44e02805ffb2cb131e45c9d896098ef2f246d4cf7b4553",
+        "bytes": 341457,
+        "width": 2048,
+        "height": 2048,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    }
+  }
+}

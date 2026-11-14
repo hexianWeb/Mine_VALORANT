@@ -241,6 +241,10 @@ test('runtime materials use flat full metal for the gun and keep matte arms and 
   assert.equal(weapon.side, f.data.weaponMaterial.side)
   assert.deepEqual(weapon.color.toArray(), f.data.weaponMaterial.color.toArray())
   assert.equal(weapon.map, f.textures[0])
+  assert.ok(weapon.colorNode && weapon.emissiveNode && weapon.metalnessNode, 'gun skin grade nodes are bound')
+  assert.equal(arms.colorNode ?? null, null)
+  assert.equal(arms.metalnessNode ?? null, null)
+  assert.equal(f.data.weaponMaterial.colorNode ?? null, null, 'the shared source material keeps its nodes')
 })
 
 test('the room reflection is borrowed by gun materials and follows lighting for all live instances', async (t) => {

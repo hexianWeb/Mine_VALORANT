@@ -1,0 +1,31 @@
+{
+  "baseDirectory": "public/weapons/phantom/v2",
+  "assetVersion": "v3",
+  "variants": [
+    {
+      "skinId": "tactiplay",
+      "replaceExisting": true,
+      "texture": "skin_work_folder/phantom_skin_work/phantom_tactiplay_weapon.png",
+      "sourceBlend": "skin_work_folder/phantom_skin_work/Phantom_Tactiplay_Animated.blend",
+      "auditFile": "tools/weapons/skin-releases/phantom-tactiplay-audit.json"
+    },
+    {
+      "skinId": "smite",
+      "texture": "skin_work_folder/phantom_skin_work/phantom_smite_weapon.png",
+      "sourceBlend": "skin_work_folder/phantom_skin_work/Phantom_Smite_Animated.blend",
+      "auditFile": "tools/weapons/skin-releases/phantom-smite-audit.json"
+    },
+    {
+      "skinId": "rush",
+      "texture": "skin_work_folder/phantom_skin_work/phantom_rush_weapon.png",
+      "sourceBlend": "skin_work_folder/phantom_skin_work/Phantom_Rush_Animated.blend",
+      "auditFile": "tools/weapons/skin-releases/phantom-rush-audit.json"
+    },
+    {
+      "skinId": "prism",
+      "texture": "skin_work_folder/phantom_skin_work/phantom_prism_weapon.png",
+      "sourceBlend": "skin_work_folder/phantom_skin_work/Phantom_Prism_Animated.blend",
+      "auditFile": "tools/weapons/skin-releases/phantom-prism-audit.json"
+    }
+  ]
+}

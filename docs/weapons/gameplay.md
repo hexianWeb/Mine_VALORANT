@@ -14,7 +14,7 @@
 | 主 / 副武器 | 1 / 2 |
 | 循环切枪 / 上一把 | 滚轮 / Q；上一把在完成掏枪后更新 |
 | 换弹 / 检视 | R / T |
-| 循环当前枪皮肤 | K；Classic 为 smite ↔ sakura，Phantom 目前只有一款 |
+| 循环当前枪皮肤 | K；Classic 为 AG → Smite → Sakura，Phantom 为 Tactiplay → Smite → Rush → Prism |
 | 回出生点 | Home；玩家复位按钮走同一排队入口 |
 | 移动 / 静步 / 蹲下 / 跳跃 | WASD / Shift / C / 空格 |
 | 释放鼠标 / 飞行观察 | Esc / V（飞行观察需要 Editor） |
@@ -83,9 +83,9 @@ equipment.step({ fixedTick: 2, fixedElapsed: 2 * fixedDelta, fixedDelta })
 | 空仓换弹 feed / duration | 1.75 / 1.75 秒 | 2.25 / 2.5 秒 |
 | 检视时长 | 3 秒 | 4 秒 |
 | ADS 能力声明 | false | true |
-| 模型 / 默认皮肤 | classic / smite | phantom / tactiplay |
+| 模型 / 默认皮肤 | classic / ag | phantom / tactiplay |
 
-弹量、射速、装备和换弹时刻依据本地 `valorant-first-person-pack` 的 manifest runtime；模式与检视时长依据来源数据及 clip。备用弹药为本项目选择的三个备用弹匣。Classic 当前使用 v2（同一基础模型，smite/sakura 两款），Phantom 使用 v1，均已发布到 `public/weapons/`，见[发布和播放](animation-and-assets.md)。
+弹量、射速、装备和换弹时刻依据本地 `valorant-first-person-pack` 的 manifest runtime；模式与检视时长依据来源数据及 clip。备用弹药为本项目选择的三个备用弹匣。Classic 当前使用 v4（AG / Smite / Sakura），Phantom 使用 v3（Tactiplay / Smite / Rush / Prism），均已发布到 `public/weapons/`，见[发布和播放](animation-and-assets.md)。
 
 loadout 可覆盖实例的初始 magazine、reserve、skinId；其他状态从零开始。`reset()` 保留 loadout 的槽位、枪型、实例标识和皮肤，将弹药补至定义的 capacity / initialReserve，并清零冷却与射击序号。跨重生身份以 `(epoch, instanceId)` 区分。
 

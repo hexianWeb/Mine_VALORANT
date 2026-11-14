@@ -13,7 +13,8 @@
 | `public/weapons/classic/v3/` | v2 模型统一手臂 UV 与 32×32 贴图 | 31 / 1116 / 1 | 4 |
 | `public/weapons/classic/v4/`（当前） | 用户精简后的枪身／弹匣、336 图集；AG / Smite / Sakura | 31 / 1116 / 1 | 4 |
 | `public/weapons/phantom/v1/` | `Phantom_Tactiplay_Animated.blend` | 30 / 1620 / 8 | 5 |
-| `public/weapons/phantom/v2/`（当前） | v1 模型统一手臂 UV 与 32×32 贴图 | 30 / 1620 / 8 | 5 |
+| `public/weapons/phantom/v2/` | v1 模型统一手臂 UV 与 32×32 贴图 | 30 / 1620 / 8 | 5 |
+| `public/weapons/phantom/v3/`（当前） | 原样复用 v2 模型，使用制作源中的 Tactiplay / Smite / Rush / Prism 四款贴图 | 30 / 1620 / 8 | 5 |
 
 发布器使用 `tools/weapons/recipes.mjs` 显式指定源文件、场景、网格、动画对象、皮肤 PNG、角色与挂点。后台 Blender 打开当前制作源导出，不保存源 `.blend`；源 SHA256 前后必须一致。原始资源包提供动作元数据和对照依据，不用旧 GLB 替代当前美术源。
 
@@ -26,6 +27,14 @@
 兼容皮肤发布使用 `tools/weapons/publish-skins.mjs`：它校验原包和只读 Blender 审计，复用原 GLB，保留当前默认外观，向新版本发布额外皮肤；重复发布必须字节一致。历史 `classic-v2.json` 的审计绑定旧制作源，手臂统一后不能直接用当前 `.blend` 重跑；应以新版本及新审计为基础发布。需要重新审计时运行 tools 中的 `audit_skin_blender.py`，不保存 `.blend`。官方 glTF Validator 已作为开发依赖安装，不再要求另一台机器上的模块路径。
 
 九枪制作源、左右手对应 UV、32×32 标准贴图和新包的发布依据见[手臂 UV 与贴图规范](arm-uv-contract.md)。导出前和发布验证都会检查契约；游戏内兼容武器共用同一个手臂纹理对象。
+
+### Phantom 四款皮肤 · 2026-11-14
+
+`phantom/v3` 使用预览图同款的四张 2048×2048 RGBA PNG，像素及文件字节与制作工程内嵌图片、便携交付包一致，未裁图或重采样。默认仍为 Tactiplay，K 按 Tactiplay → Smite → Rush → Prism 循环。
+
+旧 v2 包名为 Tactiplay 的贴图实际是 256×256 原皮。新配方以 `replaceExisting: true` 明确授权在新版本中换成紫绿 Tactiplay，旧包保持不变。配方为 `tools/weapons/skin-releases/phantom-v3.json`，四份来源审计与发布包一同保留。复现命令为 `node tools/weapons/publish-skins.mjs tools/weapons/skin-releases/phantom-v3.json`。
+
+模型与 v2 逐字节相同，UV、骨架、手臂、30 个动作及玩法参数不变。完整发布检查为 glTF Validator 零 error / 零 warning；执行了幻影单枪四款画面检查和相关皮肤发布测试，没有运行双枪玩法、音频、房间或全量回归。Tactiplay 纠正后仅补查该款画面，未重复检查其余三款。报告和 PNG 导出位于 `D:/opencode-temp/opencode/phantom-four-skins-20261114-9f6c2e/`。
 
 ## 加载与实例所有权
 

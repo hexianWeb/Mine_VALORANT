@@ -173,6 +173,9 @@ test('Classic and Phantom preserve source timings and explicit project loadout d
   assert.deepEqual(phantomDefinition.reload.tactical, { feed: 1.2, duration: 2.5 })
   assert.deepEqual(phantomDefinition.reload.empty, { feed: 2.25, duration: 2.5 })
   assert.equal(phantomDefinition.capabilities.ads, true)
+  assert.equal(phantomDefinition.assets.assetVersion, 'v3')
+  assert.equal(phantomDefinition.assets.defaultSkinId, 'tactiplay')
+  assert.deepEqual(phantomDefinition.assets.skinIds, ['tactiplay', 'smite', 'rush', 'prism'])
 })
 
 test('inventory resolves slots and defaults without conflating slots, definitions or instances', () => {

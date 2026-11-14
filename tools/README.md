@@ -42,7 +42,7 @@ node --test tests/weapon-publication.test.mjs
 
 ### 手臂 UV 标准化
 
-手臂迁移版本 `classic/v3` 与 `phantom/v2` 从旧包派生，仅改手臂 UV 和内嵌 32×32 图；当前游戏为 Classic v4／Phantom v2，仍满足同一手臂契约。制作源及完整九枪范围、备份、限制和后续导出契约见[手臂 UV 规范](../docs/weapons/arm-uv-contract.md)。重现派生版本需要已保存的迁移证据及未再改变的制作源：
+手臂迁移版本 `classic/v3` 与 `phantom/v2` 从旧包派生，仅改手臂 UV 和内嵌 32×32 图；当前游戏为 Classic v4／Phantom v3，仍满足同一手臂契约。Phantom v3 原样复用 v2 模型。制作源及完整九枪范围、备份、限制和后续导出契约见[手臂 UV 规范](../docs/weapons/arm-uv-contract.md)。重现派生版本需要已保存的迁移证据及未再改变的制作源：
 
 ```powershell
 node tools/weapons/publish-arms.mjs --blender 'F:/Blender5.3/blender.exe' --out-root 'D:/opencode-temp/opencode/arm-release-check'
@@ -60,6 +60,8 @@ node --test tests/weapon-skin-publication.test.mjs
 ```
 
 `audit_skin_blender.py` 只读打开两份制作源，核对 SourceUV、几何/权重、rest rig、全部动作与 packed PNG，不保存文件。审核后的证据由显式配方引用；更新证据前应复核命令输出。`publish-skins.mjs` 验证原包、证据与源文件哈希后生成新版本，已有目标版本必须字节一致。历史 `classic-v2.json` 绑定旧制作源，不能拿统一后的 `.blend` 复现旧审计。Sakura 新审计环境为 Blender 5.2.3 LTS。
+
+Phantom 四款皮肤使用 `node tools/weapons/publish-skins.mjs tools/weapons/skin-releases/phantom-v3.json`。新版本原样复用 v2 模型；配方的 `replaceExisting: true` 只允许在新版本中用已审计的制作源贴图替换同名旧皮肤，不改旧包，也不允许无证据覆盖。
 
 只提供底色图即可发布皮肤。需要独立发光图时，可在皮肤配方中提供贴图和强度。[皮肤自发光](../docs/weapons/animation-and-assets.md#皮肤自发光)
 
