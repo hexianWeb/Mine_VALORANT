@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "sourceContract": "blender-actions-with-temporary-public-runtime",
+  "weaponId": "vandal",
+  "assetVersion": "v1",
+  "defaultSkinId": "sakura",
+  "authoring": {
+    "path": "tools/weapons/authored-releases/vandal-authoring.json",
+    "sha256": "df6186881ce21a71dae7d3af4ee38a84b233d88f3dc54d2a6105e83650b9640c"
+  },
+  "runtimeProfile": {
+    "path": "tools/weapons/authored-releases/vandal-temporary-runtime.json",
+    "sha256": "a3fcbb1a69750735adda948f053bf2469d1ddef4d5c336becf968c5fb49aad64"
+  },
+  "scene": "E04_VANDAL_Actions",
+  "meshes": [
+    "Arms_Left",
+    "Arms_Right",
+    "Weapon_Body",
+    "Weapon_Magazine",
+    "Weapon_SpareMagazine"
+  ],
+  "armatures": [
+    "FP_root",
+    "camera.003",
+    "views.003",
+    "positioning.003"
+  ],
+  "authoringAdapter": {
+    "meshAliases": {
+      "Arms_Left.003": "Arms_Left",
+      "Arms_Right.003": "Arms_Right",
+      "Weapon_Body.003": "Weapon_Body",
+      "Weapon_Magazine.003": "Weapon_Magazine",
+      "Weapon_SpareMagazine": "Weapon_SpareMagazine"
+    },
+    "actionAliases": {
+      "vandal / ADS_down": "ADS_down",
+      "vandal / ADS_up": "ADS_up",
+      "vandal / aim": "aim",
+      "vandal / aim_end": "aim_end",
+      "vandal / aim_start": "aim_start",
+      "vandal / draw": "draw",
+      "vandal / idle": "idle",
+      "vandal / inspect": "inspect",
+      "vandal / melee_bayonet_1": "melee_bayonet_1",
+      "vandal / melee_bayonet_2": "melee_bayonet_2",
+      "vandal / melee_bayonet_3": "melee_bayonet_3",
+      "vandal / melee_push": "melee_push",
+      "vandal / melee_stock": "melee_stock",
+      "vandal / put_away": "put_away",
+      "vandal / reload_empty": "reload_empty",
+      "vandal / reload_tactical": "reload_tactical",
+      "vandal / run": "run",
+      "vandal / run_end": "run_end",
+      "vandal / run_hold": "run_hold",
+      "vandal / run_start": "run_start",
+      "vandal / shoot": "shoot",
+      "vandal / shoot_aim": "shoot_aim",
+      "vandal / slide": "slide",
+      "vandal / slide_back": "slide_back",
+      "vandal / slide_idle": "slide_idle",
+      "vandal / static_idle": "static_idle",
+      "vandal / walk_aiming": "walk_aiming",
+      "vandal / walk_backward": "walk_backward",
+      "vandal / walk_forward": "walk_forward",
+      "vandal / walk_sideway": "walk_sideway"
+    },
+    "weaponMaterial": "Vandal_Sakura"
+  },
+  "materials": {
+    "weapon": [
+      "Weapon_Skin"
+    ],
+    "armsLeft": [
+      "Character_Left"
+    ],
+    "armsRight": [
+      "Character_Right"
+    ]
+  },
+  "sockets": {
+    "muzzle": "muzzle_flash",
+    "shell": "shell"
+  },
+  "actions": {
+    "idle": "static_idle",
+    "draw": "draw",
+    "holster": "put_away",
+    "fire": "shoot",
+    "fireAds": "shoot_aim",
+    "reloadTactical": "reload_tactical",
+    "reloadEmpty": "reload_empty",
+    "inspect": "inspect",
+    "aimStart": "aim_start",
+    "aim": "aim",
+    "aimEnd": "aim_end"
+  },
+  "requiredActions": [
+    "idle",
+    "draw",
+    "holster",
+    "fire",
+    "reloadTactical",
+    "reloadEmpty",
+    "inspect",
+    "fireAds",
+    "aimStart",
+    "aim",
+    "aimEnd"
+  ]
+}

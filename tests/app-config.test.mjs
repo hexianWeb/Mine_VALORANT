@@ -28,6 +28,7 @@ test('weapon controls reserve R for reload and Home for respawn', () => {
     Digit1: 'primaryWeapon',
     Digit2: 'secondaryWeapon',
     Digit3: 'tertiaryWeapon',
+    Digit4: 'quaternaryWeapon',
     KeyQ: 'previousEquipped',
   })) assert.equal(inputBindings[code], action)
 })

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "vandal",
+  "assetVersion": "v1",
+  "skinId": "ego",
+  "compatibility": {
+    "rig": "1c636891606bf7e20be8479af0539b94fda7de5fb3708c842a90e8ba91905947",
+    "geometryUV": "17b46f5b0338722ec5bde429bc5610d259068cad081e032536d34f31afa2831c",
+    "clipSet": "db6b3f25d8371dada5e7ce71c4030cf1db2e2df6ce7e322b44c7e80b67904f46"
+  },
+  "materials": {
+    "weapon": {
+      "map": {
+        "url": "../textures/7184d33f36a6fb38ddba494a00f1924d55a1085bd0df1169fbe9fc1a56b22aa9.png",
+        "sha256": "7184d33f36a6fb38ddba494a00f1924d55a1085bd0df1169fbe9fc1a56b22aa9",
+        "bytes": 829920,
+        "width": 2048,
+        "height": 2048,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    }
+  }
+}

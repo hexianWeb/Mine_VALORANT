@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "vandal",
+  "assetVersion": "v1",
+  "skinId": "smite",
+  "compatibility": {
+    "rig": "1c636891606bf7e20be8479af0539b94fda7de5fb3708c842a90e8ba91905947",
+    "geometryUV": "17b46f5b0338722ec5bde429bc5610d259068cad081e032536d34f31afa2831c",
+    "clipSet": "db6b3f25d8371dada5e7ce71c4030cf1db2e2df6ce7e322b44c7e80b67904f46"
+  },
+  "materials": {
+    "weapon": {
+      "map": {
+        "url": "../textures/ff7807b4b9bf14799f5c3f06516233e193de36bff7d101bdcb75e111fd5a1fb6.png",
+        "sha256": "ff7807b4b9bf14799f5c3f06516233e193de36bff7d101bdcb75e111fd5a1fb6",
+        "bytes": 1051328,
+        "width": 2048,
+        "height": 2048,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    }
+  }
+}

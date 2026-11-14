@@ -1,0 +1,36 @@
+{
+  "weaponId": "vandal",
+  "clips": 30,
+  "meshes": 5,
+  "tracks": 1710,
+  "stepTracks": 4,
+  "poseSamples": 9,
+  "maxPoseBoundsError": 5.344459185763206e-7,
+  "gltfIssues": {
+    "numErrors": 0,
+    "numWarnings": 0,
+    "numInfos": 3,
+    "numHints": 0,
+    "messages": [
+      {
+        "code": "NODE_EMPTY",
+        "message": "Empty node encountered.",
+        "severity": 2,
+        "pointer": "/nodes/82"
+      },
+      {
+        "code": "NODE_EMPTY",
+        "message": "Empty node encountered.",
+        "severity": 2,
+        "pointer": "/nodes/83"
+      },
+      {
+        "code": "NODE_EMPTY",
+        "message": "Empty node encountered.",
+        "severity": 2,
+        "pointer": "/nodes/84"
+      }
+    ],
+    "truncated": false
+  }
+}

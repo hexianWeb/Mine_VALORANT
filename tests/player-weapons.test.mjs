@@ -8,6 +8,7 @@ import { createAimProfile } from '../src/game/weapons/aim-profile.js'
 import { classicDefinition } from '../src/game/weapons/definitions/classic.js'
 import { ghostDefinition } from '../src/game/weapons/definitions/ghost.js'
 import { phantomDefinition } from '../src/game/weapons/definitions/phantom.js'
+import { vandalDefinition } from '../src/game/weapons/definitions/vandal.js'
 import { PlayerWeapons } from '../src/game/weapons/player-weapons.js'
 import { createWeaponDefinition } from '../src/game/weapons/weapon-definition.js'
 import { setupInput } from './input-fixture.mjs'
@@ -131,6 +132,7 @@ function fakeAssets() {
 function setup(t, {
   thirdWeapon = false,
   ghost = false,
+  vandal = false,
 } = {}) {
   const assets = fakeAssets()
   const aim = new AimState({ seed: 123, offsetSmoothing: 0 })
@@ -173,6 +175,13 @@ function setup(t, {
     loadout.push({
       id: 'tertiary',
       weapon: { instanceId: 'ghost', definitionId: 'ghost' },
+    })
+  }
+  if (vandal) {
+    definitions.push(vandalDefinition)
+    loadout.push({
+      id: 'quaternary',
+      weapon: { instanceId: 'vandal', definitionId: 'vandal' },
     })
   }
   if (thirdWeapon) {
@@ -337,6 +346,77 @@ test('real Digit3 selects Ghost and its semi-auto, reload and four-skin inputs p
   }
 })
 
+test('real Digit4 selects Vandal; held fire, ADS, reload deadlines and six skins work', async (t) => {
+  const f = setup(t, { vandal: true })
+  await f.ready()
+  f.key('keydown', 'Digit4')
+  f.key('keyup', 'Digit4')
+  f.weapons.collectInput(f.input)
+  f.fixed()
+  assert.equal(f.weapons.snapshot().pendingTarget, 'vandal')
+  await f.assets.resolve('vandal')
+  f.motion()
+  for (let index = 0; index < 30; index++) {
+    f.advance(1)
+    if (f.weapons.snapshot().activeId === 'vandal' && f.weapons.snapshot().canAct)
+      break
+  }
+  f.motion(f.tick * h)
+  const weapon = () => f.weapons.snapshot().inventory.weapons.find(weapon => weapon.instanceId === 'vandal')
+  const visual = f.assets.instances.find(instance => instance.weaponId === 'vandal')
+  assert.equal(f.weapons.snapshot().view.renderActiveId, 'vandal')
+  f.mouse('mousedown', 0)
+  f.weapons.collectInput(f.input)
+  f.advance(7)
+  assert.ok(weapon().magazine < 24, 'held input fires repeatedly')
+  f.mouse('mouseup', 0)
+  f.mouse('mousedown', 2)
+  f.weapons.collectInput(f.input)
+  f.advance(4)
+  assert.equal(f.aim.sample(f.tick * h).ads, 1)
+  assert.equal(f.aim.sample(f.tick * h).viewmodelFov, vandalDefinition.aim.viewmodelFov)
+  f.mouse('mouseup', 2)
+  f.weapons.collectInput(f.input)
+  const magazine = weapon().magazine
+  f.key('keydown', 'KeyR')
+  f.key('keyup', 'KeyR')
+  f.weapons.collectInput(f.input)
+  f.fixed()
+  f.advance(24)
+  assert.equal(weapon().magazine, magazine, 'no early feed from the shorter authoring clip')
+  f.advance(1)
+  assert.equal(weapon().magazine, 25)
+  assert.equal(weapon().reserve, 75 - (25 - magazine))
+  for (const skinId of [
+    ...vandalDefinition.assets.skinIds.slice(1),
+    'sakura',
+  ]) {
+    f.key('keydown', 'KeyK')
+    f.key('keyup', 'KeyK')
+    f.weapons.collectInput(f.input)
+    f.fixed()
+    await f.assets.resolve('vandal')
+    f.motion()
+    f.fixed()
+    f.motion(f.tick * h)
+    assert.equal(f.weapons.snapshot().view.skinId, skinId)
+    assert.equal(visual.disposed, false)
+    assert.equal(weapon().magazine, 25)
+  }
+  f.mouse('mousedown', 0)
+  f.weapons.collectInput(f.input)
+  f.advance(55)
+  assert.equal(weapon().magazine, 0)
+  f.mouse('mouseup', 0)
+  f.key('keydown', 'KeyR')
+  f.key('keyup', 'KeyR')
+  f.weapons.collectInput(f.input)
+  f.fixed()
+  f.advance(24)
+  assert.equal(weapon().magazine, 0)
+  f.advance(1)
+  assert.equal(weapon().magazine, 25)
+})
 
 
 

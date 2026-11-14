@@ -1,0 +1,437 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "vandal",
+  "metadataSource": "Pinned E04_VANDAL_Actions properties and Camera_FP.003; not original runtime data",
+  "blenderVersion": "5.2.3 LTS",
+  "clips": [
+    {
+      "name": "ADS_down",
+      "duration": 0.6,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "ADS_up",
+      "duration": 0.6333,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim",
+      "duration": 0.0833,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim_end",
+      "duration": 0.2083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim_start",
+      "duration": 0.2083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "draw",
+      "duration": 1.0833,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "idle",
+      "duration": 7.2667,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "inspect",
+      "duration": 4.5833,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_1",
+      "duration": 0.8,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_2",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_3",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_push",
+      "duration": 0.7083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_stock",
+      "duration": 0.7083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "put_away",
+      "duration": 0.016666666666666666,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "reload_empty",
+      "duration": 2.3333,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "reload_tactical",
+      "duration": 2.3333,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run",
+      "duration": 0.8,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_end",
+      "duration": 0.65,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_hold",
+      "duration": 0.2917,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_start",
+      "duration": 0.3,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "shoot",
+      "duration": 1.9,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "shoot_aim",
+      "duration": 1.9,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide",
+      "duration": 0.75,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide_back",
+      "duration": 0.85,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide_idle",
+      "duration": 7.3333,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "static_idle",
+      "duration": 0.2917,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_aiming",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_backward",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_forward",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_sideway",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    }
+  ],
+  "view": {
+    "unitsPerMeter": 1,
+    "up": "Y",
+    "forward": "-Z",
+    "mountOffset": [
+      0.2631250023841858,
+      -0.7549999952316284,
+      -0.984375
+    ],
+    "verticalFov": 70,
+    "aimVerticalFov": 58.51213528192006,
+    "source": "Vandal authoring Camera_FP.003 alignment, public-reference trial ADS zoom"
+  },
+  "skins": {
+    "sakura": {
+      "source": {
+        "path": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/Vandal_Sakura_Edge_Fixed.blend",
+        "sha256": "d31959bacb9aa1717d69c6f363f121f90e7beb177d535a1f777038c8f54411a2"
+      },
+      "texture": {
+        "path": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/vandal_sakura_edge_fixed.png",
+        "sha256": "89b423347b5849adf0098874f507cfcc2bbee4114c9abf3a6ebbcc0327e37134"
+      },
+      "textureSize": {
+        "width": 2048,
+        "height": 2048
+      },
+      "authoringSignature": {
+        "geometryUV": "472badb921f757f38a08dcc046698d269f9652e51bd2f1d1aea85711c79f146d",
+        "rig": "17badd318b2492d1cd96e44d50f46b2cf0db218599250efa3f454b8e9070d1d7",
+        "clipSet": "49a6cb7098c62079e94edaf5dd3210d1d1dc19484c92ab15f96ea7440e320368"
+      },
+      "inspection": {
+        "weaponMaterial": "Vandal_Sakura",
+        "packedPngSha256": "89b423347b5849adf0098874f507cfcc2bbee4114c9abf3a6ebbcc0327e37134",
+        "packedExternalPixelsIdentical": true,
+        "armAppearanceSamples": {
+          "Left": 248,
+          "Right": 248
+        },
+        "preservedMeshRigActions": true,
+        "alpha": {
+          "min": 0,
+          "max": 1,
+          "transparentPixels": 3644224
+        }
+      }
+    },
+    "wood-metal": {
+      "source": {
+        "path": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/Vandal_Wood_Metal_Edge_Fixed.blend",
+        "sha256": "5e20ddcea856be465806f65f51460f71f448c4dacab144392e3974c8f7354c15"
+      },
+      "texture": {
+        "path": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/vandal_wood_metal_edge_fixed.png",
+        "sha256": "56a610cf7c84020931595229ae6ccaa837b1b24a36c47e88f162ad13987aecba"
+      },
+      "textureSize": {
+        "width": 2048,
+        "height": 2048
+      },
+      "authoringSignature": {
+        "geometryUV": "472badb921f757f38a08dcc046698d269f9652e51bd2f1d1aea85711c79f146d",
+        "rig": "17badd318b2492d1cd96e44d50f46b2cf0db218599250efa3f454b8e9070d1d7",
+        "clipSet": "49a6cb7098c62079e94edaf5dd3210d1d1dc19484c92ab15f96ea7440e320368"
+      },
+      "inspection": {
+        "weaponMaterial": "Vandal_Wood_Metal",
+        "packedPngSha256": "56a610cf7c84020931595229ae6ccaa837b1b24a36c47e88f162ad13987aecba",
+        "packedExternalPixelsIdentical": true,
+        "armAppearanceSamples": {
+          "Left": 248,
+          "Right": 248
+        },
+        "preservedMeshRigActions": true,
+        "alpha": {
+          "min": 0,
+          "max": 1,
+          "transparentPixels": 3644224
+        }
+      }
+    },
+    "smite": {
+      "source": {
+        "path": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/Vandal_Smite_Edge_Fixed.blend",
+        "sha256": "4642ec21436c063f7009474bf442be747535d2d216cd12acb3fea059891352bc"
+      },
+      "texture": {
+        "path": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/vandal_smite_edge_fixed.png",
+        "sha256": "ff7807b4b9bf14799f5c3f06516233e193de36bff7d101bdcb75e111fd5a1fb6"
+      },
+      "textureSize": {
+        "width": 2048,
+        "height": 2048
+      },
+      "authoringSignature": {
+        "geometryUV": "472badb921f757f38a08dcc046698d269f9652e51bd2f1d1aea85711c79f146d",
+        "rig": "17badd318b2492d1cd96e44d50f46b2cf0db218599250efa3f454b8e9070d1d7",
+        "clipSet": "49a6cb7098c62079e94edaf5dd3210d1d1dc19484c92ab15f96ea7440e320368"
+      },
+      "inspection": {
+        "weaponMaterial": "Vandal_Smite_2025",
+        "packedPngSha256": "ff7807b4b9bf14799f5c3f06516233e193de36bff7d101bdcb75e111fd5a1fb6",
+        "packedExternalPixelsIdentical": true,
+        "armAppearanceSamples": {
+          "Left": 248,
+          "Right": 248
+        },
+        "preservedMeshRigActions": true,
+        "alpha": {
+          "min": 0,
+          "max": 1,
+          "transparentPixels": 3644224
+        }
+      }
+    },
+    "royal-gold": {
+      "source": {
+        "path": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/Vandal_Royal_Gold_Edge_Fixed.blend",
+        "sha256": "91854eefb1c26b294af36c89b71ac92afb1a417c843baed5af26199b40c8d14a"
+      },
+      "texture": {
+        "path": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/vandal_royal_gold_edge_fixed.png",
+        "sha256": "0e87a36edbe6af59ded5cde19b143cfcf3f7182a51900bff23d3b63d366f6128"
+      },
+      "textureSize": {
+        "width": 2048,
+        "height": 2048
+      },
+      "authoringSignature": {
+        "geometryUV": "472badb921f757f38a08dcc046698d269f9652e51bd2f1d1aea85711c79f146d",
+        "rig": "17badd318b2492d1cd96e44d50f46b2cf0db218599250efa3f454b8e9070d1d7",
+        "clipSet": "49a6cb7098c62079e94edaf5dd3210d1d1dc19484c92ab15f96ea7440e320368"
+      },
+      "inspection": {
+        "weaponMaterial": "Vandal_Royal_Gold_Alpha",
+        "packedPngSha256": "0e87a36edbe6af59ded5cde19b143cfcf3f7182a51900bff23d3b63d366f6128",
+        "packedExternalPixelsIdentical": true,
+        "armAppearanceSamples": {
+          "Left": 248,
+          "Right": 248
+        },
+        "preservedMeshRigActions": true,
+        "alpha": {
+          "min": 0,
+          "max": 1,
+          "transparentPixels": 3644224
+        }
+      }
+    },
+    "ego": {
+      "source": {
+        "path": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/Vandal_EGO_Edge_Fixed.blend",
+        "sha256": "3c89f6434830e4dbb3603f5b4e996a00ae4ae2b12218f495b63206f47ce2ae81"
+      },
+      "texture": {
+        "path": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/vandal_ego_edge_fixed.png",
+        "sha256": "7184d33f36a6fb38ddba494a00f1924d55a1085bd0df1169fbe9fc1a56b22aa9"
+      },
+      "textureSize": {
+        "width": 2048,
+        "height": 2048
+      },
+      "authoringSignature": {
+        "geometryUV": "472badb921f757f38a08dcc046698d269f9652e51bd2f1d1aea85711c79f146d",
+        "rig": "17badd318b2492d1cd96e44d50f46b2cf0db218599250efa3f454b8e9070d1d7",
+        "clipSet": "49a6cb7098c62079e94edaf5dd3210d1d1dc19484c92ab15f96ea7440e320368"
+      },
+      "inspection": {
+        "weaponMaterial": "Vandal_EGO_Black_White_Gold",
+        "packedPngSha256": "7184d33f36a6fb38ddba494a00f1924d55a1085bd0df1169fbe9fc1a56b22aa9",
+        "packedExternalPixelsIdentical": true,
+        "armAppearanceSamples": {
+          "Left": 248,
+          "Right": 248
+        },
+        "preservedMeshRigActions": true,
+        "alpha": {
+          "min": 0,
+          "max": 1,
+          "transparentPixels": 3644224
+        }
+      }
+    },
+    "original": {
+      "source": {
+        "path": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/Vandal_Original_Edge_Fixed.blend",
+        "sha256": "76eff015ffee89c42156039ebe26cbc835b0481c74d13dd90b4e20b68f493b63"
+      },
+      "texture": {
+        "path": "skin_work_folder/vandal_skin_work/three_vandals/edge_fixed/vandal_original_texture.png",
+        "sha256": "e4199ba8b917590b0c4e0db009e9899b09b356e5ee666033f7c950307885c838"
+      },
+      "textureSize": {
+        "width": 256,
+        "height": 256
+      },
+      "authoringSignature": {
+        "geometryUV": "472badb921f757f38a08dcc046698d269f9652e51bd2f1d1aea85711c79f146d",
+        "rig": "17badd318b2492d1cd96e44d50f46b2cf0db218599250efa3f454b8e9070d1d7",
+        "clipSet": "49a6cb7098c62079e94edaf5dd3210d1d1dc19484c92ab15f96ea7440e320368"
+      },
+      "inspection": {
+        "weaponMaterial": "Weapon_Skin.003",
+        "packedPngSha256": "185a9d0d25b8785b75bc708a47272d4212eaae256b585b5c9713ec108e3eeb1a",
+        "packedExternalPixelsIdentical": true,
+        "armAppearanceSamples": {
+          "Left": 248,
+          "Right": 248
+        },
+        "preservedMeshRigActions": true,
+        "alpha": {
+          "min": 0,
+          "max": 1,
+          "transparentPixels": 56941
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "originalRuntimeManifestAvailable": false,
+  "provenance": {
+    "status": "temporary-public-reference",
+    "observedAt": "2026-11-14",
+    "referenceUrl": "https://valorant-api.com/v1/weapons/9c82e19d-4575-0200-1a81-3eacf00cf872",
+    "requestedWiki": "https://valorant.fandom.com/wiki/Vandal",
+    "wikiAccess": "Wiki inaccessible in this session; community game-data API used instead",
+    "fireMode": "Full-auto project mapping; API fireMode is null, not evidence of semi-auto",
+    "recoilAndSpread": "Phantom project curves reused temporarily; not Vandal source curves",
+    "ads": "Project 0.2083-second transition; FOV computed from 70 degrees / 1.25 tangent zoom",
+    "adsFireRate": "Runtime has one fire interval: ADS temporarily stays 9.75/s, not reference 8.775/s",
+    "reserve": "Three spare magazines, project practice policy",
+    "reloadCommit": "At the end of the public 2.5-second duration; authoring clips remain 2.3333 seconds",
+    "holster": "Zero-duration switch, project policy",
+    "inspect": "4.5833-second authoring clip used as a project deadline",
+    "unimplementedReferenceFields": "Damage, penetration and weapon-specific movement are recorded only"
+  },
+  "reference": {
+    "provider": "Valorant-API community game data (not Riot official API)",
+    "url": "https://valorant-api.com/v1/weapons/9c82e19d-4575-0200-1a81-3eacf00cf872",
+    "observedAt": "2026-11-14",
+    "requestUrl": "https://valorant-api.com/v1/weapons",
+    "snapshotKind": "selected Vandal record fields from the successful HTTP tool response",
+    "selectedSnapshotSha256": "0115ef31ae1ab27f170a23cda2f360a19fb9d1f8a8e26afb2ee153629e878a24",
+    "uuid": "9c82e19d-4575-0200-1a81-3eacf00cf872",
+    "displayName": "Vandal",
+    "weaponStats": {
+      "fireRate": 9.75,
+      "magazineSize": 25,
+      "runSpeedMultiplier": 0.8,
+      "equipTimeSeconds": 1,
+      "reloadTimeSeconds": 2.5,
+      "firstBulletAccuracy": 0.25,
+      "shotgunPelletCount": 1,
+      "wallPenetration": "EWallPenetrationDisplayType::Medium",
+      "feature": null,
+      "fireMode": null,
+      "altFireType": "EWeaponAltFireDisplayType::ADS",
+      "adsStats": {
+        "zoomMultiplier": 1.25,
+        "fireRate": 8.775,
+        "runSpeedMultiplier": 0.76,
+        "burstCount": 1,
+        "firstBulletAccuracy": 0.1575
+      },
+      "altShotgunStats": null,
+      "airBurstStats": null,
+      "damageRanges": [
+        {
+          "rangeStartMeters": 0,
+          "rangeEndMeters": 50,
+          "headDamage": 160,
+          "bodyDamage": 40,
+          "legDamage": 34
+        }
+      ]
+    },
+    "cost": 2900
+  },
+  "definition": {
+    "recoil": {
+      "pitch": [
+        {
+          "time": 0,
+          "min": 0.006981317007977318,
+          "max": 0.006981317007977318
+        },
+        {
+          "time": 0.25,
+          "min": 0.009599310885968814,
+          "max": 0.009599310885968814
+        },
+        {
+          "time": 0.45,
+          "min": -0.0020943951023931952,
+          "max": -0.0020943951023931952
+        },
+        {
+          "time": 0.6,
+          "min": 0,
+          "max": 0
+        }
+      ],
+      "yaw": [
+        {
+          "time": 0,
+          "min": -0.004363323129985824,
+          "max": 0.002617993877991494
+        },
+        {
+          "time": 0.45,
+          "min": 0,
+          "max": 0
+        }
+      ]
+    },
+    "spread": {
+      "stand": 0.0034455,
+      "move": 0.117147,
+      "crouch": 0.0029286750000000004,
+      "ads": 0.001895025
+    },
+    "aim": {
+      "duration": 0.2083,
+      "worldFov": 58.51213528192006,
+      "viewmodelFov": 58.51213528192006
+    },
+    "id": "vandal",
+    "capacity": 25,
+    "initialReserve": 75,
+    "fire": {
+      "mode": "auto",
+      "interval": 0.10256410256410256
+    },
+    "equip": {
+      "draw": 1,
+      "holster": 0
+    },
+    "reload": {
+      "tactical": {
+        "feed": 2.5,
+        "duration": 2.5
+      },
+      "empty": {
+        "feed": 2.5,
+        "duration": 2.5
+      }
+    },
+    "inspectDuration": 4.5833,
+    "capabilities": {
+      "ads": true
+    },
+    "assets": {
+      "modelId": "vandal",
+      "assetVersion": "v1",
+      "defaultSkinId": "sakura",
+      "skinIds": [
+        "sakura",
+        "wood-metal",
+        "smite",
+        "royal-gold",
+        "ego",
+        "original"
+      ]
+    }
+  },
+  "audio": {
+    "cues": {
+      "vandal_shoot": {
+        "id": "vandal_shoot",
+        "url": "/audio/vandal/vandal_shoot.ogg",
+        "sha256": "2862b6c89f56255f7efa6f31399cad317897019fdc567c59acdc683abf5604ed",
+        "gain": 0.25
+      },
+      "vandal_draw": {
+        "id": "vandal_draw",
+        "url": "/audio/vandal/vandal_draw.ogg",
+        "sha256": "7f0caeb56f927a6af4d22daacc0e0d4a3b46d67768fa0c056d86e53148ea660b",
+        "gain": 0.22
+      },
+      "vandal_reload": {
+        "id": "vandal_reload",
+        "url": "/audio/vandal/vandal_reload.ogg",
+        "sha256": "e05a8b1b9cbb58354ae476073d65cb7aaa9e1fd5e5ba7034e9d1d89a0af69ba7",
+        "gain": 0.22
+      },
+      "vandal_inspect": {
+        "id": "vandal_inspect",
+        "url": "/audio/vandal/vandal_inspect.ogg",
+        "sha256": "b314467b86f512749cf0393564d0b544ef4c0f69977eb85c1fcd96ba8a6496cf",
+        "gain": 0.22
+      }
+    },
+    "fire": "vandal_shoot",
+    "draw": "vandal_draw",
+    "reloadTactical": "vandal_reload",
+    "reloadEmpty": "vandal_reload",
+    "inspect": "vandal_inspect"
+  }
+}

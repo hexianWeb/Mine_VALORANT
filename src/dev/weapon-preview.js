@@ -4,6 +4,7 @@ import { WeaponAssets } from '../game/weapons/assets/weapon-assets.js'
 import { classicDefinition } from '../game/weapons/definitions/classic.js'
 import { ghostDefinition } from '../game/weapons/definitions/ghost.js'
 import { phantomDefinition } from '../game/weapons/definitions/phantom.js'
+import { vandalDefinition } from '../game/weapons/definitions/vandal.js'
 import { weaponPreviewOptions } from './weapon-preview-options.js'
 
 const resources = new ResourceManager()
@@ -33,6 +34,7 @@ const definitions = {
   classic: classicDefinition,
   phantom: phantomDefinition,
   ghost: ghostDefinition,
+  vandal: vandalDefinition,
 }
 let active = null
 let frame = 0

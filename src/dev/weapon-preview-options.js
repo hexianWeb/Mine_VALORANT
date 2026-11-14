@@ -5,6 +5,7 @@ export function weaponPreviewOptions(search, development) {
     'classic',
     'phantom',
     'ghost',
+    'vandal',
   ].includes(weapon)) {
     throw new Error('Unknown preview weapon')
   }

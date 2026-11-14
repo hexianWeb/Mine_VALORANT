@@ -18,6 +18,7 @@ export const inputBindings = Object.freeze({
   Digit1: 'primaryWeapon',
   Digit2: 'secondaryWeapon',
   Digit3: 'tertiaryWeapon',
+  Digit4: 'quaternaryWeapon',
   KeyQ: 'previousEquipped',
   Mouse0: 'fire',
   Mouse2: 'aim',
