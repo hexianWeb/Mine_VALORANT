@@ -11,9 +11,13 @@ import { readPinnedAuthoring, validateAuthoredTexture } from '../tools/weapons/p
 
 const readJSON = async file => JSON.parse(await readFile(file, 'utf8'))
 
-test('Vandal public-reference timing and explicit approximations match the pinned runtime profile', async () => {
+test('Vandal retains the pinned release profile with a faster runtime ADS transition', async () => {
   const profile = await readJSON('tools/weapons/authored-releases/vandal-temporary-runtime.json')
-  assert.deepEqual(profile.definition, vandalDefinition)
+  assert.equal(vandalDefinition.aim.duration, 0.12)
+  assert.deepEqual(profile.definition, {
+    ...vandalDefinition,
+    aim: { ...vandalDefinition.aim, duration: 0.2083 },
+  })
   assert.deepEqual(profile.provenance, vandalGameplayProvenance)
   assert.deepEqual(profile.audio, weaponAudioProfiles.vandal)
   assert.equal(profile.originalRuntimeManifestAvailable, false)

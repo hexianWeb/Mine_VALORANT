@@ -43,6 +43,7 @@ test('Judge/Odin append sixth/seventh slots without changing the five existing l
   assert.equal(practiceLoadout[6].id, 'septenary')
   assert.equal(judgeDefinition.fire.pellets, 12)
   assert.equal(judgeDefinition.capacity, 5, 'use the observed current record, not an old seven-round value')
+  assert.equal(odinDefinition.aim.duration, 0.12)
   assert.match(odinGameplayProvenance.fireRate, /NOT implemented/)
 })
 
@@ -66,7 +67,10 @@ for (const [id, definition, provenance, window] of entries) {
     const recipe = await readJSON(`tools/weapons/authored-releases/${id}-v1.json`)
     const metadata = JSON.parse((await readPinnedAuthoring(recipe.authoring)).bytes)
     const runtime = JSON.parse((await readPinnedAuthoring(recipe.runtimeProfile)).bytes)
-    assert.deepEqual(runtime.definition, definition)
+    const releaseAim = id === 'odin'
+      ? { ...definition.aim, duration: 0.2083 }
+      : definition.aim
+    assert.deepEqual(runtime.definition, { ...definition, aim: releaseAim })
     assert.deepEqual(runtime.provenance, provenance)
     assert.deepEqual(runtime.audio, weaponAudioProfiles[id])
     assert.equal(runtime.originalRuntimeManifestAvailable, false)

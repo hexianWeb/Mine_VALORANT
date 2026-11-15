@@ -123,5 +123,6 @@ export const phantomAimProfile = createAimProfile({
     ]),
   },
   spread: spreadProfile(0.2, 6.8, 0.17, 0.11),
-  aim: { duration: 0.15, worldFov: 45, viewmodelFov: 45 },
+  // Practice range transition shared with Vandal and Odin.
+  aim: { duration: 0.12, worldFov: 45, viewmodelFov: 45 },
 })

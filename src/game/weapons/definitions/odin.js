@@ -22,7 +22,7 @@ const adsFov = 2 * Math.atan(Math.tan(70 * Math.PI / 360) / 1.15) * 180 / Math.P
 
 export const odinDefinition = createWeaponDefinition({
   ...phantomAimProfile,
-  aim: { duration: 0.2083, worldFov: adsFov, viewmodelFov: adsFov },
+  aim: { ...phantomAimProfile.aim, worldFov: adsFov, viewmodelFov: adsFov },
   id: 'odin',
   capacity: 100,
   initialReserve: 300,
