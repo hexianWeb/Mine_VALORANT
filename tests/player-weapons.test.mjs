@@ -139,6 +139,7 @@ function setup(t, {
   sheriff = false,
   judge = false,
   odin = false,
+  particles = null,
 } = {}) {
   const assets = fakeAssets()
   const aim = new AimState({ seed: 123, offsetSmoothing: 0 })
@@ -229,6 +230,7 @@ function setup(t, {
     loadout,
     initialSlot: 'secondary',
     fixedDelta: h,
+    particles,
     world: {
       boxes: [
         {
@@ -755,7 +757,13 @@ test('a visual may prepare during pause but cannot commit equipment until fixed 
 })
 
 test('ordered real input retains the latest selection and produces an authoritative shot only once', async (t) => {
-  const f = setup(t)
+  const bursts = []
+  const f = setup(t, {
+    particles: {
+      emit: particles => bursts.push(particles),
+      clear() {},
+    },
+  })
   await f.ready()
   f.key('keydown', 'Digit1')
   f.key('keydown', 'Digit2')
@@ -773,6 +781,10 @@ test('ordered real input retains the latest selection and produces an authoritat
   assert.deepEqual(shot.payload.aimDirection, [0, 0, -1])
   assert.equal(shot.payload.impact.hit, 'target')
   assert.equal(shot.payload.impact.distance, 10)
+  assert.equal(shot.payload.impact.surface, 'stone')
+  assert.deepEqual(shot.payload.impact.normal, [0, 0, 1])
+  assert.equal(bursts.length, 1)
+  assert.ok(bursts[0].every(particle => particle.born === shot.at))
   f.weapons.collectInput(f.input)
   assert.equal(f.fixed().events.filter(event => event.type === 'ShotFired').length, 0)
   assert.equal(f.weapons.snapshot().inventory.weapons.find(weapon => weapon.instanceId === 'pistol').magazine, 11)

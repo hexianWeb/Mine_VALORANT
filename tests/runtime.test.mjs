@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { Scene } from 'three/webgpu'
 import { Engine } from '../src/engine/runtime/engine.js'
 import { WorldManager } from '../src/engine/runtime/function/framework/index.js'
 import { RuntimeContext } from '../src/engine/runtime/function/global/runtime-context.js'
@@ -35,6 +36,13 @@ function frameDriver() {
 test('explicit frame order preserves fixed steps, scaled pause and independent rendering', () => {
   const calls = []
   const engine = new Engine({
+    audio: {
+      flush: () => calls.push('audio'),
+      invalidate() {},
+    },
+    particles: {
+      flush: () => calls.push('particles'),
+    },
     world: {
       tickComponents: phase => calls.push(phase),
     },
@@ -51,6 +59,8 @@ test('explicit frame order preserves fixed steps, scaled pause and independent r
     'input',
     'motion',
     'presentation',
+    'audio',
+    'particles',
     'swap',
     'render',
     'ui',
@@ -68,6 +78,8 @@ test('explicit frame order preserves fixed steps, scaled pause and independent r
     'postPhysics',
     'motion',
     'presentation',
+    'audio',
+    'particles',
     'swap',
     'render',
     'ui',
@@ -251,7 +263,7 @@ function runtimeFixture(overrides = {}, options = {}) {
         aspect: 1,
       }),
       resources: () => owned('resources'),
-      scene: () => ({}),
+      scene: () => new Scene(),
       camera: () => ({}),
       render: async ({ size, engine }) => {
         assert.equal(size.aspect, 1)
@@ -455,7 +467,11 @@ test('runtime instances have independent services, clocks and shutdown', async (
   ])
   assert.notEqual(a.runtime.scene, b.runtime.scene)
   assert.notEqual(a.runtime.engine.time, b.runtime.engine.time)
+  assert.notEqual(a.runtime.particles, b.runtime.particles)
+  assert.equal(a.runtime.engine.particles, a.runtime.particles)
+  assert.equal(a.runtime.scene.children.length, 2)
   a.runtime.dispose()
+  assert.equal(a.runtime.scene.children.length, 0)
   assert.equal(b.runtime.state, 'ready')
   assert.deepEqual(b.disposed, [])
   b.runtime.dispose()

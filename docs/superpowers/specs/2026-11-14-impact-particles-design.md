@@ -2,7 +2,7 @@
 
 - 日期：2026-11-14
 - 来源：用户要求枪械打到材质上产生粒子飞溅，并确认粒子系统应作为 engine 服务。
-- 状态：设计待审，未实现。
+- 状态：已实现，2026-11-15 在练枪房完成实机验证。
 - 决策：混合风格（Valorant 式火花／烟尘 + MC 式方块碎屑）；第一轮按表面类型区分；弹孔贴花不在本轮。
 
 ## 1. 分层
@@ -20,14 +20,14 @@
 ParticleSystem 是 RuntimeContext 持有的全局服务，和 audio／physics 同级，不包装成游戏对象。
 
 ```text
-fixed:     PlayerWeapons.fixed → trace() 得到 { hit, position, normal, surface }
+fixed:     PlayerWeapons.fixed → traceWeaponImpact() 得到 { hit, position, normal, surface }
            → ShotFired 事件 → #accept → view / audio / impactEffects.receive(batch)
            → impactEffects 按表面预设生成粒子数组 → particles.emit(list)
-logical 尾: Engine → particles.flush(frame.time)：只写时间 uniform
+logical 尾: Engine → particles.flush(frame.time)：推进时间 uniform 和批次可见性
 render:    InstancedMesh 在顶点着色器里解析计算位置
 ```
 
-## 2. 命中信息：`player-weapons.js` 的 `trace()`
+## 2. `traceWeaponImpact()` 的命中信息
 
 在现有 slab 求交里额外记录决定 `enter` 的轴 `axis`，法线为该轴上 `-sign(direction[axis])`，其余轴为 0。射线起点在盒内（`enter === 0`）时法线取 `-direction`。
 
@@ -57,6 +57,7 @@ particles.dispose()
 
 - `shape`：`'streak' | 'cube' | 'puff'`。
 - `born`：出生时刻，使用与 `presentationTime` 同一时间轴的秒数。调用方传事件的 `at`；`born` 晚于当前展示时间时粒子保持隐藏，直到时间到达，自然吸收固定步与展示插值之间的延迟。
+- 可选的 `stretch` 用来拉长碎屑。颜色使用线性 RGB，火花可使用大于 1 的 HDR 值。
 - 暂停：`presentationTime` 由固定步时钟推出，Engine 暂停或 `timeScale = 0` 时不前进，粒子随之冻结，不需要单独的 `setPaused`。
 
 ### 存储
@@ -65,16 +66,17 @@ particles.dispose()
 
 | 批次 | shape | 几何 | 材质 |
 | --- | --- | --- | --- |
-| solid | `streak`、`cube` | `BoxGeometry(1,1,1)` | 不透明、无光照；`streak` 不参与 tone mapping |
-| soft | `puff` | `PlaneGeometry` 面向相机 | 透明、`depthWrite = false`、深度淡出 |
+| solid | `streak`、`cube` | `BoxGeometry(1,1,1)` | 不透明、无光照，火花使用 HDR 颜色 |
+| soft | `puff` | `PlaneGeometry` 面向相机 | 透明、`depthWrite = false`，由 Three.js 的 `softParticles` 按场景深度淡出 |
 
 每个实例的 `InstancedBufferAttribute`：
 
-- `aOrigin` vec3、`aVelocity` vec3
-- `aParams` vec4：`born, life, size, gravity`
-- `aColor` vec4：`rgb, shapeId`
+- `particleOrigin` vec3、`particleVelocity` vec3
+- `particleParams` vec4：`born, life, size, gravity`
+- `particleColor` vec4：`rgb, shapeId`
+- `particleStretch` float：碎屑沿自身 X 轴的拉伸倍率
 
-`emit` 只写被占用的槽，用 `addUpdateRange` 加 `needsUpdate` 局部上传。`count` 固定为容量，`frustumCulled = false`。
+`emit` 只写被占用的槽，用 `addUpdateRange` 加 `needsUpdate` 局部上传。每个批次的 `count` 取已占用槽数，最多等于容量。没有待展示粒子时隐藏批次，`frustumCulled = false`。
 
 ### 着色器（TSL `positionNode`）
 
@@ -119,10 +121,10 @@ puff:   相机朝向的面片，尺寸随 k 膨胀，透明度随 k 衰减
 | `engine/runtime/engine.js` | 构造参数 `particles = null`；`audio.flush` 后加 `particles?.flush(this.frame.time)` |
 | `app/bootstrap.js` | 向关卡传 `particles: runtime.particles` |
 | `game/range-room/level.js` | 保存 `particles`，放入 `weapons` 依赖 |
-| `game/weapons/player-weapons.js` | `trace()` 增加 `normal`、`surface`；有 `particles` 时创建 `ImpactEffects`，在 `#accept` 中调用 `receive`，`dispose` 时释放 |
+| `game/weapons/player-weapons.js` | `traceWeaponImpact()` 提供 `normal`、`surface`。有 `particles` 时创建 `ImpactEffects`，在 `#accept` 中调用 `receive`，在 `dispose` 时释放 |
 | `game/weapons/impact-effects.js` | 新建 |
 
-`particles` 是可选依赖。武器预览页和不传它的测试行为不变。`player-weapons.js` 目前有未提交改动，实现时在它的基础上修改。
+`particles` 是可选依赖，由练枪房主入口传入。
 
 ## 6. 验证
 
@@ -135,7 +137,7 @@ puff:   相机朝向的面片，尺寸随 k 膨胀，透明度随 k 衰减
 
 画面检查：在 dev 服务器上分别对墙（stone）、铁砧（metal）、箱子（wood）、地面（dirt）开火，各截一张图；再检查暂停时粒子冻结、恢复后继续。
 
-只运行直接相关的测试文件和一次浏览器截图，不跑全量武器、房间、音频回归。
+2026-11-15 的练枪房实测覆盖石墙、铁砧、木箱和室外地面。四处均通过场景截图确认粒子可见，并验证了暂停后冻结、恢复后消散。奥丁以正常速度打空 100 发弹匣，产生 100 次命中效果和 1048 个粒子，同时存活峰值为 42，结束后降为 0。整轮浏览器检查耗时 20.8 秒。
 
 ## 7. 不在本轮
 

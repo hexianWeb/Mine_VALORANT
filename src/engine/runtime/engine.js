@@ -14,10 +14,11 @@ export class Engine {
   #logicalFrame = 0
   #completedFrame = 0
 
-  constructor({ world, render, audio = null, listener = null, frameDriver = null, time = new Time(), autoPauseOnHidden = true } = {}) {
+  constructor({ world, render, audio = null, particles = null, listener = null, frameDriver = null, time = new Time(), autoPauseOnHidden = true } = {}) {
     this.world = world
     this.render = render
     this.audio = audio
+    this.particles = particles
     this.listener = listener
     this.frameDriver = frameDriver
     this.time = time
@@ -117,6 +118,8 @@ export class Engine {
         this.world?.tickComponents('presentation', this.frame)
       if (this.state !== 'destroyed')
         this.audio?.flush(this.frame.time, this.listener?.())
+      if (this.state !== 'destroyed')
+        this.particles?.flush(this.frame.time)
       if (this.state !== 'destroyed')
         this.#completedFrame = this.#logicalFrame
     }

@@ -201,6 +201,7 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
           physics: runtime.physics,
           render: runtime.render,
           audio: runtime.audio,
+          particles: runtime.particles,
           maxAnisotropy: runtime.render.renderer.getMaxAnisotropy(),
           config: options.level,
         }), {

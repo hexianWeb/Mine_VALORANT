@@ -105,7 +105,9 @@ equipment.step({ fixedTick: 2, fixedElapsed: 2 * fixedDelta, fixedDelta })
 
 loadout 可覆盖实例的初始 magazine、reserve、skinId；其他状态从零开始。`reset()` 保留 loadout 的槽位、枪型、实例标识和皮肤，将弹药补至定义的 capacity / initialReserve，并清零冷却与射击序号。跨重生身份以 `(epoch, instanceId)` 区分。
 
-EquipmentController 的 ShotFired 只包含射击序号和弹药事实；PlayerWeapons 在同一 postPhysics 步调用 AimState，补充 eyeOrigin、aimDirection、shotDirection、seed、aiming 与 impact。impact 是最远 200 米的碰撞盒射线查询，提供盒名、距离和交点；多弹丸还提供逐条方向／命中的 pellets，兼容 impact 取最近命中或第一条未命中结果。额外弹丸使用独立确定性随机流，不扰动旧射线／后坐力序列。当前没有敌人生命值、伤害、穿透或联网同步。枪口闪光与命中准星只提供表现反馈。
+EquipmentController 的 ShotFired 只包含射击序号和弹药事实；PlayerWeapons 在同一 postPhysics 步调用 AimState，补充 eyeOrigin、aimDirection、shotDirection、seed、aiming 与 impact。impact 是最远 200 米的碰撞盒射线查询，提供盒名、距离、交点、法线与表面类型；多弹丸还提供逐条方向／命中的 pellets，兼容 impact 取最近命中或第一条未命中结果。额外弹丸使用独立确定性随机流，不扰动旧射线／后坐力序列。当前没有敌人生命值、伤害、穿透或联网同步。枪口闪光、命中准星和粒子只提供表现反馈。
+
+练枪房按命中的金属、石头、木头和泥地预设发出火花、碎屑或烟尘。武器层从 `ShotFired.impact` 生成粒子，通用粒子服务使用展示时间驱动运动与消散。[命中粒子](../superpowers/specs/2026-11-14-impact-particles-design.md)
 
 ## 固定瞄准与统一表现时间
 

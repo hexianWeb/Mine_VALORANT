@@ -6,6 +6,7 @@ import { phantomDefinition } from './definitions/phantom.js'
 import { sheriffDefinition } from './definitions/sheriff.js'
 import { vandalDefinition } from './definitions/vandal.js'
 import { EquipmentController } from './equipment-controller.js'
+import { ImpactEffects } from './impact-effects.js'
 import { WeaponAudio } from './weapon-audio.js'
 import { WeaponViewModel } from './weapon-viewmodel.js'
 
@@ -40,12 +41,24 @@ export const practiceLoadout = Object.freeze([
   },
 ])
 
-function trace(origin, direction, world, range = 200) {
+function surfaceOf(box) {
+  if (box.name?.includes('Anvil'))
+    return 'metal'
+  if (/Chest|Jungle|Bed|Fence|CounterSlab/u.test(box.name ?? ''))
+    return 'wood'
+  return box.group === 'Ground'
+    ? 'dirt'
+    : 'stone'
+}
+
+export function traceWeaponImpact(origin, direction, world, range = 200) {
   let nearest = range
-  let hit = null
+  let target = null
+  let face = -1
   for (const box of world?.boxes ?? []) {
     let enter = 0
     let exit = range
+    let enterAxis = -1
     for (let axis = 0; axis < 3; axis++) {
       if (Math.abs(direction[axis]) < 1e-12) {
         if (origin[axis] < box.min[axis] || origin[axis] > box.max[axis])
@@ -54,19 +67,38 @@ function trace(origin, direction, world, range = 200) {
       else {
         const a = (box.min[axis] - origin[axis]) / direction[axis]
         const b = (box.max[axis] - origin[axis]) / direction[axis]
-        enter = Math.max(enter, Math.min(a, b))
+        const near = Math.min(a, b)
+        if (near > enter) {
+          enter = near
+          enterAxis = axis
+        }
         exit = Math.min(exit, Math.max(a, b))
       }
     }
     if (enter <= exit && enter < nearest) {
       nearest = enter
-      hit = box.name ?? 'surface'
+      target = box
+      face = enterAxis
     }
   }
+  let normal = null
+  if (target) {
+    normal = face === -1
+      ? direction.map(value => -value || 0)
+      : [0, 0, 0]
+    if (face !== -1)
+      normal[face] = -Math.sign(direction[face])
+  }
   return {
-    hit,
+    hit: target
+      ? target.name ?? 'surface'
+      : null,
     distance: nearest,
     position: origin.map((value, axis) => value + direction[axis] * nearest),
+    normal,
+    surface: target
+      ? surfaceOf(target)
+      : null,
   }
 }
 
@@ -87,6 +119,7 @@ export class PlayerWeapons {
   #controller
   #view
   #audio
+  #impacts
   #aim
   #world
   #definitions
@@ -104,6 +137,7 @@ export class PlayerWeapons {
     aim,
     world,
     audio = null,
+    particles = null,
     jumpFeedback,
     definitions = [
       classicDefinition,
@@ -131,6 +165,9 @@ export class PlayerWeapons {
       : inventory.slots.find(slot => slot.id === initialSlot)?.instanceId ?? null
     this.#aim = aim
     this.#world = world
+    this.#impacts = particles
+      ? new ImpactEffects(particles)
+      : null
     this.#audio = audio
       ? new WeaponAudio({
           audio,
@@ -252,11 +289,11 @@ export class PlayerWeapons {
       const pellets = shot.pelletDirections?.map((direction, index) => ({
         index,
         direction,
-        impact: trace(shot.eyeOrigin, direction, this.#world),
+        impact: traceWeaponImpact(shot.eyeOrigin, direction, this.#world),
       }))
       const impact = pellets
         ? pellets.filter(pellet => pellet.impact.hit).sort((a, b) => a.impact.distance - b.impact.distance)[0]?.impact ?? pellets[0].impact
-        : trace(shot.eyeOrigin, shot.shotDirection, this.#world)
+        : traceWeaponImpact(shot.eyeOrigin, shot.shotDirection, this.#world)
       const enriched = {
         ...event,
         payload: {
@@ -291,6 +328,7 @@ export class PlayerWeapons {
     this.#events = this.#events.slice(-64)
     this.#view.receive(batch, snapshot, aim)
     this.#audio?.receive(batch, snapshot)
+    this.#impacts?.receive(batch)
   }
 
   motion(time) {
@@ -346,6 +384,7 @@ export class PlayerWeapons {
     this.#disposed = true
     this.#controller.dispose()
     this.#audio?.dispose()
+    this.#impacts?.dispose()
     this.#view.dispose()
   }
 }

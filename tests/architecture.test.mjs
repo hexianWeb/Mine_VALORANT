@@ -110,6 +110,7 @@ test('runtime public APIs import without a browser or game initialization', asyn
       'RuntimeContext',
       'Time',
       'Disposer',
+      'createParticleSystem',
     ],
     'function/global/runtime-context.js': ['RuntimeContext'],
     'function/input/input-system.js': ['createInputSystem'],

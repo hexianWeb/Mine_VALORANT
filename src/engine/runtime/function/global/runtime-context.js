@@ -9,6 +9,7 @@ import { ResourceManager } from '../../resource/index.js'
 import { AudioSystem } from '../audio/audio-system.js'
 import { WorldManager } from '../framework/world/world-manager.js'
 import { createInputSystem } from '../input/input-system.js'
+import { createParticleSystem } from '../particle/particle-system.js'
 import { createPhysicsSystem } from '../physics/index.js'
 import { createRenderSystem } from '../render/index.js'
 
@@ -20,6 +21,7 @@ const defaults = {
   render: createRenderSystem,
   input: createInputSystem,
   audio: options => new AudioSystem(options),
+  particles: createParticleSystem,
   physics: createPhysicsSystem,
   world: () => new WorldManager(),
   frameDriver: createFrameDriver,
@@ -82,6 +84,7 @@ export class RuntimeContext {
       }))
       this.#controller.signal.throwIfAborted()
       this.audio = this.#owned.add(factories.audio({ element: canvas }))
+      this.particles = this.#owned.add(factories.particles({ scene: this.scene }))
       this.input = this.#owned.add(factories.input({ element: canvas, bindings: inputBindings }))
       this.physics = this.#owned.add(factories.physics())
       this.world = this.#owned.add(factories.world())
@@ -91,6 +94,7 @@ export class RuntimeContext {
         world: this.world,
         render: this.render,
         audio: this.audio,
+        particles: this.particles,
         listener: () => this.camera.position?.toArray
           ? {
               position: this.camera.position.toArray(),

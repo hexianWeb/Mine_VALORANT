@@ -16,6 +16,7 @@
 | [武器发布与动画播放](weapons/animation-and-assets.md) | 发布包、AnimationPlayer、WeaponAssets、独立视模 pass、现行旧材质兼容边界与验收 |
 | [枪械图集与发布工作流](weapons/gun-only-uv-workflow.md) | Classic 精简网格、336 图集与 UV、动作／手臂兼容及 Three.js 接入 |
 | [武器运行时音频](weapons/audio.md) | 七枪 28 个本地 cue、AudioBank、Web Audio 时钟、取消/暂停/变速与实际波形验收 |
+| [命中粒子](superpowers/specs/2026-11-14-impact-particles-design.md) | 引擎粒子服务、四种表面预设、展示时钟与练枪房验收 |
 | [稀疏控制与弹药显示](weapons/runtime-controls.md) | Mixer 后的显式属性覆盖、Judge/Odin 源曲线、弹药事实与数值验收边界 |
 | [Ghost 美术导出](weapons/ghost-art-export.md) | 原非发布美术交接包：四皮肤、完整动画、共享 32×32 手臂与音频；后续游戏接入见下项 |
 | [Ghost 接入与临时参数](weapons/ghost-integration.md) | 3 号键、四皮肤、本地音效；公开数据与项目暂定项、独立发布及验收 |

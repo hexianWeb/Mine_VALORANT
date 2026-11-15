@@ -35,7 +35,7 @@ export class RangeRoomLevel extends Level {
   #controller = new AbortController()
   #bindings = new Disposer()
 
-  constructor({ scene, camera, resources, input = null, physics = null, render = null, audio = null, maxAnisotropy = 16, config = {} }) {
+  constructor({ scene, camera, resources, input = null, physics = null, render = null, audio = null, particles = null, maxAnisotropy = 16, config = {} }) {
     super({ scene })
     this.camera = camera
     this.resources = resources
@@ -43,6 +43,7 @@ export class RangeRoomLevel extends Level {
     this.physics = physics
     this.render = render
     this.audio = audio
+    this.particles = particles
     this.settings = {
       ...rangeRoomConfig,
       ...config,
@@ -155,7 +156,12 @@ export class RangeRoomLevel extends Level {
             }))
             this.#weaponAssets = assets
             assets.setReflectionEnabled(this.lights.root.visible)
-            weapons = { assets, layer: this.render.viewmodel, audio: this.audio }
+            weapons = {
+              assets,
+              layer: this.render.viewmodel,
+              audio: this.audio,
+              particles: this.particles,
+            }
             // Prewarm shared data only. VisualPrepared requires motion ticks after load completes.
             const initial = classicDefinition.assets
             await assets.load({ weaponId: initial.modelId, assetVersion: initial.assetVersion, skinId: initial.defaultSkinId }).catch((error) => {
