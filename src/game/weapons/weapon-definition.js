@@ -55,7 +55,13 @@ export function createWeaponDefinition(input) {
     'spread',
     'aim',
   ])
-  record(input.fire, 'fire', ['mode', 'interval', 'pellets'])
+  record(input.fire, 'fire', [
+    'mode',
+    'interval',
+    'adsInterval',
+    'spinUp',
+    'pellets',
+  ])
   record(input.equip, 'equip', ['draw', 'holster'])
   record(input.reload, 'reload', ['tactical', 'empty'])
   record(input.capabilities, 'capabilities', ['ads'])
@@ -80,7 +86,21 @@ export function createWeaponDefinition(input) {
     mode: input.fire.mode,
     interval: seconds(input.fire.interval, 'fire.interval', true),
   }
-  // Preserve the exact legacy definition shape unless multi-pellet fire is explicitly authored.
+  if (Object.hasOwn(input.fire, 'adsInterval')) {
+    if (!input.capabilities.ads)
+      throw new TypeError('fire.adsInterval requires capabilities.ads')
+    fire.adsInterval = seconds(input.fire.adsInterval, 'fire.adsInterval', true)
+  }
+  if (Object.hasOwn(input.fire, 'spinUp')) {
+    if (fire.mode !== 'auto')
+      throw new TypeError('fire.spinUp requires automatic fire')
+    const spinUp = record(input.fire.spinUp, 'fire.spinUp', ['duration', 'interval'])
+    const duration = seconds(spinUp.duration, 'fire.spinUp.duration', true)
+    const interval = seconds(spinUp.interval, 'fire.spinUp.interval', true)
+    if (interval > fire.interval)
+      throw new RangeError('fire.spinUp.interval must not exceed fire.interval')
+    fire.spinUp = Object.freeze({ duration, interval })
+  }
   if (Object.hasOwn(input.fire, 'pellets')) {
     fire.pellets = integer(input.fire.pellets, 'fire.pellets', 1)
     if (fire.pellets > 64)

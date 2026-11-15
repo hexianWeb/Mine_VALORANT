@@ -206,10 +206,10 @@ function setup(t, {
     })
   }
   if (odin) {
-    // This transaction fixture uses 100 ms ticks. Exact 12/s cadence is tested in the real 60 Hz game.
+    // Use one shot per tick in this 100 ms transaction fixture.
     definitions.push(createWeaponDefinition({
       ...odinDefinition,
-      fire: { ...odinDefinition.fire, interval: h },
+      fire: { mode: odinDefinition.fire.mode, interval: h },
     }))
     loadout.push({
       id: 'septenary',

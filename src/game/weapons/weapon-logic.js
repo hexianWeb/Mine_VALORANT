@@ -20,14 +20,28 @@ export function commitReload(weapon, definition, recoveryUntil) {
   }
 }
 
-/** No ray or visual side effects. Aim/recoil integration is a separate implementation step. */
-export function fireWeapon(weapon, definition, now, continuingAutomaticFire = false) {
-  const cadenceStart = continuingAutomaticFire
-    ? Math.max(weapon.nextFireAt, now - definition.fire.interval)
+function fireInterval(fire, aiming, elapsed) {
+  if (aiming && fire.adsInterval !== undefined)
+    return fire.adsInterval
+  if (!fire.spinUp || elapsed <= 0)
+    return fire.interval
+  const progress = Math.min(elapsed / fire.spinUp.duration, 1)
+  return 1 / ((1 - progress) / fire.interval + progress / fire.spinUp.interval)
+}
+
+/** Advance ammo and the next shot deadline on the fixed-step cadence clock. */
+export function fireWeapon(weapon, definition, now, { aiming, burstStartedAt }) {
+  const continuing = burstStartedAt !== null
+  const elapsed = continuing
+    ? weapon.nextFireAt - burstStartedAt
+    : 0
+  const interval = fireInterval(definition.fire, aiming, elapsed)
+  const cadenceStart = continuing
+    ? Math.max(weapon.nextFireAt, now - interval)
     : now
   return {
     magazine: weapon.magazine - 1,
     shotSequence: weapon.shotSequence + 1,
-    nextFireAt: cadenceStart + definition.fire.interval,
+    nextFireAt: cadenceStart + interval,
   }
 }

@@ -211,7 +211,20 @@ try {
       assert.equal(level.visible, Math.min(level.magazine, window), `${id}: feed=${JSON.stringify(level)}`)
     assert.equal(result.fire.levels.at(-1).visible, 0)
     const span = result.fire.shots.at(-1).at - result.fire.shots[0].at
-    assert.ok(Math.abs(span - (definition.capacity - 1) * definition.fire.interval) < 1 / 60 + 1e-6, `${id}: wrong real cadence ${span}`)
+    const { interval, spinUp } = definition.fire
+    const tickTolerance = 1 / 60 + 1e-6
+    if (spinUp) {
+      const first = result.fire.shots[0].at
+      const openingGap = result.fire.shots[1].at - first
+      const sustained = result.fire.shots.filter(shot => shot.at >= first + spinUp.duration + tickTolerance)
+      const sustainedSpan = sustained.at(-1).at - sustained[0].at
+      assert.ok(Math.abs(openingGap - interval) < tickTolerance, `${id}: wrong opening gap ${openingGap}`)
+      assert.ok(Math.abs(sustainedSpan - (sustained.length - 1) * spinUp.interval) < tickTolerance, `${id}: wrong sustained cadence ${sustainedSpan}`)
+      assert.ok(span < (definition.capacity - 1) * interval, `${id}: burst did not accelerate`)
+    }
+    else {
+      assert.ok(Math.abs(span - (definition.capacity - 1) * interval) < tickTolerance, `${id}: wrong real cadence ${span}`)
+    }
     assert.ok(result.fire.peak > 0.00001 && result.fire.peak < 1, `${id}: final output absent/clipping`)
     if (id === 'judge') {
       assert.ok(result.fire.shots.every(shot => shot.pellets === 12))
@@ -244,7 +257,7 @@ try {
     assert.equal(result.tacticalReload.view.weapon.reserve, definition.initialReserve - definition.capacity - 1)
     await mouse('mousePressed', 'right')
     if (id === 'odin') {
-      await until('__RANGE_ROOM__.inspection.player.snapshot().view.ads>.99')
+      await until('__RANGE_ROOM__.inspection.player.snapshot().view.ads>.9999')
       const view = await evaluate('__RANGE_ROOM__.inspection.player.snapshot().view')
       assert.ok(Math.abs(view.viewmodelFov - definition.aim.viewmodelFov) < 0.01)
       result.adsFov = view.viewmodelFov

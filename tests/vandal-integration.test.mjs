@@ -11,12 +11,14 @@ import { readPinnedAuthoring, validateAuthoredTexture } from '../tools/weapons/p
 
 const readJSON = async file => JSON.parse(await readFile(file, 'utf8'))
 
-test('Vandal retains the pinned release profile with a faster runtime ADS transition', async () => {
+test('Vandal keeps its pinned release evidence and applies runtime ADS tuning', async () => {
   const profile = await readJSON('tools/weapons/authored-releases/vandal-temporary-runtime.json')
+  const { adsInterval, ...releaseFire } = vandalDefinition.fire
   assert.equal(vandalDefinition.aim.duration, 0.12)
   assert.deepEqual(profile.definition, {
     ...vandalDefinition,
     aim: { ...vandalDefinition.aim, duration: 0.2083 },
+    fire: releaseFire,
   })
   assert.deepEqual(profile.provenance, vandalGameplayProvenance)
   assert.deepEqual(profile.audio, weaponAudioProfiles.vandal)
@@ -30,8 +32,7 @@ test('Vandal retains the pinned release profile with a faster runtime ADS transi
   assert.equal(vandalDefinition.initialReserve, vandalDefinition.capacity * 3)
   assert.deepEqual(vandalDefinition.recoil, phantomAimProfile.recoil)
   assert.deepEqual(vandalDefinition.spread, phantomAimProfile.spread)
-  assert.equal(stats.adsStats.fireRate, 8.775)
-  assert.match(vandalGameplayProvenance.adsFireRate, /temporarily stays 9.75/)
+  assert.equal(adsInterval, 1 / stats.adsStats.fireRate)
   for (const branch of Object.values(vandalDefinition.reload)) {
     assert.equal(branch.duration, stats.reloadTimeSeconds)
     assert.equal(branch.feed, branch.duration)

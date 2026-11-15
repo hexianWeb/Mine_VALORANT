@@ -265,11 +265,12 @@ export class PlayerWeapons {
 
   fixed(context, pose) {
     const time = context.time ?? context
-    const batch = this.#controller.step(context)
+    const aimHeld = pose.aimHeld ?? this.#aimHeld
+    const batch = this.#controller.step(context, { aimHeld })
     const snapshot = this.#controller.snapshot()
     const weapon = snapshot.inventory.weapons.find(weapon => weapon.instanceId === snapshot.activeId)
     const definition = this.#definitions.get(weapon?.definitionId)
-    const aiming = (pose.aimHeld ?? this.#aimHeld) && snapshot.canAct && !snapshot.action && !!definition?.capabilities.ads
+    const aiming = aimHeld && snapshot.canAct && !snapshot.action && !!definition?.capabilities.ads
     this.#aim.beginStep({
       ...pose,
       at: time.fixedElapsed,
@@ -300,7 +301,6 @@ export class PlayerWeapons {
           ...event.payload,
           ...shot,
           weapon,
-          aiming,
           impact,
           ...(pellets
             ? { pellets }

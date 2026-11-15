@@ -44,7 +44,8 @@ test('Judge/Odin append sixth/seventh slots without changing the five existing l
   assert.equal(judgeDefinition.fire.pellets, 12)
   assert.equal(judgeDefinition.capacity, 5, 'use the observed current record, not an old seven-round value')
   assert.equal(odinDefinition.aim.duration, 0.12)
-  assert.match(odinGameplayProvenance.fireRate, /NOT implemented/)
+  assert.equal(odinDefinition.fire.adsInterval, 1 / 15.6)
+  assert.deepEqual(odinDefinition.fire.spinUp, { duration: 0.6, interval: 1 / 15.6 })
 })
 
 test('publication rejects malformed sparse-control declarations, not only runtime loading', async () => {
@@ -70,12 +71,17 @@ for (const [id, definition, provenance, window] of entries) {
     const releaseAim = id === 'odin'
       ? { ...definition.aim, duration: 0.2083 }
       : definition.aim
-    assert.deepEqual(runtime.definition, { ...definition, aim: releaseAim })
+    const releaseFire = id === 'odin'
+      ? { mode: definition.fire.mode, interval: definition.fire.interval }
+      : definition.fire
+    assert.deepEqual(runtime.definition, { ...definition, aim: releaseAim, fire: releaseFire })
     assert.deepEqual(runtime.provenance, provenance)
     assert.deepEqual(runtime.audio, weaponAudioProfiles[id])
     assert.equal(runtime.originalRuntimeManifestAvailable, false)
     assert.equal(runtime.reference.weaponStats.magazineSize, definition.capacity)
     assert.equal(runtime.reference.weaponStats.fireRate, 1 / definition.fire.interval)
+    if (id === 'odin')
+      assert.equal(definition.fire.adsInterval, 1 / runtime.reference.weaponStats.adsStats.fireRate)
     assert.equal(metadata.clips.length, 33)
     assert.equal(metadata.runtimeControls.ammoDisplay.tracks.length, window)
     assert.equal(metadata.controlEvidence.sourceSha256, metadata.skins.smite.source.sha256)

@@ -1,7 +1,7 @@
 import { phantomAimProfile } from '../aim-profile.js'
 import { createWeaponDefinition } from '../weapon-definition.js'
 
-// Public-reference trial data, NOT recovered valorant-first-person-pack metadata.
+// Provenance for the original authored release.
 export const vandalGameplayProvenance = Object.freeze({
   status: 'temporary-public-reference',
   observedAt: '2026-11-14',
@@ -27,7 +27,7 @@ export const vandalDefinition = createWeaponDefinition({
   id: 'vandal',
   capacity: 25,
   initialReserve: 75,
-  fire: { mode: 'auto', interval: 1 / 9.75 },
+  fire: { mode: 'auto', interval: 1 / 9.75, adsInterval: 1 / 8.775 },
   equip: { draw: 1, holster: 0 },
   reload: {
     tactical: { feed: 2.5, duration: 2.5 },

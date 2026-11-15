@@ -6,11 +6,11 @@
 
 Ghost 已以公开参考临时参数接入，默认 Freehand，保留四皮肤和标准手臂；精确来源与暂定项见 [Ghost 接入](ghost-integration.md)。不是原始 Ghost runtime 或 VALORANT 手感复刻。
 
-狂徒也已接入，默认 Sakura，六皮肤、共享手臂，全自动／ADS／本地声音均可用；后坐力暂借 Phantom，ADS 独立射速尚未实现，见[狂徒接入与临时参数](vandal-integration.md)。
+狂徒默认 Sakura，支持六款皮肤，共享手臂。全自动腰射为 9.75 发/秒，开镜为 8.775 发/秒，后坐力暂借 Phantom。[狂徒接入与临时参数](vandal-integration.md)
 
 正义已接入，默认 Smite，三皮肤、共享手臂与完整换弹动画；6 发、半自动 4 发/秒，无 ADS，后坐力暂借 Classic，见[正义接入与临时参数](sheriff-integration.md)。
 
-判官与奥丁已接入，默认均为 Smite，分别两款／三款皮肤，每枪 33 动作。判官为 5 发、3.5 发/秒、每发 12 弹丸；奥丁为 100 发、固定 12 发/秒并支持 ADS，未实现连射加速／独立 ADS 射速，详见[判官／奥丁接入与临时参数](judge-odin-integration.md)。
+判官与奥丁默认均为 Smite，分别支持两款和三款皮肤，每枪 33 个动作。判官弹匣 5 发，射速 3.5 发/秒，每发 12 弹丸。奥丁弹匣 100 发，腰射连发由 12 加速到 15.6 发/秒，开镜起步即为 15.6 发/秒。[判官／奥丁接入与临时参数](judge-odin-integration.md)
 
 运行 `npm run dev` 后打开主页面。默认背包为 Phantom（rifle）、Classic（pistol）、Ghost（ghost）、Vandal（vandal）、Sheriff（sheriff）、Judge（judge）、Odin（odin），初始选择 Classic。`?editor=0` 关闭工具 UI，仍保留玩家、武器输入和 HUD。`/weapon-preview.html` 是独立资产预览页，不运行装备玩法。
 
@@ -86,7 +86,9 @@ equipment.step({ fixedTick: 2, fixedElapsed: 2 * fixedDelta, fixedDelta })
 
 所有时长均为游戏秒。定义要求显式提供 `id / capacity / initialReserve / fire / equip / reload / inspectDuration / capabilities / assets`，还支持经 `createAimProfile()` 校验的 recoil、spread、aim；未知字段报错。reload 包含 tactical、empty 两个分支，每个分支提供 feed、duration，且 `0 <= feed <= duration`。equip 包含 draw、holster，允许零时长。
 
-本阶段支持 semi 与 auto 两种 fire.mode。控制器每固定步最多接受一次射击，构造时要求 `fire.interval >= fixedDelta`；不支持的频率直接报错。持续自动射击沿原有 deadline 累加间隔，避免每发向上取整后持续拖慢；实际 ShotFired.at 仍是接受该发的固定步时间。停止按火、切枪或换弹结束后不补发期间错过的射击。
+`fire.mode` 支持 `semi` 和 `auto`。`fire.interval` 是基础间隔，支持 ADS 的武器可设置独立的 `fire.adsInterval`。自动武器可选配 `fire.spinUp`，在 `duration` 秒内线性提高腰射射速，直到 `interval` 对应的射速。所有间隔必须大于或等于 `fixedDelta`，控制器每固定步最多接受一发。
+
+持续连发沿原有 deadline 累计间隔，`ShotFired.at` 记录实际接受这一发的固定步时间。触发这一发时的瞄准状态决定下一发的间隔，切换瞄准时继续沿用当前连发时钟。松开扳机、切枪、换弹或暂停会重置加速，此后从新一轮连发开始计时。
 
 `fire.pellets` 是显式可选的 1–64 整数；未声明时不增加旧定义字段。Judge 为 12，但每发仍只扣一次弹、施加一次后坐力并生成一个 ShotFired／本地枪声。
 
@@ -105,7 +107,7 @@ equipment.step({ fixedTick: 2, fixedElapsed: 2 * fixedDelta, fixedDelta })
 
 loadout 可覆盖实例的初始 magazine、reserve、skinId；其他状态从零开始。`reset()` 保留 loadout 的槽位、枪型、实例标识和皮肤，将弹药补至定义的 capacity / initialReserve，并清零冷却与射击序号。跨重生身份以 `(epoch, instanceId)` 区分。
 
-EquipmentController 的 ShotFired 只包含射击序号和弹药事实；PlayerWeapons 在同一 postPhysics 步调用 AimState，补充 eyeOrigin、aimDirection、shotDirection、seed、aiming 与 impact。impact 是最远 200 米的碰撞盒射线查询，提供盒名、距离、交点、法线与表面类型；多弹丸还提供逐条方向／命中的 pellets，兼容 impact 取最近命中或第一条未命中结果。额外弹丸使用独立确定性随机流，不扰动旧射线／后坐力序列。当前没有敌人生命值、伤害、穿透或联网同步。枪口闪光、命中准星和粒子只提供表现反馈。
+EquipmentController 的 ShotFired 包含射击序号、弹药和瞄准状态。PlayerWeapons 在同一 postPhysics 步调用 AimState，补充 eyeOrigin、aimDirection、shotDirection、seed 与 impact。impact 是最远 200 米的碰撞盒射线查询，提供盒名、距离、交点、法线与表面类型；多弹丸还提供逐条方向／命中的 pellets，兼容 impact 取最近命中或第一条未命中结果。额外弹丸使用独立确定性随机流，不扰动旧射线／后坐力序列。当前没有敌人生命值、伤害、穿透或联网同步。枪口闪光、命中准星和粒子只提供表现反馈。
 
 练枪房按命中的金属、石头、木头和泥地预设发出火花、碎屑或烟尘。武器层从 `ShotFired.impact` 生成粒子，通用粒子服务使用展示时间驱动运动与消散。[命中粒子](../superpowers/specs/2026-11-14-impact-particles-design.md)
 

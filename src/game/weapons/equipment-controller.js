@@ -80,7 +80,7 @@ export class EquipmentController {
   #events = []
   #effects = []
   #fireHeld = false
-  #automaticRun = false
+  #automaticStartedAt = null
   #paused = false
   #suspended = false
   #resumePending = false
@@ -93,8 +93,15 @@ export class EquipmentController {
     this.#inventory = new WeaponInventory({ definitions, slots: loadout })
     // This controller accepts at most one shot per fixed step; never silently cap a definition.
     for (const definition of definitions) {
-      if (definition.fire.interval < fixedDelta)
-        throw new RangeError(`[Equipment] ${definition.id}: fire.interval must be >= fixedDelta`)
+      const { interval, adsInterval, spinUp } = definition.fire
+      for (const [name, value] of [
+        ['fire.interval', interval],
+        ['fire.adsInterval', adsInterval],
+        ['fire.spinUp.interval', spinUp?.interval],
+      ]) {
+        if (value !== undefined && value < fixedDelta)
+          throw new RangeError(`[Equipment] ${definition.id}: ${name} must be >= fixedDelta`)
+      }
     }
     this.#fixedDelta = fixedDelta
     this.#definitions = immutable(definitions)
@@ -166,7 +173,7 @@ export class EquipmentController {
   }
 
   /** Accept one completed-simulation candidate; a paused caller must not advance the clock. */
-  step(context) {
+  step(context, { aimHeld = false } = {}) {
     if (this.#disposed)
       throw new Error('[Equipment] step after dispose')
     if (this.#paused)
@@ -216,7 +223,7 @@ export class EquipmentController {
       if (command.type === 'fireHeld') {
         this.#fireHeld = command.held
         if (!command.held)
-          this.#automaticRun = false
+          this.#automaticStartedAt = null
       }
     }
     const validAction = type => commands.some(entry => entry.command.type === type
@@ -225,7 +232,7 @@ export class EquipmentController {
     if (!reloadAccepted) {
       const definition = this.#inventory.definition(this.#activeId)
       const wantsFire = validAction('fire') || (this.#fireHeld && definition?.fire.mode === 'auto')
-      const fired = wantsFire && this.#fire()
+      const fired = wantsFire && this.#fire(aimHeld)
       if (!fired && validAction('inspect'))
         this.#startInspect()
     }
@@ -455,7 +462,7 @@ export class EquipmentController {
         : 'switch'
     this.#resumePending = false
     this.#cancelAction('switch')
-    this.#automaticRun = false
+    this.#automaticStartedAt = null
     this.#equipmentGeneration++
     const holster = reason === 'switch' && this.#phase !== 'Drawing'
       ? this.#inventory.definition(fromId).equip.holster
@@ -524,7 +531,7 @@ export class EquipmentController {
     if (!this.#canReload())
       return false
     this.#cancelAction('reload')
-    this.#automaticRun = false
+    this.#automaticStartedAt = null
     const weapon = this.#inventory.get(this.#activeId)
     const branch = weapon.magazine === 0
       ? 'empty'
@@ -577,20 +584,24 @@ export class EquipmentController {
     })
   }
 
-  #fire() {
+  #fire(aimHeld) {
     if (!this.#canFire())
       return false
     this.#cancelAction('fire')
     const definition = this.#inventory.definition(this.#activeId)
     const automatic = definition.fire.mode === 'auto' && this.#fireHeld
+    const burstStartedAt = automatic ? this.#automaticStartedAt : null
+    const aiming = Boolean(aimHeld && definition.capabilities.ads)
     const weapon = this.#inventory.update(this.#activeId, fireWeapon(
       this.#inventory.get(this.#activeId),
       definition,
       this.#now,
-      automatic && this.#automaticRun,
+      { aiming, burstStartedAt },
     ))
-    this.#automaticRun = automatic
-    this.#emit('ShotFired', this.#activeId, { shotSequence: weapon.shotSequence, magazine: weapon.magazine })
+    this.#automaticStartedAt = automatic
+      ? burstStartedAt ?? this.#now
+      : null
+    this.#emit('ShotFired', this.#activeId, { shotSequence: weapon.shotSequence, magazine: weapon.magazine, aiming })
     return true
   }
 
@@ -634,7 +645,7 @@ export class EquipmentController {
       return
     this.#paused = paused
     this.#fireHeld = false
-    this.#automaticRun = false
+    this.#automaticStartedAt = null
     this.#commands = this.#commands.filter(({ command }) => !actionCommands.has(command.type)
       && !['fireHeld', 'setSkin', 'cycleSkin'].includes(command.type))
   }
@@ -654,7 +665,7 @@ export class EquipmentController {
     this.#acceptedTickets.clear()
     this.#actionBlockReason = null
     this.#fireHeld = false
-    this.#automaticRun = false
+    this.#automaticStartedAt = null
     this.#resumePending = false
     this.#allowClockGap = true
     this.#emit('PresentationReset', this.#activeId, { reason })

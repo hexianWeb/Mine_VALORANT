@@ -1,6 +1,7 @@
 import { phantomAimProfile } from '../aim-profile.js'
 import { createWeaponDefinition } from '../weapon-definition.js'
 
+// Provenance for the original authored release.
 export const odinGameplayProvenance = Object.freeze({
   status: 'temporary-public-reference',
   observedAt: '2026-11-14',
@@ -20,13 +21,20 @@ export const odinGameplayProvenance = Object.freeze({
 
 const adsFov = 2 * Math.atan(Math.tan(70 * Math.PI / 360) / 1.15) * 180 / Math.PI
 
+const fastestInterval = 1 / 15.6
+
 export const odinDefinition = createWeaponDefinition({
   ...phantomAimProfile,
   aim: { ...phantomAimProfile.aim, worldFov: adsFov, viewmodelFov: adsFov },
   id: 'odin',
   capacity: 100,
   initialReserve: 300,
-  fire: { mode: 'auto', interval: 1 / 12 },
+  fire: {
+    mode: 'auto',
+    interval: 1 / 12,
+    adsInterval: fastestInterval,
+    spinUp: { duration: 0.6, interval: fastestInterval },
+  },
   equip: { draw: 1.25, holster: 0 },
   reload: {
     tactical: { feed: 5, duration: 5 },

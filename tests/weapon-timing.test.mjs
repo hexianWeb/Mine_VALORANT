@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { Time } from '../src/engine/runtime/core/time.js'
+import { odinDefinition } from '../src/game/weapons/definitions/odin.js'
+import { vandalDefinition } from '../src/game/weapons/definitions/vandal.js'
 import { EquipmentController } from '../src/game/weapons/equipment-controller.js'
 
 function definition({ mode, interval, capacity }) {
@@ -115,6 +117,86 @@ test('automatic cadence is independent of 30/60/144 FPS and five-step catch-up w
   }
 })
 
+function automaticCadence(t, weaponDefinition) {
+  const fixedDelta = 1 / 60
+  const controller = new EquipmentController({
+    definitions: [
+      {
+        ...weaponDefinition,
+        equip: { draw: 0, holster: 0 },
+      },
+    ],
+    loadout: [
+      {
+        id: 'primary',
+        weapon: { instanceId: 'test', definitionId: weaponDefinition.id },
+      },
+    ],
+    fixedDelta,
+  })
+  t.after(() => controller.dispose())
+  let tick = 0
+  const step = (aimHeld, command) => {
+    if (command)
+      controller.queue(command)
+    tick++
+    return controller.step({ fixedTick: tick, fixedElapsed: tick * fixedDelta, fixedDelta }, { aimHeld })
+  }
+  const [{ ticket }] = step().effects
+  step(false, { type: 'prepared', ticket })
+  return {
+    release: () => step(false, { type: 'fireHeld', held: false }),
+    fire: (count, aimHeld = false) => {
+      controller.queue({ type: 'fireHeld', held: true })
+      const shots = []
+      for (let i = 0; shots.length < count && i < 600; i++) {
+        const shot = step(aimHeld).events.find(event => event.type === 'ShotFired')
+        if (shot) {
+          const { nextFireAt } = controller.snapshot().inventory.weapons[0]
+          shots.push({ ...shot, nextFireAt })
+        }
+      }
+      assert.equal(shots.length, count)
+      assert.ok(shots.every(shot => shot.payload.aiming === aimHeld))
+      return shots
+    },
+  }
+}
+
+function assertInterval(interval, expected) {
+  assert.ok(Math.abs(interval - expected) < 1e-10, `Expected ${expected}s, got ${interval}s`)
+}
+
+test('Vandal uses each stance cadence without resetting an in-progress automatic deadline', (t) => {
+  const cadence = automaticCadence(t, vandalDefinition)
+  const hip = cadence.fire(8)
+  const ads = cadence.fire(8, true)
+  const lowered = cadence.fire(8)
+  const { interval, adsInterval } = vandalDefinition.fire
+  assertInterval(hip.at(-1).nextFireAt - hip[0].at, 8 * interval)
+  assert.equal(ads[0].fixedTick, Math.ceil(hip.at(-1).nextFireAt * 60 - 1e-10))
+  assertInterval(ads.at(-1).nextFireAt - hip.at(-1).nextFireAt, 8 * adsInterval)
+  assert.equal(lowered[0].fixedTick, Math.ceil(ads.at(-1).nextFireAt * 60 - 1e-10))
+  assertInterval(lowered.at(-1).nextFireAt - ads.at(-1).nextFireAt, 8 * interval)
+})
+
+test('Odin spins up on a held hip-fire burst, resets on release and starts at full speed in ADS', (t) => {
+  const cadence = automaticCadence(t, odinDefinition)
+  const hip = cadence.fire(20)
+  const { interval, spinUp, adsInterval } = odinDefinition.fire
+  const secondRate = 12 + (15.6 - 12) * interval / spinUp.duration
+  assertInterval(hip[0].nextFireAt - hip[0].at, interval)
+  assertInterval(hip[1].nextFireAt - hip[0].nextFireAt, 1 / secondRate)
+  assertInterval(hip.at(-1).nextFireAt - hip.at(-2).nextFireAt, spinUp.interval)
+  cadence.release()
+  const [restart] = cadence.fire(1)
+  assertInterval(restart.nextFireAt - restart.at, interval)
+  cadence.release()
+  const ads = cadence.fire(20, true)
+  assertInterval(ads[0].nextFireAt - ads[0].at, adsInterval)
+  assertInterval(ads.at(-1).nextFireAt - ads[0].at, 20 * adsInterval)
+})
+
 test('switching between two instances of one definition preserves each magazine and cooldown', (t) => {
   const fixedDelta = 0.1
   const controller = new EquipmentController({
@@ -225,6 +307,13 @@ test('the one-shot-per-step contract rejects intervals below fixedDelta and acce
     fixedDelta: 0.1,
   })
   assert.throws(() => new EquipmentController(options(0.04)), RangeError)
+  const fastAds = options(0.1)
+  fastAds.definitions[0].capabilities.ads = true
+  fastAds.definitions[0].fire.adsInterval = 0.04
+  assert.throws(() => new EquipmentController(fastAds), /fire\.adsInterval.*fixedDelta/)
+  const fastSpinUp = options(0.1)
+  fastSpinUp.definitions[0].fire.spinUp = { duration: 0.6, interval: 0.04 }
+  assert.throws(() => new EquipmentController(fastSpinUp), /fire\.spinUp\.interval.*fixedDelta/)
   const controller = new EquipmentController(options(0.1))
   t.after(() => controller.dispose())
   assert.equal(controller.snapshot().phase, 'Empty')
