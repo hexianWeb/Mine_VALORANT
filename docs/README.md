@@ -48,6 +48,7 @@
 | --- | --- | --- |
 | [动画运行时与多枪切换](superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md) | animation 层、武器实例与背包、切换事务、资源发布、换肤、音频与验收 | 阶段 1—4、七枪发布／本地音频、稀疏控制及弹药事实采样已实现；Operator／Outlaw 与空间声待实施，五枪玩法明确为临时参考配置 |
 | [武器材质与质感优化路线图](weapons/material-quality-roadmap.md) | 平直着色、全金属、皮肤自发光和静态室内反射 | Classic 与 Phantom 已使用默认材质，盒投影和走廊混合待评估 |
+| [准星代码导入](weapons/gameplay.md#准星代码导入) | VALORANT 准星代码分段、字段默认值和 HUD 接入 | 已记录解析样例，导入待实施 |
 
 ## 设计过程
 

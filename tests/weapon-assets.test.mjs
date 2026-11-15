@@ -228,6 +228,50 @@ test('instances have independent skeletons, materials and players while sharing 
   assert.equal(b.root.getObjectByName('WeaponBone').position.x, 1)
 })
 
+test('a procedural sight replaces the authored reticle on its own instance and preserves the template', async (t) => {
+  const data = fixture()
+  data.manifest.weaponId = 'vandal'
+  data.skin.weaponId = 'vandal'
+  data.mesh.name = 'Weapon_Body'
+  const mount = new THREE.Bone()
+  mount.name = 'light_scope_illuminated'
+  const bracket = new THREE.Bone()
+  bracket.name = 'left_scope'
+  mount.add(bracket)
+  const bone = data.gltf.scene.getObjectByName('WeaponBone')
+  bone.add(mount)
+  data.mesh.bind(new THREE.Skeleton([bone, mount, bracket]))
+  const indices = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+  data.geometry.setIndex(indices)
+  const joints = [1, 1, 1, 2, 2, 2, 0, 0, 0].flatMap(index => [index, 0, 0, 0])
+  data.geometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(joints, 4))
+  data.geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(
+    Array.from({ length: 9 }, () => [1, 0, 0, 0]).flat(),
+    4,
+  ))
+  const f = setup(t, data)
+  const handle = await f.assets.load({ ...request, weaponId: 'vandal' })
+  const a = f.assets.instantiate(handle)
+  const b = f.assets.instantiate(handle)
+  const aBody = a.root.getObjectByName('Weapon_Body')
+  const bBody = b.root.getObjectByName('Weapon_Body')
+  const aProjection = a.root.getObjectByName('Sight projection')
+  const bProjection = b.root.getObjectByName('Sight projection')
+  assert.equal(aProjection.parent.parent, aBody.skeleton.getBoneByName(mount.name))
+  assert.deepEqual(Array.from(aBody.geometry.index.array), [0, 0, 0, 3, 3, 3, 6, 7, 8])
+  assert.deepEqual(Array.from(data.geometry.index.array), indices)
+  assert.notEqual(aBody.geometry, bBody.geometry)
+  assert.notEqual(aProjection.material, bProjection.material)
+
+  const disposals = [aBody.geometry, aProjection.geometry, aProjection.material].map(resource => t.mock.method(resource, 'dispose'))
+  a.dispose()
+  a.dispose()
+  assert.deepEqual(disposals.map(dispose => dispose.mock.callCount()), [1, 1, 1])
+  assert.equal(aProjection.parent.parent, null)
+  assert.equal(aBody.geometry, data.geometry)
+  assert.equal(bProjection.parent.parent, bBody.skeleton.getBoneByName(mount.name))
+})
+
 test('aborting one request rejects it promptly without cancelling another waiter or the cached template', async (t) => {
   const model = Promise.withResolvers()
   const f = setup(t, fixture(), {

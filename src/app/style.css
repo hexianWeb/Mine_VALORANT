@@ -84,8 +84,13 @@ body {
 }
 .weapon-hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; color: #fff; font: 14px system-ui; text-shadow: 0 1px 3px #000; }
 .weapon-hud[hidden] { display: none; }
-.weapon-crosshair { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font: 24px monospace; }
-.weapon-hit { color: #ffdf8b; }
+.weapon-crosshair {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
 .weapon-readout { position: absolute; right: 28px; bottom: 24px; display: grid; gap: 5px; text-align: right; }
 .weapon-readout strong { letter-spacing: 2px; font-size: 16px; }
 .weapon-readout > span { font-size: 26px; }

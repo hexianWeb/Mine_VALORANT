@@ -449,8 +449,10 @@ export class WeaponViewModel {
     }
     this.#prepare(snapshot)
     this.#layer.setEnabled(!!this.#active)
-    if (pose)
+    if (pose) {
       this.#layer.setFov(pose.viewmodelFov)
+      this.#active?.visual.sight?.setAim(pose.ads ?? 0)
+    }
     this.#flash.visible = !!this.#active && at < this.#flashUntil
   }
 

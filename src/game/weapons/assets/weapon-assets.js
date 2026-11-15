@@ -3,6 +3,7 @@ import { AnimationPlayer } from '../../../engine/runtime/function/animation/anim
 import { ClipLibrary } from '../../../engine/runtime/function/animation/clip-library.js'
 import { validateAmmoDisplay } from './weapon-control-profile.js'
 import { applyWeaponMaterialProfile, validateWeaponSkinMaterial } from './weapon-materials.js'
+import { createWeaponSight } from './weapon-sight.js'
 
 let nextScope = 0
 
@@ -429,6 +430,7 @@ export class WeaponAssets {
     const skeletons = new Set()
     const materials = new Map()
     let player
+    let sight
     let released = false
     let instance
     const dispose = () => {
@@ -439,6 +441,7 @@ export class WeaponAssets {
       const errors = []
       for (const release of [
         () => player?.dispose(),
+        () => sight?.dispose(),
         () => root.removeFromParent(),
         ...Array.from(skeletons, skeleton => () => skeleton.dispose()),
         ...Array.from(materials.values(), material => () => material.dispose()),
@@ -492,10 +495,12 @@ export class WeaponAssets {
         actions: record.actions,
         controls: record.controls,
       })
+      sight = createWeaponSight(root, handle)
       const state = { handle, materials }
       instance = Object.freeze({
         root,
         player,
+        sight,
         dispose,
         get skinId() {
           return state.handle.skinId
