@@ -175,18 +175,26 @@ test('gait counts actual grounded displacement and freezes at a wall or in the a
   assert.deepEqual(player.snapshot().gait, { direction: null, steps: 0 })
 })
 
-test('jump apex is 1.1 m and the player lands again', () => {
+test('jump apex is 1.1 m and landing records downward speed once', () => {
   const { player, step, pressJump } = setup()
   step(10)
   pressJump()
   let apex = 0
+  const impacts = []
   for (let i = 0; i < 60; i++) {
     step()
     apex = Math.max(apex, player.position.y)
+    if (player.motor.landingSpeed > 0) {
+      impacts.push(player.motor.landingSpeed)
+      assert.equal(player.velocity.y, 0)
+    }
   }
   near(apex, playerConfig.jumpHeight, 0.01, 'apex')
   assert.equal(player.grounded, true)
   near(player.position.y, 0, 1e-9, 'landed')
+  assert.equal(impacts.length, 1)
+  near(impacts[0], Math.sqrt(2 * playerConfig.gravity * playerConfig.jumpHeight), 0.35, 'landing speed before collision response')
+  assert.equal(player.motor.landingSpeed, 0)
 })
 
 test('crouch cannot stand up under a low ceiling but stands when free', () => {

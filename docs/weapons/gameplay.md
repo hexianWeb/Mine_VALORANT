@@ -20,7 +20,7 @@ Ghost 已以公开参考临时参数接入，默认 Freehand，保留四皮肤�
 | 开火 | 左键；Classic/Ghost/Sheriff 单发，Phantom/Vandal/Judge/Odin 按住连射 |
 | ADS | 按住右键；Phantom/Vandal/Odin 支持 |
 | 主 / 副 / 额外试玩武器 | 1 Phantom / 2 Classic / 3 Ghost / 4 Vandal / 5 Sheriff / 6 Judge / 7 Odin；3–7 为临时参数 |
-| 循环切枪 / 上一把 | 滚轮 / Q；上一把在完成掏枪后更新 |
+| 循环切枪 / 上一把 | 滚轮 / Q；上一把在新枪到手时更新，掏枪期间也能按 Q 切回 |
 | 换弹 / 检视 | R / T |
 | 循环当前枪皮肤 | K；Classic 为 AG → Smite → Sakura，Phantom 为 Tactiplay → Smite → Rush → Prism，Ghost 为 Freehand → Recon → Ego → Spitfire，Vandal 为 Sakura → Wood & Metal → Smite → Royal Gold → EGO → Original，Sheriff 为 Smite → Sakura → Convex，Judge 为 Smite → Rush，Odin 为 Smite → Prime → BlastX |
 | 回出生点 | Home；玩家复位按钮走同一排队入口 |
@@ -32,6 +32,8 @@ Ghost 已以公开参考临时参数接入，默认 Freehand，保留四皮肤�
 幻影的前进、后退、横移及 ADS 移动使用 `phantom/v3` 自带的四段循环。玩家接地时累计碰撞解算后的水平位移，每 1.85 米产生一步，视模按两步一个循环采样。切枪、换弹、检视和开火继续用各自的动作时钟。
 
 练枪房默认播放硬地脚步声，切枪时延续步态，Shift 静步和蹲走使用较低音量。`public/audio/footsteps/` 的五条混凝土脚步来自 Kenney 的 CC0 素材包，已转成单声道 Ogg 并对齐峰值，目录内附原许可文件。[Kenney Impact Sounds](https://kenney.nl/assets/impact-sounds)
+
+起跳和下落的竖向速度会让第一人称枪身与手臂产生轻微惯性偏移，触地时按下落速度短暂下压并回弹。开镜时减弱这层视模反馈，轻微接地沿用原踏步表现。用 [playerConfig.jumpFeedback](../../src/game/player/config.js) 调整幅度、速度门槛、回弹时长和开镜倍率。
 
 ## 所有权与入口
 
@@ -144,7 +146,7 @@ HUD 由 `app/weapon-hud.js` 读取已展示事实，不能用最新背包数值�
 
 ## 切枪和换弹边界
 
-同一步先合并选枪命令，再核对准备回调，最后决定是否开始切换。等待资源时当前枪仍可操作；一旦开始 Holstering，事务目标锁定，后续选择只覆盖一个 queuedTarget。每段时长分别向上量化为固定步；commitTick 唯一提交 activeId，readyTick 开放操作。后续目标准备完成时，上一笔 Drawing 到期可直接开始下一笔 Holstering，中间不接受开火。
+同一步先合并选枪命令，再核对准备回调，最后决定是否开始切换。等待资源期间继续展示当前枪。收枪中改选会取消正在进行的切换，表现端按 `SwitchCancelled` 的票据释放原目标。掏枪中改选会在新枪准备好时直接交接，由新枪开始自己的掏枪动作。每段时长分别向上量化为固定步，`commitTick` 更新 activeId 和上一把枪，`readyTick` 开放新枪操作。
 
 选择当前枪不重播掏枪。准备失败不卸下旧枪，也不无限自动重试；再次选择失败目标会创建新 requestId。选枪与补弹恰在同一步到期时，能开始的切枪先取消换弹。
 
@@ -158,9 +160,9 @@ PrepareWeapon 携带 `{ epoch, requestId, instanceId, modelVersion, skinRevision
 
 PrepareSkin 另带 ticket.skinId，异步阶段预热兼容纹理。motion 排入 skinPrepared，下一固定步提交 SkinChanged。表现游标到达该事实时同步更新该实例的底色和自发光绑定，保留节点、Skeleton、材质对象、Mixer、playbackId、动作时间、弹药和冷却。skinRequests 快照给出 loading/prepared/deferred/failed 与具体错误。视模的 skinError 显示当前实例的失败。[皮肤自发光](animation-and-assets.md#皮肤自发光)
 
-同实例只保留最新换肤意图；旧回调不能覆盖新选择，已经接受的 SkinChanged 所需句柄则保留到展示完成。未锁定装备准备在换肤提交后以新 revision 重建；切换事务参与者的换肤延后到解锁，不替换 reserved staged。Editor 交接失效未提交请求，但保留已提交皮肤；若逻辑皮肤领先画面，返回时将保留视模绑定到已提交外观。重生按初始 loadout 恢复皮肤与弹药。
+同实例只保留最新换肤意图；旧回调不能覆盖新选择，已经接受的 SkinChanged 所需句柄则保留到展示完成。未锁定装备准备在换肤提交后以新 revision 重建。收枪阶段保护双方的皮肤，掏枪阶段只保护到手的新枪。Editor 交接失效未提交请求，但保留已提交皮肤；若逻辑皮肤领先画面，返回时将保留视模绑定到已提交外观。重生按初始 loadout 恢复皮肤与弹药。
 
-CancelPreparation 是逻辑取消，不能据此中止仍有其他使用者的共享下载。DiscardPreparation 只允许清理完整票据匹配的未接受 staged 实例，禁止按 instanceId 释放当前或等待历史表现提交的实例。控制器在当前 epoch 内记住已接受票据，重复回调不会要求丢弃它们；epoch 失效时由适配者统一撤销旧资源所有权。
+CancelPreparation 是逻辑取消，仍有其他使用者的共享下载继续进行。DiscardPreparation 按完整票据清理未保留的 staged 实例。已接受的票据在当前 epoch 内用于识别重复回调。收枪取消会撤销原目标的票据，表现端在 `SwitchCancelled` 到达表现时间时释放对应的保留实例。epoch 失效时由适配者统一撤销旧资源所有权。
 
 | API | 行为 |
 | --- | --- |

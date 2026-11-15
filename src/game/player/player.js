@@ -17,6 +17,7 @@ export class PlayerComponent extends Component {
   #paused = false
   #rebaseViewOnNextStep = false
   #gait = { direction: null, steps: 0 }
+  #landing = null
   #footsteps
 
   constructor({ collision, input, aim, weapons = null, footsteps = null, config = playerConfig }) {
@@ -57,6 +58,7 @@ export class PlayerComponent extends Component {
       this.#footsteps?.reset()
       this.aim.clearInput()
       this.#respawnQueued = false
+      this.#landing = null
       this.motor.resetMotion()
       this.cameraComponent.verticalOffset = this.settings.standEye
       this.cameraComponent.resetStepSmoothing()
@@ -73,6 +75,7 @@ export class PlayerComponent extends Component {
   teleport(feet, yaw, pitch = 0) {
     this.#respawnQueued = false
     this.#gait = { direction: null, steps: 0 }
+    this.#landing = null
     this.#footsteps?.reset()
     this.motor.teleport(new THREE.Vector3().fromArray(feet))
     this.transform.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw)
@@ -186,6 +189,8 @@ export class PlayerComponent extends Component {
       if (this.#respawnQueued || this.collision.isOutOfBounds(characterBox(this.position, this.settings, this.crouched)))
         this.respawn()
       this.#updateGait(time)
+      if (this.motor.landingSpeed > 0)
+        this.#landing = { at: time.fixedElapsed, speed: this.motor.landingSpeed }
       const pose = {
         feet: this.position,
         verticalOffset: this.crouched ? this.settings.crouchEye : this.settings.standEye,
@@ -193,6 +198,8 @@ export class PlayerComponent extends Component {
         moving: Math.hypot(this.velocity.x, this.velocity.z) > 0.1,
         crouched: this.crouched,
         gait: this.#gait,
+        verticalSpeed: this.grounded ? 0 : this.velocity.y,
+        landing: this.#landing,
       }
       if (this.weapons) {
         this.weapons.fixed(context, pose)
@@ -325,7 +332,12 @@ export function createPlayer({ camera, collision, input, physics, weapons = null
     aim,
     footsteps,
     weapons: weapons
-      ? new PlayerWeapons({ ...weapons, aim, world: collision.world })
+      ? new PlayerWeapons({
+          ...weapons,
+          aim,
+          world: collision.world,
+          jumpFeedback: settings.jumpFeedback,
+        })
       : null,
     config: settings,
   }))

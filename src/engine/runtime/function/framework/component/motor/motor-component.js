@@ -9,6 +9,7 @@ export class MotorComponent extends Component {
   #phases
   #stepDeltaY = 0
   #previousStepDeltaY = 0
+  #landingSpeed = 0
   elapsed = 0
   velocity = new Vector3()
   grounded = false
@@ -33,6 +34,7 @@ export class MotorComponent extends Component {
 
   get clock() { return this.#clock }
   get phases() { return this.#phases }
+  get landingSpeed() { return this.#landingSpeed }
 
   /** 与脚底位置使用同一固定步插值，采样累计踏步高度变化。 */
   sampleStepDeltaY(alpha) {
@@ -48,6 +50,7 @@ export class MotorComponent extends Component {
   }
 
   tick({ delta }) {
+    this.#landingSpeed = 0
     if (delta <= 0)
       return
     if (this.clock === 'fixed') {
@@ -68,6 +71,8 @@ export class MotorComponent extends Component {
         this.velocity.x = 0
       if (result.hitZ)
         this.velocity.z = 0
+      if (!this.grounded && result.grounded)
+        this.#landingSpeed = Math.max(0, -this.velocity.y)
       if (result.hitY || (result.grounded && this.velocity.y < 0))
         this.velocity.y = 0
       this.grounded = result.grounded
@@ -91,6 +96,7 @@ export class MotorComponent extends Component {
     this.command = {}
     this.#stepDeltaY = 0
     this.#previousStepDeltaY = 0
+    this.#landingSpeed = 0
     this.transform?.capturePosition()
   }
 

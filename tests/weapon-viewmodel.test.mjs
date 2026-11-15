@@ -23,7 +23,7 @@ const walkRoles = [
   'walkAim',
 ]
 
-async function fixture(t, { fireDuration = 0.04, locomotion = false } = {}) {
+async function fixture(t, { fireDuration = 0.04, locomotion = false, jumpFeedback } = {}) {
   const ticket = { epoch: 1, requestId: 1, instanceId: 'gun' }
   const weapon = {
     instanceId: 'gun',
@@ -97,6 +97,7 @@ async function fixture(t, { fireDuration = 0.04, locomotion = false } = {}) {
     },
     layer,
     definitions: [definition],
+    jumpFeedback,
     queue() {},
   })
   t.after(() => view.dispose())
@@ -123,7 +124,8 @@ async function fixture(t, { fireDuration = 0.04, locomotion = false } = {}) {
     ],
   }, snapshot)
   const motion = at => view.motion({ presentationTime: at, fixedDelta: h }, snapshot, { viewmodelFov: 70 })
-  const aim = (at, aiming, duration = 0.15, gait) => view.receive({ events: [], effects: [] }, snapshot, { at, aiming, duration, gait })
+  const receivePose = pose => view.receive({ events: [], effects: [] }, snapshot, pose)
+  const aim = (at, aiming, duration = 0.15, gait) => receivePose({ at, aiming, duration, gait })
   view.receive({
     events: [],
     effects: [
@@ -146,6 +148,7 @@ async function fixture(t, { fireDuration = 0.04, locomotion = false } = {}) {
     receive,
     motion,
     aim,
+    receivePose,
   }
 }
 
@@ -208,6 +211,63 @@ test('walking samples the player gait at presentation time and preserves the cyc
   assert.equal(f.view.snapshot().action, 'fireAds')
   f.motion(0.35)
   assert.equal(f.view.snapshot().action, 'aim')
+})
+
+test('airborne pose uses the configured amplitude, landing duration, and ADS scale', async (t) => {
+  const jumpFeedback = {
+    airReferenceSpeed: 8,
+    airOffset: 0.05,
+    airPitchRad: 0.03,
+    landingMinSpeed: 3,
+    landingFullSpeed: 8,
+    landingOffset: 0.1,
+    landingPitchRad: 0.05,
+    landingDuration: 0.3,
+    adsScale: 0.5,
+  }
+  const hip = await fixture(t, { jumpFeedback })
+  const aimed = await fixture(t, { jumpFeedback })
+  const gait = { direction: null, steps: 0 }
+  const landing = { at: 0.65, speed: 6.6 }
+  const offsets = []
+  for (const [f, ads] of [
+    [hip, 0],
+    [aimed, 1],
+  ]) {
+    const pose = (at, verticalSpeed, impact = null) => f.receivePose({
+      at,
+      gait,
+      ads,
+      aiming: !!ads,
+      verticalSpeed,
+      landing: impact,
+    })
+    pose(0.1, 6.6)
+    pose(0.63, -6.6)
+    pose(0.65, 0, landing)
+    pose(0.68, 0, landing)
+    pose(1, 0, { at: 1, speed: 2.5 })
+    const anchor = f.root.parent
+    f.motion(0.09)
+    assert.equal(anchor.position.y, 0)
+    f.motion(0.1)
+    const scale = ads ? jumpFeedback.adsScale : 1
+    assert.ok(Math.abs(anchor.position.y + scale * jumpFeedback.airOffset * 6.6 / jumpFeedback.airReferenceSpeed) < 1e-12)
+    assert.ok(Math.abs(anchor.rotation.x + scale * jumpFeedback.airPitchRad * 6.6 / jumpFeedback.airReferenceSpeed) < 1e-12)
+    f.motion(0.63)
+    assert.ok(anchor.position.y > 0.01, 'falling raises the viewmodel')
+    f.motion(0.695)
+    assert.ok(anchor.position.y < -0.01, 'impact presses the viewmodel down')
+    assert.ok(anchor.rotation.x < 0)
+    offsets.push(anchor.position.y)
+    f.motion(0.9)
+    assert.ok(anchor.position.y > 0, 'the configured duration extends the rebound')
+    f.motion(0.96)
+    assert.equal(anchor.position.y, 0)
+    f.motion(1.05)
+    assert.equal(anchor.position.y, 0, 'shallow ground contact does not cause a bounce')
+  }
+  assert.ok(Math.abs(offsets[1] / offsets[0] - jumpFeedback.adsScale) < 1e-12)
 })
 
 test('ADS changes interrupt a long firing tail without replaying the shot, then the next shot selects fireAds', async (t) => {

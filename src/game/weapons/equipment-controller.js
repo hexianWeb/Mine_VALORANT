@@ -190,6 +190,8 @@ export class EquipmentController {
     }
     if (selected && this.#preparation?.status === 'failed')
       this.#cancelPreparation()
+    if (this.#phase === 'Holstering' && this.#desiredId !== this.#transaction.toId)
+      this.#cancelHolster()
     // New cosmetic intentions precede old async replies, just like equipment selection.
     for (const { command } of commands) this.#requestSkin(command)
     for (const { command } of commands) this.#acceptSkinPreparation(command)
@@ -197,13 +199,12 @@ export class EquipmentController {
     this.#ensurePreparation()
     for (const { command } of commands) this.#acceptPreparation(command)
 
-    this.#advanceSwitch()
     let startedSwitch = false
     if (this.#mayStartSwitch()) {
       this.#startSwitch()
       startedSwitch = true
-      this.#advanceSwitch() // Includes bounded zero-duration holster/draw transitions.
     }
+    this.#advanceSwitch() // Includes bounded zero-duration holster/draw transitions.
     this.#ensurePreparation()
     this.#settleSkins()
     this.#ensurePreparation()
@@ -342,8 +343,13 @@ export class EquipmentController {
   }
 
   #mayStartSwitch() {
-    return !this.#transaction && this.#preparation?.status === 'visualPrepared'
-      && ['Ready', 'Empty', 'Suspended'].includes(this.#phase)
+    return this.#preparation?.status === 'visualPrepared'
+      && [
+        'Ready',
+        'Drawing',
+        'Empty',
+        'Suspended',
+      ].includes(this.#phase)
       && this.#preparation.ticket.instanceId === this.#preparationTarget()
       && (!this.#skinRequests.has(this.#preparation.ticket.instanceId)
         || this.#skinRequests.get(this.#preparation.ticket.instanceId).status === 'failed')
@@ -405,9 +411,10 @@ export class EquipmentController {
 
   #settleSkins() {
     for (const [instanceId, pending] of this.#skinRequests) {
-      // A locked target keeps its already prepared appearance through the entire draw.
-      if (this.#resumePending || (this.#transaction
-        && [this.#transaction.fromId, this.#transaction.toId].includes(instanceId))) {
+      // Keep the reserved appearance stable until its draw ends or is interrupted.
+      const reserved = this.#transaction && (instanceId === this.#transaction.toId
+        || (this.#phase === 'Holstering' && instanceId === this.#transaction.fromId))
+      if (this.#resumePending || reserved) {
         continue
       }
       if (pending.status === 'deferred') {
@@ -427,6 +434,14 @@ export class EquipmentController {
     }
   }
 
+  #cancelHolster() {
+    const { switchId, ticket } = this.#transaction
+    this.#acceptedTickets.delete(ticket.requestId)
+    this.#transaction = null
+    this.#phase = 'Ready'
+    this.#emit('SwitchCancelled', this.#activeId, { switchId, ticket })
+  }
+
   #startSwitch() {
     const ticket = this.#preparation.ticket
     this.#acceptedTickets.set(ticket.requestId, ticket)
@@ -442,7 +457,7 @@ export class EquipmentController {
     this.#cancelAction('switch')
     this.#automaticRun = false
     this.#equipmentGeneration++
-    const holster = reason === 'switch'
+    const holster = reason === 'switch' && this.#phase !== 'Drawing'
       ? this.#inventory.definition(fromId).equip.holster
       : 0
     const draw = this.#inventory.definition(toId).equip.draw
@@ -468,14 +483,14 @@ export class EquipmentController {
       return
     if (this.#phase === 'Holstering' && this.#tick >= transaction.commitTick) {
       this.#activeId = transaction.toId
+      if (transaction.fromId && transaction.fromId !== transaction.toId)
+        this.#previousId = transaction.fromId
       this.#phase = 'Drawing'
       if (transaction.reason !== 'resume')
         this.#emit('EquipCommitted', this.#activeId, { ...transaction })
       this.#emit('DrawStarted', this.#activeId, { ...transaction })
     }
     if (this.#phase === 'Drawing' && this.#tick >= transaction.readyTick) {
-      if (transaction.fromId && transaction.fromId !== transaction.toId)
-        this.#previousId = transaction.fromId
       this.#phase = 'Ready'
       this.#transaction = null
       this.#emit('EquipReady', this.#activeId, { switchId: transaction.switchId })

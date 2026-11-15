@@ -104,6 +104,7 @@ export class PlayerWeapons {
     aim,
     world,
     audio = null,
+    jumpFeedback,
     definitions = [
       classicDefinition,
       phantomDefinition,
@@ -141,6 +142,7 @@ export class PlayerWeapons {
       assets,
       layer,
       definitions,
+      jumpFeedback,
       queue: command => this.#controller.queue(command),
     })
   }
@@ -271,12 +273,15 @@ export class PlayerWeapons {
       this.#lastShot = enriched
       return enriched
     })
-    this.#aim.endStep()
+    const view = this.#aim.endStep()
     this.#accept({ ...batch, events }, snapshot, {
       at: time.fixedElapsed,
       aiming,
       duration: definition?.aim?.duration ?? 0,
       gait: pose.gait,
+      verticalSpeed: pose.verticalSpeed,
+      landing: pose.landing,
+      ads: view.ads,
     })
     return immutable({ ...batch, events })
   }

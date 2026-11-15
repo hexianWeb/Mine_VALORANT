@@ -1,9 +1,29 @@
 import { Group, MathUtils, Mesh, MeshBasicMaterial, SphereGeometry } from 'three/webgpu'
+import { playerConfig } from '../player/config.js'
 import { ammoControlSamples } from './assets/weapon-control-profile.js'
 
 const key = ticket => `${ticket.epoch}:${ticket.requestId}`
 const walkRoles = Object.freeze({ forward: 'walkForward', backward: 'walkBackward', side: 'walkSide' })
 const idleStance = Object.freeze({ aiming: false, direction: null })
+const stillMotion = Object.freeze({
+  at: 0,
+  steps: 0,
+  verticalSpeed: 0,
+  ads: 0,
+  landing: null,
+})
+
+function landingBounce(landing, at, { landingDuration, landingMinSpeed, landingFullSpeed }) {
+  if (!landing || landingDuration <= 0)
+    return 0
+  const phase = (at - landing.at) / landingDuration
+  if (phase < 0 || phase >= 1)
+    return 0
+  // Ignore shallow contacts. The second half of the damped cycle rebounds slightly.
+  const speedRange = Math.max(landingFullSpeed - landingMinSpeed, Number.EPSILON)
+  const strength = MathUtils.clamp((landing.speed - landingMinSpeed) / speedRange, 0, 1)
+  return strength * Math.sin(2 * Math.PI * phase) * (1 - phase) ** 2
+}
 
 /** Owns at most active + staged visual instances. Async loading never creates or attaches a tree. */
 export class WeaponViewModel {
@@ -11,6 +31,7 @@ export class WeaponViewModel {
   #layer
   #queue
   #definitions
+  #jumpFeedback
   #active = null
   #staged = null
   #request = null
@@ -25,7 +46,7 @@ export class WeaponViewModel {
   #weapon = null
   #stance = idleStance
   #queuedStance = idleStance
-  #gaitSamples = []
+  #motionSamples = []
   #presentedShot = null
   error = null
 
@@ -33,18 +54,22 @@ export class WeaponViewModel {
     return Array.from(this.#skinRequests.values()).findLast(request => request.ticket.instanceId === this.#active?.instanceId && request.error)?.error ?? null
   }
 
-  constructor({ assets, layer, queue, definitions }) {
+  constructor({ assets, layer, queue, definitions, jumpFeedback }) {
     this.#assets = assets
     this.#layer = layer
     this.#queue = queue
     this.#definitions = new Map(definitions.map(definition => [definition.id, definition]))
+    this.#jumpFeedback = {
+      ...playerConfig.jumpFeedback,
+      ...jumpFeedback,
+    }
     this.#flash = new Mesh(new SphereGeometry(0.035, 8, 4), new MeshBasicMaterial({ color: 0xFFDD72, toneMapped: false }))
     this.#flash.name = 'Weapon muzzle flash'
     this.#flash.visible = false
     layer.scene.add(this.#flash)
   }
 
-  receive(batch, snapshot, aim = null) {
+  receive(batch, snapshot, pose = null) {
     if (this.#closed)
       return
     // Reservation follows accepted facts immediately, not the delayed presentation cursor.
@@ -64,20 +89,27 @@ export class WeaponViewModel {
       }
       this.#events.push(event)
     }
-    if (aim) {
-      const stance = { aiming: aim.aiming, direction: aim.gait?.direction ?? null }
-      if (aim.gait)
-        this.#gaitSamples.push({ at: aim.at, steps: aim.gait.steps })
+    if (pose) {
+      const stance = { aiming: pose.aiming, direction: pose.gait?.direction ?? null }
+      if (pose.gait) {
+        this.#motionSamples.push({
+          at: pose.at,
+          steps: pose.gait.steps,
+          verticalSpeed: pose.verticalSpeed ?? 0,
+          ads: pose.ads ?? 0,
+          landing: pose.landing ?? null,
+        })
+      }
       if (stance.aiming !== this.#queuedStance.aiming || stance.direction !== this.#queuedStance.direction) {
         this.#queuedStance = stance
         // Present posture before gameplay facts at the same fixed timestamp.
         this.#events.push({
           type: 'StanceChanged',
           epoch: snapshot.epoch,
-          at: aim.at,
+          at: pose.at,
           sequence: -1,
           stance,
-          fade: aim.duration ?? 0,
+          fade: pose.duration ?? 0,
         })
       }
     }
@@ -251,20 +283,39 @@ export class WeaponViewModel {
   }
 
   #advancePlayer(at) {
-    while (this.#gaitSamples.length > 1 && this.#gaitSamples[1].at <= at)
-      this.#gaitSamples.shift()
-    const [previous, next] = this.#gaitSamples
-    const alpha = next
-      ? MathUtils.clamp((at - previous.at) / (next.at - previous.at), 0, 1)
-      : 0
-    const steps = next
-      ? MathUtils.lerp(previous.steps, next.steps, alpha)
-      : previous?.steps ?? 0
-    // A cycle contains two steps. Interpolate without wrapping until the final sample.
-    const delta = this.#cursor === null
-      ? 0
-      : Math.max(0, at - this.#cursor)
-    this.#active?.visual.player.advance(delta, (steps / 2) % 1)
+    while (this.#motionSamples.length > 1 && this.#motionSamples[1].at <= at)
+      this.#motionSamples.shift()
+    const entry = this.#active
+    if (entry) {
+      const [first, second] = this.#motionSamples
+      const previous = first?.at <= at
+        ? first
+        : stillMotion
+      const next = previous === first
+        ? second ?? previous
+        : previous
+      const alpha = next === previous
+        ? 0
+        : MathUtils.clamp((at - previous.at) / (next.at - previous.at), 0, 1)
+      const steps = MathUtils.lerp(previous.steps, next.steps, alpha)
+      const speed = MathUtils.lerp(previous.verticalSpeed, next.verticalSpeed, alpha)
+      const ads = MathUtils.lerp(previous.ads, next.ads, alpha)
+      const feedback = this.#jumpFeedback
+      const air = feedback.airReferenceSpeed > 0
+        ? MathUtils.clamp(speed / feedback.airReferenceSpeed, -1, 1)
+        : 0
+      const bounce = landingBounce(previous.landing, at, feedback)
+      const weight = MathUtils.lerp(1, feedback.adsScale, ads)
+      const mountY = entry.handle.manifest.view.mountOffset[1]
+      entry.anchor.position.y = mountY - weight * (feedback.airOffset * air + feedback.landingOffset * bounce)
+      entry.anchor.rotation.x = -weight * (feedback.airPitchRad * air + feedback.landingPitchRad * bounce)
+
+      // A cycle contains two steps. Interpolate without wrapping until the final sample.
+      const delta = this.#cursor === null
+        ? 0
+        : Math.max(0, at - this.#cursor)
+      entry.visual.player.advance(delta, (steps / 2) % 1)
+    }
     this.#cursor = at
   }
 
@@ -313,6 +364,10 @@ export class WeaponViewModel {
       }
       return
     }
+    if (event.type === 'SwitchCancelled' && this.#staged && key(this.#staged.ticket) === key(event.payload.ticket)) {
+      this.#release(this.#staged)
+      this.#staged = null
+    }
     if (event.type === 'EquipCommitted' || (event.type === 'DrawStarted' && event.payload.reason === 'resume')) {
       if (!this.#staged || key(this.#staged.ticket) !== key(event.payload.ticket))
         throw new Error('[WeaponViewModel] Accepted equipment lost its reserved visual')
@@ -335,6 +390,7 @@ export class WeaponViewModel {
       this.#play('draw', event.at, { endAt: payload.readyTick * fixedDelta, fade: 0 })
     if ([
       'EquipReady',
+      'SwitchCancelled',
       'ReloadFinished',
       'ReloadCancelled',
       'InspectFinished',
@@ -409,7 +465,7 @@ export class WeaponViewModel {
     this.#weapon = null
     this.#stance = idleStance
     this.#queuedStance = idleStance
-    this.#gaitSamples = []
+    this.#motionSamples = []
     this.#presentedShot = null
     const kept = retain
       ? [this.#active, this.#staged].find(entry => entry?.instanceId === snapshot.activeId)

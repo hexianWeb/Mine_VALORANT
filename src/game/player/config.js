@@ -20,4 +20,16 @@ export const playerConfig = Object.freeze({
   maxPitchDeg: 89,
   eyeSmoothing: 12,
   stepSmoothingTime: 0.1, // Seconds to reach 90% of a step height change.
+  // Viewmodel motion. Speed in m/s, offsets in metres, pitch in radians, duration in seconds.
+  jumpFeedback: Object.freeze({
+    airReferenceSpeed: 7,
+    airOffset: 0.04,
+    airPitchRad: 0.025,
+    landingMinSpeed: 2,
+    landingFullSpeed: 9,
+    landingOffset: 0.08,
+    landingPitchRad: 0.06,
+    landingDuration: 0.24,
+    adsScale: 0.35,
+  }),
 })

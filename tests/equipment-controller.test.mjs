@@ -300,7 +300,7 @@ test('a duplicate old accepted ticket cannot discard the visual awaiting a delay
   assert.equal(f.controller.snapshot().activeId, 'B')
 })
 
-test('locked A to B remembers selecting A, and a later B clears that queued reversal', (t) => {
+test('reselecting the active gun cancels holster and invalidates the reserved ticket', (t) => {
   const f = setup(t, {
     definitions: {
       A: {
@@ -316,18 +316,24 @@ test('locked A to B remembers selecting A, and a later B clears that queued reve
   f.prepare('B')
   assert.equal(f.controller.snapshot().phase, 'Holstering')
   const transaction = f.controller.snapshot().transaction
-  f.select('A')
+  const cancelled = f.select('A')
+  assert.deepEqual(ofType(cancelled, 'SwitchCancelled')[0].payload, {
+    switchId: transaction.switchId,
+    ticket: transaction.ticket,
+  })
   assert.equal(f.controller.snapshot().activeId, 'A')
-  assert.equal(f.controller.snapshot().queuedTarget, 'A')
-  const commit = f.select('B')
-  assert.equal(ofType(commit, 'EquipCommitted').length, 1)
-  assert.equal(f.controller.snapshot().activeId, 'B')
-  assert.equal(f.controller.snapshot().queuedTarget, null)
-  assert.equal(f.controller.snapshot().transaction.switchId, transaction.switchId)
-  f.advance(2)
+  assert.equal(f.controller.snapshot().canAct, true)
+  assert.equal(f.controller.snapshot().transaction, null)
+  const stale = f.step({ type: 'prepared', ticket: transaction.ticket })
+  assert.deepEqual(stale.effects.map(effect => effect.type), ['DiscardPreparation'])
+  assert.equal(ofType(stale, 'EquipCommitted').length, 0)
+  f.select('B')
+  assert.notEqual(f.ticket('B').requestId, transaction.ticket.requestId)
+  f.prepare('B')
+  f.advance(4)
   assert.equal(f.controller.snapshot().phase, 'Ready')
   assert.equal(f.controller.snapshot().activeId, 'B')
-  assert.equal(f.events.filter(event => event.type === 'SwitchStarted').length, 1)
+  assert.equal(f.events.filter(event => event.type === 'EquipCommitted' && event.instanceId === 'B').length, 1)
 })
 
 test('each switch segment gets its own full rounded duration and transition commands do not leak', (t) => {
@@ -514,25 +520,44 @@ test('automatic held fire can continue when the new gun is ready without replayi
   assert.equal(f.events.filter(event => event.type === 'ShotFired' && event.instanceId === 'B').length, 1)
 })
 
-test('a prepared queued switch wins over fire when the previous draw completes', (t) => {
-  const f = setup(t, {
-    definitions: {
-      B: {
-        equip: { draw: 0.3, holster: 0.1 },
+for (const delay of [0, 1]) {
+  test(`a prepared switch takes priority during drawing with ${delay} extra fixed steps`, (t) => {
+    const f = setup(t, {
+      definitions: {
+        B: {
+          equip: { draw: 0.3, holster: 0.1 },
+          fire: { mode: 'auto' },
+        },
+        C: {
+          equip: { draw: 0.2 },
+        },
       },
-    },
+    })
+    f.ready()
+    f.select('B')
+    f.prepare('B')
+    const deadline = f.controller.snapshot().transaction.readyTick
+    assert.equal(f.controller.snapshot().previousId, 'A')
+    f.select('C')
+    f.advance(delay)
+    const handoff = f.step(
+      {
+        type: 'prepared',
+        ticket: f.ticket('C'),
+      },
+      { type: 'fireHeld', held: true },
+      { type: 'fire' },
+    )
+    assert.equal(ofType(handoff, 'EquipCommitted')[0].fixedTick, deadline + delay - 1)
+    assert.equal(f.controller.snapshot().activeId, 'C')
+    assert.equal(f.controller.snapshot().phase, 'Drawing')
+    assert.equal(f.controller.snapshot().canAct, false)
+    f.advance(2)
+    assert.equal(f.controller.snapshot().canAct, true)
+    assert.deepEqual(f.events.filter(event => event.type === 'EquipReady').map(event => event.instanceId), ['A', 'C'])
+    assert.equal(f.events.filter(event => event.type === 'ShotFired').length, 0)
   })
-  f.ready()
-  f.select('B')
-  f.prepare('B')
-  f.select('C')
-  f.prepare('C')
-  const boundary = f.step({ type: 'fire' })
-  assert.deepEqual(boundary.events.filter(event => ['EquipReady', 'SwitchStarted', 'ShotFired'].includes(event.type)).map(event => event.type), ['EquipReady', 'SwitchStarted'])
-  assert.equal(f.controller.snapshot().phase, 'Holstering')
-  assert.equal(f.controller.snapshot().activeId, 'B')
-  assert.equal(f.controller.snapshot().canAct, false)
-})
+}
 
 test('failed and late preparation never disarm the current weapon or equip an obsolete request', (t) => {
   const f = setup(t)
