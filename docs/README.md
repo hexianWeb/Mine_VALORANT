@@ -13,6 +13,7 @@
 | [function 层结构](superpowers/specs/2026-11-11-function-layer-layout.md) | `component / level / object / world` 与 `function/global` 的目录迁移 |
 | [CameraComponent](superpowers/specs/2026-11-11-camera-component.md) | 相机组件提取时的记录；当前玩家固定 AimState 历史接线以运行时架构为准 |
 | [武器玩法模块](weapons/gameplay.md) | 七枪控件、临时参数边界、装备事务、固定瞄准、多弹丸、延迟 HUD 与生命周期 |
+| [准星代码导入](weapons/gameplay.md#准星代码导入) | VALORANT 代码解析、实时预览与 HUD 应用 |
 | [武器发布与动画播放](weapons/animation-and-assets.md) | 发布包、AnimationPlayer、WeaponAssets、独立视模 pass、现行旧材质兼容边界与验收 |
 | [枪械图集与发布工作流](weapons/gun-only-uv-workflow.md) | Classic 精简网格、336 图集与 UV、动作／手臂兼容及 Three.js 接入 |
 | [武器运行时音频](weapons/audio.md) | 七枪 28 个本地 cue、AudioBank、Web Audio 时钟、取消/暂停/变速与实际波形验收 |
@@ -49,7 +50,6 @@
 | --- | --- | --- |
 | [动画运行时与多枪切换](superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md) | animation 层、武器实例与背包、切换事务、资源发布、换肤、音频与验收 | 阶段 1—4、七枪发布／本地音频、稀疏控制及弹药事实采样已实现；Operator／Outlaw 与空间声待实施，五枪玩法明确为临时参考配置 |
 | [武器材质与质感优化路线图](weapons/material-quality-roadmap.md) | 平直着色、全金属、皮肤自发光和静态室内反射 | Classic 与 Phantom 已使用默认材质，盒投影和走廊混合待评估 |
-| [准星代码导入](weapons/gameplay.md#准星代码导入) | VALORANT 准星代码分段、字段默认值和 HUD 接入 | 已记录解析样例，导入待实施 |
 
 ## 设计过程
 
