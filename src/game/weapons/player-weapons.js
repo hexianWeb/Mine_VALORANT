@@ -1,3 +1,4 @@
+import { intersectRayBox } from '../../engine/runtime/function/physics/ray-box.js'
 import { classicDefinition } from './definitions/classic.js'
 import { ghostDefinition } from './definitions/ghost.js'
 import { judgeDefinition } from './definitions/judge.js'
@@ -41,6 +42,8 @@ export const practiceLoadout = Object.freeze([
   },
 ])
 
+const shotRange = 200
+
 function surfaceOf(box) {
   if (box.name?.includes('Anvil'))
     return 'metal'
@@ -51,36 +54,21 @@ function surfaceOf(box) {
     : 'stone'
 }
 
-export function traceWeaponImpact(origin, direction, world, range = 200) {
+export function traceWeaponImpact(origin, direction, world, range = shotRange, shotTargets = null) {
   let nearest = range
   let target = null
   let face = -1
   for (const box of world?.boxes ?? []) {
-    let enter = 0
-    let exit = range
-    let enterAxis = -1
-    for (let axis = 0; axis < 3; axis++) {
-      if (Math.abs(direction[axis]) < 1e-12) {
-        if (origin[axis] < box.min[axis] || origin[axis] > box.max[axis])
-          exit = -1
-      }
-      else {
-        const a = (box.min[axis] - origin[axis]) / direction[axis]
-        const b = (box.max[axis] - origin[axis]) / direction[axis]
-        const near = Math.min(a, b)
-        if (near > enter) {
-          enter = near
-          enterAxis = axis
-        }
-        exit = Math.min(exit, Math.max(a, b))
-      }
-    }
-    if (enter <= exit && enter < nearest) {
-      nearest = enter
-      target = box
-      face = enterAxis
-    }
+    const entry = intersectRayBox(origin, direction, box, nearest)
+    if (!entry || entry.distance >= nearest)
+      continue
+    nearest = entry.distance
+    target = box
+    face = entry.axis
   }
+  const dynamicHit = shotTargets?.trace(origin, direction, nearest)
+  if (dynamicHit)
+    return dynamicHit
   let normal = null
   if (target) {
     normal = face === -1
@@ -122,6 +110,7 @@ export class PlayerWeapons {
   #impacts
   #aim
   #world
+  #shotTargets
   #definitions
   #aimHeld = false
   #events = []
@@ -136,6 +125,7 @@ export class PlayerWeapons {
     layer,
     aim,
     world,
+    shotTargets = null,
     audio = null,
     particles = null,
     jumpFeedback,
@@ -165,6 +155,7 @@ export class PlayerWeapons {
       : inventory.slots.find(slot => slot.id === initialSlot)?.instanceId ?? null
     this.#aim = aim
     this.#world = world
+    this.#shotTargets = shotTargets
     this.#impacts = particles
       ? new ImpactEffects(particles)
       : null
@@ -287,14 +278,20 @@ export class PlayerWeapons {
         }
       }
       const shot = this.#aim.fire({ instanceId: event.instanceId, shotSequence: event.payload.shotSequence, definition })
+      const trace = direction => traceWeaponImpact(shot.eyeOrigin, direction, this.#world, shotRange, this.#shotTargets)
       const pellets = shot.pelletDirections?.map((direction, index) => ({
         index,
         direction,
-        impact: traceWeaponImpact(shot.eyeOrigin, direction, this.#world),
+        impact: trace(direction),
       }))
       const impact = pellets
         ? pellets.filter(pellet => pellet.impact.hit).sort((a, b) => a.impact.distance - b.impact.distance)[0]?.impact ?? pellets[0].impact
-        : traceWeaponImpact(shot.eyeOrigin, shot.shotDirection, this.#world)
+        : trace(shot.shotDirection)
+      if (this.#shotTargets) {
+        this.#shotTargets.react(pellets
+          ? pellets.map(pellet => pellet.impact)
+          : [impact])
+      }
       const enriched = {
         ...event,
         payload: {

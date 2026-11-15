@@ -1,0 +1,336 @@
+{
+  "schemaVersion": 1,
+  "asset": {
+    "uri": "range-training-bot.glb",
+    "sha256": "63f55cd334409b410946009d09b62692426ec72474cb49c1e49551c153055774"
+  },
+  "units": "metres",
+  "up": "Y",
+  "forward": "-Z",
+  "hitOrder": "nearest",
+  "broadphase": {
+    "space": "model-root",
+    "min": [
+      -0.94214,
+      -0.06426,
+      -0.87084
+    ],
+    "max": [
+      0.86098,
+      2.61808,
+      0.47984
+    ]
+  },
+  "partSpace": "bone-local",
+  "rotationOrder": "xyzw",
+  "regions": {
+    "head": "hit_head",
+    "chest": "hit_chest",
+    "arm_l": "hit_arm_l",
+    "arm_r": "hit_arm_r",
+    "leg_l": "hit_leg_l",
+    "leg_r": "hit_leg_r"
+  },
+  "parts": [
+    {
+      "bone": "head",
+      "region": "head",
+      "center": [
+        0,
+        0.2500002,
+        1e-7
+      ],
+      "halfExtents": [
+        0.2510001,
+        0.2510001,
+        0.1885001
+      ],
+      "rotation": [
+        1e-8,
+        -2e-8,
+        0,
+        1
+      ]
+    },
+    {
+      "bone": "torso",
+      "region": "chest",
+      "center": [
+        0,
+        0.3750001,
+        1e-7
+      ],
+      "halfExtents": [
+        0.3760001,
+        0.3760001,
+        0.3135001
+      ],
+      "rotation": [
+        1e-8,
+        -2e-8,
+        0,
+        1
+      ]
+    },
+    {
+      "bone": "pelvis",
+      "region": "chest",
+      "center": [
+        0,
+        0.0625001,
+        0
+      ],
+      "halfExtents": [
+        0.3760001,
+        0.1885001,
+        0.1885001
+      ],
+      "rotation": [
+        1e-8,
+        -2e-8,
+        0,
+        1
+      ]
+    },
+    {
+      "bone": "left_shoulder",
+      "region": "arm_l",
+      "center": [
+        -0.09375,
+        -0.0312499,
+        1e-7
+      ],
+      "halfExtents": [
+        0.1572501,
+        0.2822501,
+        0.1885001
+      ],
+      "rotation": [
+        1e-8,
+        -2e-8,
+        0,
+        1
+      ]
+    },
+    {
+      "bone": "left_elbow",
+      "region": "arm_l",
+      "center": [
+        0,
+        -0.15625,
+        0
+      ],
+      "halfExtents": [
+        0.0947501,
+        0.2197501,
+        0.1260001
+      ],
+      "rotation": [
+        1e-8,
+        -2e-8,
+        0,
+        1
+      ]
+    },
+    {
+      "bone": "left_hand",
+      "region": "arm_l",
+      "center": [
+        0,
+        -0.125,
+        -0.03125
+      ],
+      "halfExtents": [
+        0.0947501,
+        0.1260001,
+        0.0947501
+      ],
+      "rotation": [
+        1e-8,
+        -2e-8,
+        0,
+        1
+      ]
+    },
+    {
+      "bone": "left_thigh",
+      "region": "leg_l",
+      "center": [
+        0,
+        -0.2187499,
+        -0.03125
+      ],
+      "halfExtents": [
+        0.1260001,
+        0.2197501,
+        0.1572501
+      ],
+      "rotation": [
+        1e-8,
+        -2e-8,
+        0,
+        1
+      ]
+    },
+    {
+      "bone": "left_shin",
+      "region": "leg_l",
+      "center": [
+        0,
+        -0.2187499,
+        -0.03125
+      ],
+      "halfExtents": [
+        0.1260001,
+        0.2822501,
+        0.1572501
+      ],
+      "rotation": [
+        1e-8,
+        -2e-8,
+        0,
+        1
+      ]
+    },
+    {
+      "bone": "left_foot",
+      "region": "leg_l",
+      "center": [
+        0,
+        -0.0625,
+        -0.0625
+      ],
+      "halfExtents": [
+        0.1260001,
+        0.1260001,
+        0.1885001
+      ],
+      "rotation": [
+        1e-8,
+        -2e-8,
+        0,
+        1
+      ]
+    },
+    {
+      "bone": "right_shoulder",
+      "region": "arm_r",
+      "center": [
+        0.09375,
+        -0.0312499,
+        1e-7
+      ],
+      "halfExtents": [
+        0.1572501,
+        0.2822501,
+        0.1885001
+      ],
+      "rotation": [
+        1e-8,
+        -2e-8,
+        0,
+        1
+      ]
+    },
+    {
+      "bone": "right_elbow",
+      "region": "arm_r",
+      "center": [
+        0,
+        -0.15625,
+        0
+      ],
+      "halfExtents": [
+        0.0947501,
+        0.2197501,
+        0.1260001
+      ],
+      "rotation": [
+        1e-8,
+        -2e-8,
+        0,
+        1
+      ]
+    },
+    {
+      "bone": "right_hand",
+      "region": "arm_r",
+      "center": [
+        0,
+        -0.125,
+        -0.03125
+      ],
+      "halfExtents": [
+        0.0947501,
+        0.1260001,
+        0.0947501
+      ],
+      "rotation": [
+        1e-8,
+        -2e-8,
+        0,
+        1
+      ]
+    },
+    {
+      "bone": "right_thigh",
+      "region": "leg_r",
+      "center": [
+        0,
+        -0.2187499,
+        -0.03125
+      ],
+      "halfExtents": [
+        0.1260001,
+        0.2197501,
+        0.1572501
+      ],
+      "rotation": [
+        1e-8,
+        -2e-8,
+        0,
+        1
+      ]
+    },
+    {
+      "bone": "right_shin",
+      "region": "leg_r",
+      "center": [
+        0,
+        -0.2187499,
+        -0.03125
+      ],
+      "halfExtents": [
+        0.1260001,
+        0.2822501,
+        0.1572501
+      ],
+      "rotation": [
+        1e-8,
+        -2e-8,
+        0,
+        1
+      ]
+    },
+    {
+      "bone": "right_foot",
+      "region": "leg_r",
+      "center": [
+        0,
+        -0.0625,
+        -0.0625
+      ],
+      "halfExtents": [
+        0.1260001,
+        0.1260001,
+        0.1885001
+      ],
+      "rotation": [
+        1e-8,
+        -2e-8,
+        0,
+        1
+      ]
+    }
+  ]
+}
