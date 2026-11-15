@@ -3,6 +3,7 @@ import test from 'node:test'
 import { Time } from '../src/engine/runtime/core/time.js'
 import { Engine } from '../src/engine/runtime/engine.js'
 import { AudioSystem } from '../src/engine/runtime/function/audio/audio-system.js'
+import { PlayerFootsteps } from '../src/game/player/player-footsteps.js'
 import { audioTime, cue, FakeAudioContext, h } from './audio-fixture.mjs'
 
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`)
@@ -20,6 +21,38 @@ async function setup(t, options = {}) {
   audio.flush(audioTime(0, 0))
   return { context, audio, warnings }
 }
+
+test('footsteps enqueue on distance crossings, rotate buffers, and invalidate on respawn', async (t) => {
+  const { audio } = await setup(t)
+  const binary = new Map()
+  const footsteps = new PlayerFootsteps({
+    audio,
+    resources: {
+      async load([entry]) { binary.set(entry.name, new ArrayBuffer(1)) },
+      get: name => binary.get(name),
+      unload: name => binary.delete(name),
+    },
+  })
+  t.after(() => footsteps.dispose())
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(footsteps.sampleCount, 5)
+
+  const enqueue = t.mock.method(audio, 'enqueue')
+  footsteps.advance(0.8, 1.2, audioTime(1, h), false)
+  footsteps.advance(1.2, 1.9, audioTime(2, 2 * h), false)
+  footsteps.advance(1.9, 2.3, audioTime(3, 3 * h), true)
+  const emitted = enqueue.mock.calls.map(call => call.arguments[0])
+  assert.equal(emitted.length, 2)
+  close(emitted[0].at, h / 2)
+  close(emitted[1].at, 2.25 * h)
+  assert.notEqual(emitted[0].buffer, emitted[1].buffer)
+  assert.ok(emitted[1].gain < emitted[0].gain)
+
+  footsteps.reset()
+  assert.equal(audio.snapshot().cues.filter(cue => cue.state === 'queued').length, 0)
+  footsteps.advance(0.9, 1.1, audioTime(4, 4 * h), false)
+  assert.notEqual(enqueue.mock.calls.at(-1).arguments[0].id, emitted[0].id)
+})
 
 for (const steps of [1, 2, 5]) {
   test(`${steps}-step delivery preserves absolute spacing and drops only expired transient deadlines`, async (t) => {
@@ -39,6 +72,24 @@ for (const steps of [1, 2, 5]) {
     assert.equal(audio.snapshot().segments.length, 1, 'ordinary batches never reanchor')
   })
 }
+
+test('an opted-in late transient only plays while its simulation event is fresh', async (t) => {
+  const { audio, context } = await setup(t)
+  context.advance(6 * h)
+  audio.enqueue(cue('strict-shot', 4.3 * h))
+  audio.enqueue(cue('fresh-step', 4.3 * h, { lateWindow: 0.05 }))
+  audio.enqueue(cue('stale-step', 2 * h, { lateWindow: 0.05 }))
+  audio.flush(audioTime(1, 6 * h))
+
+  const states = Object.fromEntries(audio.snapshot().cues.map(event => [event.id, event.state]))
+  assert.deepEqual(states, {
+    'strict-shot': 'dropped',
+    'fresh-step': 'scheduled',
+    'stale-step': 'dropped',
+  })
+  assert.equal(context.sources.length, 1)
+  close(context.sources[0].starts[0].when, 6 * h + audio.lead)
+})
 
 test('250 ms clipping discards the old batch then reanchors subsequent facts, without shifting old shots', async (t) => {
   const { context, audio } = await setup(t)
@@ -62,6 +113,35 @@ test('250 ms clipping discards the old batch then reanchors subsequent facts, wi
   audio.flush(audioTime(3, 6 * h))
   close(context.sources[0].starts[0].when, 0.293333333333)
 })
+
+for (const [field, reason] of [
+  ['clippedWallTime', 'wall-clock-clipped'],
+  ['droppedSimulationTime', 'fixed-time-dropped'],
+]) {
+  test(`${reason} keeps freshly confirmed local sounds and discards the previous-frame batch`, async (t) => {
+    const { audio, context } = await setup(t)
+    context.advance(2 * h)
+    audio.flush(audioTime(1, 2 * h))
+    context.advance(0.24)
+
+    audio.enqueue(cue('old-step', h, { lateWindow: 0.1 }))
+    audio.enqueue(cue('current-shot', 3 * h, { lateWindow: 0.1 }))
+    audio.enqueue(cue('current-step', 6.5 * h, { lateWindow: 0.1 }))
+    audio.enqueue(cue('strict-transient', 7 * h))
+    audio.flush(audioTime(2, 7 * h, { [field]: h }))
+
+    const snapshot = audio.snapshot()
+    assert.equal(snapshot.segments.at(-1).reason, reason)
+    assert.deepEqual(Object.fromEntries(snapshot.cues.map(event => [event.id, event.state])), {
+      'old-step': 'dropped',
+      'current-shot': 'scheduled',
+      'current-step': 'scheduled',
+      'strict-transient': 'dropped',
+    })
+    assert.equal(context.sources.length, 2)
+    close(context.sources[0].starts[0].when, 0.24 + audio.lead)
+  })
+}
 
 test('overlapping shots use independent sources, semantic deduplication and a bounded tail budget', async (t) => {
   const { context, audio } = await setup(t, { maxVoices: 2 })

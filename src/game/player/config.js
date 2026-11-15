@@ -8,6 +8,7 @@ export const playerConfig = Object.freeze({
   runSpeed: 6.75,
   walkSpeed: 3.8,
   crouchSpeed: 3.4,
+  stepLength: 1.85,
   accelTime: 0.08,
   airControl: 0.15,
   gravity: 20,

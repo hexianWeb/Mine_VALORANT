@@ -86,6 +86,9 @@ export class WeaponAudio {
       at: event.at,
       sequence: event.sequence,
       kind,
+      lateWindow: kind === 'transient'
+        ? 0.1
+        : 0,
       endAt,
       rate,
       keepTail,

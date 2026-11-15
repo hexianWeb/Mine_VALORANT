@@ -29,6 +29,10 @@ Ghost 已以公开参考临时参数接入，默认 Freehand，保留四皮肤�
 
 鼠标按钮、滚轮与视角增量只在输入启用且 Pointer Lock 生效时接收；键盘还允许画布聚焦时输入。失焦、解锁、隐藏或禁用会清除 held、边沿和鼠标增量。InputSystem 的 `consumePressedEvents()` 保留动作顺序，与 `consumePressed(action)` 共用队列，不重复派发。
 
+幻影的前进、后退、横移及 ADS 移动使用 `phantom/v3` 自带的四段循环。玩家接地时累计碰撞解算后的水平位移，每 1.85 米产生一步，视模按两步一个循环采样。切枪、换弹、检视和开火继续用各自的动作时钟。
+
+练枪房默认播放硬地脚步声，切枪时延续步态，Shift 静步和蹲走使用较低音量。`public/audio/footsteps/` 的五条混凝土脚步来自 Kenney 的 CC0 素材包，已转成单声道 Ogg 并对齐峰值，目录内附原许可文件。[Kenney Impact Sounds](https://kenney.nl/assets/impact-sounds)
+
 ## 所有权与入口
 
 统一导出入口是 [index.js](../../src/game/weapons/index.js)。

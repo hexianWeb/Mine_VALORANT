@@ -1,7 +1,9 @@
-import { Group, Mesh, MeshBasicMaterial, SphereGeometry } from 'three/webgpu'
+import { Group, MathUtils, Mesh, MeshBasicMaterial, SphereGeometry } from 'three/webgpu'
 import { ammoControlSamples } from './assets/weapon-control-profile.js'
 
 const key = ticket => `${ticket.epoch}:${ticket.requestId}`
+const walkRoles = Object.freeze({ forward: 'walkForward', backward: 'walkBackward', side: 'walkSide' })
+const idleStance = Object.freeze({ aiming: false, direction: null })
 
 /** Owns at most active + staged visual instances. Async loading never creates or attaches a tree. */
 export class WeaponViewModel {
@@ -21,8 +23,9 @@ export class WeaponViewModel {
   #flashUntil = -Infinity
   #maximumInstances = 0
   #weapon = null
-  #aiming = false
-  #queuedAiming = false
+  #stance = idleStance
+  #queuedStance = idleStance
+  #gaitSamples = []
   #presentedShot = null
   error = null
 
@@ -61,18 +64,22 @@ export class WeaponViewModel {
       }
       this.#events.push(event)
     }
-    if (aim && aim.aiming !== this.#queuedAiming) {
-      this.#queuedAiming = aim.aiming
-      // Private presentation fact, ordered before gameplay facts at the same fixed timestamp.
-      // It does not allocate or modify an EquipmentController event sequence.
-      this.#events.push({
-        type: 'AimChanged',
-        epoch: snapshot.epoch,
-        at: aim.at,
-        sequence: -1,
-        aiming: aim.aiming,
-        fade: aim.duration ?? 0,
-      })
+    if (aim) {
+      const stance = { aiming: aim.aiming, direction: aim.gait?.direction ?? null }
+      if (aim.gait)
+        this.#gaitSamples.push({ at: aim.at, steps: aim.gait.steps })
+      if (stance.aiming !== this.#queuedStance.aiming || stance.direction !== this.#queuedStance.direction) {
+        this.#queuedStance = stance
+        // Present posture before gameplay facts at the same fixed timestamp.
+        this.#events.push({
+          type: 'StanceChanged',
+          epoch: snapshot.epoch,
+          at: aim.at,
+          sequence: -1,
+          stance,
+          fade: aim.duration ?? 0,
+        })
+      }
     }
     for (const effect of batch.effects) {
       if (effect.type === 'PrepareSkin') {
@@ -200,22 +207,41 @@ export class WeaponViewModel {
     }
   }
 
+  #restRole() {
+    const { aiming, direction } = this.#stance
+    const handle = this.#active?.handle
+    const walk = aiming ? 'walkAim' : walkRoles[direction]
+    if (direction && handle?.locomotion?.[walk])
+      return walk
+    return aiming && handle?.manifest.actions.aim
+      ? 'aim'
+      : 'idle'
+  }
+
   #play(role, at, { endAt = null, clipEnd = null, fade = 0.06 } = {}) {
+    if (role === 'idle')
+      role = this.#restRole()
     const entry = this.#active
-    if (role === 'idle' && this.#aiming && entry?.handle.manifest.actions.aim)
-      role = 'aim'
-    if (!entry || !entry.handle.manifest.actions[role])
+    const walkClip = entry?.handle.locomotion?.[role]
+    const clipName = walkClip ?? entry?.handle.manifest.actions[role]
+    if (!clipName)
       return
-    const clip = entry.handle.manifest.clips.find(clip => clip.name === entry.handle.manifest.actions[role])
+    const clip = entry.handle.manifest.clips.find(clip => clip.name === clipName)
     const rate = endAt !== null && endAt > at
       ? (clipEnd ?? clip.duration) / (endAt - at)
       : 1
-    const playbackId = entry.visual.player.play(role, { restart: true, fade, rate: rate || 1 })
+    const playbackId = entry.visual.player.play(role, {
+      restart: true,
+      fade,
+      rate: rate || 1,
+      phaseDriven: !!walkClip,
+    })
     entry.action = {
       role,
       playbackId,
       at,
       endAt,
+      resting: role === 'idle' || role === 'aim' || !!walkClip,
       // Gameplay facts end draw/holster/reload/inspect. Only a firing clip returns
       // naturally to idle; retain its absolute boundary so frame subdivision is irrelevant.
       naturalEndAt: ['fire', 'fireAds'].includes(role)
@@ -224,19 +250,32 @@ export class WeaponViewModel {
     }
   }
 
+  #advancePlayer(at) {
+    while (this.#gaitSamples.length > 1 && this.#gaitSamples[1].at <= at)
+      this.#gaitSamples.shift()
+    const [previous, next] = this.#gaitSamples
+    const alpha = next
+      ? MathUtils.clamp((at - previous.at) / (next.at - previous.at), 0, 1)
+      : 0
+    const steps = next
+      ? MathUtils.lerp(previous.steps, next.steps, alpha)
+      : previous?.steps ?? 0
+    // A cycle contains two steps. Interpolate without wrapping until the final sample.
+    const delta = this.#cursor === null
+      ? 0
+      : Math.max(0, at - this.#cursor)
+    this.#active?.visual.player.advance(delta, (steps / 2) % 1)
+    this.#cursor = at
+  }
+
   #advance(at) {
     const action = this.#active?.action
     if (action && action.naturalEndAt !== null && action.naturalEndAt <= at + 1e-10) {
       const boundary = Math.max(this.#cursor ?? at, Math.min(at, action.naturalEndAt))
-      this.#active.visual.player.advance(Math.max(0, boundary - (this.#cursor ?? boundary)))
-      this.#cursor = boundary
+      this.#advancePlayer(boundary)
       this.#play('idle', boundary)
     }
-    const delta = this.#cursor === null
-      ? 0
-      : Math.max(0, at - this.#cursor)
-    this.#active?.visual.player.advance(delta)
-    this.#cursor = at
+    this.#advancePlayer(at)
   }
 
   #syncControls() {
@@ -263,10 +302,15 @@ export class WeaponViewModel {
       this.#skinRequests.delete(key(event.payload.ticket))
       return
     }
-    if (event.type === 'AimChanged') {
-      this.#aiming = event.aiming
-      if (['idle', 'aim', 'fire', 'fireAds'].includes(this.#active?.action?.role))
-        this.#play('idle', event.at, { fade: event.fade })
+    if (event.type === 'StanceChanged') {
+      const aimChanged = event.stance.aiming !== this.#stance.aiming
+      this.#stance = event.stance
+      const action = this.#active?.action
+      if (action && action.role !== this.#restRole() && (action.resting || (aimChanged && action.naturalEndAt !== null))) {
+        this.#play('idle', event.at, {
+          fade: aimChanged ? event.fade : undefined,
+        })
+      }
       return
     }
     if (event.type === 'EquipCommitted' || (event.type === 'DrawStarted' && event.payload.reason === 'resume')) {
@@ -363,8 +407,9 @@ export class WeaponViewModel {
     this.#flashUntil = -Infinity
     this.#flash.visible = false
     this.#weapon = null
-    this.#aiming = false
-    this.#queuedAiming = false
+    this.#stance = idleStance
+    this.#queuedStance = idleStance
+    this.#gaitSamples = []
     this.#presentedShot = null
     const kept = retain
       ? [this.#active, this.#staged].find(entry => entry?.instanceId === snapshot.activeId)

@@ -16,8 +16,14 @@ const roles = [
   'reloadEmpty',
   'inspect',
 ]
+const walkRoles = [
+  'walkForward',
+  'walkBackward',
+  'walkSide',
+  'walkAim',
+]
 
-async function fixture(t, { fireDuration = 0.04 } = {}) {
+async function fixture(t, { fireDuration = 0.04, locomotion = false } = {}) {
   const ticket = { epoch: 1, requestId: 1, instanceId: 'gun' }
   const weapon = {
     instanceId: 'gun',
@@ -34,7 +40,13 @@ async function fixture(t, { fireDuration = 0.04 } = {}) {
       empty: { duration: 0.2 },
     },
   }
-  const clips = roles.map((role) => {
+  const modelRoles = locomotion
+    ? [
+        ...roles,
+        ...walkRoles,
+      ]
+    : roles
+  const clips = modelRoles.map((role) => {
     const duration = ['fire', 'fireAds'].includes(role)
       ? fireDuration
       : 1
@@ -46,6 +58,9 @@ async function fixture(t, { fireDuration = 0.04 } = {}) {
     ])
   })
   const handle = {
+    locomotion: locomotion
+      ? Object.fromEntries(walkRoles.map(role => [role, role]))
+      : {},
     manifest: {
       view: {
         mountOffset: [0, 0, 0],
@@ -58,11 +73,11 @@ async function fixture(t, { fireDuration = 0.04 } = {}) {
   const player = new AnimationPlayer({
     root,
     clips,
-    actions: Object.fromEntries(roles.map(role => [
+    actions: Object.fromEntries(modelRoles.map(role => [
       role,
       {
         clip: role,
-        loop: ['idle', 'aim'].includes(role),
+        loop: ['idle', 'aim', ...walkRoles].includes(role),
       },
     ])),
   })
@@ -108,7 +123,7 @@ async function fixture(t, { fireDuration = 0.04 } = {}) {
     ],
   }, snapshot)
   const motion = at => view.motion({ presentationTime: at, fixedDelta: h }, snapshot, { viewmodelFov: 70 })
-  const aim = (at, aiming, duration = 0.15) => view.receive({ events: [], effects: [] }, snapshot, { at, aiming, duration })
+  const aim = (at, aiming, duration = 0.15, gait) => view.receive({ events: [], effects: [] }, snapshot, { at, aiming, duration, gait })
   view.receive({
     events: [],
     effects: [
@@ -159,6 +174,40 @@ test('private ADS facts use the weapon definition transition duration', async (t
   assert.ok(Math.abs(f.player.snapshot().current.weight - 0.5) < 1e-12)
   f.motion(0.4)
   assert.equal(f.player.snapshot().current.weight, 1)
+})
+
+test('walking samples the player gait at presentation time and preserves the cycle across ADS', async (t) => {
+  const f = await fixture(t, { locomotion: true })
+  const gait = (at, direction, steps, aiming = false) => f.aim(at, aiming, 0.15, { direction, steps })
+  gait(0.10, 'forward', 0.2)
+  gait(0.20, 'forward', 0.6)
+  f.motion(0.09)
+  assert.equal(f.view.snapshot().action, 'idle')
+  f.motion(0.15)
+  const walk = f.player.snapshot().current
+  assert.equal(walk.role, 'walkForward')
+  assert.ok(Math.abs(walk.localTime - 0.2) < 1e-12)
+  f.motion(0.18)
+  assert.equal(f.player.snapshot().current.playbackId, walk.playbackId)
+
+  gait(0.22, 'backward', 0.8)
+  f.motion(0.22)
+  assert.equal(f.view.snapshot().action, 'walkBackward')
+  gait(0.24, 'side', 0.9)
+  f.motion(0.24)
+  assert.equal(f.view.snapshot().action, 'walkSide')
+  gait(0.28, 'side', 1.2, true)
+  f.motion(0.28)
+  const aimWalk = f.player.snapshot().current
+  assert.equal(aimWalk.role, 'walkAim')
+  assert.equal(aimWalk.localTime, 0.6)
+
+  f.receive('ShotFired', 0.30, { aiming: true })
+  gait(0.31, null, 1.3, true)
+  f.motion(0.32)
+  assert.equal(f.view.snapshot().action, 'fireAds')
+  f.motion(0.35)
+  assert.equal(f.view.snapshot().action, 'aim')
 })
 
 test('ADS changes interrupt a long firing tail without replaying the shot, then the next shot selects fireAds', async (t) => {

@@ -272,7 +272,12 @@ export class PlayerWeapons {
       return enriched
     })
     this.#aim.endStep()
-    this.#accept({ ...batch, events }, snapshot, { at: time.fixedElapsed, aiming, duration: definition?.aim?.duration ?? 0 })
+    this.#accept({ ...batch, events }, snapshot, {
+      at: time.fixedElapsed,
+      aiming,
+      duration: definition?.aim?.duration ?? 0,
+      gait: pose.gait,
+    })
     return immutable({ ...batch, events })
   }
 

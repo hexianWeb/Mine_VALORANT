@@ -16,14 +16,17 @@ export class PlayerComponent extends Component {
   #presentationAt = 0
   #paused = false
   #rebaseViewOnNextStep = false
+  #gait = { direction: null, steps: 0 }
+  #footsteps
 
-  constructor({ collision, input, aim, weapons = null, config = playerConfig }) {
+  constructor({ collision, input, aim, weapons = null, footsteps = null, config = playerConfig }) {
     super()
     this.collision = collision
     this.input = input
     this.settings = config
     this.aim = aim
     this.weapons = weapons
+    this.#footsteps = footsteps
   }
 
   onAttach() {
@@ -51,6 +54,7 @@ export class PlayerComponent extends Component {
     this.cameraComponent.enabled = this.enabled
     if (!this.enabled) {
       this.weapons?.suspend()
+      this.#footsteps?.reset()
       this.aim.clearInput()
       this.#respawnQueued = false
       this.motor.resetMotion()
@@ -68,6 +72,8 @@ export class PlayerComponent extends Component {
 
   teleport(feet, yaw, pitch = 0) {
     this.#respawnQueued = false
+    this.#gait = { direction: null, steps: 0 }
+    this.#footsteps?.reset()
     this.motor.teleport(new THREE.Vector3().fromArray(feet))
     this.transform.quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw)
     this.aim.reset({
@@ -139,6 +145,33 @@ export class PlayerComponent extends Component {
     this.weapons?.collectInput(this.input, this.#paused)
   }
 
+  #updateGait(time) {
+    const previous = this.transform.previousPosition
+    const dx = this.position.x - previous.x
+    const dz = this.position.z - previous.z
+    const distance = Math.hypot(dx, dz)
+    const steps = this.#gait.steps
+    if (!this.grounded || distance <= time.fixedDelta * 0.1) {
+      this.#gait = { direction: null, steps }
+      return
+    }
+
+    const { headingYaw } = this.aim
+    const sin = Math.sin(headingYaw)
+    const cos = Math.cos(headingYaw)
+    const forward = -dx * sin - dz * cos
+    const sideways = dx * cos - dz * sin
+    let direction = 'side'
+    if (Math.abs(forward) >= Math.abs(sideways) * 0.95) {
+      direction = forward > 0
+        ? 'forward'
+        : 'backward'
+    }
+    const nextSteps = steps + distance / this.settings.stepLength
+    this.#gait = { direction, steps: nextSteps }
+    this.#footsteps?.advance(steps, nextSteps, time, this.crouched || this.motor.command.walk)
+  }
+
   tick(context) {
     const { phase, time } = context
     if (phase === 'input') {
@@ -152,12 +185,14 @@ export class PlayerComponent extends Component {
       this.#at = time.fixedElapsed
       if (this.#respawnQueued || this.collision.isOutOfBounds(characterBox(this.position, this.settings, this.crouched)))
         this.respawn()
+      this.#updateGait(time)
       const pose = {
         feet: this.position,
         verticalOffset: this.crouched ? this.settings.crouchEye : this.settings.standEye,
         stepDeltaY: this.motor.sampleStepDeltaY(1),
         moving: Math.hypot(this.velocity.x, this.velocity.z) > 0.1,
         crouched: this.crouched,
+        gait: this.#gait,
       }
       if (this.weapons) {
         this.weapons.fixed(context, pose)
@@ -180,6 +215,8 @@ export class PlayerComponent extends Component {
       velocity: this.velocity.toArray(),
       grounded: this.grounded,
       crouched: this.crouched,
+      gait: { ...this.#gait },
+      footstepSamples: this.#footsteps?.sampleCount ?? 0,
       yawDeg: THREE.MathUtils.radToDeg(this.yaw),
       pitchDeg: THREE.MathUtils.radToDeg(this.pitch),
       respawns: this.respawns,
@@ -195,6 +232,7 @@ export class PlayerComponent extends Component {
     if (this.motor)
       this.setEnabled(false)
     this.weapons?.dispose()
+    this.#footsteps?.dispose()
     this.input.setEnabled(false)
   }
 }
@@ -235,7 +273,7 @@ function createStepOffsetLimiter(world) {
 }
 
 /** Object assembly only; the Level schedules these same types across all objects. */
-export function createPlayer({ camera, collision, input, physics, weapons = null, config = {} }) {
+export function createPlayer({ camera, collision, input, physics, weapons = null, footsteps = null, config = {} }) {
   const settings = {
     ...playerConfig,
     ...config,
@@ -285,6 +323,7 @@ export function createPlayer({ camera, collision, input, physics, weapons = null
     collision,
     input,
     aim,
+    footsteps,
     weapons: weapons
       ? new PlayerWeapons({ ...weapons, aim, world: collision.world })
       : null,

@@ -2,6 +2,7 @@ import * as THREE from 'three/webgpu'
 import { Disposer } from '../../engine/runtime/core/disposer.js'
 import { GameObject, Level, MeshComponent, TransformComponent } from '../../engine/runtime/function/framework/index.js'
 import { createEnvironmentProxy } from '../../engine/runtime/function/render/sky-environment.js'
+import { PlayerFootsteps } from '../player/player-footsteps.js'
 import { createPlayer, PlayerComponent } from '../player/player.js'
 import { WeaponAssets } from '../weapons/assets/weapon-assets.js'
 import { classicDefinition } from '../weapons/definitions/classic.js'
@@ -163,12 +164,16 @@ export class RangeRoomLevel extends Level {
             })
             token.throwIfAborted()
           }
+          const footsteps = this.audio
+            ? new PlayerFootsteps({ audio: this.audio, resources, signal: token })
+            : null
           const playerObject = this.addObject(createPlayer({
             camera,
             collision: this.collision,
             input: this.input,
             physics: this.physics,
             weapons,
+            footsteps,
           }))
           this.player = playerObject.requireComponent(PlayerComponent)
           this.setPlayerEnabled(true)

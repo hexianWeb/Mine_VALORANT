@@ -31,13 +31,16 @@ export class AnimationPlayer {
     this.setControls({})
   }
 
-  play(role, { restart = false, fade, rate } = {}) {
+  play(role, { restart = false, fade, rate, phaseDriven = false } = {}) {
     this.#assertLive()
     const profile = this.#library.get(role)
     if (typeof restart !== 'boolean')
       throw new TypeError('[Animation] restart must be boolean')
+    if (typeof phaseDriven !== 'boolean' || (phaseDriven && (!profile.loop || !profile.clip.duration || profile.markers.length)))
+      throw new TypeError('[Animation] Phase-driven playback requires a nonempty loop without markers')
     const options = {
       restart,
+      phaseDriven,
       fade: seconds(fade ?? profile.fade, 'fade'),
       rate: seconds(rate ?? profile.rate, 'rate', true),
     }
@@ -46,16 +49,18 @@ export class AnimationPlayer {
     return id
   }
 
-  advance(delta) {
+  advance(delta, cyclePhase) {
     this.#assertLive()
     seconds(delta, 'delta')
+    if (cyclePhase !== undefined && (!Number.isFinite(cyclePhase) || cyclePhase < 0 || cyclePhase >= 1))
+      throw new RangeError('[Animation] Cycle phase must be in [0, 1)')
     if (!Number.isFinite(this.#state.time + delta))
       throw new RangeError('[Animation] Time overflow')
     for (const layer of this.#state.layers) {
       if (!Number.isFinite((this.#state.time + delta - layer.startedAt) * layer.rate))
         throw new RangeError('[Animation] Playback time overflow')
     }
-    const events = this.#state.advance(delta)
+    const events = this.#state.advance(delta, cyclePhase)
     this.#sample()
     return immutable(events)
   }

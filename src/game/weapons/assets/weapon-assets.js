@@ -6,6 +6,12 @@ import { applyWeaponMaterialProfile, validateWeaponSkinMaterial } from './weapon
 
 let nextScope = 0
 
+const phantomLocomotion = Object.freeze({
+  walkForward: 'walk_forward',
+  walkBackward: 'walk_backward',
+  walkSide: 'walk_sideway',
+  walkAim: 'walk_aiming',
+})
 const indoorReflectionIntensity = 0.3
 const defaultEmissiveIntensity = 0.4
 const skinTextureSettings = Object.freeze({
@@ -91,7 +97,17 @@ function profileFrom(manifest) {
     if (!Object.hasOwn(manifest.actions, role))
       throw new Error(`[WeaponAssets] Missing required action: ${role}`)
   }
-  return immutable(Object.fromEntries(Object.entries(manifest.actions).map(([role, name]) => {
+  // The shipped clip set already contains these loops. Keep the published manifest intact.
+  const locomotion = manifest.weaponId === 'phantom'
+    ? Object.fromEntries(Object.entries(phantomLocomotion).filter(([, name]) => {
+        const clip = metadata.get(name)
+        return clip?.loop && clip.duration > 0 && !clip.markers?.length
+      }))
+    : {}
+  const actions = Object.fromEntries(Object.entries({
+    ...manifest.actions,
+    ...locomotion,
+  }).map(([role, name]) => {
     const clip = metadata.get(name)
     if (!clip)
       throw new Error(`[WeaponAssets] Missing metadata for action ${role}: ${name}`)
@@ -110,7 +126,8 @@ function profileFrom(manifest) {
         })),
       },
     ]
-  })))
+  }))
+  return immutable({ actions, locomotion })
 }
 
 function validateSkin(manifest, skin, request) {
@@ -306,7 +323,7 @@ export class WeaponAssets {
       this.#loadEntry({ name: `${packageKey}:skin:${request.skinId}`, type: 'json', url: skinURL }),
     ])
     validateSkin(manifest, skin, request)
-    const actions = profileFrom(manifest)
+    const { actions, locomotion } = profileFrom(manifest)
     const controls = manifest.runtimeControls
     // Validates all referenced clips and their actual template bindings without creating a mixer.
     const library = new ClipLibrary({
@@ -389,7 +406,7 @@ export class WeaponAssets {
       for (const name of names) bindings.set(name, binding)
     }))
     this.#assertOpen()
-    const handle = Object.freeze({ ...request, manifest })
+    const handle = Object.freeze({ ...request, manifest, locomotion })
     this.#handles.set(handle, {
       modelKey,
       clips: gltf.animations,

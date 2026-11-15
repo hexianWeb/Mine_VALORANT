@@ -146,6 +146,35 @@ test('reaches run speed and counter-strafes to a stop within 0.1 s; walk is slow
   near(player.velocity.x, playerConfig.walkSpeed, 1e-9, 'walk speed to the right')
 })
 
+test('gait counts actual grounded displacement and freezes at a wall or in the air', () => {
+  const { player, intent, step, pressJump } = setup([
+    {
+      name: 'Wall',
+      min: [-4, 0, -3],
+      max: [4, 4, -2],
+    },
+  ])
+  step(10)
+  intent.moveZ = 1
+  step(10)
+  const moving = player.snapshot().gait
+  assert.equal(moving.direction, 'forward')
+  near(moving.steps * playerConfig.stepLength, -player.position.z, 1e-9, 'ground distance')
+  step(60)
+  const blocked = player.snapshot().gait
+  assert.equal(blocked.direction, null)
+  step(30)
+  assert.deepEqual(player.snapshot().gait, blocked)
+
+  intent.moveZ = -1
+  pressJump()
+  step(10)
+  assert.equal(player.grounded, false)
+  assert.deepEqual(player.snapshot().gait, blocked)
+  player.respawn()
+  assert.deepEqual(player.snapshot().gait, { direction: null, steps: 0 })
+})
+
 test('jump apex is 1.1 m and the player lands again', () => {
   const { player, step, pressJump } = setup()
   step(10)

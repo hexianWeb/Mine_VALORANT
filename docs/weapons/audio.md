@@ -39,9 +39,9 @@ audioTime(at) = anchorAudio + latency + (at - anchorSim) / r
 deadline = audioTime(at) - 0.006
 ```
 
-普通帧不重锚。错过 deadline 的瞬态记为 missed-deadline，不逐个 start(now)、不整批平移或补播。60 Hz 常态延迟约 26.7 ms，设备延迟另计；五步追帧的早期声音可能被丢弃，玩法事实不丢。
+普通帧不重锚。瞬态默认按 deadline 丢弃过期事件。主游戏的本地枪声与脚步允许在事件发生后的 100 ms 模拟时间内尽快起音，覆盖一次默认固定步追帧。60 Hz 常态延迟约 26.7 ms，设备延迟另计。
 
-首次解锁、暂停/中断恢复、正变速、时钟重置以及裁剪/丢时才建立新段。Time 新增 unclippedDelta、clippedWallTime、clockRevision，连同 droppedSimulationTime 诊断完整断点；250 ms 裁剪帧先按旧锚点丢弃过期批次，再重锚后续事实。仍有效的长动作淡出旧 source，按新段的正确 offset 接续；不允许接续的 cue 静音。已开始的枪声尾音不随变速改变音高。
+首次解锁、暂停/中断恢复、正变速、时钟重置以及裁剪/丢时才建立新段。Time 新增 unclippedDelta、clippedWallTime、clockRevision，连同 droppedSimulationTime 诊断完整断点。裁剪或丢时后，本帧固定步新确认且仍在播放窗口内的枪声和脚步按新锚点调度，遗留的未播放瞬态丢弃。仍有效的长动作淡出旧 source，按新段的正确 offset 接续。已开始的枪声尾音不随变速改变音高。
 
 Engine pause 与 timeScale=0 暂停 context，撤销尚未开始的枪声；恢复不补发旧输入。已解锁后在暂停期间点击不会偷偷 resume。interrupted 立即撤销未来瞬态，避免在恢复后的首个 JS 帧之前发声。动作取消用 8 ms 淡出；epoch 失效/关卡卸载立即停止。
 

@@ -3,6 +3,10 @@ import { Disposer } from '../../core/disposer.js'
 const terminal = new Set(['ended', 'dropped', 'cancelled'])
 const epsilon = 1e-9
 
+function acceptsLatePlayback(record, sim) {
+  return record.lateWindow > 0 && sim - record.at <= record.lateWindow + epsilon
+}
+
 /** One runtime's Web Audio clock, buses and voices. No weapons, DOM input rules or asset loading. */
 export class AudioSystem {
   #context
@@ -177,6 +181,7 @@ export class AudioSystem {
     if (!cue || typeof cue.id !== 'string' || typeof cue.scope !== 'string' || typeof cue.owner !== 'string'
       || !Number.isFinite(cue.at) || !['action', 'transient'].includes(cue.kind)
       || !Number.isFinite(cue.rate ?? 1) || (cue.rate ?? 1) <= 0
+      || !Number.isFinite(cue.lateWindow ?? 0) || (cue.lateWindow ?? 0) < 0
       || !Number.isFinite(cue.gain ?? 1) || (cue.gain ?? 1) < 0) {
       throw new TypeError('[Audio] Invalid semantic cue')
     }
@@ -185,6 +190,7 @@ export class AudioSystem {
     const record = {
       rate: 1,
       gain: 1,
+      lateWindow: 0,
       sequence: 0,
       keepTail: true,
       resume: true,
@@ -290,12 +296,18 @@ export class AudioSystem {
     const now = this.#context.currentTime
     const old = this.#anchor
     const discontinuity = ['wall-clock-clipped', 'fixed-time-dropped'].includes(reason)
+    const previousFixedEnd = this.#lastTime?.fixedElapsed ?? time.fixedElapsed
     for (const record of this.#records.values()) {
       if (terminal.has(record.state))
         continue
       if (record.kind === 'transient') {
         if (record.voice && record.voice.when <= now)
           continue // Already-fired tails keep their original pitch.
+        // A slow frame can still confirm new inputs during its completed fixed steps.
+        if (discontinuity && record.state === 'queued' && record.at > previousFixedEnd
+          && record.at <= time.fixedElapsed + epsilon && acceptsLatePlayback(record, sim)) {
+          continue
+        }
         if (discontinuity || (record.voice && [
           'unlock',
           'pause-resume',
@@ -338,7 +350,7 @@ export class AudioSystem {
     this.#needsAnchor = null
   }
 
-  #schedule(record, time) {
+  #schedule(record, time, sim) {
     const context = this.#context
     const now = context.currentTime
     const target = this.#audioTime(record.at)
@@ -346,7 +358,7 @@ export class AudioSystem {
       this.#finish(record, 'cancelled', 'action-cancelled')
       return
     }
-    if (record.kind === 'transient' && now > target - this.lead + epsilon) {
+    if (record.kind === 'transient' && now > target - this.lead + epsilon && !acceptsLatePlayback(record, sim)) {
       this.#finish(record, 'dropped', 'missed-deadline')
       return
     }
@@ -468,7 +480,7 @@ export class AudioSystem {
     ].sort((a, b) => a.at - b.at || a.sequence - b.sequence)
     for (const record of records) {
       if (record.state === 'queued')
-        this.#schedule(record, time)
+        this.#schedule(record, time, sim)
       if (record.voice && record.cancelAt !== null && !record.voice.cancellationScheduled) {
         const at = Math.max(now, this.#audioTime(record.cancelAt))
         if (at <= record.voice.when + epsilon) {

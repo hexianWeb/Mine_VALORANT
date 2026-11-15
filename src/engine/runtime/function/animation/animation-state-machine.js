@@ -19,20 +19,24 @@ export class AnimationStateMachine {
   #nextId = 0
   #transition = null
   #compensation = 0
+  #cyclePhase = 0
 
-  play(profile, { restart, fade, rate }) {
+  play(profile, { restart, fade, rate, phaseDriven }) {
     if (!restart && this.current?.role === profile.role)
       return this.current.playbackId
     const previous = this.layers.filter(layer => layer.weight > 0)
     const layer = {
       ...profile,
       rate,
+      phaseDriven,
       playbackId: ++this.#nextId,
       startedAt: this.time,
       weight: previous.length && fade > 0
         ? 0
         : 1,
-      localTime: 0,
+      localTime: phaseDriven
+        ? this.#cyclePhase * profile.clip.duration
+        : 0,
       cursor: -Infinity,
       finished: false,
     }
@@ -50,15 +54,16 @@ export class AnimationStateMachine {
     return layer.playbackId
   }
 
-  advance(delta) {
+  advance(delta, cyclePhase = this.#cyclePhase) {
     // Compensated accumulation keeps equal elapsed time stable across frame subdivisions.
     const increment = delta - this.#compensation
     const next = this.time + increment
     this.#compensation = (next - this.time) - increment
     this.time = next
+    this.#cyclePhase = cyclePhase
     const events = []
     const current = this.current
-    if (current) {
+    if (current && !current.phaseDriven) {
       const duration = current.clip.duration
       const progress = clipProgress((this.time - current.startedAt) * current.rate, duration, current.loop)
       const cycleEnd = current.loop && duration > 0
@@ -120,6 +125,10 @@ export class AnimationStateMachine {
     }
     for (const layer of this.layers) {
       const duration = layer.clip.duration
+      if (layer.phaseDriven) {
+        layer.localTime = cyclePhase * duration
+        continue
+      }
       const progress = clipProgress((this.time - layer.startedAt) * layer.rate, duration, layer.loop)
       layer.localTime = layer.loop && duration > 0
         ? progress % duration
