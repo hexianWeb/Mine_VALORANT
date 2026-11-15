@@ -6,7 +6,7 @@ import { applyWeaponMaterialProfile, validateWeaponSkinMaterial } from './weapon
 
 let nextScope = 0
 
-const phantomLocomotion = Object.freeze({
+const locomotionClips = Object.freeze({
   walkForward: 'walk_forward',
   walkBackward: 'walk_backward',
   walkSide: 'walk_sideway',
@@ -97,13 +97,11 @@ function profileFrom(manifest) {
     if (!Object.hasOwn(manifest.actions, role))
       throw new Error(`[WeaponAssets] Missing required action: ${role}`)
   }
-  // The shipped clip set already contains these loops. Keep the published manifest intact.
-  const locomotion = manifest.weaponId === 'phantom'
-    ? Object.fromEntries(Object.entries(phantomLocomotion).filter(([, name]) => {
-        const clip = metadata.get(name)
-        return clip?.loop && clip.duration > 0 && !clip.markers?.length
-      }))
-    : {}
+  // Register the package's optional, phase-driven walking loops in the runtime profile.
+  const locomotion = Object.fromEntries(Object.entries(locomotionClips).filter(([, name]) => {
+    const clip = metadata.get(name)
+    return clip?.loop && clip.duration > 0 && !clip.markers?.length
+  }))
   const actions = Object.fromEntries(Object.entries({
     ...manifest.actions,
     ...locomotion,

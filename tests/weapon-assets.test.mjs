@@ -137,6 +137,7 @@ test('warm loads share templates, resolve package paths, and expose no mutable T
   assert.ok(Object.isFrozen(first))
   assert.ok(Object.isFrozen(first.manifest))
   assert.ok(Object.isFrozen(first.manifest.actions))
+  assert.deepEqual(first.locomotion, {})
   assert.equal(first.root, undefined)
   assert.equal(first.clips, undefined)
   assert.deepEqual(f.calls.map(entry => entry.type), ['json', 'gltf', 'json', 'texture'])
@@ -150,6 +151,36 @@ test('warm loads share templates, resolve package paths, and expose no mutable T
   assert.equal(f.data.weaponMaterial.map, null)
   f.data.manifest.actions.idle = 'changed-source'
   assert.equal(first.manifest.actions.idle, 'idle')
+})
+
+test('each package registers its available phase-driven walking loops', async (t) => {
+  const f = setup(t)
+  for (const clip of [
+    { name: 'walk_forward', loop: true },
+    { name: 'walk_aiming', loop: true },
+    { name: 'walk_backward', loop: false },
+    {
+      name: 'walk_sideway',
+      loop: true,
+      markers: [
+        { time: 0.5, cue: 'bolt' },
+      ],
+    },
+  ]) {
+    f.data.manifest.clips.push({ ...clip, duration: 1 })
+    f.data.gltf.animations.push(new THREE.AnimationClip(clip.name, 1, f.data.gltf.animations[0].tracks))
+  }
+
+  const handle = await f.assets.load(request)
+  assert.deepEqual(handle.locomotion, {
+    walkForward: 'walk_forward',
+    walkAim: 'walk_aiming',
+  })
+  assert.deepEqual(handle.manifest.actions, { idle: 'idle' })
+  const visual = f.assets.instantiate(handle)
+  visual.player.play('walkForward', { phaseDriven: true })
+  visual.player.advance(0, 0.25)
+  assert.equal(visual.root.getObjectByName('WeaponBone').position.x, 0.5)
 })
 
 test('instances have independent skeletons, materials and players while sharing geometry and skin texture', async (t) => {
