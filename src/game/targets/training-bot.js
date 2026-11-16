@@ -4,6 +4,7 @@ import { Component, GameObject, MeshComponent, TransformComponent } from '../../
 import { BoneHitboxes } from './bone-hitboxes.js'
 import { TrainingBotAudio } from './training-bot-audio.js'
 import { createTrainingBotOutline } from './training-bot-outline.js'
+import { loadTrainingBotSkins, trainingBotSkins } from './training-bot-skins.js'
 
 const modelName = 'range-room:training-bot:model'
 const hitboxesName = 'range-room:training-bot:hitboxes'
@@ -19,6 +20,7 @@ export class TrainingBotComponent extends Component {
   #hitboxes
   #animation
   #hitAudio
+  #skin
   #regions
   #unregister
   #transform
@@ -26,10 +28,11 @@ export class TrainingBotComponent extends Component {
   #lastRegion = null
   #hitCount = 0
 
-  constructor({ root, clips, profile, targets, hitAudio = null }) {
+  constructor({ root, clips, profile, targets, hitAudio = null, skin = 'purple' }) {
     super()
     this.#targets = targets
     this.#hitAudio = hitAudio
+    this.#skin = skin
     this.#hitboxes = new BoneHitboxes(root, profile)
     this.#regions = profile.regions
     const actions = Object.fromEntries(Object.entries(this.#regions).map(([region, clip]) => [
@@ -78,6 +81,9 @@ export class TrainingBotComponent extends Component {
     return {
       id: this.owner.id,
       position: this.#transform.position.toArray(),
+      skin: this.#skin,
+      difficulty: trainingBotSkins[this.#skin].difficulty,
+      difficultyLabel: trainingBotSkins[this.#skin].label,
       hitCount: this.#hitCount,
       lastRegion: this.#lastRegion,
       reaction: current && { clip: this.#regions[current.role], time: current.localTime },
@@ -99,9 +105,11 @@ export class TrainingBotComponent extends Component {
 export async function loadTrainingBotAssets({ resources, audio = null, signal }) {
   const outline = createTrainingBotOutline()
   let hitAudio = null
+  let skins = null
   const dispose = () => {
     hitAudio?.dispose()
     outline.dispose()
+    skins?.dispose()
     resources.unload(modelName)
     resources.unload(hitboxesName)
   }
@@ -121,6 +129,7 @@ export async function loadTrainingBotAssets({ resources, audio = null, signal })
       },
     ], { signal })
     const clips = resources.get(modelName, 'gltf').animations
+    skins = await loadTrainingBotSkins({ resources, signal })
     // Optional audio preloads independently and cannot block the model or reactions.
     hitAudio = audio
       ? new TrainingBotAudio({ audio, resources, signal })
@@ -128,7 +137,9 @@ export async function loadTrainingBotAssets({ resources, audio = null, signal })
     return {
       dispose,
       audioReady: hitAudio?.ready ?? Promise.resolve(),
-      instantiate({ scene, targets, position, yaw = 0, scale = 1 }) {
+      instantiate({ scene, targets, position, yaw = 0, scale = 1, skin = 'purple' }) {
+        if (!Object.hasOwn(trainingBotSkins, skin))
+          throw new Error(`[Training bot] Unknown skin: ${skin}`)
         const root = resources.instantiate(modelName)
         const skeletons = new Set()
         const meshes = []
@@ -140,8 +151,11 @@ export async function loadTrainingBotAssets({ resources, audio = null, signal })
             node.receiveShadow = true
           }
         })
-        for (const mesh of meshes) outline.attach(mesh)
-        const object = new GameObject({ name: 'Range training bot', mobility: 'static' })
+        for (const mesh of meshes) {
+          skins.apply(mesh, skin)
+          outline.attach(mesh, trainingBotSkins[skin].outlineColor)
+        }
+        const object = new GameObject({ name: `Range training bot (${skin})`, mobility: 'static' })
         object.addComponent(new TransformComponent({
           position: new Vector3().fromArray(position),
           quaternion: new Quaternion().setFromAxisAngle(up, yaw),
@@ -161,6 +175,7 @@ export async function loadTrainingBotAssets({ resources, audio = null, signal })
             profile,
             targets,
             hitAudio,
+            skin,
           }))
         }
         catch (error) {

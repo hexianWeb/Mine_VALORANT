@@ -45,11 +45,12 @@ export function createTrainingBotOutline() {
     clip.xy.addAssign(direction.mul(8).div(viewportSize).mul(clip.w))
     return clip
   })()
-  const materialFor = (source) => {
-    if (!materials.has(source)) {
+  const materialFor = (source, outlineColor) => {
+    const key = `${source.uuid}:${outlineColor}`
+    if (!materials.has(key)) {
       const material = new MeshBasicNodeMaterial({
         name: 'Training bot outline',
-        color: 0x7A56A0,
+        color: outlineColor,
         side: BackSide,
         depthWrite: false,
         fog: false,
@@ -60,19 +61,19 @@ export function createTrainingBotOutline() {
       material.vertexNode = vertexNode
       // Preserve texture cutouts without tinting the outline with the albedo.
       material.colorNode = source.map
-        ? vec4(color(0x7A56A0), texture(source.map).a)
-        : color(0x7A56A0)
-      materials.set(source, material)
+        ? vec4(color(outlineColor), texture(source.map).a)
+        : color(outlineColor)
+      materials.set(key, material)
     }
-    return materials.get(source)
+    return materials.get(key)
   }
   return {
-    attach(mesh) {
+    attach(mesh, outlineColor = 0x7A56A0) {
       if (!geometries.has(mesh.geometry))
         geometries.set(mesh.geometry, outlineGeometry(mesh.geometry))
       const material = Array.isArray(mesh.material)
-        ? mesh.material.map(materialFor)
-        : materialFor(mesh.material)
+        ? mesh.material.map(source => materialFor(source, outlineColor))
+        : materialFor(mesh.material, outlineColor)
       const shell = new SkinnedMesh(geometries.get(mesh.geometry), material)
       shell.name = `${mesh.name}:outline`
       shell.bindMode = mesh.bindMode

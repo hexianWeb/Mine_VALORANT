@@ -2,8 +2,9 @@ import assert from 'node:assert/strict'
 import { Buffer } from 'node:buffer'
 import fs from 'node:fs/promises'
 import test from 'node:test'
-import { BackSide, Raycaster, Scene, Vector3 } from 'three/webgpu'
+import { BackSide, ClampToEdgeWrapping, NearestFilter, NearestMipmapNearestFilter, Raycaster, Scene, SRGBColorSpace, Texture, Vector3 } from 'three/webgpu'
 import { Level, MeshComponent, TransformComponent } from '../src/engine/runtime/function/framework/index.js'
+import { loaders } from '../src/engine/runtime/resource/loader/loaders.js'
 import { ResourceManager } from '../src/engine/runtime/resource/resource-manager.js'
 import { ShotTargets } from '../src/game/targets/shot-targets.js'
 import { loadTrainingBotAssets, TrainingBotComponent } from '../src/game/targets/training-bot.js'
@@ -14,11 +15,23 @@ async function fixture(t, { audio = null } = {}) {
   const requests = []
   t.mock.method(globalThis, 'fetch', (url, options) => {
     const asset = new URL(url, 'https://training-bot.test/')
-    if (asset.pathname.startsWith('/targets/training-bot/') || asset.pathname.startsWith('/audio/bot/')) {
+    if (asset.pathname.startsWith('/targets/') || asset.pathname.startsWith('/audio/bot/')) {
       requests.push(asset.pathname)
       return fs.readFile(new URL(`../public${asset.pathname}`, import.meta.url)).then(data => new Response(data))
     }
     return fetch(url, options)
+  })
+  // HTML image decoding is browser-only; keep the real loader for GLB bones/UVs.
+  const loadTexture = loaders.texture
+  t.mock.method(loaders, 'texture', async (entry, manager) => {
+    if (!entry.url.startsWith('/targets/skin/'))
+      return loadTexture(entry, manager)
+    const response = await globalThis.fetch(entry.url, { signal: entry.options?.signal })
+    const bytes = Buffer.from(await response.arrayBuffer())
+    return new Texture({
+      width: bytes.readUInt32BE(16),
+      height: bytes.readUInt32BE(20),
+    })
   })
   const globals = {
     self: globalThis,
@@ -73,6 +86,7 @@ async function fixture(t, { audio = null } = {}) {
     step,
     assets,
     requests,
+    resources,
   }
 }
 
@@ -158,6 +172,9 @@ test('public bot assets get an occluded outline that follows the same animated s
   assert.deepEqual(requests, [
     '/targets/training-bot/range-training-bot.hitboxes.json',
     '/targets/training-bot/range-training-bot.glb',
+    '/targets/skin/Range_Bot_Blue_128x128.png',
+    '/targets/skin/Range_Bot_Yellow_128x128.png',
+    '/targets/skin/Range_Bot_urple_128x128.png',
   ])
   const mesh = root.getObjectByProperty('isSkinnedMesh', true)
   const shell = mesh.children.find(node => node.isSkinnedMesh)
@@ -198,6 +215,85 @@ test('public bot assets get an occluded outline that follows the same animated s
   const outlined = shell.getVertexPosition(vertex, new Vector3())
   assert.ok(after.distanceTo(before) > 0.001)
   assert.ok(after.distanceTo(outlined) < 1e-6, 'base and shell skinning use the same pose')
+})
+
+test('three skins bind to the existing UVs with difficulty metadata and independent poses', async (t) => {
+  const { level, assets, targets, resources } = await fixture(t)
+  const template = resources.get('range-room:training-bot:model', 'gltf').scene.getObjectByProperty('isSkinnedMesh', true)
+  const originalMap = template.material.map
+  const entries = [
+    ['blue', 'easy', '简单', 0x4F9ED9],
+    ['yellow', 'normal', '普通', 0xD6B64A],
+    ['purple', 'hard', '困难', 0x7A56A0],
+  ].map(([skin, difficulty, label, outlineColor], index) => {
+    const object = level.addObject(assets.instantiate({
+      scene: level.scene,
+      targets,
+      position: [index * 2.4, 0, 0],
+      skin,
+    }))
+    const bot = object.requireComponent(TrainingBotComponent)
+    const mesh = object.requireComponent(MeshComponent).root.getObjectByProperty('isSkinnedMesh', true)
+    assert.equal(bot.snapshot().skin, skin)
+    assert.equal(bot.snapshot().difficulty, difficulty)
+    assert.equal(bot.snapshot().difficultyLabel, label)
+    assert.equal(mesh.geometry, template.geometry, 'skins do not duplicate or change UV geometry')
+    assert.notEqual(mesh.material, template.material)
+    assert.equal(mesh.material.map.name, `Training bot:${skin}`)
+    assert.equal(mesh.material.map.colorSpace, SRGBColorSpace)
+    assert.equal(mesh.material.map.flipY, false)
+    assert.equal(mesh.material.map.magFilter, NearestFilter)
+    assert.equal(mesh.material.map.minFilter, NearestMipmapNearestFilter)
+    assert.equal(mesh.material.map.wrapS, ClampToEdgeWrapping)
+    assert.equal(mesh.material.map.wrapT, ClampToEdgeWrapping)
+    assert.equal(mesh.material.alphaTest, template.material.alphaTest)
+    const shell = mesh.children.find(node => node.isSkinnedMesh)
+    assert.equal(shell.material.color.getHex(), outlineColor)
+    assert.equal(shell.material.side, BackSide)
+    assert.equal(shell.material.depthTest, true)
+    assert.equal(shell.material.depthWrite, false)
+    assert.deepEqual([mesh.material.map.image.width, mesh.material.map.image.height], [128, 128])
+    return { object, bot, mesh }
+  })
+  assert.equal(template.material.map, originalMap, 'the GLB template keeps its embedded texture')
+  assert.equal(new Set(entries.map(entry => entry.mesh.material.map)).size, 3)
+  assert.equal(new Set(entries.map(entry => entry.mesh.skeleton)).size, 3)
+  entries[0].bot.react({ region: 'head' })
+  assert.equal(entries[1].bot.snapshot().reaction, null)
+  assert.equal(entries[2].bot.snapshot().reaction, null)
+  assert.throws(() => assets.instantiate({
+    scene: level.scene,
+    targets,
+    position: [0, 0, 0],
+    skin: 'unknown',
+  }), /Unknown skin/u)
+
+  const duplicate = level.addObject(assets.instantiate({
+    scene: level.scene,
+    targets,
+    position: [0, 0, 3],
+    skin: 'blue',
+  }))
+  const duplicateMesh = duplicate.requireComponent(MeshComponent).root.getObjectByProperty('isSkinnedMesh', true)
+  assert.equal(duplicateMesh.material, entries[0].mesh.material, 'same-skin materials are cached per level')
+  assert.equal(
+    duplicateMesh.children.find(node => node.isSkinnedMesh).material,
+    entries[0].mesh.children.find(node => node.isSkinnedMesh).material,
+    'same-skin outlines are cached without leaking other skins\' colors',
+  )
+  assert.notEqual(duplicateMesh.skeleton, entries[0].mesh.skeleton)
+  let materialDisposals = 0
+  let textureDisposals = 0
+  duplicateMesh.material.addEventListener('dispose', () => materialDisposals++)
+  duplicateMesh.material.map.addEventListener('dispose', () => textureDisposals++)
+  level.removeObject(duplicate.id)
+  assert.equal(materialDisposals, 0)
+  assert.equal(textureDisposals, 0)
+  level.dispose()
+  assert.equal(materialDisposals, 1)
+  assert.equal(textureDisposals, 1)
+  for (const skin of ['blue', 'yellow', 'purple'])
+    assert.equal(resources.has(`range-room:training-bot:skin:${skin}`), false)
 })
 
 test('outline data is shared across bots and released only after their instances', async (t) => {

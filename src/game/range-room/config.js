@@ -10,5 +10,7 @@ export const rangeRoomConfig = Object.freeze({
   trainingBot: Object.freeze({
     position: Object.freeze([0.567, 9, 7]),
     scale: 0.80,
+    skins: Object.freeze(['blue', 'yellow', 'purple']),
+    spacing: 2.4,
   }),
 })

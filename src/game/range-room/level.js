@@ -26,6 +26,7 @@ export class RangeRoomLevel extends Level {
   collision = null
   player = null
   trainingBot = null
+  trainingBots = []
   shadows = null
   environmentProxy = null
   reflection = null
@@ -150,11 +151,21 @@ export class RangeRoomLevel extends Level {
           if (settings.trainingBot) {
             const assets = this.disposer.add(await loadTrainingBotAssets({ resources, audio: this.audio, signal: token }))
             token.throwIfAborted()
-            this.trainingBot = this.addObject(assets.instantiate({
-              ...settings.trainingBot,
-              scene,
-              targets: this.#shotTargets,
-            }))
+            const { skins = [settings.trainingBot.skin ?? 'purple'], spacing = 2.4, ...placement } = settings.trainingBot
+            for (const [index, skin] of skins.entries()) {
+              const position = [...placement.position]
+              // Front view from -Z: blue, yellow, purple from left to right.
+              position[0] += ((skins.length - 1) / 2 - index) * spacing
+              this.trainingBots.push(this.addObject(assets.instantiate({
+                ...placement,
+                position,
+                skin,
+                scene,
+                targets: this.#shotTargets,
+              })))
+            }
+            // Keep the legacy single-target handle on the center preview bot.
+            this.trainingBot = this.trainingBots[Math.floor(this.trainingBots.length / 2)] ?? null
           }
           let weapons = null
           if (this.render?.viewmodel) {
@@ -311,6 +322,7 @@ export class RangeRoomLevel extends Level {
       reflection: this.reflection?.getDebugState() ?? null,
       reflectionPreview: this.reflection?.preview?.getDebugState() ?? null,
       trainingBot: this.trainingBot?.getComponent(TrainingBotComponent)?.snapshot() ?? null,
+      trainingBots: this.trainingBots.map(object => object.getComponent(TrainingBotComponent)?.snapshot()).filter(Boolean),
       ground: this.ground?.snapshot() ?? null,
     }
   }
