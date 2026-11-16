@@ -21,7 +21,7 @@ try {
     }check();
   })`)
   const data = await session.evaluate(`(async()=>{
-    const app=__RANGE_ROOM__;app.inspection.setPaused(true);
+    const app=__RANGE_ROOM__;
     if(!app.world.probes)throw new Error('LightProbe is not enabled');
     if(app.world.probes.getDebugState().source!=='live-capture')await app.world.probes.rebake();
     return app.world.probes.exportData();

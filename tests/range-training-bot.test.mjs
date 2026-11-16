@@ -2,22 +2,27 @@ import assert from 'node:assert/strict'
 import { Buffer } from 'node:buffer'
 import fs from 'node:fs/promises'
 import test from 'node:test'
-import { Scene, Vector3 } from 'three/webgpu'
+import { BackSide, Raycaster, Scene, Vector3 } from 'three/webgpu'
 import { Level, MeshComponent, TransformComponent } from '../src/engine/runtime/function/framework/index.js'
 import { ResourceManager } from '../src/engine/runtime/resource/resource-manager.js'
 import { ShotTargets } from '../src/game/targets/shot-targets.js'
 import { loadTrainingBotAssets, TrainingBotComponent } from '../src/game/targets/training-bot.js'
 import { traceWeaponImpact } from '../src/game/weapons/player-weapons.js'
 
-async function fixture(t) {
+async function fixture(t, { audio = null } = {}) {
   const fetch = globalThis.fetch
+  const requests = []
   t.mock.method(globalThis, 'fetch', (url, options) => {
-    if (String(url).startsWith('file:'))
-      return fs.readFile(new URL(url)).then(data => new Response(data))
+    const asset = new URL(url, 'https://training-bot.test/')
+    if (asset.pathname.startsWith('/targets/training-bot/') || asset.pathname.startsWith('/audio/bot/')) {
+      requests.push(asset.pathname)
+      return fs.readFile(new URL(`../public${asset.pathname}`, import.meta.url)).then(data => new Response(data))
+    }
     return fetch(url, options)
   })
   const globals = {
     self: globalThis,
+    location: { href: 'https://training-bot.test/' },
     // Node runs the real GLTFLoader and pose sampling; Chrome decodes the texture.
     createImageBitmap: async (blob) => {
       const bytes = Buffer.from(await blob.arrayBuffer())
@@ -43,7 +48,8 @@ async function fixture(t) {
     resources.dispose()
   })
   const targets = new ShotTargets()
-  const assets = level.disposer.add(await loadTrainingBotAssets({ resources }))
+  const assets = level.disposer.add(await loadTrainingBotAssets({ resources, audio }))
+  await assets.audioReady
   const object = level.addObject(assets.instantiate({
     scene,
     targets,
@@ -65,8 +71,166 @@ async function fixture(t) {
     root,
     targets,
     step,
+    assets,
+    requests,
   }
 }
+
+test('committed head/body hits play one sound per target and shot, and removal cancels only that bot', async (t) => {
+  const cues = []
+  const invalidations = []
+  const audio = {
+    async decode(bytes) {
+      assert.equal(Buffer.from(bytes).toString('ascii', 0, 4), 'OggS')
+      return { bytes: bytes.byteLength }
+    },
+    enqueue(cue) { cues.push(cue) },
+    invalidate(filter) { invalidations.push(filter) },
+    reportOnce(key, error) { assert.fail(`${key}: ${error}`) },
+  }
+  const { level, object, bot, targets, requests, assets } = await fixture(t, { audio })
+  assert.ok(requests.includes('/audio/bot/Head_Hit.ogg'))
+  assert.ok(requests.includes('/audio/bot/Body_Hit.ogg'))
+  const impact = (region, distance = 1, targetId = object.id) => ({ targetId, region, distance })
+  targets.react([
+    impact('chest', 2),
+    impact('head'),
+    impact('head'),
+  ], { at: 0.5 })
+  assert.equal(cues.length, 1, 'multiple pellets cause only one hit cue')
+  assert.equal(cues[0].group, 'bot-hit:head')
+  assert.equal(cues[0].at, 0.5)
+  assert.equal(cues[0].owner, object.id)
+  assert.equal(cues[0].kind, 'transient')
+  const bodyRegions = [
+    'chest',
+    'arm_l',
+    'arm_r',
+    'leg_l',
+    'leg_r',
+  ]
+  for (const region of bodyRegions) {
+    targets.react([
+      impact(region),
+    ], { at: 0.6 })
+  }
+  assert.equal(cues.length, 6)
+  assert.ok(cues.slice(1).every(cue => cue.group === 'bot-hit:body'))
+  assert.ok(cues.slice(1).every(cue => cue.buffer === cues[1].buffer))
+  assert.notEqual(cues[0].buffer, cues[1].buffer)
+  assert.equal(new Set(cues.map(cue => cue.id)).size, cues.length)
+
+  bot.enabled = false
+  targets.react([
+    impact('head'),
+  ], { at: 0.7 })
+  bot.enabled = true
+  object.active = false
+  targets.react([
+    impact('head'),
+  ], { at: 0.7 })
+  object.active = true
+  targets.react([
+    { hit: null },
+  ], { at: 0.7 })
+  assert.equal(cues.length, 6, 'disabled/inactive bots and misses stay silent')
+
+  const second = level.addObject(assets.instantiate({
+    scene: level.scene,
+    targets,
+    position: [3, 0, 0],
+  }))
+  targets.react([
+    impact('chest', 1, second.id),
+  ], { at: 0.8 })
+  assert.equal(cues[6].owner, second.id)
+  assert.equal(cues[6].buffer, cues[1].buffer, 'audio buffers are shared across instances')
+  level.removeObject(object.id)
+  assert.deepEqual(invalidations.at(-1), { scope: cues[0].scope, owner: object.id })
+  targets.react([
+    impact('head'),
+  ], { at: 0.9 })
+  assert.equal(cues.length, 7, 'removed bots cannot enqueue sounds')
+})
+
+test('public bot assets get an occluded outline that follows the same animated skeleton', async (t) => {
+  const { bot, root, step, requests } = await fixture(t)
+  assert.deepEqual(requests, [
+    '/targets/training-bot/range-training-bot.hitboxes.json',
+    '/targets/training-bot/range-training-bot.glb',
+  ])
+  const mesh = root.getObjectByProperty('isSkinnedMesh', true)
+  const shell = mesh.children.find(node => node.isSkinnedMesh)
+  assert.ok(shell, 'one outline shell is attached to the rendered mesh')
+  assert.equal(shell.children.length, 0, 'shells do not recursively create shells')
+  assert.equal(shell.skeleton, mesh.skeleton)
+  assert.ok(shell.bindMatrix.equals(mesh.bindMatrix))
+  assert.notEqual(shell.geometry, mesh.geometry)
+  assert.notEqual(shell.geometry.attributes.normal, mesh.geometry.attributes.normal)
+  assert.notDeepEqual(
+    shell.geometry.attributes.normal.array,
+    mesh.geometry.attributes.normal.array,
+    'outline-only normals close the flat cuboid seams',
+  )
+  assert.equal(shell.material.side, BackSide)
+  assert.equal(shell.material.depthTest, true)
+  assert.equal(shell.material.depthWrite, false, 'outline does not pollute AO depth')
+  assert.equal(shell.material.alphaTest, mesh.material.alphaTest)
+  assert.ok(shell.material.vertexNode, 'outline expansion runs in the WebGPU vertex stage')
+  assert.ok(shell.material.colorNode, 'flat outline color preserves texture alpha')
+  assert.equal(shell.material.color.getHex(), 0x7A56A0)
+  assert.equal(shell.castShadow, false)
+  assert.equal(shell.receiveShadow, false)
+  assert.equal(shell.frustumCulled, false)
+  assert.deepEqual(new Raycaster().intersectObject(shell), [], 'outline is not pickable')
+
+  const head = mesh.skeleton.bones.findIndex(bone => bone.name === 'head')
+  const { skinIndex, skinWeight, position } = mesh.geometry.attributes
+  const vertex = Array.from({ length: position.count }, (_, i) => i)
+    .find(i => skinIndex.getX(i) === head && skinWeight.getX(i) > 0.99)
+  assert.notEqual(vertex, undefined)
+  root.updateMatrixWorld(true)
+  const before = mesh.getVertexPosition(vertex, new Vector3())
+  bot.react({ region: 'head' })
+  step(5)
+  root.updateMatrixWorld(true)
+  const after = mesh.getVertexPosition(vertex, new Vector3())
+  const outlined = shell.getVertexPosition(vertex, new Vector3())
+  assert.ok(after.distanceTo(before) > 0.001)
+  assert.ok(after.distanceTo(outlined) < 1e-6, 'base and shell skinning use the same pose')
+})
+
+test('outline data is shared across bots and released only after their instances', async (t) => {
+  const { level, object, root, assets, targets } = await fixture(t)
+  const second = level.addObject(assets.instantiate({
+    scene: level.scene,
+    targets,
+    position: [3, 0, 0],
+  }))
+  const mesh = root.getObjectByProperty('isSkinnedMesh', true)
+  const other = second.requireComponent(MeshComponent).root.getObjectByProperty('isSkinnedMesh', true)
+  const shell = mesh.children.find(node => node.isSkinnedMesh)
+  const otherShell = other.children.find(node => node.isSkinnedMesh)
+  assert.equal(shell.geometry, otherShell.geometry)
+  assert.equal(shell.material, otherShell.material)
+  assert.notEqual(shell.skeleton, otherShell.skeleton)
+  const skeletonDispose = t.mock.method(mesh.skeleton, 'dispose')
+  const otherSkeletonDispose = t.mock.method(other.skeleton, 'dispose')
+  let geometryDisposals = 0
+  let materialDisposals = 0
+  shell.geometry.addEventListener('dispose', () => geometryDisposals++)
+  shell.material.addEventListener('dispose', () => materialDisposals++)
+  level.removeObject(object.id)
+  assert.equal(skeletonDispose.mock.callCount(), 1)
+  assert.equal(otherSkeletonDispose.mock.callCount(), 0)
+  assert.equal(geometryDisposals, 0)
+  assert.equal(materialDisposals, 0)
+  assert.equal(level.scene.children.length, 1)
+  level.dispose()
+  assert.equal(otherSkeletonDispose.mock.callCount(), 1)
+  assert.equal(geometryDisposals, 1)
+  assert.equal(materialDisposals, 1)
+})
 
 test('the exported GO resolves all six hit regions and its reactions restore the guard pose', async (t) => {
   const { object, bot, root, targets, step } = await fixture(t)

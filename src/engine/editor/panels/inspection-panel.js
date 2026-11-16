@@ -13,16 +13,13 @@ export function createInspectionPanel({ canvas, inspection }) {
     <div class="inspection-actions">
       ${hasPlayer ? '<button type="button" data-action="player">玩家 V</button><button type="button" data-action="collision" aria-pressed="false">碰撞线框：关</button>' : ''}
       <button type="button" data-action="mode">切换轨道</button>
-      <button type="button" data-action="focus"></button>
       <button type="button" data-action="reset">复位 R</button>
-      <button type="button" data-action="pause">暂停漂浮</button>
       <button type="button" data-action="shadows" aria-pressed="true">阴影：开</button>
     </div>
     <p class="inspection-help"></p>`
   canvas.parentElement.append(hud)
   owned.add(() => hud.remove())
   const button = action => hud.querySelector(`[data-action="${action}"]`)
-  button('focus').textContent = inspection.labels.focus
   const speed = hud.querySelector('.inspection-speed')
   const help = hud.querySelector('.inspection-help')
   const refresh = () => {
@@ -41,7 +38,6 @@ export function createInspectionPanel({ canvas, inspection }) {
       button('collision').textContent = state.player.collisionDebug ? '碰撞线框：开' : '碰撞线框：关'
       button('collision').setAttribute('aria-pressed', String(state.player.collisionDebug))
     }
-    button('pause').textContent = state.target.paused ? inspection.labels.resume : inspection.labels.pause
     button('shadows').textContent = state.shadows.enabled ? '阴影：开' : '阴影：关'
     button('shadows').setAttribute('aria-pressed', String(state.shadows.enabled))
     help.textContent = inspection.labels.help[mode]
@@ -61,9 +57,7 @@ export function createInspectionPanel({ canvas, inspection }) {
     mode: () => inspection.setMode(inspection.snapshot().cameraMode === 'orbit'
       ? 'fly'
       : 'orbit'),
-    focus: () => inspection.focusTarget(),
     reset: () => inspection.resetCamera(),
-    pause: () => inspection.setPaused(!inspection.snapshot().target.paused),
     shadows: () => inspection.setShadows(!inspection.snapshot().shadows.enabled),
   }
   const perform = (action) => {
@@ -74,10 +68,8 @@ export function createInspectionPanel({ canvas, inspection }) {
   owned.listen(canvas, 'keydown', (event) => {
     if (event.repeat || event.ctrlKey || event.metaKey || event.altKey)
       return
-    if (event.code === 'KeyF')
-      perform('focus')
     // Player R is an application input action, also available without this panel.
-    else if (event.code === 'KeyR' && inspection.snapshot().cameraMode !== 'player')
+    if (event.code === 'KeyR' && inspection.snapshot().cameraMode !== 'player')
       perform('reset')
     else if (event.code === 'KeyV' && hasPlayer)
       perform('player')

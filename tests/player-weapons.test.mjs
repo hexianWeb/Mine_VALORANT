@@ -142,6 +142,7 @@ function setup(t, {
   particles = null,
   scene = null,
   camera = null,
+  shotTargets = null,
 } = {}) {
   const assets = fakeAssets()
   const aim = new AimState({ seed: 123, offsetSmoothing: 0 })
@@ -235,6 +236,7 @@ function setup(t, {
     particles,
     scene,
     camera,
+    shotTargets,
     world: {
       boxes: [
         {
@@ -303,6 +305,32 @@ function setup(t, {
     },
   }
 }
+
+test('target reactions receive the committed shot timestamp for synchronized hit audio', async (t) => {
+  const reactions = []
+  const f = setup(t, {
+    shotTargets: {
+      trace: () => ({
+        hit: 'bot',
+        targetId: 'bot',
+        region: 'head',
+        distance: 1,
+        position: [0, 1.62, -1],
+        surface: 'metal',
+      }),
+      react(impacts, timing) { reactions.push({ impacts, timing }) },
+    },
+  })
+  await f.ready()
+  f.mouse('mousedown', 0)
+  f.weapons.collectInput(f.input)
+  const batch = f.fixed()
+  const shot = batch.events.find(event => event.type === 'ShotFired')
+  assert.ok(shot)
+  assert.equal(reactions.length, 1)
+  assert.equal(reactions[0].timing.at, shot.at)
+  assert.equal(reactions[0].impacts[0].region, 'head')
+})
 
 test('initial loading warms asynchronously, instantiates only in motion and equips on the next fixed step', async (t) => {
   const f = setup(t)

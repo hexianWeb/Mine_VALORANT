@@ -30,7 +30,7 @@ try {
       requestAnimationFrame(check);
     }check();
   })`)
-  await evaluate(`__RANGE_ROOM__.inspection.setPaused(true);document.querySelector('.debug-panel').hidden=true;document.querySelector('.room-inspection').hidden=true`)
+  await evaluate(`document.querySelector('.debug-panel').hidden=true;document.querySelector('.room-inspection').hidden=true`)
   await frames(16)
   report.initial = await evaluate('__RANGE_ROOM__.snapshot()')
   const { ground, bounds, probes } = report.initial
@@ -63,7 +63,7 @@ try {
   await screenshot('exterior-eye-level.png')
   await pose([bounds.min[0] - 1.4, ground.height + 2.2, bounds.min[2] + 1.6], [bounds.min[0] + 1.2, ground.height, bounds.min[2] + 3])
   await screenshot('quartz-grass-boundary.png')
-  await evaluate('__RANGE_ROOM__.room.root.visible=false;__RANGE_ROOM__.inspection.teapot.mesh.visible=false')
+  await evaluate('__RANGE_ROOM__.room.root.visible=false')
   await pose([cx, ground.height + 65, cz + 0.01], [cx, ground.height, cz])
   await screenshot('footprint-only.png')
   report.gpuTextures = await evaluate(`__RANGE_ROOM__.world.ground.root.children.map(mesh=>{
@@ -100,7 +100,7 @@ try {
     assert.ok(report.indoorLightingDelta < 0.0001)
     await evaluate('__RANGE_ROOM__.world.probes.reset();delete globalThis.__GROUND_PIXELS__')
   }
-  await evaluate('__RANGE_ROOM__.room.root.visible=true;__RANGE_ROOM__.inspection.teapot.mesh.visible=true')
+  await evaluate('__RANGE_ROOM__.room.root.visible=true')
   assert.deepEqual(report.errors, [])
   report.passed = true
 }

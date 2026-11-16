@@ -305,9 +305,10 @@ export class PlayerWeapons {
         ? pellets.filter(pellet => pellet.impact.hit).sort((a, b) => a.impact.distance - b.impact.distance)[0]?.impact ?? pellets[0].impact
         : trace(shot.shotDirection)
       if (this.#shotTargets) {
-        this.#shotTargets.react(pellets
+        const impacts = pellets
           ? pellets.map(pellet => pellet.impact)
-          : [impact])
+          : [impact]
+        this.#shotTargets.react(impacts, { at: event.at })
       }
       const enriched = {
         ...event,

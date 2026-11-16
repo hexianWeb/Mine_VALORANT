@@ -58,10 +58,9 @@ src/
    ├─ targets/                    命中目标注册、机器人命中盒与受击动画
    └─ range-room/
       ├─ level.js                 RangeRoomLevel：关卡加载与对象组装
-      ├─ config.js                资源地址、茶壶与灯光配置
+      ├─ config.js                资源地址与灯光配置
       ├─ collision.js             碰撞数据、出生与越界规则
       ├─ ground.js                Minecraft 地面
-      ├─ floating-teapot.js       茶壶资源、组件装配、普通运动函数
       ├─ assets/                  manifest、材质绑定、资产实例
       └─ lighting/                房间灯光、阴影、探针
 ```
@@ -180,7 +179,7 @@ RuntimeContext 同时持有 function/particle 服务。ImpactEffects 将命中�
       → frame 事件：app 接入 HUD 更新
 ```
 
-关卡分发链是 `WorldManager → Level 扫描所有 GO → 收集本阶段组件快照 → component.tick(context)`。Level 按 GO 插入顺序和 GO 内组件装配顺序扫描，并读取实例的 `component.phases`；执行任何组件回调之前先完成整个阶段的快照。GO 负责组合与生命周期，玩家和茶壶行为由组件执行。context 提供只读的 `phase / delta / time`，固定阶段的 delta 为 fixedDelta，其他阶段为缩放后的帧 delta。
+关卡分发链是 `WorldManager → Level 扫描所有 GO → 收集本阶段组件快照 → component.tick(context)`。Level 按 GO 插入顺序和 GO 内组件装配顺序扫描，并读取实例的 `component.phases`；执行任何组件回调之前先完成整个阶段的快照。GO 负责组合与生命周期，游戏行为由组件执行。context 提供只读的 `phase / delta / time`，固定阶段的 delta 为 fixedDelta，其他阶段为缩放后的帧 delta。
 
 - Engine 显式编排阶段，取消通用 Scheduler、系统名称查找和系统适配器。
 - 固定步为 1/60 秒，每帧最多 5 步。fixed 阶段的 Motor 保存位置历史、运行运动函数、同步调用 `physics.move()` 一次并提交 Transform；PhysicsSystem 不再持有 body 回调或自行步进。
@@ -189,7 +188,7 @@ RuntimeContext 同时持有 function/particle 服务。ImpactEffects 将命中�
 - Player 在 input 向 AimState 累积 look，并把待提交的基础 headingYaw 写到 Motor 命令；jump 与重生请求保留到实际固定步。postPhysics 使用解算后的脚位、眼高和台阶位移提交 AimState；眼高平滑、踏步补偿及近裁面安全约束也在固定步计算。
 - AimState 拥有基础 yaw / pitch、ADS、散布、逐发后坐力与历史。接受 ShotFired 时先从 preShot 瞄准状态生成权威射线，再加入本发 postShot 后坐力；移动只使用基础 yaw，不受 pitch 或后坐力影响。输入只消费一次，多固定步不重复施加 look。
 - 公共表现时间为 `P = max(0, C - h + alpha * h)`，C 为最新已完成 fixedElapsed，h 为 fixedDelta。Time 提供 `presentationTime`；CameraComponent 在 presentation 通过注入的 AimState 采样器写世界相机，WeaponViewModel 在 motion 消费不晚于 P 的事件与姿态，HUD 在 frame 读取同一表现快照。表现枪、弹药及后坐力可能落后玩法一个固定步，不直接读最新权威状态冒充当前画面。
-- 茶壶 Motor 使用 frame 时钟，在 motion 调用一个普通函数计算环绕、漂浮、自转；暂停即禁用 Motor，Mesh 仍参与 presentation。
+- frame 时钟 Motor 在 motion 调用普通运动函数；禁用 Motor 时 Mesh 仍参与 presentation。漂浮茶壶演示对象及其专用观察接口已移除。
 - Mesh 消费已完成的 Transform，玩家 Camera 消费已完成的 AimState 历史；视模使用独立场景，不依赖 Camera／Mesh 或 GO 在同阶段的更新顺序。
 - `Engine.pause()` 停止整个 RAF；`time.timeScale = 0` 冻结模拟时间，保留 rawDelta 驱动的 Editor 观察操作。Player 清除 held、look 和动作边沿，保留武器事务与剩余时间；恢复不补发暂停期间的开火。
 - `rendererTick()` 重复绘制已完成的状态，不推进时间或模拟。正常逐帧入口是 `step()`；同帧重复 logicalTick、递归 step／阶段分发以及绘制未完成的逻辑帧均抛错。异常帧不提交后续阶段、不交换、不渲染，也不能重放已开始的逻辑。
@@ -199,11 +198,10 @@ RuntimeContext 同时持有 function/particle 服务。ImpactEffects 将命中�
 
 ```text
 房间／地面 = Transform + Mesh
-茶壶      = Transform + Mesh + Motor(frame, 茶壶运动函数)
 玩家      = Transform + Motor(fixed, characterMotion) + Camera + Player
 ```
 
-通用组件为 Transform、Mesh、Motor、Camera，游戏组件为 Player。灯光、碰撞数据、阴影及探针归 Level；Player 负责输入映射、站蹲目标、出生规则及 AimState / PlayerWeapons 的更新与销毁。Camera 负责把注入的姿态发布到渲染相机，茶壶动作使用普通函数。Camera 最初提取过程见 [Piccolo CameraComponent 对照记录](superpowers/specs/2026-11-11-camera-component.md)；其中旧玩家视角职责已由本文的固定步 AimState 替代。
+通用组件为 Transform、Mesh、Motor、Camera，游戏组件为 Player。灯光、碰撞数据、阴影及探针归 Level；Player 负责输入映射、站蹲目标、出生规则及 AimState / PlayerWeapons 的更新与销毁。Camera 负责把注入的姿态发布到渲染相机。Camera 最初提取过程见 [Piccolo CameraComponent 对照记录](superpowers/specs/2026-11-11-camera-component.md)；其中旧玩家视角职责已由本文的固定步 AimState 替代。
 
 `GameObject` 的 id 独立于渲染节点，不自动建立空 Group。每个具体组件类型最多一份。`mobility: 'static' | 'dynamic'` 描述空间运动属性，静态对象也可执行行为。
 
@@ -235,7 +233,7 @@ level.addObject(object)
 1. Context 创建 Size、资源管理、Scene、Camera，并等待 RenderSystem 完成异步初始化。
 2. 创建 Audio、Particles、Input、Physics、WorldManager 和 Engine，显式连接依赖。
 3. app 传入同步关卡工厂；WorldManager 等待 `level.load({ signal, onProgress })`。
-4. 关卡完成房间、地面、可选探针、碰撞、初始 Classic 共享资源预热、玩家与茶壶装配后，才成为 activeLevel；不等待依赖 motion / fixed 的视觉准备与掏枪结束。
+4. 关卡完成房间、地面、可选探针、碰撞、初始 Classic 共享资源预热、玩家与可选训练机器人装配后，才成为 activeLevel；不等待依赖 motion / fixed 的视觉准备与掏枪结束。
 5. WorldManager 发出 `load`，app 挂载当前关卡的工具与诊断；最后启动 Engine。
 
 关卡卸载：WorldManager 先清除活动引用并取消加载，发出 `unload` 让 app 释放当前工具与诊断，然后释放 Level。`await world.unloadLevel()` 会等待被取消的关卡加载 Promise 收尾；此期间拒绝新的加载。再次 load 会重新绑定工具，不复用旧玩家或监听器。
@@ -267,7 +265,7 @@ import { createRenderSystem } from './engine/runtime/function/render/index.js'
 
 `RuntimeContext` 从 runtime 公共入口导出，实现在 `function/global/runtime-context.js`。`createRenderSystem({ size, canvas, scene, camera, config })` 在返回前完成 GPU 与 pipeline 初始化。`physics.move(world, box, displacement, options)` 返回实际位移和接触结果，`physics.overlaps(world, box)` 查询占用，`lastStepMs` 提供最近一次位移解算耗时。`moveAABB` 从 controller 文件导入；physics 公共入口导出碰撞世界、overlaps 和 PhysicsSystem。
 
-`?editor=0` 可验证无工具 UI 的关卡运行。既有 URL 参数及 `__RANGE_ROOM__.world / inspection / render / snapshot()` 由 app 适配；`inspection.player` 为 PlayerComponent，`inspection.teapot` 为 app 的组件命令／快照视图，继续提供 mesh、setPaused 和 snapshot。运动只通过 `runtime.world.tickComponents()` / Engine 调度；诊断接口没有独立 update。
+`?editor=0` 可验证无工具 UI 的关卡运行。既有 URL 参数及 `__RANGE_ROOM__.world / inspection / render / snapshot()` 由 app 适配；`inspection.player` 为 PlayerComponent。运动只通过 `runtime.world.tickComponents()` / Engine 调度；诊断接口没有独立 update。
 
 `__RANGE_ROOM__.snapshot().time` 提供 frame、固定步计划／完成数、fixedTick、fixedElapsed、alpha、presentationTime 和本帧 droppedSimulationTime。`engine.time.snapshot()` 返回只读标量；时间缩放使用 `engine.time.timeScale = value` 设置，在下一帧锁定生效。fixedDelta 为构造期只读参数。`snapshot().player.weapons` 同时暴露逻辑装备与 `view` 表现快照，诊断时应区分两者的时间。
 
@@ -284,7 +282,7 @@ import { createRenderSystem } from './engine/runtime/function/render/index.js'
 - `tests/player-input.test.mjs`：真实输入系统与 Player 集成，无 Editor 的 Home 重生、暂停命令排队、恢复零步保留及下个固定步单次执行、禁用清队列。
 - `tests/player-weapons.test.mjs` / `tests/weapon-viewmodel.test.mjs`：异步准备、固定裁定与 P 交接、两实例上限、Editor 保留逻辑枪、暂停／重生使旧票据失效。
 - 武器定义、切换时序、资源与动画专项见[玩法测试](weapons/gameplay.md#验证与剩余范围)及[发布和播放验证](weapons/animation-and-assets.md)。`tests/viewmodel-pass.test.mjs` 覆盖渲染状态恢复，pipeline 浏览器用例覆盖视模 pass 的合成和配置重建。
-- `tests/motion.test.mjs`：玩家／茶壶共享 Motor，0/1/5 固定步只解算对应次数，跨 GO 阶段屏障，零步 jump 排队，独立渲染／暂停与无 Player 的命令驱动。
+- `tests/motion.test.mjs`：玩家与测试用移动物体共享 Motor，0/1/5 固定步只解算对应次数，跨 GO 阶段屏障，零步 jump 排队，独立渲染／暂停与无 Player 的命令驱动。
 - `tools/check-runtime-browser.mjs`：真实关卡有／无 Editor 重载、输入、销毁、独立渲染与法线预通道。
 - `tools/check-weapon-gameplay-browser.mjs`：主游戏可信鼠标／键盘输入、切枪与打断、自动射速、ADS、公共 P、Editor、暂停、重生和释放。命令与报告目录见 [tools](../tools/README.md)；资源预览独立使用 `check-weapons-browser.mjs`。
 - 原有玩家、观察、探针、材质与渲染回归使用真实组件调度。碰撞盒为用户确认的 399，进入本次组件化前已修正断言并达到 89/89 基线。

@@ -8,7 +8,7 @@
 
 最新 [Lightmap 重烘与接入](docs/lighting/lightmap-v1.md) 覆盖“预烘焙”集合的 12 个对象、19 个分区；`Stone_Slab.001` 与 `wall` 使用单独的紧凑补烘图。新资源在 `public/model/range-room-lightmap.glb` 与 `public/lighting/range-room-lightmap/`。右上角 **切回原版** 或 `?lighting=appearance` 可回退；`?lighting=lightmap` 使用新方案。
 
-[室内 LightProbeGrid](docs/lighting/light-probes.md) 使用 Blender `LightProbeVolumes` 的三个 Box，共 282 个预计算探针，为实时物体和漂浮茶壶提供局部漫反射间接光；它不是枪械金属所需的室内镜面反射探针。右侧 Panel 可分别调节探针、已接入材质的天空漫反射/镜面反射、顶灯，并配置捕获与查看边界。`?probes=0` 跳过探针模块。
+[室内 LightProbeGrid](docs/lighting/light-probes.md) 使用 Blender `LightProbeVolumes` 的三个 Box，共 282 个预计算探针，为实时物体提供局部漫反射间接光；它不是枪械金属所需的室内镜面反射探针。右侧 Panel 可分别调节探针、已接入材质的天空漫反射/镜面反射、顶灯，并配置捕获与查看边界。`?probes=0` 跳过探针模块。
 
 [超平坦外部地面](docs/lighting/superflat-ground.md) 按模型实际包围盒自动生成石英砖基底，外围延伸原版平原草皮。原版 16×16 纹理按 1 m/格重复，结合像素锐度、mip 与各向异性过滤；飞出练枪房即可观察。
 
@@ -19,7 +19,7 @@ npm ci
 npm run dev
 ```
 
-使用支持 WebGPU 的最新版 Chrome / Edge。加载后默认进入**玩家模式**，站在碰撞层出生点：点击画面锁定鼠标，WASD 移动、Shift 静步、C 下蹲、空格跳跃，Home 回到出生点，Esc 释放鼠标。武器左键开火、右键 ADS（支持的枪型）、R 换弹、T 检视、K 换肤；**1 Phantom / 2 Classic / 3 Ghost / 4 Vandal / 5 Sheriff / 6 Judge / 7 Odin**，初始 Classic，3–7 为临时参数。V 在玩家与飞行（noclip）之间切换；飞行模式下 WASD 移动、Q/E 升降、右键拖动视角、Shift 加速、滚轮调速，F 定位浮动茶壶，R 复位。左下角可切换轨道模式、碰撞线框、暂停漂浮及动态阴影，右上角提供 AO 和 LUT 调试面板。`?player=0` 启动时保持 Blender 参考机位与飞行模式。碰撞层见 [练枪房碰撞层](docs/physics/collision-layer.md)，模块与操作见 [茶壶与飞行观察](docs/lighting/room-inspection.md)。
+使用支持 WebGPU 的最新版 Chrome / Edge。加载后默认进入**玩家模式**，站在碰撞层出生点：点击画面锁定鼠标，WASD 移动、Shift 静步、C 下蹲、空格跳跃，Home 回到出生点，Esc 释放鼠标。武器左键开火、右键 ADS（支持的枪型）、R 换弹、T 检视、K 换肤；**1 Phantom / 2 Classic / 3 Ghost / 4 Vandal / 5 Sheriff / 6 Judge / 7 Odin**，初始 Classic，3–7 为临时参数。V 在玩家与飞行（noclip）之间切换；飞行模式下 WASD 移动、Q/E 升降、右键拖动视角、Shift 加速、滚轮调速，R 复位。左下角可切换轨道模式、碰撞线框及动态阴影，右上角提供 AO 和 LUT 调试面板。`?player=0` 启动时保持 Blender 参考机位与飞行模式。碰撞层见 [练枪房碰撞层](docs/physics/collision-layer.md)，模块与操作见 [动态阴影与飞行观察](docs/lighting/room-inspection.md)。
 
 当前 `package-lock.json` 与 r187 依赖一致，已验证 `npm ci --dry-run --ignore-scripts`。保留现有 pnpm 锁文件，不删除或自动互相转换；安装时选择一种包管理器。部分 ESLint 开发依赖要求 Node 22.22.2+ 或 24.15+。
 
@@ -58,11 +58,11 @@ EXR 解码和 alpha 加权 mip 生成在独立 Worker 中完成，通过 transfe
 - `src/engine/runtime/`：Engine 显式执行 logicalTick / rendererTick；内部按 core、platform、resource、function 分层。
 - `src/engine/runtime/function/global/`：RuntimeContext 集中创建系统并显式注入依赖，管理初始化及关闭。
 - `src/engine/runtime/function/framework/`：按 component / level / object / world 组织。WorldManager 管理关卡加载／卸载；Level 按阶段扫描所有 GO，收集该阶段的组件快照后统一执行，行为位于组件中。
-- `framework/component/` 集中 Transform、Mesh、Motor、Camera；茶壶组合 Transform／Mesh／Motor，玩家组合 Transform／Motor／Camera 与游戏侧 Player。Transform 统一空间状态，Camera 独立负责第一人称视角与跟随表现。
+- `framework/component/` 集中 Transform、Mesh、Motor、Camera；玩家组合 Transform／Motor／Camera 与游戏侧 Player。Transform 统一空间状态，Camera 独立负责第一人称视角与跟随表现。
 - `function/character/` 提供普通角色运动规则，`controller/` 提供扫掠／台阶算法，`physics/` 提供碰撞服务，`input/` 管理输入。Motor 在 fixed / motion 执行运动，Mesh 与 Camera 在 presentation 消费 Transform。
 - `function/render/` 按 render-system、render-pipeline、render-config、render-profiler 及 passes / material / debugdraw 组织。
 - `src/engine/editor/`：自由／轨道相机、渲染面板、探针面板、观察 HUD 与碰撞辅助线。
-- `src/game/`：玩家规则与练枪房内容；RangeRoomLevel 直接组装房间、地面、玩家、茶壶、阴影和探针。
+- `src/game/`：玩家规则与练枪房内容；RangeRoomLevel 直接组装房间、地面、玩家、训练机器人、阴影和探针。
 - `src/app/`：选择关卡、连接游戏与 Editor、URL 配置及诊断接口。`main.js` 只启动应用并接入 HMR。
 - `src/configs/input-bindings.js`：练枪房玩法键位，由 app 经 RuntimeContext 注入输入系统。runtime 提供通用动作状态与按下／释放边沿，由 Player 映射为玩法命令；省略 bindings 时不绑定键盘动作。Home 回出生点在 `?editor=0` 下同样可用，键盘与玩家复位按钮都在 Tick 中执行，暂停时只排队。
 
@@ -70,7 +70,7 @@ EXR 解码和 alpha 加权 mip 生成在独立 Worker 中完成，通过 transfe
 
 检查接口：`__RANGE_ROOM__.render` 管理渲染效果，`__RANGE_ROOM__.world` 提供 `setRuntimeLighting()` 和房间快照，`__RANGE_ROOM__.room` 是加载后的资产实例。整体状态继续通过 `__RANGE_ROOM__.snapshot()` 获取。
 
-`__RANGE_ROOM__.snapshot().time` 提供只读的帧／固定步时间与限步丢时。Time 统一累积缩放后的 delta，限步时保留插值余量；同帧重复 logicalTick 或递归阶段更新会抛错。茶壶使用 motion，玩家使用 fixed，presentation 只同步模型／相机，rendererTick 可独立重复绘制。
+`__RANGE_ROOM__.snapshot().time` 提供只读的帧／固定步时间与限步丢时。Time 统一累积缩放后的 delta，限步时保留插值余量；同帧重复 logicalTick 或递归阶段更新会抛错。帧时钟 Motor 使用 motion，玩家使用 fixed，presentation 只同步模型／相机，rendererTick 可独立重复绘制。
 
 [CameraComponent 实现记录](docs/superpowers/specs/2026-11-11-camera-component.md) 对照 Piccolo 的第一人称相机组件：Player 转交视角命令与眼高目标，Camera 管理俯仰限制、插值与眼高平滑。player／fly／orbit 切换同步交接共享相机控制权。
 

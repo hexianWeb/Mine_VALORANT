@@ -33,7 +33,6 @@ try {
     check();
   })`)
   await frames(10)
-  await evaluate('__RANGE_ROOM__.inspection.setPaused(true)')
   report.baseline = await evaluate('__RANGE_ROOM__.snapshot().inspection')
   report.referenceCamera = await evaluate(`(() => {
     const { camera, room } = __RANGE_ROOM__;
@@ -47,56 +46,20 @@ try {
     const image = await send('Page.captureScreenshot', { format: 'png' })
     fs.writeFileSync(path.join(output, name), Buffer.from(image.data, 'base64'))
   }
-  await screenshot('teapot-center.png')
-
-  // Read actual baked floor pixels under the projected teapot shadow. Only the
-  // teapot's casting flag changes: all lighting, camera, geometry and AO stay fixed.
-  report.shadow = await evaluate(`(async () => {
-    const app = __RANGE_ROOM__, { light } = app.inspection.shadows;
-    const pot = app.inspection.teapot.mesh.position;
-    const point = pot.clone().sub(light.position);
-    point.multiplyScalar((light.position.y - 9.0625) / (light.position.y - pot.y)).add(light.position).project(app.camera);
-    const x = Math.round((point.x + 1) * 640), y = Math.round((1 - point.y) * 360);
-    const pixels = [];
-    for (let dy = -24; dy <= 24; dy += 12) for (let dx = -48; dx <= 48; dx += 12) {
-      const px = x + dx, py = y + dy;
-      if (px < 0 || px >= 1280 || py < 0 || py >= 720) continue;
-      const hit = app.pickPixel(px, py);
-      if (['lightmap', 'baked-appearance'].includes(hit?.mode)) pixels.push({ x: px, y: py, mode: hit.mode });
-    }
-    const values = [];
-    for (const pixel of pixels) values.push(await app.render.readLinearPixel(pixel.x, pixel.y));
-    globalThis.__SHADOW_SAMPLES__ = { pixels, values };
-    app.inspection.teapot.mesh.castShadow = false;
-    return { center: [x, y], samples: pixels.length };
+  await screenshot('room-center.png')
+  report.removedProp = await evaluate(`(() => {
+    const app = __RANGE_ROOM__;
+    return {
+      object: Object.hasOwn(app.world, 'teapot'),
+      diagnostic: Object.hasOwn(app.inspection, 'teapot'),
+      actions: [...document.querySelectorAll('.room-inspection [data-action]')].map(button => button.dataset.action),
+    };
   })()`)
-  await frames(4)
-  report.shadow.delta = await evaluate(`(async () => {
-    const { pixels, values } = __SHADOW_SAMPLES__; let delta = 0;
-    for (let i = 0; i < pixels.length; i++) {
-      const pixel = pixels[i];
-      const next = await __RANGE_ROOM__.render.readLinearPixel(pixel.x, pixel.y);
-      for (let c = 0; c < 3; c++) delta = Math.max(delta, next[c] - values[i][c]);
-    }
-    delete globalThis.__SHADOW_SAMPLES__;
-    __RANGE_ROOM__.inspection.teapot.mesh.castShadow = true;
-    return delta;
-  })()`)
-  assert.ok(report.shadow.samples > 0 && report.shadow.delta > 0.01, 'Teapot must darken baked floor pixels')
-
-  report.animation = await evaluate(`(() => {
-    const { teapot } = __RANGE_ROOM__.inspection;
-    const before = teapot.snapshot(); teapot.setPaused(false);
-    const frame = { time: { delta: 8, alpha: 0, rawDelta: 0 } };
-    __RANGE_ROOM__.runtime.world.tickComponents('motion', frame);
-    __RANGE_ROOM__.runtime.world.tickComponents('presentation', frame);
-    teapot.setPaused(true);
-    return { before, after: teapot.snapshot() };
-  })()`)
-  assert.notDeepEqual(report.animation.before.position, report.animation.after.position)
-  await evaluate('__RANGE_ROOM__.inspection.focusTeapot()')
-  await frames(4)
-  await screenshot('teapot-focus.png')
+  assert.equal(report.removedProp.object, false)
+  assert.equal(report.removedProp.diagnostic, false)
+  assert.equal(Object.hasOwn(report.baseline, 'target'), false)
+  for (const action of ['focus', 'pause'])
+    assert.equal(report.removedProp.actions.includes(action), false)
 
   // Exercise focused keyboard input deterministically, independent of GPU frame rate.
   report.flight = await evaluate(`(() => {
@@ -196,7 +159,7 @@ finally {
     passed: report.passed,
     failure: report.failure,
     errors: report.errors,
-    shadow: report.shadow,
+    shadows: report.baseline?.shadows,
     flight: report.flight,
     report: path.join(output, 'report.json'),
   }, null, 2))

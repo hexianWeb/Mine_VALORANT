@@ -29,7 +29,6 @@ try {
       requestAnimationFrame(check);
     }check();
   })`)
-  await evaluate('__RANGE_ROOM__.inspection.setPaused(true)')
   await frames(30)
   report.initial = await evaluate('__RANGE_ROOM__.snapshot()')
   assert.equal(report.initial.probes.source, 'precomputed')

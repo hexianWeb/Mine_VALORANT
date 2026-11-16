@@ -28,7 +28,7 @@ export class ShotTargets {
     }
   }
 
-  react(impacts) {
+  react(impacts, timing) {
     const nearestByTarget = new Map()
     for (const impact of impacts) {
       if (!impact.targetId)
@@ -38,6 +38,6 @@ export class ShotTargets {
         nearestByTarget.set(impact.targetId, impact)
     }
     for (const [id, impact] of nearestByTarget)
-      this.#targets.get(id)?.react(impact)
+      this.#targets.get(id)?.react(impact, timing)
   }
 }

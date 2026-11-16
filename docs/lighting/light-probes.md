@@ -26,7 +26,7 @@
 - 捕获天空贡献同时控制静态捕获场景的背景亮度和环境强度。
 - 自发光强度为 0 时保留黑色灯带表面作为遮挡，不通过隐藏表面形成屋顶孔洞。
 - 捕获顶灯只改变实时表面的受光；墙地面已有 Lightmap 的出射光维持已烘焙结果。
-- 捕获场景是房间的静态副本，独立于茶壶、辅助阴影灯和主画面的 AO、曝光、LUT。使用线性 HDR，不将后处理烘进 SH。
+- 捕获场景是房间的静态副本，独立于动态物体、辅助阴影灯和主画面的 AO、曝光、LUT。使用线性 HDR，不将后处理烘进 SH。
 - 已完成的 Lightmap 包含反弹光，因此初版不额外迭代 bounce。
 
 Panel 参数与重新捕获结果属于当前页面会话；刷新恢复项目中的默认参数和预计算数据。
@@ -80,7 +80,7 @@ node tools/bake-room-probes.mjs http://localhost:5173/
 - `probe-environment.js`：PBR 环境漫反射／镜面分量控制；可通过 `bindRoot()` 为后续动态物体接入控制。
 - `probe-data.js`：数据布局、签名、校验与完整 3D 纹理读写。Three.js 的 `copyTextureToTexture` 默认只复制一层，上传时显式传入完整 `Box3` 深度范围。
 - `probe-panel.js`：即时调光、捕获参数、进度与错误状态。
-- `range-room.js` 保持普通加载与渲染器解耦，显式调用 `loadProbes(renderer)` 初始化探针；`main.js` 将茶壶接入环境控制。
+- `src/game/range-room/level.js` 保持普通加载与渲染器解耦，显式调用 `loadProbes(renderer)` 初始化探针。
 
 运行时入口为 `__RANGE_ROOM__.world.probes`：`getDebugState()`、`setLighting()`、`setVolumeIntensity()`、`setCapture()`、`rebake()`、`exportData()`。`world.setRuntimeLighting(false)` 同时关闭探针与原室内环境照明。
 

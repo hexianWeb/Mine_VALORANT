@@ -173,13 +173,14 @@ export async function checkLevelReload(app, editorEnabled) {
   engine.pause()
   const originalChildren = scene.children.length
   const originalObjects = world.activeLevel.objects.size
-  check(originalObjects === 4, 'Room, ground, player and teapot must be composed objects')
-  check(world.activeLevel.player.owner.requireComponent(MotorComponent).constructor === world.activeLevel.teapot.requireComponent(MotorComponent).constructor, 'Player and teapot must share Motor')
+  const hasTrainingBot = Number(!!world.activeLevel.trainingBot)
+  check(originalObjects === 3 + hasTrainingBot, 'Room, ground, player and the optional training bot must be composed objects')
+  check(!Object.hasOwn(world.activeLevel, 'teapot'), 'The removed inspection prop must not be recreated')
   for (const object of world.activeLevel.objects.values())
     check(!!object.getComponent(TransformComponent), 'Each spatial object requires Transform')
   check([
     ...world.activeLevel.objects.values(),
-  ].filter(object => object.getComponent(MeshComponent)).length === 3, 'Room, ground and teapot must share Mesh')
+  ].filter(object => object.getComponent(MeshComponent)).length === 2 + hasTrainingBot, 'Room, ground and the optional training bot must share Mesh')
   const cycles = []
   for (let cycle = 0; cycle < 2; cycle++) {
     const previous = world.activeLevel
@@ -238,16 +239,15 @@ export async function checkLevelReload(app, editorEnabled) {
     const fixedPosition = level.player.position.clone()
     const timeFrame = engine.time.frame
     const fixedTick = engine.time.fixedTick
-    const propElapsed = level.teapot.requireComponent(MotorComponent).elapsed
-    const propPosition = level.teapot.requireComponent(TransformComponent).position.clone()
+    const motor = level.player.owner.requireComponent(MotorComponent)
+    const motorElapsed = motor.elapsed
     const viewPosition = camera.position.clone()
     const viewRotation = camera.quaternion.clone()
     const viewOffset = view.currentVerticalOffset
-    check(propElapsed > 0 && level.teapot.requireComponent(MeshComponent).root.position.equals(propPosition), 'Frame Motor did not publish its pose to Mesh')
     engine.rendererTick()
     engine.rendererTick()
     check(level.player.position.equals(fixedPosition) && engine.time.frame === timeFrame, 'Rendering advanced simulation')
-    check(engine.time.fixedTick === fixedTick && level.teapot.requireComponent(MotorComponent).elapsed === propElapsed, 'Rendering advanced a Motor clock')
+    check(engine.time.fixedTick === fixedTick && motor.elapsed === motorElapsed, 'Rendering advanced a Motor clock')
     check(camera.position.equals(viewPosition) && camera.quaternion.equals(viewRotation) && view.currentVerticalOffset === viewOffset, 'Rendering advanced CameraComponent presentation')
     let repeatedLogicRejected = false
     try {
@@ -263,7 +263,7 @@ export async function checkLevelReload(app, editorEnabled) {
       sceneChildren: scene.children.length,
       movement: level.player.position.distanceTo(start),
       fixedTick,
-      propElapsed,
+      motorElapsed,
       repeatedLogicRejected,
       input: await checkPlayerCommands(runtime, level, editorEnabled, canvas, () => engine.step(now += 1000 / 60)),
       camera: checkCameraOwnership(runtime, level, editorEnabled, () => engine.step(now += 1000 / 60)),

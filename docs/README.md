@@ -35,7 +35,7 @@
 | [Lightmap v1](lighting/lightmap-v1.md) | 预烘焙集合重烘、补烘和回退 |
 | [室内 LightProbeGrid](lighting/light-probes.md) | Blender Box 驱动的 SH 漫反射探针体积，不是新版室内镜面反射 |
 | [超平坦外部地面](lighting/superflat-ground.md) | 房间外石英砖与草皮 |
-| [茶壶、阴影与飞行观察](lighting/room-inspection.md) | 茶壶、动态阴影和飞行／轨道操作。默认进入的是玩家模式，飞行操作见本文 |
+| [动态阴影与飞行观察](lighting/room-inspection.md) | 动态阴影和飞行／轨道操作。默认进入的是玩家模式，飞行操作见本文 |
 
 ### 物理与资产
 

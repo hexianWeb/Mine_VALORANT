@@ -156,6 +156,28 @@ test('room owns camera setup, lighting, environment and cleanup independently of
   await assert.rejects(world.load(), /disposed/)
 })
 
+test('rendered room keeps its shadows without creating a floating inspection object', async (t) => {
+  const { world, assertRestored } = fixture(t)
+  const renderer = {
+    shadowMap: { enabled: false, type: THREE.BasicShadowMap },
+  }
+  world.render = { renderer }
+  await world.load()
+  assert.deepEqual([
+    ...world.objects.values(),
+  ].map(object => object.name), ['Room', 'Ground'])
+  assert.equal(Object.hasOwn(world, 'teapot'), false)
+  assert.equal(Object.hasOwn(world.settings, 'center'), false)
+  assert.equal(Object.hasOwn(world.settings, 'orbitRadius'), false)
+  assert.equal(world.shadows.enabled, true)
+  assert.ok(world.shadows.snapshot().casters > 0)
+  world.shadows.setEnabled(false)
+  assert.equal(world.shadows.snapshot().enabled, false)
+  world.dispose()
+  assert.deepEqual(renderer.shadowMap, { enabled: false, type: THREE.BasicShadowMap })
+  assertRestored()
+})
+
 test('room sampling respects a device limit below the configured 16x default', async (t) => {
   const { world } = fixture(t, undefined, undefined, 8)
   await world.load()

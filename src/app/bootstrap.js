@@ -4,7 +4,7 @@ import { createEditor } from '../engine/editor/editor.js'
 import { Disposer, RuntimeContext } from '../engine/runtime/index.js'
 import { RangeRoomLevel } from '../game/range-room/level.js'
 import { readAppConfig } from './config.js'
-import { createTeapotInspection, installDiagnostics } from './diagnostics.js'
+import { installDiagnostics } from './diagnostics.js'
 import { mountWeaponHud } from './weapon-hud.js'
 
 /**
@@ -45,7 +45,6 @@ import { mountWeaponHud } from './weapon-hud.js'
  * @typedef {object} InspectionSnapshot
  * @property {InspectionCameraMode} cameraMode 当前观察模式。
  * @property {number} flySpeed 飞行速度。没有控件时为 0。
- * @property {object | undefined} target 茶壶快照。没有茶壶时缺省。
  * @property {object | undefined} shadows 阴影快照。没有阴影时缺省。
  * @property {InspectionPlayerSnapshot | null} player 玩家快照。关卡没有玩家时为 null。
  */
@@ -55,13 +54,10 @@ import { mountWeaponHud } from './weapon-hud.js'
  *
  * @typedef {object} Inspection
  * @property {object | null} player 关卡玩家。没有玩家时为 null。
- * @property {ReturnType<typeof createTeapotInspection>} target 茶壶组件的观察接口。
  * @property {object | null} collisionDebug 碰撞辅助线。编辑器关闭或关卡没有碰撞盒时为 null。
- * @property {{ focus: string, pause: string, resume: string, help: { player: string, fly: string, orbit: string } }} labels 面板按钮文案和三种模式的操作说明。
+ * @property {{ help: { player: string, fly: string, orbit: string } }} labels 三种模式的操作说明。
  * @property {(value: InspectionCameraMode) => void} setMode 切换观察模式。
- * @property {() => void} focusTarget 把观察相机对准茶壶。
  * @property {() => void} resetCamera 玩家模式重生，否则恢复观察相机初始机位。
- * @property {(value: boolean) => void} setPaused 暂停或继续茶壶漂浮。
  * @property {(value: boolean) => void} setShadows 开关阴影。
  * @property {(value: boolean) => void} setCollisionDebug 开关碰撞辅助线。
  * @property {() => InspectionSnapshot} snapshot 读取当前观察状态。
@@ -79,7 +75,7 @@ import { mountWeaponHud } from './weapon-hud.js'
 /**
  * 应用组装根。`main.js` 调用本函数。
  *
- * 连接关系：`RuntimeContext` 持有场景、渲染、输入、物理和帧循环；`RangeRoomLevel` 持有房间、玩家、茶壶和光照；
+ * 连接关系：`RuntimeContext` 持有场景、渲染、输入、物理和帧循环；`RangeRoomLevel` 持有房间、玩家和光照；
  * `createEditor` 持有飞行、环绕相机、面板和碰撞辅助线；`createInspection` 把关卡操作收成工具接口；
  * `installDiagnostics` 把诊断面挂到 `globalThis.__RANGE_ROOM__`。
  * runtime 不依赖练枪房，editor 也不直接调用关卡内部。
@@ -231,7 +227,7 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
 }
 
 /**
- * 把当前关卡已有的玩家、茶壶、阴影和碰撞调试收成 {@link Inspection}。
+ * 把当前关卡已有的玩家、阴影和碰撞调试收成 {@link Inspection}。
  * 不创建对象，也不拥有 tick。
  *
  * 初始模式：有玩家时为 `player`；无玩家但有控件时为 `fly`；两者都没有时为 `static`。
@@ -248,7 +244,6 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
  * @returns {Inspection} 面板与诊断共用的观察接口。
  */
 function createInspection({ level, canvas, controls, collisionDebug, physics, startMode }) {
-  const target = createTeapotInspection(level.teapot)
   /** @type {InspectionCameraMode} */
   let mode = /** @type {InspectionCameraMode} */ (level.player
     ? 'player'
@@ -263,16 +258,12 @@ function createInspection({ level, canvas, controls, collisionDebug, physics, st
   ]
   const api = {
     player: level.player,
-    target,
     collisionDebug,
     labels: {
-      focus: '定位茶壶 F',
-      pause: '暂停漂浮',
-      resume: '继续漂浮',
       help: {
         player: '点击锁定 · 左键开火 · 右键瞄准 · 1/2/滚轮切枪 · R 换弹 · T 检视 · WASD 移动 · Home 重生 · V 飞行 · Esc 释放',
         fly: '点击画面激活 · 右键拖动视角 · WASD 移动 · Q/E 降/升 · Shift 加速 · 滚轮调速 · Esc 释放',
-        orbit: '左键环绕 · 右键平移 · 滚轮缩放 · F 定位茶壶 · R 恢复初始机位',
+        orbit: '左键环绕 · 右键平移 · 滚轮缩放 · R 恢复初始机位',
       },
     },
     /**
@@ -299,20 +290,6 @@ function createInspection({ level, canvas, controls, collisionDebug, physics, st
       canvas.focus({ preventScroll: true })
     },
     /**
-     * 把观察相机对准茶壶。没有控件或茶壶时直接返回。
-     * 当前为玩家模式时先切到飞行。
-     *
-     * @returns {void}
-     */
-    focusTarget() {
-      if (!controls || !target)
-        return
-      if (mode === 'player')
-        api.setMode('fly')
-      controls.focus(target.mesh.position)
-      canvas.focus({ preventScroll: true })
-    },
-    /**
      * 玩家模式下排队重生命令，下一固定步执行；否则恢复观察相机初始机位。随后聚焦画布。
      *
      * @returns {void}
@@ -324,13 +301,6 @@ function createInspection({ level, canvas, controls, collisionDebug, physics, st
         controls?.reset()
       canvas.focus({ preventScroll: true })
     },
-    /**
-     * 暂停或继续茶壶漂浮。没有茶壶时不做事。
-     *
-     * @param {boolean} value `true` 为暂停。
-     * @returns {void}
-     */
-    setPaused: value => target?.setPaused(value),
     /**
      * 开关房间阴影。没有阴影对象时不做事。
      *
@@ -346,7 +316,7 @@ function createInspection({ level, canvas, controls, collisionDebug, physics, st
      */
     setCollisionDebug: value => collisionDebug?.setVisible(value),
     /**
-     * 收集当前模式、飞行速度、茶壶、阴影和玩家步进。
+     * 收集当前模式、飞行速度、阴影和玩家步进。
      *
      * @returns {InspectionSnapshot} 当前观察状态。
      */
@@ -354,7 +324,6 @@ function createInspection({ level, canvas, controls, collisionDebug, physics, st
       return {
         cameraMode: mode,
         flySpeed: controls?.speed ?? 0,
-        target: target?.snapshot(),
         shadows: level.shadows?.snapshot(),
         player: level.player
           ? {

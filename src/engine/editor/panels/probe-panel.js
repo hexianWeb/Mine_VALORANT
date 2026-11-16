@@ -81,7 +81,7 @@ export function addProbePanel(pane, probes) {
         ? '预计算'
         : '本次捕获'
       const readiness = current.dirty ? '参数已变更，待重新捕获' : '数据就绪'
-      status.textContent = `${origin} · ${current.total} 个探针 · ${readiness}\n天空滑杆为原环境的倍率；捕获不包含茶壶、辅助阴影灯和后处理。`
+      status.textContent = `${origin} · ${current.total} 个探针 · ${readiness}\n天空滑杆为原环境的倍率；捕获仅包含静态房间，不包含辅助阴影灯和后处理。`
     }
     pane.refresh()
   }

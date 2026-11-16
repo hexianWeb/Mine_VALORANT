@@ -1,13 +1,29 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { PerspectiveCamera, Scene } from 'three/webgpu'
+import { Object3D, PerspectiveCamera, Scene, Vector3 } from 'three/webgpu'
 import { Engine } from '../src/engine/runtime/engine.js'
 import { characterMotion } from '../src/engine/runtime/function/character/character-motion.js'
 import { Component, GameObject, Level, MeshComponent, MotorComponent, TransformComponent } from '../src/engine/runtime/function/framework/index.js'
 import { CollisionWorld, createPhysicsSystem } from '../src/engine/runtime/function/physics/index.js'
 import { playerConfig } from '../src/game/player/config.js'
 import { createPlayer, PlayerComponent } from '../src/game/player/player.js'
-import { createFloatingTeapot } from '../src/game/range-room/floating-teapot.js'
+
+function createMovingProp(scene, release = () => {}) {
+  const object = new GameObject({ name: 'Moving prop' })
+  object.addComponent(new TransformComponent())
+  object.addComponent(new MeshComponent({
+    root: new Object3D(),
+    scene,
+    release,
+  }))
+  object.addComponent(new MotorComponent({
+    clock: 'frame',
+    motion: ({ elapsed }) => ({
+      position: new Vector3(elapsed, 0, 0),
+    }),
+  }))
+  return object
+}
 
 test('shared Motor clocks give 0/1/5 solves, queued jump once, pause and renderer-only isolation', () => {
   const scene = new Scene()
@@ -53,10 +69,10 @@ test('shared Motor clocks give 0/1/5 solves, queued jump once, pause and rendere
     input,
     physics: service,
   }))
-  const teapot = level.addObject(createFloatingTeapot({ scene }))
+  const movingProp = level.addObject(createMovingProp(scene))
   const player = playerObject.requireComponent(PlayerComponent)
   const body = playerObject.requireComponent(MotorComponent)
-  const prop = teapot.requireComponent(MotorComponent)
+  const prop = movingProp.requireComponent(MotorComponent)
   assert.equal(body.constructor, prop.constructor)
   assert.equal(player.position, playerObject.requireComponent(TransformComponent).position)
   assert.equal(player.velocity, body.velocity)
@@ -90,7 +106,7 @@ test('shared Motor clocks give 0/1/5 solves, queued jump once, pause and rendere
   player.setEnabled(false)
   engine.step(1040)
   assert.equal(solves, 6)
-  assert.ok(prop.elapsed > elapsed, 'teapot runs while player control is disabled')
+  assert.ok(prop.elapsed > elapsed, 'frame-clock prop runs while player control is disabled')
   player.setEnabled(true)
   playerObject.active = false
   engine.step(1060)
@@ -102,6 +118,50 @@ test('shared Motor clocks give 0/1/5 solves, queued jump once, pause and rendere
   assert.equal(level.objects.size, 0)
   physics.dispose()
   engine.destroy()
+})
+
+test('frame-clock motion is rate independent, pauses locally and can be removed without its Mesh', () => {
+  let releases = 0
+  const fixtures = [30, 120].map((fps) => {
+    const scene = new Scene()
+    const level = new Level({ scene })
+    const object = level.addObject(createMovingProp(scene, () => releases++))
+    const update = (delta) => {
+      const frame = {
+        time: { delta, alpha: 0 },
+      }
+      level.tickComponents('motion', frame)
+      level.tickComponents('presentation', frame)
+    }
+    for (let i = 0; i < fps * 8; i++) update(1 / fps)
+    return {
+      level,
+      object,
+      update,
+      motor: object.requireComponent(MotorComponent),
+      mesh: object.requireComponent(MeshComponent).root,
+    }
+  })
+  const [a, b] = fixtures
+  assert.ok(a.mesh.position.distanceTo(b.mesh.position) < 1e-10)
+  const position = a.mesh.position.clone()
+  const elapsed = a.motor.elapsed
+  a.motor.enabled = false
+  a.update(10)
+  assert.ok(a.mesh.position.equals(position))
+  assert.equal(a.motor.elapsed, elapsed)
+  a.motor.enabled = true
+  a.update(1 / 60)
+  assert.ok(Math.abs(a.motor.elapsed - elapsed - 1 / 60) < 1e-10)
+  a.object.removeComponent(MotorComponent)
+  a.object.requireComponent(TransformComponent).position.set(1, 2, 3)
+  a.update(10)
+  assert.deepEqual(a.mesh.position.toArray(), [1, 2, 3])
+  for (const { level } of fixtures) {
+    level.dispose()
+    level.dispose()
+  }
+  assert.equal(releases, 2)
 })
 
 test('a command-driven character uses Transform/Motor without Player, camera or input', () => {
@@ -182,11 +242,11 @@ test('global phase barriers publish every fixed Motor before postPhysics and fra
     object.addComponent(new Control())
     bodies.push(level.addObject(object))
   }
-  const teapot = level.addObject(createFloatingTeapot({ scene }))
-  const prop = teapot.requireComponent(MotorComponent)
+  const movingProp = level.addObject(createMovingProp(scene))
+  const prop = movingProp.requireComponent(MotorComponent)
   const moveProp = prop.motion
   prop.motion = (motor, delta) => {
-    trace.push('motion:teapot')
+    trace.push('motion:prop')
     return moveProp(motor, delta)
   }
   const engine = new Engine({ world: level })
@@ -208,12 +268,12 @@ test('global phase barriers publish every fixed Motor before postPhysics and fra
     'fixed:4',
     'postPhysics:2',
     'postPhysics:4',
-    'motion:teapot',
+    'motion:prop',
     'presentation:2',
     'presentation:4',
   ])
   assert.equal(prop.elapsed, 0.05)
-  assert.ok(teapot.requireComponent(MeshComponent).root.position.equals(teapot.requireComponent(TransformComponent).position))
+  assert.ok(movingProp.requireComponent(MeshComponent).root.position.equals(movingProp.requireComponent(TransformComponent).position))
   assert.equal(GameObject.prototype.tick, undefined, 'GO does not implement an independent gameplay loop')
   level.dispose()
   engine.destroy()

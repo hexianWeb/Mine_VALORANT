@@ -11,7 +11,6 @@ import { classicDefinition } from '../weapons/definitions/classic.js'
 import { loadRoomAssets } from './assets/room-assets.js'
 import { loadCollisionLayer } from './collision.js'
 import { rangeRoomConfig } from './config.js'
-import { createFloatingTeapot } from './floating-teapot.js'
 import { createRoomGround, roomGroundTextures } from './ground.js'
 import { createProbeLighting } from './lighting/probe-lighting.js'
 import { loadRoomReflection } from './lighting/reflection-probe.js'
@@ -27,7 +26,6 @@ export class RangeRoomLevel extends Level {
   collision = null
   player = null
   trainingBot = null
-  teapot = null
   shadows = null
   environmentProxy = null
   reflection = null
@@ -150,7 +148,7 @@ export class RangeRoomLevel extends Level {
         token.throwIfAborted()
         if (this.collision) {
           if (settings.trainingBot) {
-            const assets = this.disposer.add(await loadTrainingBotAssets({ resources, signal: token }))
+            const assets = this.disposer.add(await loadTrainingBotAssets({ resources, audio: this.audio, signal: token }))
             token.throwIfAborted()
             this.trainingBot = this.addObject(assets.instantiate({
               ...settings.trainingBot,
@@ -201,17 +199,10 @@ export class RangeRoomLevel extends Level {
         }
       }
       if (this.render) {
-        this.teapot = this.addObject(createFloatingTeapot({
-          scene,
-          center: new THREE.Vector3().fromArray(settings.center),
-          radius: new THREE.Vector2().fromArray(settings.orbitRadius),
-        }))
-        const mesh = this.teapot.requireComponent(MeshComponent).root
-        this.probes?.bindRoot(mesh)
         this.shadows = this.#bindings.add(createRoomShadows({
           scene,
           renderer: this.render.renderer,
-          roots: [room.root, mesh],
+          roots: [room.root],
           position: new THREE.Vector3().fromArray(settings.shadowPosition),
           target: new THREE.Vector3().fromArray(settings.shadowTarget),
         }))
@@ -256,8 +247,6 @@ export class RangeRoomLevel extends Level {
         onProgress,
       }))
       token.throwIfAborted()
-      if (this.teapot)
-        this.probes.bindRoot(this.teapot.requireComponent(MeshComponent).root)
       return this.probes
     }
     finally {

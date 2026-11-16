@@ -1,35 +1,7 @@
 import { Raycaster, Vector2 } from 'three/webgpu'
-import { MeshComponent, MotorComponent, TransformComponent } from '../engine/runtime/function/framework/index.js'
-
-/** Commands/read-only views for the existing tool surface; no simulation loop. */
-export function createTeapotInspection(object) {
-  if (!object)
-    return null
-  const transform = object.requireComponent(TransformComponent)
-  const motor = object.requireComponent(MotorComponent)
-  return {
-    mesh: object.requireComponent(MeshComponent).root,
-    get paused() { return !motor.enabled },
-    setPaused(value) { motor.enabled = !value && !motor.disposed },
-    snapshot() {
-      return {
-        paused: !motor.enabled,
-        elapsed: motor.elapsed,
-        center: motor.state.center.toArray(),
-        position: transform.position.toArray(),
-        radius: motor.state.radius.toArray(),
-        orbitPeriod: motor.state.orbitPeriod,
-      }
-    },
-  }
-}
 
 /** Legacy browser/console surface is adapted here; runtime never reads this global. */
 export function installDiagnostics({ runtime, level, inspection, editor, canvas, target = globalThis }) {
-  const inspectionSnapshot = () => {
-    const state = inspection.snapshot()
-    return { ...state, teapot: state.target }
-  }
   const api = {
     runtime,
     engine: runtime.engine,
@@ -45,13 +17,10 @@ export function installDiagnostics({ runtime, level, inspection, editor, canvas,
       ...inspection,
       fly: editor?.controls,
       orbit: editor?.controls.orbit,
-      teapot: inspection.target,
       shadows: level.shadows,
       input: runtime.input,
       physics: runtime.physics,
       collision: level.collision,
-      focusTeapot: inspection.focusTarget,
-      snapshot: inspectionSnapshot,
     },
     get ready() {
       return runtime.state === 'ready' && level.snapshot().ready && runtime.render.snapshot().ready
@@ -59,14 +28,14 @@ export function installDiagnostics({ runtime, level, inspection, editor, canvas,
     snapshot() {
       const render = runtime.render.snapshot()
       const world = level.snapshot()
-      const inspection = inspectionSnapshot()
+      const state = inspection.snapshot()
       return {
         ...render,
         ...world,
         time: runtime.engine.time.snapshot(),
         audio: runtime.audio?.snapshot(),
-        inspection,
-        player: inspection.player,
+        inspection: state,
+        player: state.player,
         ready: api.ready,
         config: {
           ...render.config,

@@ -1,79 +1,50 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import * as THREE from 'three/webgpu'
-import { createTeapotInspection } from '../src/app/diagnostics.js'
-import { Level, MotorComponent, TransformComponent } from '../src/engine/runtime/function/framework/index.js'
-import { createFloatingTeapot } from '../src/game/range-room/floating-teapot.js'
+import { installDiagnostics } from '../src/app/diagnostics.js'
 import { createRoomShadows } from '../src/game/range-room/lighting/room-shadows.js'
 
-function setup(center) {
-  const scene = new THREE.Scene()
-  const level = new Level({ scene })
-  const object = level.addObject(createFloatingTeapot({ center, scene }))
-  return {
-    ...createTeapotInspection(object),
-    object,
-    update(delta) {
-      const frame = {
-        time: { delta, alpha: 0 },
-      }
-      level.tickComponents('motion', frame)
-      level.tickComponents('presentation', frame)
+test('diagnostics expose room inspection without a removed prop or legacy commands', () => {
+  const target = {}
+  const state = {
+    cameraMode: 'fly',
+    flySpeed: 6,
+    shadows: { enabled: true },
+    player: null,
+  }
+  const inspection = {
+    snapshot: () => state,
+  }
+  const runtime = {
+    state: 'ready',
+    engine: {
+      time: {
+        snapshot: () => ({ frame: 1 }),
+      },
     },
-    dispose: () => level.dispose(),
+    render: {
+      snapshot: () => ({ ready: true, config: {} }),
+    },
   }
-}
-
-test('teapot starts centrally, stays in its interior orbit and resumes without a time jump', () => {
-  const center = new THREE.Vector3(0.5, 11.8, 5.5)
-  const teapot = setup(center)
-  assert.deepEqual(teapot.mesh.position.toArray(), center.toArray())
-  const startRotation = teapot.mesh.quaternion.clone()
-  for (let frame = 0; frame < 3600; frame++) {
-    teapot.update(1 / 60)
-    const offset = teapot.mesh.position.clone().sub(center)
-    assert.ok(Math.abs(offset.x) <= 6.5 && Math.abs(offset.z) <= 4.5)
-    assert.ok(Math.abs(offset.y) <= 0.55 + 1e-10)
+  const level = {
+    snapshot: () => ({ ready: true, config: {} }),
   }
-  assert.ok(startRotation.angleTo(teapot.mesh.quaternion) > 0.1)
-  const before = teapot.snapshot()
-  teapot.setPaused(true)
-  teapot.update(10)
-  assert.deepEqual(teapot.snapshot().position, before.position)
-  assert.equal(teapot.snapshot().elapsed, before.elapsed)
-  teapot.setPaused(false)
-  teapot.update(1 / 60)
-  assert.ok(teapot.mesh.position.distanceTo(new THREE.Vector3().fromArray(before.position)) < 0.1)
-  teapot.dispose()
-})
-
-test('teapot motion is frame-rate independent', () => {
-  const a = setup()
-  const b = setup()
-  for (let frame = 0; frame < 30 * 8; frame++) a.update(1 / 30)
-  for (let frame = 0; frame < 120 * 8; frame++) b.update(1 / 120)
-  assert.ok(a.mesh.position.distanceTo(b.mesh.position) < 1e-10)
-  assert.ok(a.mesh.quaternion.angleTo(b.mesh.quaternion) < 1e-6)
-  a.dispose()
-  b.dispose()
-})
-
-test('teapot formula is preserved and removing Motor leaves a usable Transform/Mesh', () => {
-  const teapot = setup(new THREE.Vector3(0.5, 11.8, 5.5))
-  teapot.update(8)
-  const expected = [7, 11.8 + Math.sin(8 * Math.PI * 2 / 4.5) * 0.55, 5.5]
-  teapot.snapshot().position.forEach((value, axis) => assert.ok(Math.abs(value - expected[axis]) < 1e-10))
-  const transform = teapot.object.requireComponent(TransformComponent)
-  assert.ok(teapot.mesh.position.equals(transform.position))
-  teapot.object.removeComponent(MotorComponent)
-  transform.position.set(1, 2, 3)
-  teapot.update(10)
-  assert.deepEqual(teapot.mesh.position.toArray(), [1, 2, 3])
-  let releases = 0
-  teapot.mesh.geometry.addEventListener('dispose', () => releases++)
-  teapot.dispose()
-  teapot.dispose()
-  assert.equal(releases, 1)
+  const dispose = installDiagnostics({ runtime, level, inspection, target })
+  const api = target.__RANGE_ROOM__
+  assert.equal(api.ready, true)
+  assert.deepEqual(api.inspection.snapshot(), state)
+  assert.deepEqual(api.snapshot().inspection, state)
+  for (const key of [
+    'teapot',
+    'target',
+    'focusTeapot',
+    'focusTarget',
+    'setPaused',
+  ])
+    assert.equal(Object.hasOwn(api.inspection, key), false)
+  assert.equal(Object.hasOwn(api.snapshot().inspection, 'teapot'), false)
+  dispose()
+  assert.equal(Object.hasOwn(target, '__RANGE_ROOM__'), false)
 })
 
 test('shadow rig restores shared materials and renderer state without disposing room resources', () => {

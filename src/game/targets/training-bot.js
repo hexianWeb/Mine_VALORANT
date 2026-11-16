@@ -2,11 +2,13 @@ import { Quaternion, Vector3 } from 'three/webgpu'
 import { AnimationPlayer } from '../../engine/runtime/function/animation/index.js'
 import { Component, GameObject, MeshComponent, TransformComponent } from '../../engine/runtime/function/framework/index.js'
 import { BoneHitboxes } from './bone-hitboxes.js'
+import { TrainingBotAudio } from './training-bot-audio.js'
+import { createTrainingBotOutline } from './training-bot-outline.js'
 
 const modelName = 'range-room:training-bot:model'
 const hitboxesName = 'range-room:training-bot:hitboxes'
-const modelUrl = new URL('./assets/range-training-bot.glb', import.meta.url).href
-const hitboxesUrl = new URL('./assets/range-training-bot.hitboxes.json', import.meta.url).href
+const modelUrl = '/targets/training-bot/range-training-bot.glb'
+const hitboxesUrl = '/targets/training-bot/range-training-bot.hitboxes.json'
 const up = new Vector3(0, 1, 0)
 
 export class TrainingBotComponent extends Component {
@@ -16,6 +18,7 @@ export class TrainingBotComponent extends Component {
   #targets
   #hitboxes
   #animation
+  #hitAudio
   #regions
   #unregister
   #transform
@@ -23,9 +26,10 @@ export class TrainingBotComponent extends Component {
   #lastRegion = null
   #hitCount = 0
 
-  constructor({ root, clips, profile, targets }) {
+  constructor({ root, clips, profile, targets, hitAudio = null }) {
     super()
     this.#targets = targets
+    this.#hitAudio = hitAudio
     this.#hitboxes = new BoneHitboxes(root, profile)
     this.#regions = profile.regions
     const actions = Object.fromEntries(Object.entries(this.#regions).map(([region, clip]) => [
@@ -47,13 +51,19 @@ export class TrainingBotComponent extends Component {
     return hit && { ...hit, surface: 'metal' }
   }
 
-  react({ region }) {
+  react({ region }, { at } = {}) {
     if (!this.enabled || !this.owner?.active)
       return
     this.#animation.play(region, { restart: true })
     this.#lastRegion = region
     this.#hitCount++
     this.#reacting = true
+    this.#hitAudio?.play({
+      owner: this.owner.id,
+      region,
+      sequence: this.#hitCount,
+      at,
+    })
   }
 
   tick({ delta }) {
@@ -75,15 +85,23 @@ export class TrainingBotComponent extends Component {
   }
 
   dispose() {
+    if (this.disposed)
+      return
     this.#unregister?.()
+    if (this.owner)
+      this.#hitAudio?.stop(this.owner.id)
     this.#animation.dispose()
     super.dispose()
   }
 }
 
 /** Templates are level-owned. Each GO owns its instance bones, playback and registration. */
-export async function loadTrainingBotAssets({ resources, signal }) {
+export async function loadTrainingBotAssets({ resources, audio = null, signal }) {
+  const outline = createTrainingBotOutline()
+  let hitAudio = null
   const dispose = () => {
+    hitAudio?.dispose()
+    outline.dispose()
     resources.unload(modelName)
     resources.unload(hitboxesName)
   }
@@ -103,18 +121,26 @@ export async function loadTrainingBotAssets({ resources, signal }) {
       },
     ], { signal })
     const clips = resources.get(modelName, 'gltf').animations
+    // Optional audio preloads independently and cannot block the model or reactions.
+    hitAudio = audio
+      ? new TrainingBotAudio({ audio, resources, signal })
+      : null
     return {
       dispose,
+      audioReady: hitAudio?.ready ?? Promise.resolve(),
       instantiate({ scene, targets, position, yaw = 0, scale = 1 }) {
         const root = resources.instantiate(modelName)
         const skeletons = new Set()
+        const meshes = []
         root.traverse((node) => {
           if (node.isSkinnedMesh) {
+            meshes.push(node)
             skeletons.add(node.skeleton)
             node.castShadow = true
             node.receiveShadow = true
           }
         })
+        for (const mesh of meshes) outline.attach(mesh)
         const object = new GameObject({ name: 'Range training bot', mobility: 'static' })
         object.addComponent(new TransformComponent({
           position: new Vector3().fromArray(position),
@@ -129,7 +155,13 @@ export async function loadTrainingBotAssets({ resources, signal }) {
           },
         }))
         try {
-          object.addComponent(new TrainingBotComponent({ root, clips, profile, targets }))
+          object.addComponent(new TrainingBotComponent({
+            root,
+            clips,
+            profile,
+            targets,
+            hitAudio,
+          }))
         }
         catch (error) {
           object.dispose()
