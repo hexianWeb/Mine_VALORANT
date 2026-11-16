@@ -7,8 +7,8 @@ import { phantomDefinition } from './definitions/phantom.js'
 import { sheriffDefinition } from './definitions/sheriff.js'
 import { vandalDefinition } from './definitions/vandal.js'
 import { EquipmentController } from './equipment-controller.js'
-import { ImpactEffects } from './impact-effects.js'
 import { isImpactColor, isImpactSurface, namedImpactSurface } from './impact-surfaces.js'
+import { ShotEffects } from './shot-effects.js'
 import { WeaponAudio } from './weapon-audio.js'
 import { WeaponViewModel } from './weapon-viewmodel.js'
 
@@ -116,7 +116,7 @@ export class PlayerWeapons {
   #controller
   #view
   #audio
-  #impacts
+  #effects
   #aim
   #world
   #shotTargets
@@ -134,6 +134,8 @@ export class PlayerWeapons {
     layer,
     aim,
     world,
+    scene = null,
+    camera = null,
     shotTargets = null,
     audio = null,
     particles = null,
@@ -165,8 +167,14 @@ export class PlayerWeapons {
     this.#aim = aim
     this.#world = world
     this.#shotTargets = shotTargets
-    this.#impacts = particles
-      ? new ImpactEffects(particles)
+    this.#effects = particles || scene
+      ? new ShotEffects({
+          particles,
+          scene,
+          camera,
+          viewCamera: layer.camera,
+          samplePose: at => aim.sample(at),
+        })
       : null
     this.#audio = audio
       ? new WeaponAudio({
@@ -334,12 +342,13 @@ export class PlayerWeapons {
     this.#events = this.#events.slice(-64)
     this.#view.receive(batch, snapshot, aim)
     this.#audio?.receive(batch, snapshot)
-    this.#impacts?.receive(batch)
+    this.#effects?.receive(batch)
   }
 
   motion(time) {
     this.#audio?.motion(time)
-    this.#view.motion(time, this.#controller.snapshot(), this.#aim.sample(time.presentationTime))
+    const shots = this.#view.motion(time, this.#controller.snapshot(), this.#aim.sample(time.presentationTime))
+    this.#effects?.motion(time, shots)
   }
 
   setPaused(value) {
@@ -379,6 +388,7 @@ export class PlayerWeapons {
       ...this.#controller.snapshot(),
       view: this.#view.snapshot(),
       audio: this.#audio?.snapshot() ?? null,
+      effects: this.#effects?.snapshot() ?? null,
       lastShot: this.#lastShot,
       recentEvents: [...this.#events],
     })
@@ -390,7 +400,7 @@ export class PlayerWeapons {
     this.#disposed = true
     this.#controller.dispose()
     this.#audio?.dispose()
-    this.#impacts?.dispose()
+    this.#effects?.dispose()
     this.#view.dispose()
   }
 }

@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { Color, Scene } from 'three/webgpu'
 import { createParticleSystem } from '../src/engine/runtime/index.js'
-import { ImpactEffects } from '../src/game/weapons/impact-effects.js'
 import { traceWeaponImpact } from '../src/game/weapons/player-weapons.js'
+import { ShotEffects } from '../src/game/weapons/shot-effects.js'
 
 test('weapon impacts report the entry face of the nearest box and preserve miss distances', () => {
   const box = {
@@ -224,12 +224,37 @@ test('particles follow presentation time and clear/dispose their owned draw reso
   assert.equal(releases.size, owned.length)
 })
 
+test('tracers reuse the solid GPU batch with a distinct head-aligned shape and exact lifetime', (t) => {
+  const scene = new Scene()
+  const particles = createParticleSystem({ scene, capacity: 4 })
+  t.after(() => particles.dispose())
+  particles.emit([
+    {
+      ...particle('tracer', 2),
+      life: 0.5,
+      gravity: 0,
+    },
+  ])
+  const [solid, soft] = scene.children
+  assert.equal(solid.count, 1)
+  assert.equal(soft.count, 0)
+  assert.equal(solid.geometry.getAttribute('particleColor').getW(0), 3)
+  assert.ok(solid.material.positionNode)
+  particles.flush({ presentationTime: 2.499 })
+  assert.equal(particles.snapshot().alive, 1)
+  particles.flush({ presentationTime: 2.5 })
+  assert.equal(particles.snapshot().alive, 0)
+  assert.equal(solid.visible, false)
+})
+
 test('impact effects are deterministic per shot, face outward and use distinct presets', () => {
   const bursts = []
   let cleared = 0
-  const impacts = new ImpactEffects({
-    emit: particles => bursts.push(particles),
-    clear: () => cleared++,
+  const impacts = new ShotEffects({
+    particles: {
+      emit: particles => bursts.push(particles),
+      clear: () => cleared++,
+    },
   })
   const shoot = (surface, hit = 'Collider') => impacts.receive({
     events: [
@@ -288,8 +313,10 @@ test('impact effects are deterministic per shot, face outward and use distinct p
 
 test('surface color tints debris and dust without recoloring sparks or changing particle motion', () => {
   const bursts = []
-  const impacts = new ImpactEffects({
-    emit: particles => bursts.push(particles),
+  const impacts = new ShotEffects({
+    particles: {
+      emit: particles => bursts.push(particles),
+    },
   })
   const color = '#CC9955'
   const tint = new Color(color).toArray()

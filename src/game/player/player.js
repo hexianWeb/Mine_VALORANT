@@ -335,6 +335,7 @@ export function createPlayer({ camera, collision, input, physics, weapons = null
       ? new PlayerWeapons({
           ...weapons,
           aim,
+          camera,
           world: collision.world,
           jumpFeedback: settings.jumpFeedback,
         })

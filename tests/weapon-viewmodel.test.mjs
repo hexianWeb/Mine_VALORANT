@@ -162,12 +162,44 @@ test('muzzle flash stays scene-local when the viewmodel layer follows the world 
   f.layer.scene.position.set(4, 10, -7)
   f.layer.scene.rotation.set(0.2, 0.8, -0.1)
   f.layer.scene.updateMatrixWorld(true)
-  f.receive('ShotFired', 0.1, { aiming: false })
-  f.motion(0.1)
+  f.receive('ShotFired', 0.1, { aiming: false, shotSequence: 17 })
+  const shots = f.motion(0.1)
   const flash = f.layer.scene.getObjectByName('Weapon muzzle flash')
   const expected = f.layer.scene.worldToLocal(socket.getWorldPosition(new Vector3()))
   assert.ok(flash.position.distanceTo(expected) < 1e-12)
   assert.equal(flash.visible, true)
+  assert.deepEqual(shots.map(shot => shot.muzzle), [
+    expected.toArray(),
+  ])
+  assert.equal(shots[0].event.at, 0.1)
+  assert.equal(shots[0].event.payload.shotSequence, 17)
+  assert.deepEqual(f.motion(0.13), [], 'a render frame cannot replay a shot')
+  f.motion(0.15)
+  assert.equal(flash.visible, false)
+})
+
+test('muzzle event samples do not depend on render-frame subdivision', async (t) => {
+  const samples = []
+  for (const frames of [
+    [0.5],
+    [0.1, 0.2, 0.3, 0.4, 0.5],
+  ]) {
+    const f = await fixture(t)
+    const socket = new Group()
+    socket.name = 'Muzzle'
+    socket.position.set(0.2, -0.1, -0.8)
+    f.root.add(socket)
+    f.handle.manifest.sockets = { muzzle: socket.name }
+    f.receive('ShotFired', 0.1, { shotSequence: 1 })
+    f.receive('ShotFired', 0.3, { shotSequence: 2 })
+    const shots = frames.flatMap(at => f.motion(at))
+    samples.push(shots.map(({ event, muzzle }) => ({
+      at: event.at,
+      muzzle: muzzle.map(value => Number(value.toFixed(10))),
+    })))
+  }
+  assert.deepEqual(samples[0], samples[1])
+  assert.deepEqual(samples[0].map(shot => shot.at), [0.1, 0.3])
 })
 
 test('private ADS facts use the weapon definition transition duration', async (t) => {

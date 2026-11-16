@@ -171,6 +171,7 @@ export class RangeRoomLevel extends Level {
             assets.setReflectionEnabled(this.lights.root.visible)
             weapons = {
               assets,
+              scene,
               layer: this.render.viewmodel,
               audio: this.audio,
               particles: this.particles,

@@ -38,6 +38,8 @@ try {
   report.standalone = await evaluate('__PIPELINE_CASES__.checkStandaloneRenderSystem()')
   report.viewmodel = await evaluate('__PIPELINE_CASES__.checkViewModelComposition()')
   report.normals = await evaluate('__PIPELINE_CASES__.checkNormalPrepass()')
+  const decalModule = `/@fs/${path.resolve('tests/decal-browser-cases.js').replaceAll('\\', '/')}`
+  report.decals = await evaluate(`import(${JSON.stringify(decalModule)}).then(module=>module.checkDecalPlacement())`)
   const lightmapModule = `/@fs/${path.resolve('tests/lightmap-browser-cases.js').replaceAll('\\', '/')}`
   report.lightmapMaterial = await evaluate(`import(${JSON.stringify(lightmapModule)}).then(module=>module.checkLightmapMaterial())`)
   report.pixelArtMinification = await evaluate(`import(${JSON.stringify(lightmapModule)}).then(module=>module.checkPixelArtMinification())`)
@@ -78,6 +80,7 @@ finally {
     standalone: report.standalone,
     viewmodel: report.viewmodel,
     normals: report.normals,
+    decals: report.decals,
     lightmapMaterial: report.lightmapMaterial,
     pixelArtMinification: report.pixelArtMinification,
     probeEnvironment: report.probeEnvironment,

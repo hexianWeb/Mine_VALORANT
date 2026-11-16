@@ -3,7 +3,12 @@ import { attribute, cameraWorldMatrix, float, Fn, instanceIndex, positionGeometr
 import { BoxGeometry, DynamicDrawUsage, InstancedBufferAttribute, InstancedMesh, MeshBasicNodeMaterial, PlaneGeometry } from 'three/webgpu'
 import { Disposer } from '../../core/disposer.js'
 
-const shapeIds = { streak: 0, cube: 1, puff: 2 }
+const shapeIds = {
+  streak: 0,
+  cube: 1,
+  puff: 2,
+  tracer: 3,
+}
 const attributeSizes = {
   particleOrigin: 3,
   particleVelocity: 3,
@@ -12,13 +17,18 @@ const attributeSizes = {
   particleStretch: 1,
 }
 
-function streakOffset(velocity, size) {
+function streakOffset(velocity, size, travel = null) {
   const speed = velocity.length()
   const direction = speed.greaterThan(0.00001).select(velocity, vec3(1, 0, 0)).normalize()
   const up = direction.y.abs().greaterThan(0.95).select(vec3(1, 0, 0), vec3(0, 1, 0))
   const side = direction.cross(up).normalize()
-  const length = speed.mul(0.026).max(size.mul(1.5))
-  return direction.mul(positionGeometry.x.mul(length))
+  const length = speed.mul(travel ? 0.012 : 0.026).max(size.mul(1.5))
+  // Tracer position is its HEAD. Its tail cannot extend behind its launch point,
+  // and no vertex can advance past the head (or the terminal impact).
+  const along = travel
+    ? positionGeometry.x.sub(0.5).mul(length.min(travel))
+    : positionGeometry.x.mul(length)
+  return direction.mul(along)
     .add(side.mul(positionGeometry.y.mul(size)))
     .add(direction.cross(side).mul(positionGeometry.z.mul(size)))
 }
@@ -59,7 +69,9 @@ function createMaterial(clock, soft) {
     else {
       const spark = streakOffset(velocity.add(gravity.mul(age)), size)
       const chip = cubeOffset(age, size)
-      offset = color.w.lessThan(0.5).select(spark, chip).mul(progress.oneMinus())
+      const tracer = streakOffset(velocity, size, velocity.length().mul(age))
+      const debris = color.w.lessThan(0.5).select(spark, chip).mul(progress.oneMinus())
+      offset = color.w.greaterThan(2.5).select(tracer, debris)
     }
     return center.add(offset.mul(alive.select(1, 0)))
   })()

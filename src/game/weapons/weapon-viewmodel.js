@@ -1,6 +1,7 @@
-import { Group, MathUtils, Mesh, MeshBasicMaterial, SphereGeometry } from 'three/webgpu'
+import { Group, MathUtils } from 'three/webgpu'
 import { playerConfig } from '../player/config.js'
 import { ammoControlSamples } from './assets/weapon-control-profile.js'
+import { createMuzzleFlash, muzzleFlashDuration } from './muzzle-flash.js'
 
 const key = ticket => `${ticket.epoch}:${ticket.requestId}`
 const walkRoles = Object.freeze({ forward: 'walkForward', backward: 'walkBackward', side: 'walkSide' })
@@ -63,10 +64,8 @@ export class WeaponViewModel {
       ...playerConfig.jumpFeedback,
       ...jumpFeedback,
     }
-    this.#flash = new Mesh(new SphereGeometry(0.035, 8, 4), new MeshBasicMaterial({ color: 0xFFDD72, toneMapped: false }))
-    this.#flash.name = 'Weapon muzzle flash'
-    this.#flash.visible = false
-    layer.scene.add(this.#flash)
+    this.#flash = createMuzzleFlash()
+    layer.scene.add(this.#flash.root)
   }
 
   receive(batch, snapshot, pose = null) {
@@ -421,24 +420,29 @@ export class WeaponViewModel {
       const socket = this.#active.visual.root.getObjectByName(socketName)
       this.#active.anchor.updateMatrixWorld(true)
       if (socket) {
-        socket.getWorldPosition(this.#flash.position)
-        this.#layer.scene.worldToLocal(this.#flash.position)
-        this.#flashUntil = event.at + 0.045
+        socket.getWorldPosition(this.#flash.root.position)
+        this.#layer.scene.worldToLocal(this.#flash.root.position)
+        this.#flash.setShot(payload.shotSequence)
+        this.#flashUntil = event.at + muzzleFlashDuration
+        return this.#flash.root.position.toArray()
       }
     }
   }
 
   motion(time, snapshot, pose) {
     if (this.#closed || this.#hidden)
-      return
+      return []
     const at = time.presentationTime
+    const shots = []
     this.#events.sort((a, b) => a.at - b.at || a.sequence - b.sequence)
     while (this.#events.length && this.#events[0].at <= at + 1e-10) {
       const event = this.#events.shift()
       if (event.epoch !== snapshot.epoch)
         continue
       this.#advance(event.at)
-      this.#apply(event, time.fixedDelta, snapshot)
+      const muzzle = this.#apply(event, time.fixedDelta, snapshot)
+      if (muzzle)
+        shots.push({ event, muzzle })
     }
     this.#advance(at)
     for (const request of this.#skinRequests.values()) {
@@ -453,7 +457,11 @@ export class WeaponViewModel {
       this.#layer.setFov(pose.viewmodelFov)
       this.#active?.visual.sight?.setAim(pose.ads ?? 0)
     }
-    this.#flash.visible = !!this.#active && at < this.#flashUntil
+    const strength = this.#active
+      ? (this.#flashUntil - at) / muzzleFlashDuration
+      : 0
+    this.#flash.setStrength(strength)
+    return shots
   }
 
   reset(snapshot, retain = false) {
@@ -463,7 +471,7 @@ export class WeaponViewModel {
     this.#events = []
     this.#cursor = null
     this.#flashUntil = -Infinity
-    this.#flash.visible = false
+    this.#flash.setStrength(0)
     this.#weapon = null
     this.#stance = idleStance
     this.#queuedStance = idleStance
@@ -500,7 +508,7 @@ export class WeaponViewModel {
       action: this.#active?.action?.role ?? null,
       playback: this.#active?.visual.player.snapshot() ?? null,
       presentationTime: this.#cursor,
-      muzzleFlash: this.#flash.visible,
+      muzzleFlash: this.#flash.root.visible,
       error: this.error,
       skinError: this.skinError,
       skinId: this.#active?.handle.skinId ?? null,
@@ -514,8 +522,6 @@ export class WeaponViewModel {
       return
     this.reset({ activeId: null })
     this.#closed = true
-    this.#flash.removeFromParent()
-    this.#flash.geometry.dispose()
-    this.#flash.material.dispose()
+    this.#flash.dispose()
   }
 }

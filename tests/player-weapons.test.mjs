@@ -140,6 +140,8 @@ function setup(t, {
   judge = false,
   odin = false,
   particles = null,
+  scene = null,
+  camera = null,
 } = {}) {
   const assets = fakeAssets()
   const aim = new AimState({ seed: 123, offsetSmoothing: 0 })
@@ -231,6 +233,8 @@ function setup(t, {
     initialSlot: 'secondary',
     fixedDelta: h,
     particles,
+    scene,
+    camera,
     world: {
       boxes: [
         {
@@ -324,6 +328,47 @@ test('initial loading warms asynchronously, instantiates only in motion and equi
   f.advance(2)
   assert.equal(f.weapons.snapshot().phase, 'Ready')
   assert.equal(f.assets.requests.length, 1, 'initial readiness does not wait for every loadout asset')
+})
+
+test('accepted shots dispatch world effects while muzzle cards remain in the delayed viewmodel layer', async (t) => {
+  const scene = new Scene()
+  const bursts = []
+  const f = setup(t, {
+    scene,
+    camera: new PerspectiveCamera(75, 1, 0.05, 400),
+    particles: {
+      emit: particles => bursts.push(particles),
+      clear: () => { bursts.length = 0 },
+    },
+  })
+  await f.ready()
+  const batch = f.fixed({ type: 'fire' })
+  const shot = batch.events.find(event => event.type === 'ShotFired')
+  assert.ok(shot.payload.impact.hit)
+  assert.ok(bursts.flat().every(particle => particle.shape !== 'tracer'))
+  const decals = scene.getObjectByName('Surface decals')
+  assert.equal(decals.count, 1)
+  assert.equal(f.weapons.snapshot().effects.decals.visible, 0)
+  assert.equal(f.layer.scene.getObjectByName('Surface decals'), undefined)
+  f.motion(shot.at - 0.001)
+  assert.equal(f.weapons.snapshot().view.muzzleFlash, false)
+  assert.ok(bursts.flat().every(particle => particle.shape !== 'tracer'))
+  f.motion(shot.at + 0.01)
+  assert.equal(f.weapons.snapshot().view.muzzleFlash, true)
+  assert.equal(f.weapons.snapshot().effects.decals.visible, 1)
+  assert.equal(bursts.flat().filter(particle => particle.shape === 'tracer').length, 1)
+  const tracer = bursts.flat().find(particle => particle.shape === 'tracer')
+  assert.equal(tracer.born, shot.at)
+  for (let axis = 0; axis < 3; axis++)
+    assert.ok(Math.abs(tracer.origin[axis] + tracer.velocity[axis] * tracer.life - shot.payload.impact.position[axis]) < 1e-12)
+  f.motion(shot.at + 0.02)
+  assert.equal(bursts.flat().filter(particle => particle.shape === 'tracer').length, 1)
+  f.weapons.reset()
+  assert.equal(decals.count, 0)
+  assert.equal(bursts.length, 0)
+  assert.equal(f.weapons.snapshot().view.muzzleFlash, false)
+  f.weapons.dispose()
+  assert.deepEqual(scene.children, [])
 })
 
 test('real Digit3 selects Ghost and its semi-auto, reload and four-skin inputs preserve the visual', async (t) => {
