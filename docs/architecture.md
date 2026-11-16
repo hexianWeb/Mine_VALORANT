@@ -2,6 +2,8 @@
 
 参考 [Piccolo runtime](https://github.com/BoomingTech/Piccolo/tree/main/engine/source/runtime)，采用实例化 Context、明确的逻辑／渲染 tick 和关卡／对象生命周期。当前更新契约见[阶段优先组件 Tick](superpowers/specs/2026-11-11-phase-first-component-tick.md)；function 目录依据[结构重构记录](superpowers/specs/2026-11-11-function-layer-layout.md)；对象组合粒度依据[组件化消融 Spec](superpowers/specs/2026-11-10-component-based-game-objects.md)；第一轮分层决策见[重构 Spec](superpowers/specs/2026-11-10-piccolo-runtime-architecture.md)。
 
+模块级的拥有／借用关系、更新阶段与暂停／重置／销毁约定集中在[模块时序契约](runtime-module-contracts.md)。独立的[最小战斗属性模型](combat/attributes.md)位于 game/combat，目前仅提供模型与测试，不改变现有游戏行为。
+
 ## 目录与职责
 
 ```text
@@ -33,11 +35,13 @@ src/
 │  │  │  └─ loader/               GLTF、EXR、Worker 与 mip 解码
 │  │  └─ function/
 │  │     ├─ animation/            ClipLibrary、播放代次、混合与 marker；游戏无关
+│  │     ├─ audio/                Web Audio、cue 调度、设备时钟映射与 listener
 │  │     ├─ character/            普通角色运动规则与形状计算
 │  │     ├─ controller/           运动学扫掠、台阶与贴地解算
 │  │     ├─ framework/            component / level / object / world
 │  │     ├─ global/               RuntimeContext：系统装配与生命周期
 │  │     ├─ input/                通用动作状态、Pointer Lock 与鼠标增量
+│  │     ├─ particle/             通用粒子批次、发射与展示时间采样
 │  │     ├─ physics/              同步碰撞服务与碰撞世界
 │  │     └─ render/               渲染系统、管线、passes、material、debugdraw
 │  └─ editor/
@@ -45,11 +49,13 @@ src/
 │     ├─ camera-controls.js        自由／轨道观察与相机控制权
 │     └─ panels/                  渲染、探针、观察 HUD
 └─ game/
+   ├─ combat/                     独立生命／护甲／伤害模型；尚未接入玩法
    ├─ player/
    │  ├─ config.js                玩家移动与视角参数
    │  ├─ aim-state.js             固定步瞄准、眼位、后坐力与表现历史
    │  └─ player.js                玩家装配、PlayerComponent（输入／姿态目标／出生规则）
    ├─ weapons/                    定义、背包、装备规则、关卡资源与第一人称表现
+   ├─ targets/                    命中目标注册、机器人命中盒与受击动画
    └─ range-room/
       ├─ level.js                 RangeRoomLevel：关卡加载与对象组装
       ├─ config.js                资源地址、茶壶与灯光配置
@@ -69,6 +75,8 @@ function/
 │  ├─ animation-player.js                 Mixer 实例、播放代次、混合与表现事件
 │  ├─ animation-state-machine.js          小型语义状态转接
 │  └─ index.js
+├─ audio/
+│  └─ audio-system.js                     通用声音请求、暂停／变速、listener 与释放
 ├─ character/
 │  └─ character-motion.js                  characterMotion / characterBox
 ├─ controller/
@@ -89,6 +97,8 @@ function/
 │  └─ runtime-context.js                  应用级实例装配根
 ├─ input/
 │  └─ input-system.js
+├─ particle/
+│  └─ particle-system.js                  粒子批次、emit／flush／clear 与释放
 ├─ physics/
 │  ├─ collision-world.js                  空间查询与碰撞盒集合
 │  ├─ physics-system.js                   查询／运动解算服务、计时
@@ -138,13 +148,15 @@ Context 每个应用实例独立持有。业务代码不使用全局服务查找
 
 角色移动调用关系：Player 写 command → Motor 调用 characterMotion → PhysicsSystem 调用 controller 的 moveAABB → Motor 提交 Transform。controller 直接依赖 physics/collision-world 的盒子数据和空间查询。
 
-武器玩法位于 `game/weapons`：EquipmentController 私有持有 WeaponInventory，接收普通命令和固定步快照，返回只读事实及资源准备意图；不依赖 Three.js、DOM 或 Promise。PlayerWeapons 连接有序输入、装备裁定、AimState 射击方向与碰撞盒射线，再把事实交给 WeaponViewModel 与独立 WeaponAudio。当前练枪房使用 Classic 与 Phantom，支持切换、射击、换弹打断、检视、ADS、实例冷却及本地动作声音；Classic 还支持 smite/sakura 兼容换肤。换肤同样走 epoch/revision 票据、固定步事实和到时的表现提交，不重建 Mixer，不改弹药或手臂材质。尚无完整伤害系统或 3p 空间声。
+武器玩法位于 `game/weapons`：EquipmentController 私有持有 WeaponInventory，接收普通命令和固定步快照，返回只读事实及资源准备意图；不依赖 Three.js、DOM 或 Promise。PlayerWeapons 连接有序输入、装备裁定、AimState 射击方向与碰撞盒／目标射线，再把事实交给 WeaponViewModel、WeaponAudio 与 ImpactEffects。当前练枪房接入七枪，支持切换、射击、换弹打断、检视、适用枪型的 ADS、实例冷却、本地动作声音及兼容皮肤。换肤同样走 epoch/revision 票据、固定步事实和到时的表现提交，不重建 Mixer，不改弹药或手臂材质。game/combat 已提供独立的生命／护甲／伤害模型，但尚未接到武器或目标，也没有完整伤害玩法或 3p 空间声。
 
 WeaponAssets 复用 ResourceManager，在关卡作用域加载发布包，实例独有骨架／材质／AnimationPlayer，共享几何与纹理；退出关卡先销毁实例再卸载模板。异步加载只预热资源，motion 阶段才创建有效票据对应的实例并排队确认，下一固定步裁定装备。WeaponViewModel 拥有最多 active / staged 两个实例，按公共表现时间提交可见枪；RenderSystem 独占独立视模 Scene、Camera 与 pass。function/animation 只管理播放、采样和表现事件，不能决定射速、补弹或装备时机。接口见[武器玩法模块](weapons/gameplay.md)与[发布和播放](weapons/animation-and-assets.md)。
 
 AnimationPlayer 另支持显式的稀疏控制白名单与片段局部绝对采样。每次先恢复上次覆盖前的主姿态，再管理 Action/Mixer，最后捕获当前底层值并覆盖；控制不参与混合、不拥有时钟或事件，也不决定弹药。WeaponAssets 预检 runtimeControls/ammoDisplay，WeaponViewModel 使用已展示事实的 magazine 选择显式档位。Judge/Odin 源曲线数值验收与完整发布的边界见[稀疏控制](weapons/runtime-controls.md)。
 
 RuntimeContext 另持有 function/audio 的 AudioSystem（最多一个按需创建的 AudioContext）。resource.binary 仅下载/校验原始 bytes；WeaponAssets 通过注入的 decode 能力持有关卡 AudioBank。WeaponAudio 在 motion 消费已提交事实及独立 marker 游标；Engine 在全部 presentation 之后、swap/render 之前一次 flush，使用最终 listener pose。rendererTick 不发声。暂停/变速/丢时通过显式音频时钟段处理，卸载先停作用域声音再释放 bank 和共享 bytes，最后由 runtime 关闭 context。接口及验收见[运行时音频](weapons/audio.md)。
+
+RuntimeContext 同时持有 function/particle 服务。ImpactEffects 将命中事实转换为带 born 时间的通用粒子数据，Engine 在 presentation 后按公共展示时间 flush。该服务不决定伤害；当前单玩家适配者在重置／销毁时 clear 整个服务，多来源隔离的现有边界见[模块时序契约](runtime-module-contracts.md)。
 
 ## 每帧调用
 
@@ -161,6 +173,8 @@ RuntimeContext 另持有 function/audio 的 AudioSystem（最多一个按需创�
               Time.completeFixedStep(stepIndex)
           → world.tickComponents('motion', frame)
           → world.tickComponents('presentation', frame)
+          → AudioSystem.flush(time, listener)
+          → Particles.flush(time)
       → RenderSystem.swapLogicRenderData()
       → rendererTick() → RenderSystem.update(frame)
       → frame 事件：app 接入 HUD 更新
@@ -219,7 +233,7 @@ level.addObject(object)
 初始化：
 
 1. Context 创建 Size、资源管理、Scene、Camera，并等待 RenderSystem 完成异步初始化。
-2. 创建 Input、Physics、WorldManager 和 Engine，显式连接依赖。
+2. 创建 Audio、Particles、Input、Physics、WorldManager 和 Engine，显式连接依赖。
 3. app 传入同步关卡工厂；WorldManager 等待 `level.load({ signal, onProgress })`。
 4. 关卡完成房间、地面、可选探针、碰撞、初始 Classic 共享资源预热、玩家与茶壶装配后，才成为 activeLevel；不等待依赖 motion / fixed 的视觉准备与掏枪结束。
 5. WorldManager 发出 `load`，app 挂载当前关卡的工具与诊断；最后启动 Engine。
@@ -228,7 +242,7 @@ level.addObject(object)
 
 资源加载接受 `resources.load(entries, { signal })`。signal 中止、`unload(name)` 或 ResourceManager 销毁会立即拒绝等待者，并取消该任务的下载／解码，不必等待服务器返回。每个任务独立持有取消控制器；同名资源的并发加载共享任务，因此任一等待者取消都会让该任务的所有等待者收到 `AbortError`。已经缓存的资源仍由关卡显式卸载。取消后允许立即同名重试；不支持取消的扩展加载器若迟到返回，旧任务只释放自己的结果，不影响新缓存。探针捕获的逐帧等待也响应取消，不依赖隐藏页面继续触发 RAF。
 
-整体销毁：停止 Engine → app 工具与诊断 → WorldManager / Level → Physics → Input → RenderSystem → ResourceManager → Size。关卡内部先还原阴影／探针材质绑定，再释放对象与资产。`loadRoomAssets` 完成后解除加载期的 abort 清理监听，把实例释放权交给 Mesh，避免取消先于材质解绑释放资源。`runtime.dispose()` 和既有 `engine.destroy()` 均进入同一幂等关闭流程。Engine 的 destroy 监听器或应用的 dispose 监听器抛错时，仍会完成系统释放并清空监听器；随后抛回单个原始错误，或用 `AggregateError` 报告两个阶段的错误。初始化与回滚同时失败时，也保留两者的错误原因。
+整体销毁：停止 Engine → app 工具与诊断 → WorldManager / Level → Physics → Input → Particles → Audio → RenderSystem → ResourceManager → Size。关卡内部先还原阴影／探针材质绑定，再释放对象与资产。`loadRoomAssets` 完成后解除加载期的 abort 清理监听，把实例释放权交给 Mesh，避免取消先于材质解绑释放资源。`runtime.dispose()` 和既有 `engine.destroy()` 均进入同一幂等关闭流程。Engine 的 destroy 监听器或应用的 dispose 监听器抛错时，仍会完成系统释放并清空监听器；随后抛回单个原始错误，或用 `AggregateError` 报告两个阶段的错误。初始化与回滚同时失败时，也保留两者的错误原因。
 
 Level 以活动对象集合拥有 GO，卸载时按逆装配顺序移除存活对象，然后清理其余关卡共享资源。提前移除的对象不会在 Disposer 中留下逐对象清理闭包。
 

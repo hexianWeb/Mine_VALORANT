@@ -9,6 +9,8 @@
 | 文档 | 内容 |
 | --- | --- |
 | [运行时架构](architecture.md) | 当前目录、依赖、tick、对象组合、生命周期和公共接口 |
+| [模块所有权与时序契约](runtime-module-contracts.md) | 已有模块的拥有／借用关系、更新阶段、暂停／重置／销毁及相机控制权 |
+| [最小战斗属性模型](combat/attributes.md) | 独立的生命、护甲与 2/3 分担伤害模型；仅模型与测试，尚未接入玩家、机器人或 HUD |
 | [阶段优先组件 Tick](superpowers/specs/2026-11-11-phase-first-component-tick.md) | 当前更新契约：Engine 编排阶段，Level 扫描对象，组件承载行为 |
 | [function 层结构](superpowers/specs/2026-11-11-function-layer-layout.md) | `component / level / object / world` 与 `function/global` 的目录迁移 |
 | [CameraComponent](superpowers/specs/2026-11-11-camera-component.md) | 相机组件提取时的记录；当前玩家固定 AimState 历史接线以运行时架构为准 |
@@ -48,6 +50,7 @@
 
 | 文档 | 范围 | 状态 |
 | --- | --- | --- |
+| [靶场核心玩法：30 靶与消灭 50／100 个](superpowers/specs/2026-11-16-range-challenges-design.md) | 模式规则、射击面板、出靶／伤害边界、计分计时、架构衔接与验收 | 设计草案，尚未实施；具体时限、伤害、弹药与部分交互待确认 |
 | [动画运行时与多枪切换](superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md) | animation 层、武器实例与背包、切换事务、资源发布、换肤、音频与验收 | 阶段 1—4、七枪发布／本地音频、稀疏控制及弹药事实采样已实现；Operator／Outlaw 与空间声待实施，五枪玩法明确为临时参考配置 |
 | [武器材质与质感优化路线图](weapons/material-quality-roadmap.md) | 平直着色、全金属、皮肤自发光和静态室内反射 | Classic 与 Phantom 已使用默认材质，盒投影和走廊混合待评估 |
 

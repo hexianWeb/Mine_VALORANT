@@ -1,0 +1,114 @@
+# 模块所有权、更新阶段与生命周期
+
+本文描述当前代码，不是新增全局 System 的方案。完整目录见[运行时架构](architecture.md)，武器协议见[武器玩法](weapons/gameplay.md)。
+
+## 三条约定
+
+1. **拥有者负责释放，借用者不释放。** 创建／注入依赖不代表取得其销毁权；共享资源与对象实例分别管理。
+2. **Engine 编排阶段，组件与服务执行各自职责。** 不新增独立 RAF、计时累加器、按名字查找系统或重复遍历组件的 System。
+3. **玩法状态只有一个提交入口，表现读取已提交事实。** 动画结束、资源 Promise、HUD 和声音不能反向决定扣弹、补弹或伤害。
+
+`Component` 表达单个对象的能力；服务处理共享资源或跨对象协调；`game` 定义具体玩法。类名是否以 System 结尾不改变这些边界。
+
+## 运行时与对象所有权
+
+源码均位于 `src/`：
+
+| 模块／入口 | 拥有的数据与资源 | 借用的依赖 | 更新与释放 |
+| --- | --- | --- | --- |
+| [RuntimeContext](../src/engine/runtime/function/global/runtime-context.js) | 当前应用的 Engine、资源管理、场景／世界相机、渲染、音频、粒子、输入、物理、WorldManager 和 Size | canvas、应用配置 | 异步 initialize；关闭先停 Engine 和应用工具，再逆序释放服务 |
+| [Engine / Time](../src/engine/runtime/engine.js) | 帧驱动连接、运行状态、唯一模拟时间轴与阶段编排 | WorldManager、Render、Audio、Particles、listener 采样器 | step 推进一次；rendererTick 只绘制已完成逻辑；destroy 停帧并使声音失效 |
+| [WorldManager](../src/engine/runtime/function/framework/world/world-manager.js) | 活动关卡与进行中的加载／取消状态 | 关卡工厂 | 将阶段转交活动 Level；卸载先清活动引用、通知工具，再释放关卡 |
+| [Level](../src/engine/runtime/function/framework/level/level.js) | 活动 GO 集合与关卡共享资源的清理器 | Scene 和具体关卡注入的服务 | 每阶段扫描全部 GO，先收集组件快照再执行；卸载先 GO 后共享资源 |
+| [GameObject](../src/engine/runtime/function/framework/object/game-object.js) | 自己的组件实例、id 与 active 状态 | 所属 Level | 只负责组合、依赖和生命周期；组件按装配逆序销毁 |
+| [ResourceManager](../src/engine/runtime/resource/resource-manager.js) | 下载任务、缓存与共享资产模板 | loader 能力 | 按请求加载／取消，无玩法 tick；作用域卸载资源，runtime 最终关闭管理器 |
+| [Transform](../src/engine/runtime/function/framework/component/transform/transform-component.js) | 世界姿态与位置历史 | 无 | Motor 或玩法提交，presentation 采样；teleport 同步重置历史 |
+| [Motor](../src/engine/runtime/function/framework/component/motor/motor-component.js) | 速度、运动命令、接地／蹲伏状态、台阶历史 | Transform、Physics、碰撞世界、motion 函数 | 固定时钟在 fixed，帧时钟在 motion；Physics 只同步解算，不另行推进同一对象 |
+| [Mesh](../src/engine/runtime/function/framework/component/mesh/mesh-component.js) | 实例根树及其 release 回调 | Transform、Scene、共享 geometry／纹理 | presentation 同步根姿态；dispose 移除根树并调用实例释放，不擅自销毁共享模板 |
+
+## 玩家、武器和表现所有权
+
+| 模块／入口 | 拥有的内容 | 更新阶段 | 生命周期与禁止事项 |
+| --- | --- | --- | --- |
+| [PlayerComponent](../src/game/player/player.js) | 玩家规则、重生请求、AimState、PlayerWeapons 与脚步适配者 | input 收集命令；postPhysics 提交重生、瞄准与射击；motion 推进武器表现 | 禁用时挂起武器；返回玩家时重锚视角；dispose 释放自有适配者，不释放借用的运行时服务 |
+| [AimState](../src/game/player/aim-state.js) | 基础视角、固定眼位、ADS、散布、逐发后坐力和表现历史 | input 只累积 look；postPhysics 的 beginStep / fire / endStep 提交；sample 只读 | 不写渲染相机；射线取本发后坐力冲量前姿态，随后添加本发后坐力 |
+| [EquipmentController](../src/game/weapons/equipment-controller.js) | 私有 WeaponInventory、装备事务、动作、冷却裁定、epoch 与准备票据 | queue 收集命令，PlayerWeapons.fixed 在 postPhysics 调用 step | 仅普通数据；不持有 Three.js 对象，不做异步加载；reset／suspend／dispose 使旧工作失效 |
+| [WeaponInventory](../src/game/weapons/inventory.js) | 每个武器实例的弹药、冷却、射击序号与已提交皮肤 | 由控制器同步提交，无独立 tick | 返回只读快照；枪型配置可共享，实例状态不共享 |
+| [PlayerWeapons](../src/game/weapons/player-weapons.js) | 控制器、视模／声音／命中特效适配者、最近射击事实 | collectInput 收集；fixed 补全方向／射线并分发事实；motion 推进表现 | 借用世界、目标注册表、Audio、Particles、WeaponAssets 与 viewmodel layer；不释放这些共享依赖 |
+| [WeaponAssets](../src/game/weapons/assets/weapon-assets.js) | 关卡武器作用域、准备句柄、共享模板／皮肤／音频缓存及视觉实例记录 | load 只预热；WeaponViewModel 在 motion 调用 instantiate | 由 RangeRoomLevel 释放；先停声音／销毁实例，再卸载共享资源；异步回调不能直接装备 |
+| [WeaponViewModel](../src/game/weapons/weapon-viewmodel.js) | active／staged 两个视觉槽、anchor、动画播放器使用权、待展示事实和枪口闪光 | receive 收事实／启动预热；motion 准备实例并按展示时间消费事件 | 借用 RenderSystem 的 layer；交接到时才释放旧实例；动画不决定玩法动作时刻 |
+| [AnimationPlayer](../src/engine/runtime/function/animation/animation-player.js) | 每实例 Mixer、播放代次、混合层与稀疏属性覆盖 | 由拥有者显式调用 advance，不自带时钟 | 武器由 motion 驱动；当前训练机器人由 fixed 驱动；dispose 清播放器，不销毁共享模型资源 |
+| [WeaponAudio](../src/game/weapons/weapon-audio.js) | 武器事实队列、动作／cue 游标与声音 owner 标识 | motion 消费已展示事实并提交 cue | 将玩法翻译成通用音频请求；重置／销毁只失效自己的声音，不关闭 AudioContext |
+| [ImpactEffects](../src/game/weapons/impact-effects.js) | 命中表面到粒子参数的玩法预设 | receive 将已接受射击转换为带 born 时间的粒子 | 不自建时钟；当前 PresentationReset／dispose 会 clear 注入的整个粒子服务，见下方范围说明 |
+| [ShotTargets / TrainingBot](../src/game/targets/training-bot.js) | Level 持有目标注册表；机器人组件持有命中盒、受击播放器与命中计数 | fixed 采样受击动画；postPhysics 射击查询后 react | 组件挂接时注册，dispose 注销并释放播放器；模型实例由 Mesh 释放，模板归 Level；目前不扣血 |
+| [CombatAttributes](../src/game/combat/attributes.js) | 单个对象的生命／护甲与上限 | 本次只有独立同步 API，没有接入阶段调度 | 无全局注册、计时器或释放资源；未来由对象持有，在固定玩法入口提交 damage／reset，见[模型契约](combat/attributes.md) |
+| [Weapon HUD](../src/app/weapon-hud.js) | 当前关卡的 DOM、监听与显示配置 | Engine frame 后读取已展示武器快照 | app 挂载／卸载；不拿最新模拟弹药提前显示，不直接更改武器状态 |
+
+当前粒子服务由 RuntimeContext 持有，但 ImpactEffects 使用全量 clear。这是**当前单玩家效果生产者的约定**，不是通用多来源作用域隔离。增加其他效果生产者前，应引入 owner／scope 的取消边界，不能继续让任一生产者清空所有效果。本次只记录此边界，不改现有粒子实现。
+
+## 相机控制权不是相机所有权
+
+- **资源所有权：**RuntimeContext 创建共享世界相机，RenderSystem 使用它；独立视模 Scene、Camera 和 pass 归 RenderSystem。
+- **玩家输出权：**CameraComponent 借用世界相机，在 presentation 采样 AimState 写位置、旋转和 FOV；不重复计算武器后坐力。
+- **观察输出权：**Editor CameraControls 在 fly／orbit 模式修改共享相机。app 的[模式适配](../src/app/bootstrap.js)负责交接；player 模式关闭观察控制，观察模式禁用 Player 的 Motor／Camera。
+- **投影与尺寸：**关卡初始化参考机位，RenderSystem 管理 resize；玩家 ADS 的 FOV 来自 AimState。销毁 CameraComponent 不销毁共享相机。
+
+若将来提取 CameraSystem，首先迁移“控制权选择与最终输出”的职责，确保每个模式只有一个姿态写入者；不要在已有写入者旁再加一次相机更新，也不要让 runtime 导入 Editor 或武器规则。
+
+## 每帧唯一时间线
+
+```text
+Engine.step(nowMs)
+  Time.tick(nowMs)
+  logicalTick
+    input 事件：app 接入 Editor
+    所有 GO 的 input
+    对每个计划固定步：
+      所有 GO 的 fixed
+      所有 GO 的 postPhysics
+      Time.completeFixedStep
+    所有 GO 的 motion
+    所有 GO 的 presentation
+    AudioSystem.flush(time, 最终世界相机位姿)
+    Particles.flush(time)
+  RenderSystem.swapLogicRenderData
+  rendererTick：绘制，不推进玩法／声音／粒子
+  frame 事件：HUD 和工具读取已完成状态
+```
+
+- 固定阶段使用 `fixedTick / fixedElapsed / fixedDelta`；input 只收集，不因一帧多个固定步重复消费鼠标增量。
+- 公共展示时间为 `P = max(0, C - h + alpha * h)`。相机、视模、HUD 和声画效果使用同一 P，不直接把最新模拟状态当成已展示状态。
+- 粒子可提前写入带 born 的数据，flush 按 P 采样；Web Audio 自己的设备时钟由 AudioSystem 映射，不构成第二条游戏时间轴。
+- 未来生命／护甲的扣除在伤害被接受的固定步提交；播放受击动画或刷新 HUD 不再扣一次。模型本身不校验 tick，也不负责识别重复命中，调用方必须维护该边界。
+
+## 暂停、挂起、重置、销毁
+
+| 操作 | 时间与对象 | 武器与异步工作 | 属性模型 |
+| --- | --- | --- | --- |
+| Engine.pause | 停止 RAF，恢复重置帧 delta | 冻结动作与展示，音频处理暂停边界 | 不自动修改 |
+| timeScale = 0 | 没有固定步；Editor 仍可读 rawDelta | 清动作输入，不推进装备事务／展示时间 | 无固定结算，不自动修改 |
+| 玩家 → Editor | 全局仍可运行，玩家组件禁用 | suspend 失效旧 epoch、隐藏视模，保留已提交装备；返回时重新准备 | 本次未装配，不自动修改 |
+| 重生请求 | input／UI 排队，下个实际 postPhysics 执行 | reset 恢复初始背包，使旧工作失效 | 本次未接入 Home；未来由拥有者显式调用 reset |
+| 卸载／关闭 | 先停调用，再释放拥有资源 | 失效准备和声音，实例先于共享模板释放 | 仅普通数据，无 dispose；拥有者移除引用即可 |
+
+### 释放顺序
+
+1. Engine 停止帧驱动，失效运行中的声音；app 先卸下 HUD、工具和诊断监听。
+2. WorldManager 卸载 Level。RangeRoomLevel 先取消加载、还原阴影／探针材质绑定。
+3. Level 逆序移除 GO；GO 逆序释放组件。玩家释放 PlayerWeapons；机器人注销目标、停播放器；Mesh 释放各自实例。
+4. Level 清理武器、机器人等共享模板与关卡资源。WeaponAssets 自身也兜底释放尚存实例。
+5. RuntimeContext 继续逆序释放 Physics、Input、Particles、Audio、Render、ResourceManager、Size。
+
+迟到的 Promise 不能恢复已卸载对象；关闭后的准备票据／句柄不可重新挂载。借用的 camera、共享纹理和运行时音频服务不能由某把枪或某个角色单独释放。
+
+## 改动时检查什么
+
+- 调度／生命周期：`tests/runtime.test.mjs`、`tests/framework.test.mjs`。
+- 相机／玩家：`tests/camera.test.mjs`、`tests/player.test.mjs`。
+- 武器事实与表现：`tests/player-weapons.test.mjs`、`tests/weapon-viewmodel.test.mjs`。
+- 目标注册／受击：`tests/range-training-bot.test.mjs`。
+- 通用服务：`tests/audio.test.mjs`、`tests/particle-system.test.mjs`。
+- 属性与伤害：`tests/combat-attributes.test.mjs`。
+- 新依赖边界：`tests/architecture.test.mjs`。
+
+按改动范围选择检查；这份清单不是要求每次改动运行全量浏览器、资产导出或 Blender 验证。
