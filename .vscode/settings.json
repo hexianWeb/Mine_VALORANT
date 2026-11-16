@@ -2,7 +2,7 @@
   // Disable the default formatter, use eslint instead
   "prettier.enable": false,
   "editor.formatOnSave": false,
-
+  "terminal.integrated.windowsEnableConpty": false,
   // Auto fix
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit",
@@ -64,5 +64,5 @@
     "<C-s>": false,
     "<C-z>": false,
     "<C-y>": false
-  },
+  }
 }

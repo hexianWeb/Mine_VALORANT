@@ -7,6 +7,7 @@ import { sheriffDefinition } from './definitions/sheriff.js'
 import { vandalDefinition } from './definitions/vandal.js'
 import { EquipmentController } from './equipment-controller.js'
 import { ImpactEffects } from './impact-effects.js'
+import { isImpactColor, isImpactSurface, namedImpactSurface } from './impact-surfaces.js'
 import { WeaponAudio } from './weapon-audio.js'
 import { WeaponViewModel } from './weapon-viewmodel.js'
 
@@ -42,6 +43,11 @@ export const practiceLoadout = Object.freeze([
 ])
 
 function surfaceOf(box) {
+  if (isImpactSurface(box.surface))
+    return box.surface
+  const named = namedImpactSurface(box.name)
+  if (named)
+    return named
   if (box.name?.includes('Anvil'))
     return 'metal'
   if (/Chest|Jungle|Bed|Fence|CounterSlab/u.test(box.name ?? ''))
@@ -99,6 +105,9 @@ export function traceWeaponImpact(origin, direction, world, range = 200) {
     surface: target
       ? surfaceOf(target)
       : null,
+    ...(isImpactColor(target?.surfaceColor)
+      ? { surfaceColor: target.surfaceColor }
+      : {}),
   }
 }
 

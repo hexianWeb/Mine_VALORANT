@@ -1,4 +1,5 @@
 import { Color, Vector3 } from 'three/webgpu'
+import { isImpactColor } from './impact-surfaces.js'
 
 const palette = (colors, intensity = 1) => colors.map(hex => new Color(hex).multiplyScalar(intensity).toArray())
 const presets = {
@@ -79,6 +80,28 @@ const presets = {
       colors: palette([0xCEA371, 0xBD925E]),
     },
   ],
+  sand: [
+    {
+      shape: 'cube',
+      count: [6, 9],
+      life: [0.22, 0.35],
+      speed: [1.4, 3.4],
+      size: [0.024, 0.052],
+      cone: 1.08,
+      gravity: 10,
+      colors: palette([0xD8C38F, 0xE9D8AB, 0xBFA472, 0xCDB580]),
+    },
+    {
+      shape: 'puff',
+      count: [2, 2],
+      life: [0.32, 0.45],
+      speed: [0.55, 1.05],
+      size: [0.17, 0.25],
+      cone: 0.85,
+      gravity: -0.35,
+      colors: palette([0xDFCCA1, 0xCDB88C]),
+    },
+  ],
   dirt: [
     {
       shape: 'cube',
@@ -113,8 +136,20 @@ function shotRandom(sequence) {
   }
 }
 
+function presetColor(preset, random, tint) {
+  const index = Math.floor(random() * preset.colors.length)
+  if (!tint || preset.shape === 'streak')
+    return preset.colors[index]
+  // Keep the shot's random sequence and motion unchanged when only the tint changes.
+  const shade = 0.7 + 0.35 * index / Math.max(1, preset.colors.length - 1)
+  return tint.clone().multiplyScalar(shade).toArray()
+}
+
 function createImpactParticles({ at, payload }) {
   const { impact, eyeOrigin, shotDirection, shotSequence } = payload
+  const tint = isImpactColor(impact.surfaceColor)
+    ? new Color(impact.surfaceColor)
+    : null
   const normal = new Vector3().fromArray(impact.normal)
   const point = new Vector3().fromArray(impact.position)
   // For a multi-pellet shot, the impact belongs to the nearest hit pellet.
@@ -149,7 +184,7 @@ function createImpactParticles({ at, payload }) {
         life: between(preset.life),
         size: between(preset.size),
         gravity: preset.gravity,
-        color: preset.colors[Math.floor(random() * preset.colors.length)],
+        color: presetColor(preset, random, tint),
         stretch: preset.stretch,
       })
     }

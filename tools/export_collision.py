@@ -6,6 +6,7 @@ Live (MCP):  set COLLISION_ARGS = ['--out', '<abs path>'] then exec() this file 
 import argparse
 import json
 import math
+import re
 import sys
 from pathlib import Path
 
@@ -18,6 +19,8 @@ SPAWN_NAME = 'Spawn'
 PLAYER_WIDTH = 0.6
 PLAYER_HEIGHT = 1.8
 EPSILON = 1e-4
+IMPACT_SURFACES = frozenset(('metal', 'stone', 'wood', 'dirt', 'sand'))
+IMPACT_TAG = re.compile(r'__(?:mat|surface)_([a-z]+)$', re.IGNORECASE)
 
 
 def coordinate(vector):
@@ -78,6 +81,24 @@ def find_spawn(boxes):
     }
 
 
+def impact_metadata(obj):
+    """Explicit authoring properties override legacy inference; colors are sRGB albedo."""
+    match = IMPACT_TAG.search(obj.name)
+    tagged = match.group(1).lower() if match else None
+    surface = obj.get('impact_surface', tagged)
+    if surface is not None and (not isinstance(surface, str) or surface not in IMPACT_SURFACES):
+        raise ValueError(f'{obj.name}: unsupported impact_surface {surface!r}')
+    if tagged is not None and tagged != surface:
+        raise ValueError(f'{obj.name}: material suffix disagrees with impact_surface')
+    color = obj.get('impact_color')
+    if color is not None and (not isinstance(color, str) or not re.fullmatch(r'#[0-9a-fA-F]{6}', color)):
+        raise ValueError(f'{obj.name}: impact_color must be an sRGB #RRGGBB string')
+    return {
+        **({'surface': surface} if surface is not None else {}),
+        **({'surfaceColor': color} if color is not None else {}),
+    }
+
+
 def export(out_path):
     root = bpy.data.collections.get(ROOT_COLLECTION)
     if root is None:
@@ -96,12 +117,14 @@ def export(out_path):
             boxes.append({
                 'name': obj.name,
                 'group': group,
+                **impact_metadata(obj),
                 'min': [round(v, 4) for v in low],
                 'max': [round(v, 4) for v in high],
             })
     if not boxes:
         raise ValueError('Collision layer is empty')
-    boxes.sort(key=lambda b: (b['group'], b['name']))
+    # Material labels must not reorder colliders and change equal-distance hit priority.
+    boxes.sort(key=lambda b: (b['group'], IMPACT_TAG.sub('', b['name'])))
     bounds_min = [min(b['min'][i] for b in boxes) for i in range(3)]
     bounds_max = [max(b['max'][i] for b in boxes) for i in range(3)]
     groups = {}

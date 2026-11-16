@@ -1,4 +1,5 @@
 import { CollisionWorld } from '../../engine/runtime/function/physics/index.js'
+import { isImpactColor, isImpactSurface } from '../weapons/impact-surfaces.js'
 
 export const collisionLayerConfig = Object.freeze({
   url: '/collision/range-room.json',
@@ -20,6 +21,10 @@ export function validateCollisionData(data) {
   for (const box of data.boxes) {
     if (typeof box?.name !== 'string' || !isVector(box.min) || !isVector(box.max) || box.min.some((value, i) => value >= box.max[i]))
       throw new Error(`[Collision] Invalid box ${box?.name}`)
+    if (Object.hasOwn(box, 'surface') && !isImpactSurface(box.surface))
+      throw new Error(`[Collision] Invalid surface for ${box.name}`)
+    if (Object.hasOwn(box, 'surfaceColor') && !isImpactColor(box.surfaceColor))
+      throw new Error(`[Collision] Invalid surface color for ${box.name}`)
   }
   return data
 }

@@ -5,6 +5,7 @@ import * as THREE from 'three/webgpu'
 import { overlaps } from '../src/engine/runtime/function/physics/index.js'
 import { createCollisionDebug } from '../src/engine/runtime/function/render/debugdraw/collision-debug.js'
 import { createCollisionLayer, validateCollisionData } from '../src/game/range-room/collision.js'
+import { isImpactColor, isImpactSurface, namedImpactSurface } from '../src/game/weapons/impact-surfaces.js'
 
 const data = JSON.parse(fs.readFileSync(new URL('../public/collision/range-room.json', import.meta.url)))
 // Runtime model bounds measured in the browser (`__RANGE_ROOM__.world.snapshot().bounds`).
@@ -37,6 +38,25 @@ test('exported collision layer is valid and inside the room bounds', () => {
       assert.ok(box.min[i] >= ROOM_BOUNDS.min[i] - 2 && box.max[i] <= ROOM_BOUNDS.max[i] + 2, `${box.name} outside room bounds`)
     }
   }
+})
+
+test('all exported room colliders carry matching material tags and valid optional source colors', () => {
+  for (const box of data.boxes) {
+    assert.ok(isImpactSurface(box.surface), box.name)
+    assert.equal(namedImpactSurface(box.name), box.surface, box.name)
+    if (Object.hasOwn(box, 'surfaceColor'))
+      assert.ok(isImpactColor(box.surfaceColor), box.name)
+  }
+  for (const surface of [
+    'metal',
+    'stone',
+    'wood',
+    'sand',
+  ])
+    assert.ok(data.boxes.some(box => box.surface === surface), surface)
+  assert.ok(data.boxes.some(box => box.surfaceColor), 'source colors survive collision export')
+  const order = data.boxes.map(box => `${box.group}\0${box.name.replace(/__(?:mat|surface)_[a-z]+$/iu, '')}`)
+  assert.deepEqual(order, [...order].sort(), 'material labels preserve the original collider traversal order')
 })
 
 test('spawn stands on a floor without overlapping any box', () => {
@@ -127,6 +147,56 @@ test('validation rejects broken data', () => {
       },
     ],
   }), /Invalid box a/)
+})
+
+test('collision surface metadata is optional, validated and preserved in the runtime world', () => {
+  const box = {
+    name: 'COL_Test_Floor_01__surface_sand',
+    group: 'Floor',
+    min: [-1, 8, -1],
+    max: [1, 9, 1],
+    surface: 'sand',
+    surfaceColor: '#D6C49E',
+  }
+  const fixture = {
+    schemaVersion: 1,
+    spawn: {
+      position: [0, 9, 0],
+      yawDeg: 0,
+    },
+    boxes: [box],
+  }
+  const layer = createCollisionLayer(fixture, GROUND)
+  assert.equal(layer.world.boxes[0].surface, 'sand')
+  assert.equal(layer.world.boxes[0].surfaceColor, '#D6C49E')
+  assert.equal(layer.floors.length, 1)
+  const validate = overrides => validateCollisionData({
+    ...fixture,
+    boxes: [
+      {
+        ...box,
+        ...overrides,
+      },
+    ],
+  })
+  for (const surface of [
+    'metal',
+    'stone',
+    'wood',
+    'dirt',
+    'sand',
+  ])
+    assert.doesNotThrow(() => validate({ surface }))
+  for (const surface of ['glass', '', null, 1])
+    assert.throws(() => validate({ surface }), /surface/i)
+  for (const surfaceColor of [
+    '#FFF',
+    'D6C49E',
+    '#GGGGGG',
+    null,
+    [1, 1, 1],
+  ])
+    assert.throws(() => validate({ surfaceColor }), /color/i)
 })
 
 test('collision debug draws 12 edges per room box, skips the ground and never intercepts picking', () => {

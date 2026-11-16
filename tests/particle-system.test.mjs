@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { Scene } from 'three/webgpu'
+import { Color, Scene } from 'three/webgpu'
 import { createParticleSystem } from '../src/engine/runtime/index.js'
 import { ImpactEffects } from '../src/game/weapons/impact-effects.js'
 import { traceWeaponImpact } from '../src/game/weapons/player-weapons.js'
@@ -52,7 +52,7 @@ test('weapon impacts report the entry face of the nearest box and preserve miss 
   }).surface, 'wood')
 })
 
-test('room collider names and the external ground resolve to four impact surfaces', () => {
+test('legacy room collider names and the external ground retain their impact surfaces', () => {
   for (const [name, group, expected] of [
     ['COL_Practice_Prop_Anvil_001', 'Props', 'metal'],
     ['COL_Practice_Prop_Chest_005', 'Props', 'wood'],
@@ -73,6 +73,63 @@ test('room collider names and the external ground resolve to four impact surface
         },
       ],
     }).surface, expected)
+  }
+})
+
+test('explicit collider surfaces take priority over material suffixes and legacy names', () => {
+  for (const { expected, ...box } of [
+    { name: 'COL_Wall__mat_sand', expected: 'sand' },
+    { name: 'COL_Chest__mat_stone', expected: 'stone' },
+    { name: 'COL_Anvil__MAT_WOOD', expected: 'wood' },
+    { name: 'COL_Wall__surface_sand', expected: 'sand' },
+    { name: 'COL_Chest__surface_stone', expected: 'stone' },
+    { name: 'COL_Anvil__SURFACE_WOOD', expected: 'wood' },
+    { name: 'COL_Wall__surface_metal', expected: 'metal' },
+    { name: 'COL_Wall__surface_dirt', expected: 'dirt' },
+    { name: 'Ground__surface_sand', group: 'Ground', expected: 'sand' },
+    { name: 'COL_Anvil', surface: 'sand', expected: 'sand' },
+    { name: 'COL_Wall__surface_sand', surface: 'wood', expected: 'wood' },
+    { name: 'COL_Wall__surface_sand', surface: 'unknown', expected: 'sand' },
+    { name: 'COL_Wall__surface_sandbag', expected: 'stone' },
+    { name: 'COL_Wall__surface_glass', expected: 'stone' },
+  ]) {
+    assert.equal(traceWeaponImpact([0, 0, 1], [0, 0, -1], {
+      boxes: [
+        {
+          ...box,
+          min: [-1, -1, -2],
+          max: [1, 1, 0],
+        },
+      ],
+    }).surface, expected, box.name)
+  }
+})
+
+test('weapon impacts carry only valid optional sRGB surface colors', () => {
+  for (const surfaceColor of [
+    '#D6C49E',
+    '#a0b1c2',
+    '#FFF',
+    'sand',
+    [1, 1, 1],
+    null,
+  ]) {
+    const impact = traceWeaponImpact([0, 0, 1], [0, 0, -1], {
+      boxes: [
+        {
+          name: 'COL_Wall__surface_sand',
+          surface: 'sand',
+          surfaceColor,
+          min: [-1, -1, -2],
+          max: [1, 1, 0],
+        },
+      ],
+    })
+    assert.equal(impact.surface, 'sand')
+    if (typeof surfaceColor === 'string' && /^#[\da-f]{6}$/iu.test(surfaceColor))
+      assert.equal(impact.surfaceColor, surfaceColor)
+    else
+      assert.equal(Object.hasOwn(impact, 'surfaceColor'), false)
   }
 })
 
@@ -194,7 +251,13 @@ test('impact effects are deterministic per shot, face outward and use distinct p
       },
     ],
   })
-  for (const surface of ['metal', 'stone', 'wood', 'dirt']) {
+  for (const surface of [
+    'metal',
+    'stone',
+    'wood',
+    'dirt',
+    'sand',
+  ]) {
     shoot(surface)
     shoot(surface)
     const first = bursts.at(-2)
@@ -202,15 +265,81 @@ test('impact effects are deterministic per shot, face outward and use distinct p
     assert.ok(first.every(p => p.born === 2.5 && p.velocity[2] >= 0 && p.origin[2] === 0.01))
     const counts = Object.groupBy(first, p => p.shape)
     assert.equal(!!counts.streak, surface === 'metal' || surface === 'stone')
-    assert.equal(counts.puff?.length ?? 0, { metal: 0, stone: 1, wood: 1, dirt: 2 }[surface])
+    assert.equal(counts.puff?.length ?? 0, {
+      metal: 0,
+      stone: 1,
+      wood: 1,
+      dirt: 2,
+      sand: 2,
+    }[surface])
     assert.ok(counts.cube.every(p => (p.stretch > 1) === (surface === 'wood')))
+    if (surface === 'sand')
+      assert.ok(first.every(p => p.color[0] >= p.color[1] && p.color[1] > p.color[2] && p.color[0] <= 1))
   }
   shoot(null, null)
-  assert.equal(bursts.length, 8)
+  assert.equal(bursts.length, 10)
   impacts.receive({
     events: [
       { type: 'PresentationReset' },
     ],
   })
   assert.equal(cleared, 1)
+})
+
+test('surface color tints debris and dust without recoloring sparks or changing particle motion', () => {
+  const bursts = []
+  const impacts = new ImpactEffects({
+    emit: particles => bursts.push(particles),
+  })
+  const color = '#CC9955'
+  const tint = new Color(color).toArray()
+  for (const surface of [
+    'metal',
+    'stone',
+    'wood',
+    'dirt',
+    'sand',
+  ]) {
+    for (const surfaceColor of [undefined, color, 'not-a-color']) {
+      impacts.receive({
+        events: [
+          {
+            type: 'ShotFired',
+            at: 1,
+            payload: {
+              shotSequence: 31,
+              eyeOrigin: [0, 0, 1],
+              shotDirection: [0, 0, -1],
+              impact: {
+                hit: 'Collider',
+                surface,
+                surfaceColor,
+                distance: 1,
+                position: [0, 0, 0],
+                normal: [0, 0, 1],
+              },
+            },
+          },
+        ],
+      })
+    }
+    const [original, tinted, invalid] = bursts.slice(-3)
+    assert.deepEqual(original, invalid)
+    assert.equal(tinted.length, original.length)
+    for (let index = 0; index < original.length; index++) {
+      const { color: before, ...motion } = original[index]
+      const { color: after, ...tintedMotion } = tinted[index]
+      assert.deepEqual(tintedMotion, motion)
+      if (original[index].shape === 'streak') {
+        assert.deepEqual(after, before)
+      }
+      else {
+        assert.notDeepEqual(after, before)
+        const scale = after[0] / tint[0]
+        assert.ok(scale >= 0.65 && scale <= 1.1)
+        for (let axis = 1; axis < 3; axis++)
+          assert.ok(Math.abs(after[axis] - tint[axis] * scale) < 1e-12)
+      }
+    }
+  }
 })
