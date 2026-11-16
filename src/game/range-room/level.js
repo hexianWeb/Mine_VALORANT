@@ -4,6 +4,8 @@ import { GameObject, Level, MeshComponent, TransformComponent } from '../../engi
 import { createEnvironmentProxy } from '../../engine/runtime/function/render/sky-environment.js'
 import { PlayerFootsteps } from '../player/player-footsteps.js'
 import { createPlayer, PlayerComponent } from '../player/player.js'
+import { ShotTargets } from '../targets/shot-targets.js'
+import { loadTrainingBotAssets, TrainingBotComponent } from '../targets/training-bot.js'
 import { WeaponAssets } from '../weapons/assets/weapon-assets.js'
 import { classicDefinition } from '../weapons/definitions/classic.js'
 import { loadRoomAssets } from './assets/room-assets.js'
@@ -24,6 +26,7 @@ export class RangeRoomLevel extends Level {
   probes = null
   collision = null
   player = null
+  trainingBot = null
   teapot = null
   shadows = null
   environmentProxy = null
@@ -32,6 +35,7 @@ export class RangeRoomLevel extends Level {
   #loading = false
   #probesLoading = false
   #weaponAssets = null
+  #shotTargets = new ShotTargets()
   #controller = new AbortController()
   #bindings = new Disposer()
 
@@ -145,6 +149,15 @@ export class RangeRoomLevel extends Level {
         }
         token.throwIfAborted()
         if (this.collision) {
+          if (settings.trainingBot) {
+            const assets = this.disposer.add(await loadTrainingBotAssets({ resources, signal: token }))
+            token.throwIfAborted()
+            this.trainingBot = this.addObject(assets.instantiate({
+              ...settings.trainingBot,
+              scene,
+              targets: this.#shotTargets,
+            }))
+          }
           let weapons = null
           if (this.render?.viewmodel) {
             const assets = this.disposer.add(new WeaponAssets({
@@ -161,6 +174,7 @@ export class RangeRoomLevel extends Level {
               layer: this.render.viewmodel,
               audio: this.audio,
               particles: this.particles,
+              shotTargets: this.#shotTargets,
             }
             // Prewarm shared data only. VisualPrepared requires motion ticks after load completes.
             const initial = classicDefinition.assets
@@ -306,6 +320,7 @@ export class RangeRoomLevel extends Level {
       probes: this.probes?.getDebugState() ?? null,
       reflection: this.reflection?.getDebugState() ?? null,
       reflectionPreview: this.reflection?.preview?.getDebugState() ?? null,
+      trainingBot: this.trainingBot?.getComponent(TrainingBotComponent)?.snapshot() ?? null,
       ground: this.ground?.snapshot() ?? null,
     }
   }

@@ -9,4 +9,8 @@ export const rangeRoomConfig = Object.freeze({
   orbitRadius: Object.freeze([6.5, 4.5]),
   shadowPosition: Object.freeze([-3, 17.35, 3]),
   shadowTarget: Object.freeze([0.5, 9, 5.5]),
+  trainingBot: Object.freeze({
+    position: Object.freeze([0.567, 9, 7]),
+    scale: 0.80,
+  }),
 })
