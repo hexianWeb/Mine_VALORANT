@@ -1,7 +1,6 @@
 import { Component } from '../../../engine/runtime/function/framework/index.js'
 import { challengeRules } from './config.js'
 
-const timeUpdatesPerSecond = 25
 const twoDigits = number => String(number).padStart(2, '0')
 
 /** The world panels and app HUD consume the same fields committed before rendering. */
@@ -41,9 +40,10 @@ export class RangeDisplay extends Component {
     const canAdjust = this.#player.enabled && control.enabled
     const config = session?.config ?? selection
     const shooting = config.mode === 'shooting-test'
+    const elapsed = session?.result?.elapsed ?? at - (session?.startedAt ?? at)
     const seconds = shooting
       ? null
-      : session?.result?.elapsed ?? Math.floor(Math.max(0, at - (session?.startedAt ?? at)) * timeUpdatesPerSecond) / timeUpdatesPerSecond
+      : Math.floor(Math.max(0, elapsed) + 1e-9)
     const inputs = [
       session,
       selection,
@@ -63,7 +63,7 @@ export class RangeDisplay extends Component {
     const settled = session?.settled ?? 0
     const timeLabel = seconds === null
       ? null
-      : seconds.toFixed(2)
+      : String(seconds)
     const columns = shooting
       ? [
           {

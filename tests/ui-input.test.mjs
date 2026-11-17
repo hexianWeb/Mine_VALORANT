@@ -43,9 +43,9 @@ function setup(t) {
     player,
     engine,
     ui,
-    onSettings: () => ui.topModal === 'settings'
+    onSettings: () => ui.topModal === 'range-settings'
       ? ui.closeTop()
-      : ui.open('settings'),
+      : ui.open('range-settings'),
     onShop: () => ui.open('future-shop-fixture'),
   })
   engine.start()
@@ -74,14 +74,14 @@ test('unlocked canvas focus cannot move/fire; acquiring capture click does not f
   assert.equal(f.input.isDown('forward'), true)
 })
 
-test('F3 isolates all input without pausing, disabling player, or replaying held fire', (t) => {
+test('Backquote isolates all input without pausing, disabling player, or replaying held fire', (t) => {
   const f = setup(t)
   f.click()
   f.mouse('mousedown')
   f.mouse('mousedown', 2)
   f.move(12, -7)
   f.key('keydown', 'KeyW')
-  f.key('keydown', 'F3')
+  f.key('keydown', 'Backquote')
   assert.equal(f.controls.read().mode, 'menu')
   assert.equal(f.engine.state, 'running')
   assert.equal(f.player.enabled, true)
@@ -117,10 +117,10 @@ test('layered modals close only the top and preserve pause reasons', (t) => {
   f.click()
   f.key('keydown', 'Escape')
   f.key('keyup', 'Escape')
-  f.key('keydown', 'F3')
+  f.key('keydown', 'Backquote')
   f.ui.open('crosshair')
   f.key('keydown', 'Escape')
-  assert.equal(f.ui.topModal, 'settings')
+  assert.equal(f.ui.topModal, 'range-settings')
   f.key('keydown', 'Escape')
   assert.equal(f.ui.topModal, null)
   assert.equal(f.engine.state, 'paused')
@@ -163,7 +163,8 @@ test('window/background pause freezes time and requires a successful explicit Co
   await new Promise(resolve => setImmediate(resolve))
   assert.equal(f.engine.state, 'paused')
   assert.equal(f.controls.read().waiting, false)
-  assert.match(f.controls.read().message, /未能捕获/)
+  assert.equal(f.controls.read().captureFailed, true)
+  assert.match(f.controls.read().message, /未能捕获鼠标\s+请再次点击「继续」/u)
   f.element.requestPointerLock = () => {
     f.document.pointerLockElement = f.element
     f.document.dispatchEvent(new Event('pointerlockchange'))
@@ -173,6 +174,7 @@ test('window/background pause freezes time and requires a successful explicit Co
   await Promise.resolve()
   assert.equal(f.engine.state, 'running')
   assert.equal(f.controls.read().mode, 'gameplay')
+  assert.equal(f.controls.read().captureFailed, false)
   assert.equal(f.input.isDown('fire'), false)
   assert.deepEqual(f.input.consumePressedEvents(), [])
   f.engine.step(10000)
@@ -185,7 +187,7 @@ test('late unlock/lock replies cannot override menus, Editor, loss of focus or d
   f.document.exitPointerLock = () => {
     f.document.pointerLockElement = null
   }
-  f.key('keydown', 'F3')
+  f.key('keydown', 'Backquote')
   f.ui.closeTop()
   assert.equal(f.controls.read().mode, 'unlocked')
   assert.equal(f.input.locked, false)
@@ -200,7 +202,7 @@ test('late unlock/lock replies cannot override menus, Editor, loss of focus or d
   assert.equal(f.input.blocked, true)
   assert.equal(f.input.locked, false)
   f.controls.dispose()
-  f.key('keydown', 'F3')
+  f.key('keydown', 'Backquote')
   assert.equal(f.ui.topModal, null)
 })
 

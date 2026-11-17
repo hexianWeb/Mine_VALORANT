@@ -113,7 +113,7 @@ try {
   assert.equal(current.hud.weapon.magazine, 12)
   record('trusted capture click does not fire', { actualPointerLock: true })
 
-  await press('F3', 114)
+  await press('Backquote', 192)
   await browser.frames(12)
   current = await state()
   assert.equal(current.engine, 'running')
@@ -136,7 +136,7 @@ try {
   assert.deepEqual(current.position, menuStart.position)
   assert.equal(current.yaw, menuStart.yaw)
   assert.equal(current.hud.weapon.magazine, 12)
-  record('F3 preserves simulation and player lifecycle while isolating gameplay input')
+  record('Backquote preserves simulation and player lifecycle while isolating gameplay input')
 
   await click('[data-step="0.1"]')
   await browser.frames(4)
@@ -229,7 +229,13 @@ try {
   await browser.frames(4)
   current = await state()
   assert.equal(current.engine, 'paused')
-  assert.match(current.inputMessage, /未能捕获/)
+  assert.match(current.inputMessage, /未能捕获鼠标\s+请再次点击「继续」/u)
+  assert.equal(await evaluate(`(() => {
+    const card = document.querySelector('.pause-card').getBoundingClientRect();
+    const message = document.querySelector('.pause-card .is-capture-error')?.getBoundingClientRect();
+    return !!message && Math.abs(message.x + message.width / 2 - (card.x + card.width / 2)) < 1;
+  })()`), true, 'pointer-lock retry notice is centered inside the pause card')
+  await screenshot('pause-capture-error.png')
   const respawns = current.respawns
   await evaluate('globalThis.__RANGE_ROOM__.inspection.resetCamera()')
   assert.equal((await state()).respawns, respawns, 'explicit tool commands still wait for fixed simulation')
@@ -300,7 +306,7 @@ try {
     await runtime.world.unloadLevel();
   })()`)
   assert.equal(await evaluate('document.querySelectorAll(".app-ui, .settings-dialog, .crosshair-dialog").length'), 0)
-  await press('F3', 114)
+  await press('Backquote', 192)
   assert.equal(await evaluate('document.querySelectorAll("dialog[open]").length'), 0)
   await evaluate(`(async () => {
     const { runtime, config, Level } = globalThis.__uiReload;
@@ -311,7 +317,7 @@ try {
     }));
   })()`)
   await waitReady()
-  await press('F3', 114)
+  await press('Backquote', 192)
   await browser.frames(3)
   assert.equal(await evaluate('document.querySelectorAll(".app-ui").length'), 1)
   assert.deepEqual((await state()).dialogs, ['settings-dialog'])
@@ -331,7 +337,7 @@ try {
     assert.equal(await evaluate(`globalThis.__RANGE_ROOM__.world.player.weapons.requestArmorySelection({scopeId:${JSON.stringify(oldScope)},requestId:100,slotId:'primary'}).accepted`), false)
     await evaluate('globalThis.__RANGE_ROOM__.inspection.setMode("player")')
     await waitReady()
-    await press('F3', 114)
+    await press('Backquote', 192)
     await browser.frames(4)
     assert.equal((await state()).engine, 'running')
     assert.deepEqual((await state()).dialogs, ['settings-dialog'])

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { RangeChallengeComponent } from '../src/game/range-room/challenges/range-challenge.js'
+import { RangeDisplay } from '../src/game/range-room/challenges/range-display.js'
 import { sectorCells, validateSectorCells } from '../src/game/range-room/challenges/spawn-grid.js'
 import { ShotTargets } from '../src/game/targets/shot-targets.js'
 import { TargetCombat } from '../src/game/targets/target-combat.js'
@@ -16,6 +17,48 @@ function selection(patch) {
     ...patch,
   }
 }
+
+test('elimination display publishes whole presentation seconds and freezes at the final result', () => {
+  const config = selection()
+  let session = { config, startedAt: 0.9, status: 'running' }
+  const models = []
+  const display = new RangeDisplay({
+    challenge: {
+      selection: config,
+      readPresentedSession: () => session,
+      readControlState: () => ({}),
+    },
+    panels: {
+      update: model => models.push(model),
+    },
+    player: {
+      enabled: true,
+      lookSettings: {
+        read: () => ({ sensitivity: 0.4 }),
+      },
+      weapons: {
+        readHud() {},
+      },
+    },
+    practiceVisible: () => false,
+  })
+  display.update(0.89)
+  display.update(1.899)
+  assert.equal(models.length, 1, 'subsecond frames do not publish a new model')
+  assert.equal(display.read().columns[1].value, '0')
+  display.update(1.9)
+  assert.equal(display.read().timeLabel, '1')
+  display.update(2.9)
+  assert.equal(display.read().timeLabel, '2')
+  session = {
+    ...session,
+    status: 'completed',
+    result: { elapsed: 2.95 },
+  }
+  display.update(15)
+  assert.equal(display.read().timeLabel, '2')
+  assert.equal(session.result.elapsed, 2.95)
+})
 
 function fixture(t, { cells = null, count = 40, random = () => 0.31, mode = 'elimination' } = {}) {
   const targets = new ShotTargets()

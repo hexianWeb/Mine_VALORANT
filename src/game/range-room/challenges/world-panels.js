@@ -31,6 +31,7 @@ const scoreSpec = {
 const fromBlender = ([x, y, z]) => new Vector3(x, z, -y)
 const faceRight = new Vector3(-1, 0, 0)
 const font = '"Microsoft YaHei UI", "Noto Sans CJK SC", sans-serif'
+const numberFont = '"DSEG7 Classic", "Bahnschrift", "Segoe UI", sans-serif'
 
 // Coordinates use the artwork's top-left origin. The same rectangles draw and handle shots.
 const buttons = [
@@ -231,10 +232,19 @@ function paintControl(ctx, w, h, model) {
   ctx.font = `bold ${h * 0.106}px "Bahnschrift", sans-serif`
   ctx.fillText('−', w * 0.10, h * 0.663)
   ctx.fillText('+', w * 0.90, h * 0.663)
-  ctx.font = `${h * 0.084}px ${font}`
-  ctx.fillText('瞄准灵敏度', w * 0.437, h * 0.817)
-  ctx.font = `bold ${h * 0.088}px "Bahnschrift", sans-serif`
-  ctx.fillText(model.sensitivity, w * 0.666, h * 0.817)
+  const sensitivityLabel = '瞄准灵敏度'
+  const labelFont = `${h * 0.084}px ${font}`
+  const sensitivityY = h * 0.869
+  const gap = w * 0.034
+  ctx.font = labelFont
+  const labelMetrics = ctx.measureText(sensitivityLabel)
+  ctx.font = `700 ${h * 0.097}px ${numberFont}`
+  const valueMetrics = ctx.measureText(model.sensitivity)
+  const valueY = sensitivityY + (valueMetrics.actualBoundingBoxAscent - valueMetrics.actualBoundingBoxDescent) / 2
+  ctx.fillText(model.sensitivity, (w + labelMetrics.width + gap) / 2, valueY)
+  ctx.font = labelFont
+  const labelY = sensitivityY + (labelMetrics.actualBoundingBoxAscent - labelMetrics.actualBoundingBoxDescent) / 2
+  ctx.fillText(sensitivityLabel, (w - valueMetrics.width - gap) / 2, labelY)
   for (const button of buttons) {
     bracket(ctx, button, w, h, button.action === 'start'
       ? model.startReady
@@ -300,18 +310,15 @@ function paintScore(ctx, w, h, columns) {
       : 0.76)
     ctx.fillStyle = '#b4d5e2'
     ctx.font = `${h * 0.116}px ${font}`
-    ctx.fillText(label, x, h * 0.257)
-    let size = h * 0.49
-    ctx.font = `300 ${size}px "Bahnschrift", "Segoe UI", sans-serif`
+    ctx.fillText(label, x, h * 0.217)
+    let size = h * 0.44
+    ctx.font = `700 ${size}px ${numberFont}`
     size *= Math.min(1, w * 0.37 / ctx.measureText(value).width)
-    ctx.font = `300 ${size}px "Bahnschrift", "Segoe UI", sans-serif`
-    ctx.fillStyle = '#a5f3ff30'
-    ctx.strokeStyle = '#bdf8ff'
-    ctx.lineWidth = Math.max(2, h * 0.007)
+    ctx.font = `700 ${size}px ${numberFont}`
+    ctx.fillStyle = '#bdf8ff'
     ctx.shadowColor = '#71efff'
     ctx.shadowBlur = 12
-    ctx.fillText(value, x, h * 0.644)
-    ctx.strokeText(value, x, h * 0.644)
+    ctx.fillText(value, x, h * 0.682)
     ctx.shadowBlur = 0
   }
 }
@@ -345,12 +352,24 @@ export function createRangeWorldPanels({ document, scene, targets, readControl, 
     // and on the back. Register after controls so an exact distance tie goes to the button.
     owned.add(targets.register(controlSpec.name, { trace: bottom.trace }))
     owned.add(targets.register(scoreSpec.name, { trace: top.trace }))
+    let latestModel = null
+    let numbersLoaded = false
+    const update = (model) => {
+      latestModel = model
+      bottom.paint(`${numbersLoaded}/${model.startReady}/${model.canAdjust}/${model.practice}/${model.sensitivity}`, (ctx, w, h) => paintControl(ctx, w, h, model))
+      const score = model.columns.map(column => `${column.label} ${column.value}`).join('/')
+      top.paint(`${numbersLoaded}/${score}`, (ctx, w, h) => paintScore(ctx, w, h, model.columns))
+    }
+    document.fonts?.load(`700 24px ${numberFont}`, '0123456789').then((faces) => {
+      if (owned.disposed || !faces.length)
+        return
+      numbersLoaded = true
+      if (latestModel)
+        update(latestModel)
+    }, () => { /* The fallback font already draws the panels. */ })
     return {
       surfaces: [bottom.display, top.display],
-      update(model) {
-        bottom.paint(`${model.startReady}/${model.canAdjust}/${model.practice}/${model.sensitivity}`, (ctx, w, h) => paintControl(ctx, w, h, model))
-        top.paint(model.columns.map(column => `${column.label} ${column.value}`).join('/'), (ctx, w, h) => paintScore(ctx, w, h, model.columns))
-      },
+      update,
       snapshot() {
         return {
           bottom: bottom.snapshot(),

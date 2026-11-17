@@ -17,7 +17,8 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
   let disposed = false
   let blocked = null
   let state = null
-  let message = ''
+  let announcement = ''
+  let captureFailed = false
   const interactive = () => focused && !document.hidden && (document.hasFocus?.() ?? true)
   const publish = () => {
     if (disposed)
@@ -37,8 +38,12 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
       player.setInputBlocked(blocked)
     }
     const pauseReasons = [...reasons].join(',')
+    const retry = paused ? '「继续」' : '画面'
+    const message = captureFailed
+      ? `未能捕获鼠标\n请再次点击${retry}。游戏输入仍已隔离。`
+      : announcement
     if (state && state.mode === mode && state.paused === paused && state.waiting === waiting
-      && state.pauseReasons === pauseReasons && state.message === message) {
+      && state.pauseReasons === pauseReasons && state.message === message && state.captureFailed === captureFailed) {
       return
     }
     state = Object.freeze({
@@ -47,6 +52,7 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
       waiting,
       pauseReasons,
       message,
+      captureFailed,
     })
     events.emit('change', state)
   }
@@ -59,13 +65,14 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
     serial++
     waiting = false
     resumeRequested = false
+    captureFailed = false
   }
   const pause = (reason) => {
     if (disposed)
       return
     reasons.add(reason)
     invalidateCapture()
-    message = ''
+    announcement = ''
     publish()
     release()
     if (engine.state === 'running')
@@ -75,7 +82,7 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
   const failCapture = () => {
     waiting = false
     resumeRequested = false
-    message = '未能捕获鼠标。请再次点击；游戏输入仍已隔离。'
+    captureFailed = true
     publish()
   }
   const lockChanged = () => {
@@ -99,7 +106,8 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
     }
     waiting = false
     resumeRequested = false
-    message = ''
+    captureFailed = false
+    announcement = ''
     if (mayResume && engine.state === 'paused') {
       reasons.clear()
       resuming = true
@@ -121,7 +129,8 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
           engine.resume()
         }
         finally { resuming = false }
-        message = ''
+        announcement = ''
+        captureFailed = false
         publish()
       }
       return
@@ -131,7 +140,8 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
     const request = ++serial
     waiting = true
     resumeRequested = resume
-    message = ''
+    captureFailed = false
+    announcement = ''
     publish()
     input.requestLock().then((accepted) => {
       if (disposed || request !== serial)
@@ -160,7 +170,9 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
     }
   }))
   owned.listen(window, 'keydown', (event) => {
-    if (event.ctrlKey || event.metaKey || event.altKey || !['F3', 'KeyB', 'Escape'].includes(event.code))
+    if (event.ctrlKey || event.metaKey || event.altKey || !['Backquote', 'KeyB', 'Escape'].includes(event.code))
+      return
+    if (event.code === 'Backquote' && ui.topModal && ui.topModal !== 'range-settings')
       return
     // B is ordinary text in the crosshair importer (e.g. 0b/1b fields), not a global command there.
     if (event.code === 'KeyB' && (ui.topModal || event.target?.closest?.('input, textarea, select, [contenteditable="true"]')))
@@ -177,7 +189,7 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
       else if (engine.state !== 'paused')
         pause('escape')
     }
-    else if (event.code === 'F3') {
+    else if (event.code === 'Backquote') {
       onSettings?.()
     }
     else if (!ui.topModal) {
@@ -185,7 +197,7 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
         onShop()
       }
       else {
-        message = '武器商店将在下一阶段接入；当前可用 1–7 切枪。'
+        announcement = '当前关卡没有武器商店。'
         publish()
       }
     }
@@ -246,7 +258,7 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
     capture: () => requestCapture(),
     pause,
     announce(text) {
-      message = String(text ?? '')
+      announcement = String(text ?? '')
       publish()
     },
     sync,

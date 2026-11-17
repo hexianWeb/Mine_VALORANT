@@ -201,7 +201,6 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
         engine: runtime.engine,
         ui,
         controls: inputUi,
-        withEditor: options.editor,
       }))
       const syncSettings = state => settings.setEnabled(state.mode !== 'editor')
       levelTools.add(inputUi.subscribe(syncSettings))
@@ -318,7 +317,7 @@ function createInspection({ level, canvas, controls, collisionDebug, physics, st
     collisionDebug,
     labels: {
       help: {
-        player: '点击锁定 · 左键开火 · 右键瞄准 · 1/2/滚轮切枪 · R 换弹 · T 检视 · WASD 移动 · Home 重生 · F3 设置 · V 飞行 · Esc 暂停',
+        player: '点击锁定 · 左键开火 · 右键瞄准 · 1/2/3/滚轮切枪 · R 换弹 · T 检视 · WASD 移动 · Home 重生 · ~ 设置 · V 飞行 · Esc 暂停',
         fly: '点击画面激活 · 右键拖动视角 · WASD 移动 · Q/E 降/升 · Shift 加速 · 滚轮调速 · Esc 释放',
         orbit: '左键环绕 · 右键平移 · 滚轮缩放 · R 恢复初始机位',
       },

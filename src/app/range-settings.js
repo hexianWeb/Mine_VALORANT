@@ -16,44 +16,52 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
   card.className = 'range-status'
   card.setAttribute('aria-label', '靶场状态')
   card.innerHTML = `
-    <h2>靶场</h2>
+    <button type="button" data-open-settings><kbd>~</kbd> <span data-settings-label>更改设置</span></button>
     <dl>
-      <div><dt>状态</dt><dd data-range-status></dd></div>
       <div><dt>挑战</dt><dd data-mode></dd></div>
-      <div><dt data-progress-label>进度</dt><dd data-progress></dd></div>
-      <div data-time-row hidden><dt>用时</dt><dd data-time></dd></div>
       <div><dt>机器人护甲</dt><dd data-armor></dd></div>
-      <div><dt>无限备用弹药</dt><dd data-ammo-policy></dd></div>
-      <div><dt>瞄准灵敏度</dt><dd data-sensitivity></dd></div>
-    </dl>
-    <button type="button" data-open-settings>按 <kbd>F3</kbd> <span data-settings-label>更改设置</span></button>
-    <p class="range-shop-hint"><kbd>B</kbd> 武器商店</p>`
+      <div><dt>无限弹药</dt><dd data-ammo-policy></dd></div>
+      <div data-status-row hidden><dt>状态</dt><dd data-range-status></dd></div>
+      <div data-progress-row hidden><dt data-progress-label>进度</dt><dd data-progress></dd></div>
+      <div data-time-row hidden><dt>用时</dt><dd data-time></dd></div>
+    </dl>`
   ui.hud.append(card)
   const statusText = card.querySelector('[data-range-status]')
+  const statusRow = card.querySelector('[data-status-row]')
   const modeText = card.querySelector('[data-mode]')
   const progressLabel = card.querySelector('[data-progress-label]')
   const progressText = card.querySelector('[data-progress]')
+  const progressRow = card.querySelector('[data-progress-row]')
   const timeRow = card.querySelector('[data-time-row]')
   const timeText = card.querySelector('[data-time]')
   const armorText = card.querySelector('[data-armor]')
   const ammoText = card.querySelector('[data-ammo-policy]')
-  const sensitivityText = card.querySelector('[data-sensitivity]')
   const settingsButton = card.querySelector('[data-open-settings]')
   const settingsLabel = settingsButton.querySelector('[data-settings-label]')
-  const shopHint = card.querySelector('.range-shop-hint')
 
   const dialog = document.createElement('dialog')
   dialog.className = 'settings-dialog'
   dialog.setAttribute('aria-labelledby', 'range-settings-title')
   dialog.innerHTML = `
-    <header><h2 id="range-settings-title">靶场设置</h2><button type="button" data-close aria-label="关闭靶场设置">×</button></header>
-    <p class="settings-note"></p>
-    <fieldset class="range-selection"><legend>挑战设置</legend>
-      <label>模式<select name="mode"><option value="shooting-test">射击测试（30 靶）</option><option value="elimination">消灭</option></select></label>
-      <label data-difficulty>难度<select name="difficulty"><option value="easy">简单 · 2 秒</option><option value="medium">中等 · 1 秒</option><option value="hard">困难 · 0.5 秒</option></select></label>
-      <label data-count hidden>目标击杀数<select name="targetKills"><option value="50">50 个</option><option value="100">100 个</option></select></label>
-      <label>机器人护甲<select name="armor"><option value="0">无护甲（0）</option><option value="50">护甲 50</option></select></label>
-      <p class="range-rule-summary"></p>
+    <header><h2 id="range-settings-title">靶场</h2><button type="button" data-close aria-label="关闭靶场设置">×</button></header>
+    <div class="settings-body">
+    <fieldset class="range-selection" aria-label="挑战设置">
+      <section><h3>速度</h3>
+        <button type="button" data-difficulty="easy">简单</button>
+        <button type="button" data-difficulty="medium">中等</button>
+        <button type="button" data-difficulty="hard">困难</button>
+      </section>
+      <section><h3>连续击败</h3>
+        <button type="button" data-count="50">消灭 50</button>
+        <button type="button" data-count="100">消灭 100</button>
+      </section>
+      <section><h3>机器人护甲</h3>
+        <div class="settings-options">
+          <button type="button" data-armor-choice="50">开</button>
+          <button type="button" data-armor-choice="0">关</button>
+        </div>
+      </section>
+      <section><h3>无限备用弹药</h3><p class="settings-ammo"></p></section>
     </fieldset>
     <fieldset class="range-sensitivity"><legend>鼠标视角灵敏度</legend>
       <label for="range-sensitivity">倍率 <input id="range-sensitivity" name="sensitivity" type="number" min="0.01" max="5" step="0.01" inputmode="decimal"></label>
@@ -65,15 +73,14 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
       </div>
       <p class="sensitivity-status" role="status"></p>
     </fieldset>
-    <footer class="ui-actions"><button type="button" data-cancel-challenge hidden>取消本局</button><button type="button" data-crosshair-settings>准星设置</button><button type="button" data-close>完成</button></footer>`
-  const mode = dialog.querySelector('[name="mode"]')
-  const difficulty = dialog.querySelector('[name="difficulty"]')
-  const count = dialog.querySelector('[name="targetKills"]')
-  const armor = dialog.querySelector('[name="armor"]')
-  const difficultyRow = dialog.querySelector('[data-difficulty]')
-  const countRow = dialog.querySelector('[data-count]')
-  const ruleSummary = dialog.querySelector('.range-rule-summary')
+    <p class="settings-note"></p>
+    <footer class="ui-actions"><button type="button" data-cancel-challenge hidden>取消本局</button><button type="button" data-crosshair-settings>准星设置</button><button class="settings-done" type="button" data-close>完成</button></footer>
+    </div>`
   const selectionFields = dialog.querySelector('.range-selection')
+  const choiceButtons = [
+    ...selectionFields.querySelectorAll('button'),
+  ]
+  const ammoSetting = dialog.querySelector('.settings-ammo')
   const sensitivityFields = dialog.querySelector('.range-sensitivity')
   const sensitivity = dialog.querySelector('[name="sensitivity"]')
   const status = dialog.querySelector('.sensitivity-status')
@@ -119,20 +126,22 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
     const shooting = settings.mode === 'shooting-test'
     const running = !!challenge?.running
     const cancelling = !!challenge?.cancelPending
-    setHidden(difficultyRow, !shooting)
-    setHidden(countRow, shooting)
-    setValue(mode, settings.mode)
-    setValue(difficulty, settings.difficulty)
-    setValue(count, String(settings.targetKills))
-    setValue(armor, String(settings.armor))
+    for (const button of choiceButtons) {
+      const { difficulty, count, armorChoice } = button.dataset
+      const selected = difficulty
+        ? shooting && difficulty === settings.difficulty
+        : count
+          ? !shooting && Number(count) === settings.targetKills
+          : Number(armorChoice) === settings.armor
+      if (button.getAttribute('aria-pressed') !== String(selected))
+        button.setAttribute('aria-pressed', String(selected))
+    }
     setDisabled(selectionFields, running || !challenge)
     setDisabled(sensitivityFields, running)
     setDisabled(crosshair, running)
     setHidden(cancel, !running)
     setDisabled(cancel, cancelling)
-    setText(ruleSummary, shooting
-      ? '30 次出靶，场上同时 1 只。击杀和超时都会进入下一靶。'
-      : '场上同时 10 只，杀一补一。达标时停表。')
+    setText(ammoSetting, ammoText.textContent)
     let instruction = '射击场景控制面板上的「开始」方框开启挑战。'
     if (cancelling) {
       instruction = engine.state === 'paused'
@@ -175,8 +184,10 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
       else if (!model?.startReady)
         phase = '准备中'
       setText(statusText, phase)
+      setHidden(statusRow, !capacityError && !running && !completed)
+      setHidden(progressRow, !running && !completed)
       setText(modeText, shooting
-        ? `射击测试 · ${difficultyLabels[settings.difficulty]}`
+        ? difficultyLabels[settings.difficulty]
         : `消灭 ${model?.goal ?? settings.targetKills} 个`)
       setText(progressLabel, running && shooting
         ? '当前靶 / 得分'
@@ -187,16 +198,14 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
       setText(progressText, running && shooting
         ? `${model.settled + 1}/${model.goal} · ${model.kills}`
         : progress)
-      setHidden(timeRow, shooting)
-      setText(timeText, `${model?.timeLabel ?? '0.00'} 秒`)
-      setText(armorText, settings.armor ? '50' : '无')
+      setHidden(timeRow, shooting || (!running && !completed))
+      setText(timeText, `${model?.timeLabel ?? '0'} 秒`)
+      setText(armorText, settings.armor ? '已启用' : '已停用')
       const policy = model?.ammoPolicy ?? player.weapons?.readHud()?.weapon?.ammoPolicy
       setText(ammoText, policy === 'infinite-reserve'
         ? '已启用'
         : policy ? '关闭' : '—')
-      setText(sensitivityText, model?.sensitivity ?? player.lookSettings.read().sensitivity.toFixed(2))
       setText(settingsLabel, running ? '查看本局' : '更改设置')
-      setHidden(shopHint, running || !player.weapons)
       if (model && card.dataset.revision !== String(model.revision))
         card.dataset.revision = String(model.revision)
     }
@@ -214,17 +223,28 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
     challenge?.requestCancel()
     updateModal()
   })
-  owned.listen(selectionFields, 'change', () => {
-    if (!challenge?.running) {
-      challenge?.prepare({
-        mode: mode.value,
-        difficulty: difficulty.value,
-        targetKills: Number(count.value),
-        armor: Number(armor.value),
+  for (const button of choiceButtons) {
+    owned.listen(button, 'click', () => {
+      if (!challenge || challenge.running)
+        return
+      const { difficulty, count, armorChoice } = button.dataset
+      const patch = difficulty
+        ? { mode: 'shooting-test', difficulty }
+        : count
+          ? {
+              mode: 'elimination',
+              targetKills: Number(count),
+            }
+          : {
+              armor: Number(armorChoice),
+            }
+      challenge.prepare({
+        ...selection(),
+        ...patch,
       })
-    }
-    updateModal()
-  })
+      updateModal()
+    })
+  }
   owned.listen(sensitivity, 'change', () => {
     if (challenge?.running)
       return
@@ -239,8 +259,8 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
   })
   for (const button of dialog.querySelectorAll('[data-step]')) {
     owned.listen(button, 'click', () => {
-      if (!challenge?.running)
-        stepSensitivity(player.lookSettings, Number(button.dataset.step))
+      if (!challenge?.running && stepSensitivity(player.lookSettings, Number(button.dataset.step)))
+        sensitivity.removeAttribute('aria-invalid')
     })
   }
   owned.add(player.lookSettings.subscribe(updateSensitivity))

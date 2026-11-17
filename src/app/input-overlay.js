@@ -5,12 +5,14 @@ export function mountInputOverlay({ ui, controls, onSettings }) {
   const root = ui.root.ownerDocument.createElement('section')
   root.className = 'input-overlay'
   root.innerHTML = `
-    <div class="pause-card" hidden>
-      <p class="ui-eyebrow">靶场 / PAUSED</p><h2>已暂停</h2>
-      <p>模拟与展示时间已冻结。回到窗口不会自动继续。</p>
-      <div class="ui-actions"><button type="button" data-continue>继续</button><button type="button" data-settings>F3 设置</button></div>
+    <div class="pause-card" role="dialog" aria-labelledby="range-pause-title" hidden>
+      <header><h2 id="range-pause-title">靶场已暂停</h2></header>
+      <div class="pause-body">
+        <p class="pause-help">回到窗口后，点击「继续」恢复操控。</p>
+        <div class="ui-actions"><button type="button" data-continue>继续</button><button type="button" data-settings><kbd>~</kbd> 设置</button></div>
+      </div>
     </div>
-    <button type="button" class="capture-hint">点击画面捕获鼠标 · B 商店 · F3 设置</button>
+    <button type="button" class="capture-hint">点击画面捕获鼠标 · B 商店 · ~ 设置</button>
     <p class="input-message" role="status"></p>`
   ui.hud.append(root)
   const card = root.querySelector('.pause-card')
@@ -18,6 +20,8 @@ export function mountInputOverlay({ ui, controls, onSettings }) {
   const settings = root.querySelector('[data-settings]')
   const capture = root.querySelector('.capture-hint')
   const message = root.querySelector('.input-message')
+  const actions = card.querySelector('.ui-actions')
+  const help = card.querySelector('.pause-help')
   const update = (state) => {
     const showPause = state.paused && !ui.topModal
     root.classList.toggle('is-paused', showPause)
@@ -35,6 +39,14 @@ export function mountInputOverlay({ ui, controls, onSettings }) {
         : '继续'
     if (resume.textContent !== label)
       resume.textContent = label
+    const inCard = showPause && state.captureFailed
+    help.hidden = inCard
+    if (inCard && message.parentNode !== actions.parentNode)
+      actions.before(message)
+    else if (!inCard && message.parentNode !== root)
+      root.append(message)
+    message.classList.toggle('is-capture-error', state.captureFailed)
+    message.hidden = !!ui.topModal
     if (message.textContent !== state.message)
       message.textContent = state.message
   }
