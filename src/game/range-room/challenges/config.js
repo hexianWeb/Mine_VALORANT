@@ -2,6 +2,13 @@ import { immutableFact } from '../../combat/facts.js'
 import { rangeDamageVersion } from '../../combat/fixed-damage.js'
 import { durationTicks } from '../../weapons/weapon-logic.js'
 
+export const defaultChallengeSelection = Object.freeze({
+  mode: 'shooting-test',
+  difficulty: 'easy',
+  targetKills: 50,
+  armor: 0,
+})
+
 export const challengeRules = immutableFact({
   version: rangeDamageVersion,
   opportunities: 30,

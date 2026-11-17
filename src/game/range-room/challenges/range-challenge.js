@@ -7,7 +7,7 @@ import { SpawnGrid } from './spawn-grid.js'
 let nextOwner = 0
 
 /**
- * Logic adapter, not assembled into the level yet. Level retains ownership of every target GO.
+ * Fixed-step challenge adapter. The level retains ownership of every target GO.
  * pool.acquire(count) synchronously lends preloaded {id, bot} handles; pool.release returns them.
  * pool.available() excludes bodies/presentation records that are not yet reusable.
  */
@@ -20,9 +20,11 @@ export class RangeChallengeComponent extends Component {
   #random
   #fixedDelta
   #hideTicks
+  #scale
   #canStart
   #practice
   #selection = null
+  #config = null
   #revision = 0
   #reason = 'Challenge not prepared'
   #active = new Map()
@@ -36,11 +38,24 @@ export class RangeChallengeComponent extends Component {
   #seenResults = new WeakSet()
   #onPracticeRequested
   #onSensitivityRequested
+  #clearEffects
 
-  constructor({ cells, pool, random, fixedDelta, bodyHideDelay, canStart = () => true, setPracticeEnabled = () => {}, onPracticeRequested = null, onSensitivityRequested = null }) {
+  constructor({
+    cells,
+    pool,
+    random,
+    fixedDelta,
+    bodyHideDelay,
+    spawnScale = 1,
+    canStart = () => true,
+    setPracticeEnabled = () => {},
+    onPracticeRequested = null,
+    onSensitivityRequested = null,
+    clearEffects = () => {},
+  }) {
     super()
     if (typeof random !== 'function' || !Number.isFinite(bodyHideDelay) || bodyHideDelay <= 0
-      || !Number.isFinite(fixedDelta) || fixedDelta <= 0
+      || !Number.isFinite(fixedDelta) || fixedDelta <= 0 || !Number.isFinite(spawnScale) || spawnScale <= 0
       || !['acquire', 'release', 'available'].every(key => typeof pool?.[key] === 'function')) {
       throw new TypeError('[RangeChallenge] Preloaded target pool, fixed retirement plan and random source required')
     }
@@ -49,20 +64,22 @@ export class RangeChallengeComponent extends Component {
     this.#random = random
     this.#fixedDelta = fixedDelta
     this.#hideTicks = Math.ceil(bodyHideDelay / fixedDelta - 1e-10)
+    this.#scale = [spawnScale, spawnScale, spawnScale]
     this.#canStart = canStart
     this.#practice = setPracticeEnabled
     this.#onPracticeRequested = onPracticeRequested
     this.#onSensitivityRequested = onSensitivityRequested
+    this.#clearEffects = clearEffects
   }
 
   prepare(selection) {
     if (this.#session.running || this.disposed)
       return false
-    const config = lockChallengeConfig(selection, this.#fixedDelta)
+    this.#config = lockChallengeConfig(selection, this.#fixedDelta)
     this.#selection = immutableFact(selection)
     this.#revision++
     try {
-      this.#grid.assertCapacity(config.concurrency)
+      this.#grid.assertCapacity(this.#config.concurrency)
       this.#reason = null
     }
     catch (error) {
@@ -72,11 +89,10 @@ export class RangeChallengeComponent extends Component {
   }
 
   readControlState() {
-    const config = this.#selection && lockChallengeConfig(this.#selection, this.#fixedDelta)
     // Starting a new session invalidates its old retirements, but the prepared pool must
     // still cover an ENTIRE simultaneous replacement batch, not just the initial N.
-    const required = config
-      ? config.concurrency * 2
+    const required = this.#config
+      ? this.#config.concurrency * 2
       : 0
     let reason = this.#reason
     if (!reason) {
@@ -99,11 +115,16 @@ export class RangeChallengeComponent extends Component {
   }
 
   get running() { return this.#session.running }
+  get selection() { return this.#selection }
+  get cancelPending() { return this.#cancelQueued }
+  readPresentedSession() { return this.#presented }
 
   armoryRestriction() { return this.running ? '本局进行中，请先取消挑战' : null }
   requestCancel() {
-    if (this.running)
-      this.#cancelQueued = true
+    if (!this.running || this.#cancelQueued)
+      return false
+    this.#cancelQueued = true
+    return true
   }
 
   #record(events, at) {
@@ -121,23 +142,36 @@ export class RangeChallengeComponent extends Component {
         ...this.#retiring.values(),
       ].map(entry => entry.handle),
     ]) {
-      if (handle.bot.invalidateSpawn)
-        handle.bot.invalidateSpawn(at, reason)
-      else
-        handle.bot.removeSpawn(at, reason)
+      if (!this.#pool.clearPresentation) {
+        if (handle.bot.invalidateSpawn)
+          handle.bot.invalidateSpawn(at, reason)
+        else
+          handle.bot.removeSpawn(at, reason)
+      }
       this.#pool.release(handle, reason)
     }
     this.#active.clear()
     this.#retiring.clear()
+    this.#pool.clearPresentation?.()
+    this.#clearEffects()
   }
 
   /** Lifecycle invalidation is immediate even when the player no longer receives ticks. */
   cancel(reason = 'cancelled', at = this.#at) {
+    if (this.disposed)
+      return
     this.#session.cancel(reason)
     this.#cleanupTargets(reason, at)
     this.#grid.reset(`${this.#owner}:invalid:${++this.#revision}`)
-    this.#pending = []
-    this.#presented = null
+    // Keep a completed result through a player reset or an Editor handoff.
+    // A completion not yet reached by P still appears at its original time.
+    if (reason === 'unload' || this.#session.snapshot().status !== 'completed') {
+      this.#pending = []
+      this.#presented = null
+    }
+    else {
+      this.#pending = this.#pending.filter(entry => entry.simulation.status === 'completed')
+    }
     this.#cancelQueued = false
   }
 
@@ -165,7 +199,7 @@ export class RangeChallengeComponent extends Component {
       cellId: placement.cellId,
       position: placement.position,
       quaternion: [0, 0, 0, 1],
-      scale: [1, 1, 1],
+      scale: this.#scale,
       bodyHideTicks: this.#hideTicks,
     })), time)
     for (const spawn of transition.spawned)

@@ -87,7 +87,9 @@ export function mountWeaponHud({ canvas, player, engine, ui, controls, withEdito
     setText(ammo, view.error
       ? `加载失败，可按槽位键重试：${view.error}`
       : weapon
-        ? `${weapon.magazine} / ${weapon.reserve}${view.skinError ? ' · 换肤失败，按 K 重试' : ''}`
+        ? `${weapon.magazine} / ${weapon.ammoPolicy === 'infinite-reserve'
+          ? '∞'
+          : weapon.reserve}${view.skinError ? ' · 换肤失败，按 K 重试' : ''}`
         : '正在加载…')
     crosshair.update(state.aiming ? profile.ads : profile.primary, state, view.hit)
   }

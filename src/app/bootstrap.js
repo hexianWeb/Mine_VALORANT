@@ -164,6 +164,9 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
       const settings = levelTools.add(mountRangeSettings({
         ui,
         player: level.player,
+        engine: runtime.engine,
+        challenge: level.challenge,
+        readChallengeHud: () => level.readChallengeHud(),
         onCrosshair: () => weaponHud?.openCrosshair(),
       }))
       inputUi = levelTools.add(createUiInput({
@@ -250,6 +253,7 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
           render: runtime.render,
           audio: runtime.audio,
           particles: runtime.particles,
+          fixedDelta: runtime.engine.time.fixedDelta,
           maxAnisotropy: runtime.render.renderer.getMaxAnisotropy(),
           config: options.level,
         }), {

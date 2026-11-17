@@ -4,7 +4,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { openBrowser } from './browser-session.mjs'
 
-// Phase-three regression of the EXISTING practice scene, not a playable-challenge acceptance.
+// Regression of the room's free practice and whole-shot hit feedback.
 const url = process.argv[2] ?? 'http://127.0.0.1:5173/?editor=0&probes=0&ao=0&aa=none'
 const output = path.resolve(process.argv[3] ?? `D:/opencode-temp/opencode/range-phase-three/browser-${Date.now()}`)
 const started = performance.now()
@@ -40,9 +40,9 @@ try {
     const world = globalThis.__RANGE_ROOM__.world;
     return { count: world.trainingBots.length, ammoPolicy: world.player.weapons.snapshot().ammoPolicy };
   })()`)
-  assert.equal(initial.count, 3, 'phase three must not replace the scene with a challenge pool')
-  assert.equal(initial.ammoPolicy, 'finite', 'optional supply interface is not yet enabled by the level')
-  checks.push('existing three preview bots and finite level supply remain unchanged')
+  assert.equal(initial.count, 3, 'preserve the three free-practice bots')
+  assert.equal(initial.ammoPolicy, 'infinite-reserve')
+  checks.push('the three free-practice bots remain available and the room supplies infinite reserve')
 
   await evaluate(`(() => {
     const world = globalThis.__RANGE_ROOM__.world;
@@ -89,7 +89,7 @@ try {
   assert.equal(judge.shot.payload.weapon.definitionId, 'judge')
   assert.equal(judge.shot.payload.pellets.length, 12)
   assert.equal(judge.bot.hitCount, count + 1)
-  assert.equal(judge.hud.weapon.ammoPolicy, 'finite')
+  assert.equal(judge.hud.weapon.ammoPolicy, 'infinite-reserve')
   checks.push('actual Judge queries twelve pellets and emits one reaction, not twelve or a legacy double reaction')
 
   await evaluate('globalThis.__RANGE_ROOM__.engine.pause()')

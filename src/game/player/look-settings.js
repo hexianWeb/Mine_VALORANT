@@ -14,6 +14,11 @@ export function validSensitivity(value) {
     && value >= sensitivityLimits.min && value <= sensitivityLimits.max
 }
 
+export function stepSensitivity(settings, delta) {
+  const value = Math.round((settings.read().requested + delta) * 100) / 100
+  return settings.request(Math.min(sensitivityLimits.max, Math.max(sensitivityLimits.min, value)))
+}
+
 /** Player-owned settings. UI requests are coalesced and committed at a valid fixed step. */
 export function createLookSettings(initial = sensitivityLimits.default) {
   const events = new EventEmitter()

@@ -2,6 +2,7 @@ import * as THREE from 'three/webgpu'
 import { Disposer } from '../../engine/runtime/core/disposer.js'
 import { GameObject, Level, MeshComponent, TransformComponent } from '../../engine/runtime/function/framework/index.js'
 import { createEnvironmentProxy } from '../../engine/runtime/function/render/sky-environment.js'
+import { stepSensitivity } from '../player/look-settings.js'
 import { PlayerFootsteps } from '../player/player-footsteps.js'
 import { createPlayer, PlayerComponent } from '../player/player.js'
 import { ShotTargets } from '../targets/shot-targets.js'
@@ -9,6 +10,12 @@ import { loadTrainingBotAssets, TrainingBotComponent } from '../targets/training
 import { WeaponAssets } from '../weapons/assets/weapon-assets.js'
 import { classicDefinition } from '../weapons/definitions/classic.js'
 import { loadRoomAssets } from './assets/room-assets.js'
+import { challengeRules, defaultChallengeSelection } from './challenges/config.js'
+import { createRangeKillEffects } from './challenges/kill-effects.js'
+import { RangeChallengeComponent } from './challenges/range-challenge.js'
+import { RangeDisplay } from './challenges/range-display.js'
+import { prepareRoomSpawnLayout } from './challenges/room-spawn-layout.js'
+import { createRangeWorldPanels } from './challenges/world-panels.js'
 import { loadCollisionLayer } from './collision.js'
 import { rangeRoomConfig } from './config.js'
 import { createRoomGround, roomGroundTextures } from './ground.js'
@@ -16,6 +23,8 @@ import { createProbeLighting } from './lighting/probe-lighting.js'
 import { loadRoomReflection } from './lighting/reflection-probe.js'
 import { createRoomLights } from './lighting/room-lights.js'
 import { createRoomShadows } from './lighting/room-shadows.js'
+
+const bodyHideDelay = 0.05
 
 /** A complete level, usable without editor UI and without a renderer for asset-only loading. */
 export class RangeRoomLevel extends Level {
@@ -27,6 +36,7 @@ export class RangeRoomLevel extends Level {
   player = null
   trainingBot = null
   trainingBots = []
+  challenge = null
   shadows = null
   environmentProxy = null
   reflection = null
@@ -37,8 +47,26 @@ export class RangeRoomLevel extends Level {
   #shotTargets = new ShotTargets()
   #controller = new AbortController()
   #bindings = new Disposer()
+  #rangePanels
+  #rangeEffects
+  #rangeDisplay
+  #spawnLayout
+  #challengeBots = []
+  #practiceEnabled = true
 
-  constructor({ scene, camera, resources, input = null, physics = null, render = null, audio = null, particles = null, maxAnisotropy = 16, config = {} }) {
+  constructor({
+    scene,
+    camera,
+    resources,
+    input = null,
+    physics = null,
+    render = null,
+    audio = null,
+    particles = null,
+    fixedDelta = 1 / 60,
+    maxAnisotropy = 16,
+    config = {},
+  }) {
     super({ scene })
     this.camera = camera
     this.resources = resources
@@ -47,6 +75,7 @@ export class RangeRoomLevel extends Level {
     this.render = render
     this.audio = audio
     this.particles = particles
+    this.fixedDelta = fixedDelta
     this.settings = {
       ...rangeRoomConfig,
       ...config,
@@ -148,15 +177,16 @@ export class RangeRoomLevel extends Level {
         }
         token.throwIfAborted()
         if (this.collision) {
+          let botAssets = null
           if (settings.trainingBot) {
-            const assets = this.disposer.add(await loadTrainingBotAssets({ resources, audio: this.audio, signal: token }))
+            botAssets = this.disposer.add(await loadTrainingBotAssets({ resources, audio: this.audio, signal: token }))
             token.throwIfAborted()
             const { skins = [settings.trainingBot.skin ?? 'purple'], spacing = 2.4, ...placement } = settings.trainingBot
             for (const [index, skin] of skins.entries()) {
               const position = [...placement.position]
               // Front view from -Z: blue, yellow, purple from left to right.
               position[0] += ((skins.length - 1) / 2 - index) * spacing
-              this.trainingBots.push(this.addObject(assets.instantiate({
+              this.trainingBots.push(this.addObject(botAssets.instantiate({
                 ...placement,
                 position,
                 skin,
@@ -185,6 +215,10 @@ export class RangeRoomLevel extends Level {
               audio: this.audio,
               particles: this.particles,
               shotTargets: this.#shotTargets,
+              fixedDelta: this.fixedDelta,
+              ammoPolicy: 'infinite-reserve',
+              armoryAccess: () => this.challenge?.armoryRestriction(),
+              onShotResolved: (result, context) => this.challenge?.onShotResolved(result, context),
             }
             // Prewarm shared data only. VisualPrepared requires motion ticks after load completes.
             const initial = classicDefinition.assets
@@ -204,9 +238,15 @@ export class RangeRoomLevel extends Level {
             physics: this.physics,
             weapons,
             footsteps,
+            onLifecycle: ({ type, at }) => {
+              if (!this.disposed)
+                this.challenge?.cancel(type, at)
+            },
           }))
           this.player = playerObject.requireComponent(PlayerComponent)
           this.setPlayerEnabled(true)
+          if (weapons && botAssets)
+            this.#loadChallenges(botAssets)
         }
       }
       if (this.render) {
@@ -227,6 +267,120 @@ export class RangeRoomLevel extends Level {
     }
     finally {
       this.#loading = false
+    }
+  }
+
+  #setPracticeEnabled(enabled, at) {
+    this.#practiceEnabled = enabled
+    for (const object of this.trainingBots)
+      object.requireComponent(TrainingBotComponent).setPracticeEnabled(enabled, at)
+  }
+
+  #loadChallenges(assets) {
+    const { scene, player, collision } = this
+    const document = this.render.renderer.domElement.ownerDocument
+    const scale = this.settings.trainingBot.scale ?? 1
+    const panels = this.#rangePanels = this.disposer.add(createRangeWorldPanels({
+      document,
+      scene,
+      targets: this.#shotTargets,
+      readControl: (action) => {
+        const state = this.challenge.readControlState()
+        return action === 'start'
+          ? state
+          : { ...state, ready: player.enabled && state.enabled }
+      },
+      anisotropy: this.settings.textureAnisotropy,
+    }))
+    const { cells, diagnostics } = prepareRoomSpawnLayout({
+      collision,
+      room: this.room.root,
+      surfaces: panels.surfaces,
+      geometry: assets.spawnGeometry,
+      scale,
+      player: player.settings,
+    })
+    this.#spawnLayout = diagnostics
+    const { concurrency } = challengeRules
+    // The live loadout's shortest fire interval is longer than the 0.05 s
+    // body hold. Allow one full batch of retiring bodies alongside N live bots.
+    const poolSize = concurrency * 2
+    const effects = this.#rangeEffects = this.disposer.add(createRangeKillEffects({
+      scene,
+      document,
+      capacity: concurrency * 4,
+    }))
+    for (let index = 0; index < poolSize; index++) {
+      const object = this.addObject(assets.instantiate({
+        scene,
+        targets: this.#shotTargets,
+        position: collision.spawn.position,
+        scale,
+        practice: false,
+        onKillPresented: effects.start,
+      }))
+      this.#challengeBots.push({
+        id: object.id,
+        bot: object.requireComponent(TrainingBotComponent),
+      })
+    }
+    const free = new Set(this.#challengeBots)
+    const pool = {
+      acquire(count) {
+        const batch = [...free].slice(0, count)
+        for (const handle of batch) free.delete(handle)
+        return batch
+      },
+      release: handle => free.add(handle),
+      available: () => free.size,
+      clearPresentation: () => {
+        for (const { bot } of this.#challengeBots) {
+          if (!bot.disposed)
+            bot.invalidateSpawn()
+        }
+      },
+    }
+    const object = new GameObject({ name: 'Range challenges', mobility: 'static' })
+    this.challenge = object.addComponent(new RangeChallengeComponent({
+      cells,
+      pool,
+      random: Math.random,
+      fixedDelta: this.fixedDelta,
+      bodyHideDelay,
+      spawnScale: scale,
+      canStart: () => player.enabled && player.weapons.canStartChallenge(),
+      setPracticeEnabled: (enabled, at) => this.#setPracticeEnabled(enabled, at),
+      onPracticeRequested: (command, time) => this.#setPracticeEnabled(!this.#practiceEnabled, time.fixedElapsed),
+      onSensitivityRequested: command => stepSensitivity(player.lookSettings, command.delta),
+      clearEffects: effects.clear,
+    }))
+    this.challenge.prepare(defaultChallengeSelection)
+    this.#rangeDisplay = object.addComponent(new RangeDisplay({
+      challenge: this.challenge,
+      panels,
+      effects,
+      player,
+      practiceVisible: () => this.trainingBots.some(object => object.requireComponent(MeshComponent).root.visible),
+    }))
+    this.addObject(object)
+    this.#rangeDisplay.update(0)
+  }
+
+  readChallengeHud() { return this.#rangeDisplay?.read() ?? null }
+
+  readChallengeDiagnostics() {
+    if (!this.challenge || this.disposed)
+      return null
+    const targets = this.#challengeBots.map(({ bot }) => bot.snapshot())
+    return {
+      ...this.challenge.snapshot(),
+      layout: this.#spawnLayout,
+      panel: this.#rangePanels.snapshot(),
+      display: this.readChallengeHud(),
+      effects: this.#rangeEffects.snapshot(),
+      poolSize: this.#challengeBots.length,
+      hittable: targets.filter(target => target.combat.eligible),
+      visible: targets.filter(target => target.poses.visible),
     }
   }
 
@@ -331,6 +485,7 @@ export class RangeRoomLevel extends Level {
     if (this.disposed)
       return
     this.ready = false
+    this.challenge?.cancel('unload')
     this.#controller.abort()
     // Restore shadow/probe material bindings before object-owned GPU resources.
     this.#bindings.dispose()

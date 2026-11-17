@@ -23,19 +23,25 @@ export class TrainingBotComponent extends Component {
   #hitboxes
   #poses
   #combat = new TargetCombat()
-  #practice = true
+  #practice
+  #practiceEnabled
   #hitAudio
   #skin
   #unregister
   #transform
+  #onKillPresented
   #lastRegion = null
   #hitCount = 0
 
-  constructor({ root, clips, profile, targets, hitAudio = null, skin = 'purple' }) {
+  constructor({ root, clips, profile, targets, hitAudio = null, skin = 'purple', practice = true, onKillPresented = null }) {
     super()
     this.#targets = targets
     this.#hitAudio = hitAudio
     this.#skin = skin
+    this.#practice = practice
+    this.#practiceEnabled = practice
+    this.#onKillPresented = onKillPresented
+    root.visible = practice
     validateDamageProfile(profile)
     this.#poses = new TargetPoses(root, clips, profile.regions)
     try {
@@ -53,7 +59,7 @@ export class TrainingBotComponent extends Component {
   }
 
   trace(origin, direction, limit) {
-    if (!this.enabled || !this.owner?.active || (!this.#practice && !this.#combat.eligible))
+    if (!this.#hittable)
       return null
     const hit = this.#hitboxes.trace(origin, direction, this.#transform, limit)
     return hit && { ...hit, surface: 'metal' }
@@ -67,12 +73,25 @@ export class TrainingBotComponent extends Component {
   }
 
   preparePose(context) {
-    this.#poses.prepare(fixedTime(context).fixedElapsed)
+    if (this.#hittable)
+      this.#poses.prepare(fixedTime(context).fixedElapsed)
   }
 
-  /** Activated only by the future challenge adapter, not by the three preview bots. */
+  get #hittable() {
+    return this.enabled && this.owner?.active && (this.#practice ? this.#practiceEnabled : this.#combat.eligible)
+  }
+
+  setPracticeEnabled(enabled, at) {
+    if (!this.#practice || enabled === this.#practiceEnabled)
+      return
+    this.#practiceEnabled = enabled
+    this.#poses.record({ type: 'PracticeVisibilityChanged', enabled, at })
+    if (!enabled)
+      this.#hitAudio?.stop(this.owner.id)
+  }
+
   activateSpawn(spawn, attributes, context) {
-    this.preparePose(context)
+    this.#poses.prepare(fixedTime(context).fixedElapsed)
     this.#combat.activate(spawn, attributes)
     this.#practice = false
     // Keep mesh mounting/release, but never let its latest Transform overwrite P placement.
@@ -122,11 +141,11 @@ export class TrainingBotComponent extends Component {
   }
 
   prepareDamage(entries, shot, context) {
-    if (!this.enabled || !this.owner?.active)
+    if (!this.#hittable)
       return null
     if (!this.#practice)
       return this.#combat.prepareDamage(entries, shot, context)
-    // Preserve the existing free-practice previews until the real pool is assembled in phase four.
+    // Free practice keeps the original non-lethal reactions.
     for (const entry of entries) fixedDamage(shot.definitionId, entry.impact.region)
     return immutableFact({ practice: true, entries })
   }
@@ -151,6 +170,7 @@ export class TrainingBotComponent extends Component {
         fixedTick: time.fixedTick,
         at: time.fixedElapsed,
         position: this.#transform.position.toArray(),
+        impact: plan.lethal.impact,
         quaternion: this.#transform.quaternion.toArray(),
         scale: this.#transform.scale.toArray(),
         pose: this.#poses.capture(),
@@ -193,7 +213,10 @@ export class TrainingBotComponent extends Component {
     }
     else if (phase === 'motion') {
       for (const fact of this.#poses.present(time.presentationTime)) {
-        if (fact.type === 'TargetReacted') {
+        if (fact.type === 'TargetKilled') {
+          this.#onKillPresented?.(fact, time.presentationTime)
+        }
+        else if (fact.type === 'TargetReacted') {
           this.#hitAudio?.play({
             owner: this.owner.id,
             region: fact.region,
@@ -259,7 +282,14 @@ export async function loadTrainingBotAssets({ resources, audio = null, signal })
         options: { sha256: profile.asset.sha256 },
       },
     ], { signal })
-    const clips = resources.get(modelName, 'gltf').animations
+    const { scene: template, animations: clips } = resources.get(modelName, 'gltf')
+    template.updateMatrixWorld(true)
+    const aimPoints = ['head', 'chest'].map((region) => {
+      const part = profile.parts.find(part => part.region === region)
+      const bone = template.getObjectByName(part.bone)
+      const center = bone.localToWorld(new Vector3().fromArray(part.center))
+      return template.worldToLocal(center).toArray()
+    })
     skins = await loadTrainingBotSkins({ resources, signal })
     // Optional audio preloads independently and cannot block the model or reactions.
     hitAudio = audio
@@ -268,7 +298,8 @@ export async function loadTrainingBotAssets({ resources, audio = null, signal })
     return {
       dispose,
       audioReady: hitAudio?.ready ?? Promise.resolve(),
-      instantiate({ scene, targets, position, yaw = 0, scale = 1, skin = 'purple' }) {
+      spawnGeometry: { bounds: profile.broadphase, aimPoints },
+      instantiate({ scene, targets, position, yaw = 0, scale = 1, skin = 'purple', practice = true, onKillPresented = null }) {
         if (!Object.hasOwn(trainingBotSkins, skin))
           throw new Error(`[Training bot] Unknown skin: ${skin}`)
         const root = resources.instantiate(modelName)
@@ -307,6 +338,8 @@ export async function loadTrainingBotAssets({ resources, audio = null, signal })
             targets,
             hitAudio,
             skin,
+            practice,
+            onKillPresented,
           }))
         }
         catch (error) {

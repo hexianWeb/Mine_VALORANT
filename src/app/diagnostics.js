@@ -32,6 +32,7 @@ export function installDiagnostics({ runtime, level, inspection, editor, canvas,
       return {
         ...render,
         ...world,
+        challenge: level.readChallengeDiagnostics?.() ?? null,
         time: runtime.engine.time.snapshot(),
         audio: runtime.audio?.snapshot(),
         inspection: state,

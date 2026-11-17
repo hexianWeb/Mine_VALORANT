@@ -470,6 +470,8 @@ test('room occlusion caps target queries, and one shot reacts once at its neares
 
 test('real GLB authority/visible skeletons and placements are isolated across P; lethal facts detach pose and transform', async (t) => {
   const { object, bot, root, targets, submit, present, level } = await fixture(t)
+  const head = root.getObjectByName('head')
+  const guard = head.quaternion.clone()
   const spawn = {
     targetId: object.id,
     sessionId: 'test-session',
@@ -525,6 +527,24 @@ test('real GLB authority/visible skeletons and placements are isolated across P;
   assert.equal(state.poses.pending, 0)
   present(0.2)
   assert.equal(bot.snapshot().poses.pending, 0, 'same P does not replay')
+
+  // A fixed step can reuse this instance while P is still showing the old body.
+  bot.activateSpawn({
+    ...spawn,
+    spawnId: 'next-spawn',
+    cellId: '9,1',
+    position: [9, 0, 0],
+    at: 0.25,
+  }, { maxHealth: 100, maxArmor: 0 }, { fixedTick: 15, fixedElapsed: 0.25, fixedDelta: 1 / 60 })
+  present(0.249)
+  assert.equal(bot.snapshot().poses.visibleSpawn, spawn.spawnId)
+  assert.equal(root.position.x, 3)
+  present(0.25)
+  assert.equal(bot.snapshot().poses.visibleSpawn, 'next-spawn')
+  assert.equal(bot.snapshot().poses.bodyHideAt, null)
+  assert.equal(root.visible, true)
+  assert.equal(root.position.x, 9)
+  assert.ok(head.quaternion.angleTo(guard) < 1e-6, 'reused body restores the authored guard pose')
   level.removeObject(object.id)
 })
 

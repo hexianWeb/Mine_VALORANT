@@ -121,7 +121,7 @@ try {
   assert.equal(current.blocked, true)
   assert.equal(current.locked, false)
   assert.deepEqual(current.dialogs, ['settings-dialog'])
-  assert.match(current.selectionNote, /尚未接入/)
+  assert.match(current.selectionNote, /开始.*方框/)
   const menuStart = current
   for (const [code, keyCode] of [
     ['KeyW', 87],
