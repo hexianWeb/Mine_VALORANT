@@ -7,17 +7,22 @@ export class GridCapacityError extends Error {}
 export function sectorCells({ position, yaw }) {
   if (!Array.isArray(position) || position.length !== 3 || !position.every(Number.isFinite) || !Number.isFinite(yaw))
     throw new TypeError('[Grid] Expected the configured respawn anchor')
-  const { cellSize: g, radius } = challengeRules
+  const { cellSize: g, radius, spawnOffsetRows } = challengeRules
+  const offset = spawnOffsetRows * g
   const forward = [-Math.sin(yaw), -Math.cos(yaw)]
   const right = [
     Math.cos(yaw),
     -Math.sin(yaw),
   ]
-  const world = (x, z) => [position[0] + x * right[0] + z * forward[0], position[2] + x * right[1] + z * forward[1]]
+  const world = (x, z) => {
+    const depth = z + offset
+    return [position[0] + x * right[0] + depth * forward[0], position[2] + x * right[1] + depth * forward[1]]
+  }
   const inside = (x, z) => Math.hypot(x, z) > 0 && Math.hypot(x, z) <= radius + 1e-10 && z + 1e-10 >= Math.abs(x)
   const cells = []
   const extent = Math.ceil(radius / g)
   for (let j = 0; j < extent; j++) {
+    const row = j + spawnOffsetRows
     for (let i = -extent; i < extent; i++) {
       const corners = [
         [i * g, j * g],
@@ -28,9 +33,9 @@ export function sectorCells({ position, yaw }) {
       if (!corners.every(([x, z]) => inside(x, z)))
         continue
       cells.push({
-        cellId: `${i},${j}`,
+        cellId: `${i},${row}`,
         i,
-        j,
+        j: row,
         center: world((i + 0.5) * g, (j + 0.5) * g),
         corners: corners.map(([x, z]) => world(x, z)),
       })

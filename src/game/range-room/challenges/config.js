@@ -14,6 +14,7 @@ export const challengeRules = immutableFact({
   opportunities: 30,
   concurrency: 10,
   cellSize: 1,
+  spawnOffsetRows: 2,
   radius: 18,
   angle: Math.PI / 2,
   windows: { easy: 2, medium: 1, hard: 0.5 },

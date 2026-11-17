@@ -221,22 +221,26 @@ function sceneCells(anchor = {
   position: [7, 9, -3],
   yaw: 0.7,
 }) {
-  return validateSectorCells(sectorCells(anchor), cell => cell.j > 1
+  return validateSectorCells(sectorCells(anchor), cell => cell.j > challengeRules.spawnOffsetRows + 1
     ? 4.25
     : null)
 }
-test('sector consists of complete 1m squares anchored to respawn yaw; real floor validation is required', () => {
+test('the sector shifts two full rows along respawn yaw and still requires floor validation', () => {
   const anchor = {
     position: [7, 9, -3],
     yaw: 0.7,
   }
   const cells = sectorCells(anchor)
   assert.ok(cells.length > 100)
+  assert.equal(Math.min(...cells.map(cell => cell.j)), 3)
+  assert.equal(Math.max(...cells.map(cell => cell.j)), 18)
+  const originX = anchor.position[0] - 2 * Math.sin(anchor.yaw)
+  const originZ = anchor.position[2] - 2 * Math.cos(anchor.yaw)
   for (const cell of cells) {
     assert.equal(cell.position, undefined, 'geometry alone must not guess a floor')
     for (const [x, z] of cell.corners) {
-      const dx = x - anchor.position[0]
-      const dz = z - anchor.position[2]
+      const dx = x - originX
+      const dz = z - originZ
       const r = Math.hypot(dx, dz)
       const dot = -dx * Math.sin(anchor.yaw) - dz * Math.cos(anchor.yaw)
       assert.ok(r > 0 && r <= 18 + 1e-9)
