@@ -10,6 +10,7 @@ import { mountRangeSettings } from './range-settings.js'
 import { createUiHost } from './ui-host.js'
 import { createUiInput } from './ui-input.js'
 import { mountWeaponHud } from './weapon-hud.js'
+import { mountWeaponShop } from './weapon-shop.js'
 
 /**
  * 标准 `Navigator` 尚未包含 WebGPU 入口。浏览器不支持时没有 `gpu`。
@@ -126,6 +127,7 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
     const ui = levelTools.add(createUiHost({ canvas, debugContainer: panelContainer }))
     let inputUi = null
     let weaponHud = null
+    let weaponShop = null
     /**
      * 把编辑器控件交给观察接口。编辑器关闭时不传控件。
      *
@@ -174,7 +176,21 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
           if (!ui.topModal || ui.topModal === 'range-settings')
             settings.toggle()
         },
+        onShop: () => {
+          if (weaponShop)
+            weaponShop.open()
+          else
+            inputUi.announce('当前关卡未提供武器目录')
+        },
       }))
+      if (level.player.weapons) {
+        weaponShop = levelTools.add(mountWeaponShop({
+          ui,
+          weapons: level.player.weapons,
+          engine: runtime.engine,
+          onNotice: message => inputUi.announce(message),
+        }))
+      }
       levelTools.add(mountInputOverlay({ ui, controls: inputUi, onSettings: settings.toggle }))
       weaponHud = levelTools.add(mountWeaponHud({
         canvas,

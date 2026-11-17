@@ -30,7 +30,8 @@ export function mountRangeSettings({ ui, player, onCrosshair }) {
       <div><dt>预选护甲</dt><dd data-armor></dd></div>
       <div><dt>灵敏度</dt><dd data-sensitivity></dd></div>
     </dl>
-    <button type="button" data-open-settings>按 <kbd>F3</kbd> 更改设置</button>`
+    <button type="button" data-open-settings>按 <kbd>F3</kbd> 更改设置</button>
+    <p class="range-shop-hint"><kbd>B</kbd> 武器商店 · 免费选择</p>`
   ui.hud.append(card)
   const modeText = card.querySelector('[data-mode]')
   const optionLabel = card.querySelector('[data-option-label]')

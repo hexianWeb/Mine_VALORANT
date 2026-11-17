@@ -245,6 +245,10 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
     continue: () => requestCapture(true),
     capture: () => requestCapture(),
     pause,
+    announce(text) {
+      message = String(text ?? '')
+      publish()
+    },
     sync,
     dispose() {
       if (disposed)

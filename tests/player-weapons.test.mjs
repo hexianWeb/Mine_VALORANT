@@ -143,6 +143,7 @@ function setup(t, {
   scene = null,
   camera = null,
   shotTargets = null,
+  armoryAccess,
 } = {}) {
   const assets = fakeAssets()
   const aim = new AimState({ seed: 123, offsetSmoothing: 0 })
@@ -237,6 +238,7 @@ function setup(t, {
     scene,
     camera,
     shotTargets,
+    armoryAccess,
     world: {
       boxes: [
         {
@@ -305,6 +307,100 @@ function setup(t, {
     },
   }
 }
+
+test('shop selection follows actual fixed preparation and delayed presentation, preserving ammo', async (t) => {
+  const f = setup(t)
+  await f.ready()
+  const scopeId = f.weapons.readArmory().scopeId
+  const request = { scopeId, requestId: 1, slotId: 'primary' }
+  assert.equal(f.weapons.requestArmorySelection(request).accepted, true)
+  assert.equal(f.weapons.requestArmorySelection(request).accepted, false)
+  assert.equal(f.assets.requests.length, 1, 'DOM intent cannot start resource preparation')
+  assert.equal(f.weapons.canStartChallenge(), false)
+  f.fixed()
+  const before = f.tick * h
+  await f.assets.resolve('phantom')
+  f.motion(before)
+  f.fixed()
+  f.fixed()
+  assert.equal(f.weapons.snapshot().activeId, 'rifle')
+  assert.equal(f.weapons.readArmory().presentedSlotId, 'secondary')
+  assert.equal(f.weapons.readArmory().request.status, 'drawing')
+  f.motion(f.tick * h)
+  assert.equal(f.weapons.readArmory().presentedSlotId, 'primary')
+  f.advance(5)
+  f.motion(f.tick * h)
+  assert.equal(f.weapons.readArmory().request.status, 'ready')
+  assert.equal(f.weapons.canStartChallenge(), true)
+  const pistol = f.weapons.snapshot().inventory.weapons.find(weapon => weapon.instanceId === 'pistol')
+  assert.equal(pistol.magazine, 12)
+  assert.equal(pistol.reserve, 36)
+})
+
+test('shop failures and retries retain the playable old gun and ignore superseded loads', async (t) => {
+  const f = setup(t, { ghost: true })
+  await f.ready()
+  const scopeId = f.weapons.readArmory().scopeId
+  f.weapons.requestArmorySelection({ scopeId, requestId: 1, slotId: 'primary' })
+  f.fixed()
+  f.weapons.requestArmorySelection({ scopeId, requestId: 2, slotId: 'tertiary' })
+  f.fixed()
+  await f.assets.resolve('phantom')
+  await f.assets.reject('ghost')
+  f.fixed()
+  assert.equal(f.weapons.readArmory().request.status, 'failed')
+  assert.equal(f.weapons.snapshot().activeId, 'pistol')
+  assert.equal(f.weapons.snapshot().canFire, true)
+  f.weapons.requestArmorySelection({ scopeId, requestId: 3, slotId: 'tertiary' })
+  f.fixed()
+  await f.assets.resolve('ghost')
+  f.motion()
+  f.advance(60)
+  f.motion(f.tick * h)
+  assert.equal(f.weapons.readArmory().request.status, 'ready')
+  assert.equal(f.weapons.readArmory().presentedSlotId, 'tertiary')
+  assert.equal(f.assets.instances.some(instance => instance.weaponId === 'phantom'), false)
+})
+
+test('shop access revalidates at fixed commit and invalidates across reset and Editor without trusting stale UI scope', async (t) => {
+  let blocked = false
+  const f = setup(t, {
+    armoryAccess: () => blocked ? '本局进行中' : null,
+  })
+  await f.ready()
+  const scopeId = f.weapons.readArmory().scopeId
+  f.weapons.requestArmorySelection({ scopeId, requestId: 1, slotId: 'primary' })
+  blocked = true
+  f.fixed()
+  assert.equal(f.weapons.readArmory().request.status, 'failed')
+  assert.equal(f.assets.requests.length, 1)
+  blocked = false
+  f.weapons.requestArmorySelection({ scopeId, requestId: 2, slotId: 'primary' })
+  f.fixed()
+  f.weapons.suspend()
+  await f.assets.resolve('phantom')
+  f.motion()
+  assert.equal(f.weapons.readArmory().available, false)
+  assert.equal(f.weapons.readArmory().request, null)
+  assert.equal(f.weapons.requestArmorySelection({ scopeId, requestId: 3, slotId: 'primary' }).accepted, false)
+  f.weapons.resume()
+  const editorScope = f.weapons.readArmory().scopeId
+  f.weapons.reset()
+  assert.notEqual(f.weapons.readArmory().scopeId, editorScope)
+  assert.equal(f.weapons.requestArmorySelection({ scopeId: editorScope, requestId: 4, slotId: 'primary' }).accepted, false)
+})
+
+test('a newer keyboard selection supersedes a shop command queued before the next fixed step', async (t) => {
+  const f = setup(t, { ghost: true })
+  await f.ready()
+  f.weapons.requestArmorySelection({ scopeId: f.weapons.readArmory().scopeId, requestId: 1, slotId: 'primary' })
+  f.key('keydown', 'Digit3')
+  f.weapons.collectInput(f.input)
+  f.fixed()
+  assert.equal(f.weapons.readArmory().request.status, 'superseded')
+  assert.equal(f.weapons.snapshot().pendingTarget, 'ghost')
+  assert.equal(f.assets.requests.some(entry => entry.request.weaponId === 'phantom'), false)
+})
 
 test('menu handoff drops pre-fixed input but lets async equipment preparation and committed reload finish', async (t) => {
   const f = setup(t)

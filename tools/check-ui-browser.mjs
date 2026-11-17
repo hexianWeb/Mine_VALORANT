@@ -3,10 +3,11 @@ import { Buffer } from 'node:buffer'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
+import { checkArmory } from './armory-browser-cases.mjs'
 import { openBrowser } from './browser-session.mjs'
 
 const url = process.argv[2] ?? 'http://127.0.0.1:5173/?editor=0&probes=0&ao=0&aa=none'
-const output = path.resolve(process.argv[3] ?? `D:/opencode-temp/opencode/ui-phase-one/${Date.now()}`)
+const output = path.resolve(process.argv[3] ?? `D:/opencode-temp/opencode/ui-phase-two/${Date.now()}`)
 const started = performance.now()
 const errors = []
 const checks = []
@@ -21,6 +22,7 @@ function state() {
     tick: api.engine.time.fixedTick, presentationTime: api.engine.time.snapshot().presentationTime,
     position: player.position.toArray(), yaw: player.yaw, respawns: player.respawns,
     settings: player.lookSettings.read(), hud: player.readHud().weapon,
+    armory: player.weapons.readArmory(),
     dialogs: [...document.querySelectorAll('dialog[open]')].map(node => node.className),
     inputMessage: document.querySelector('.input-message').textContent,
     selectionNote: document.querySelector('.settings-note').textContent,
@@ -46,6 +48,9 @@ async function press(code, keyCode, modifiers = 0) {
     code,
     windowsVirtualKeyCode: keyCode,
     modifiers,
+    ...(code === 'Enter'
+      ? { text: '\r', unmodifiedText: '\r' }
+      : {}),
   })
   await browser.send('Input.dispatchKeyEvent', {
     type: 'keyUp',
@@ -271,6 +276,14 @@ try {
   })`)
   assert.equal(writes, 0)
   record('stationary weapon/status HUD performs zero repeated DOM writes', { frames: 20, mutationRecords: writes })
+  await checkArmory({
+    browser,
+    press,
+    click,
+    screenshot,
+    record,
+    quick: process.env.ARMORY_QUICK === '1',
+  })
 
   await browser.navigate(url)
   await browser.send('Page.bringToFront')
@@ -304,19 +317,25 @@ try {
   assert.deepEqual((await state()).dialogs, ['settings-dialog'])
   record('unload detaches UI/listeners; remount hotkey fires once')
   if (new URL(url).searchParams.get('editor') !== '0') {
+    await press('Escape', 27)
+    await press('KeyB', 66)
+    assert.deepEqual((await state()).dialogs, ['weapon-shop'])
+    const oldScope = await evaluate('globalThis.__RANGE_ROOM__.world.player.weapons.readArmory().scopeId')
     await evaluate('globalThis.__RANGE_ROOM__.inspection.setMode("fly")')
     current = await state()
     assert.equal(current.enabled, false)
     assert.deepEqual(current.dialogs, [])
     assert.equal(await evaluate('document.querySelector(".range-status").hidden'), true)
     assert.equal(await evaluate('globalThis.__RANGE_ROOM__.runtime.input.enabled'), false)
+    assert.notEqual(await evaluate('globalThis.__RANGE_ROOM__.world.player.weapons.readArmory().scopeId'), oldScope)
+    assert.equal(await evaluate(`globalThis.__RANGE_ROOM__.world.player.weapons.requestArmorySelection({scopeId:${JSON.stringify(oldScope)},requestId:100,slotId:'primary'}).accepted`), false)
     await evaluate('globalThis.__RANGE_ROOM__.inspection.setMode("player")')
     await waitReady()
     await press('F3', 114)
     await browser.frames(4)
     assert.equal((await state()).engine, 'running')
     assert.deepEqual((await state()).dialogs, ['settings-dialog'])
-    record('Editor handoff closes modals and disables player; menus remain a separate input path')
+    record('Editor handoff closes shop, invalidates old selection scope and disables player; menus remain a separate input path')
   }
   assert.deepEqual(errors, [])
 }

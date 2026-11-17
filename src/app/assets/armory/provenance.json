@@ -1,0 +1,43 @@
+{
+  "source": "https://valorant-api.com/v1/weapons?language=en-US",
+  "observedAt": "2026-11-17",
+  "usage": "Local UI icons only. Third-party public asset source, not a gameplay data source or an official project endorsement.",
+  "runtimeNetworkDependency": false,
+  "files": [
+    {
+      "id": "classic",
+      "url": "https://media.valorant-api.com/weapons/29a0cfab-485b-f5d5-779a-b59f85e204a8/displayicon.png",
+      "sha256": "2c0d3b18c53e1b11ed2aebd40b2473d68625a8e7af9e8557b7cee4581af275f5"
+    },
+    {
+      "id": "ghost",
+      "url": "https://media.valorant-api.com/weapons/1baa85b4-4c70-1284-64bb-6481dfc3bb4e/displayicon.png",
+      "sha256": "9b4d2a41cd740f5e7dd746e70c38b930d8d6b34a9373b4224373f8be1c1db516"
+    },
+    {
+      "id": "sheriff",
+      "url": "https://media.valorant-api.com/weapons/e336c6b8-418d-9340-d77f-7a9e4cfe0702/displayicon.png",
+      "sha256": "8d6bce7a8af55e9bc1330c0c2b8883383564932e651f32fbc2e85b6a5d9decf2"
+    },
+    {
+      "id": "phantom",
+      "url": "https://media.valorant-api.com/weapons/ee8e8d15-496b-07ac-e5f6-8fae5d4c7b1a/displayicon.png",
+      "sha256": "3eebd86204dc44dd5bd31cc54b7a2dcbac87ca9d40de0f608c183c896ec6c553"
+    },
+    {
+      "id": "vandal",
+      "url": "https://media.valorant-api.com/weapons/9c82e19d-4575-0200-1a81-3eacf00cf872/displayicon.png",
+      "sha256": "07c9a2d4dc6b7926d023163237dd508104be3fec2b5712cdc1a5301bb294457d"
+    },
+    {
+      "id": "judge",
+      "url": "https://media.valorant-api.com/weapons/ec845bf4-4f79-ddda-a3da-0db3774b2794/displayicon.png",
+      "sha256": "2f870edaa9af995e908c4d42e56298e4a1dbdc2ab31a48d94b9ba64f313f8f16"
+    },
+    {
+      "id": "odin",
+      "url": "https://media.valorant-api.com/weapons/63e6c2b6-4a8e-869c-3d4c-e38355226584/displayicon.png",
+      "sha256": "05522897852930084b5f73253f7e462081d90b1cd036c3e21ca8ec6dedfcff69"
+    }
+  ]
+}

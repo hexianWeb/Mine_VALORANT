@@ -1,4 +1,5 @@
 import { intersectRayBox } from '../../engine/runtime/function/physics/ray-box.js'
+import { createArmoryCatalog } from './armory-catalog.js'
 import { classicDefinition } from './definitions/classic.js'
 import { ghostDefinition } from './definitions/ghost.js'
 import { judgeDefinition } from './definitions/judge.js'
@@ -8,6 +9,7 @@ import { sheriffDefinition } from './definitions/sheriff.js'
 import { vandalDefinition } from './definitions/vandal.js'
 import { EquipmentController } from './equipment-controller.js'
 import { isImpactColor, isImpactSurface, namedImpactSurface } from './impact-surfaces.js'
+import { PracticeArmory } from './practice-armory.js'
 import { ShotEffects } from './shot-effects.js'
 import { WeaponAudio } from './weapon-audio.js'
 import { WeaponViewModel } from './weapon-viewmodel.js'
@@ -128,6 +130,7 @@ export class PlayerWeapons {
   #pausedSelection = null
   #initialSelectionId
   #disposed = false
+  #armory
 
   constructor({
     assets,
@@ -152,6 +155,7 @@ export class PlayerWeapons {
     loadout = practiceLoadout,
     initialSlot = 'secondary',
     fixedDelta = 1 / 60,
+    armoryAccess,
   }) {
     this.#controller = new EquipmentController({
       definitions,
@@ -160,7 +164,13 @@ export class PlayerWeapons {
       fixedDelta,
     })
     this.#definitions = new Map(definitions.map(definition => [definition.id, definition]))
-    const inventory = this.#controller.snapshot().inventory
+    const equipment = this.#controller.snapshot()
+    const inventory = equipment.inventory
+    this.#armory = new PracticeArmory({
+      catalog: createArmoryCatalog({ definitions, inventory }),
+      equipment,
+      access: armoryAccess,
+    })
     this.#initialSelectionId = initialSlot === undefined
       ? inventory.weapons[0]?.instanceId ?? null
       : inventory.slots.find(slot => slot.id === initialSlot)?.instanceId ?? null
@@ -234,10 +244,15 @@ export class PlayerWeapons {
         cycleSkin: { type: 'cycleSkin', instanceId: this.#controller.snapshot().activeId },
         fire: { type: 'fire' },
       }[action]
-      if (paused && command)
+      if (paused && command) {
         this.#rememberPausedSelection(command)
-      else if (command && (command.type !== 'cycleSkin' || command.instanceId))
+      }
+      else if (command && (command.type !== 'cycleSkin' || command.instanceId)) {
+        if (['selectSlot', 'cycle', 'selectPrevious'].includes(command.type)) {
+          this.#armory.supersede()
+        }
         this.#controller.queue(command, { source: 'input' })
+      }
     }
     if (paused)
       return
@@ -274,11 +289,27 @@ export class PlayerWeapons {
       this.#pausedSelection = target
   }
 
-  queue(command) { return this.#controller.queue(command) }
+  queue(command) {
+    if ([
+      'select',
+      'selectSlot',
+      'cycle',
+      'selectPrevious',
+    ].includes(command?.type)) {
+      this.#armory.supersede()
+    }
+    return this.#controller.queue(command)
+  }
+
+  readArmory() { return this.#armory.read() }
+  requestArmorySelection(command) { return this.#armory.request(command) }
+  setArmoryAccess(check) { this.#armory.setAccess(check) }
+  canStartChallenge() { return this.#armory.canStartChallenge() }
 
   fixed(context, pose) {
     const time = context.time ?? context
     const aimHeld = pose.aimHeld ?? this.#aimHeld
+    this.#armory.beforeFixed(command => this.#controller.queue(command))
     const batch = this.#controller.step(context, { aimHeld })
     const snapshot = this.#controller.snapshot()
     const weapon = snapshot.inventory.weapons.find(weapon => weapon.instanceId === snapshot.activeId)
@@ -349,12 +380,15 @@ export class PlayerWeapons {
     this.#view.receive(batch, snapshot, aim)
     this.#audio?.receive(batch, snapshot)
     this.#effects?.receive(batch)
+    this.#armory.accept(snapshot)
+    this.#armory.present(this.#view.readHud())
   }
 
   motion(time, pose = this.#aim.sample(time.presentationTime)) {
     this.#audio?.motion(time)
     const shots = this.#view.motion(time, this.#controller.snapshot(), pose)
     this.#effects?.motion(time, shots)
+    this.#armory.present(this.#view.readHud())
   }
 
   setPaused(value) {
@@ -362,28 +396,33 @@ export class PlayerWeapons {
       return
     this.#paused = value
     this.#controller.setPaused(value)
+    this.#armory.setPaused(value)
     if (value) {
       this.#aimHeld = false
       this.#pausedSelection = null
     }
     else if (this.#pausedSelection) {
+      this.#armory.supersede()
       this.#controller.queue({ type: 'select', instanceId: this.#pausedSelection })
       this.#pausedSelection = null
     }
   }
 
   suspend() {
+    this.#armory.setEnabled(false)
     this.#aimHeld = false
     this.#pausedSelection = null
     this.#accept(this.#controller.suspend())
   }
 
   resume() {
+    this.#armory.setEnabled(true)
     this.#controller.resume()
     this.#view.resume()
   }
 
   reset() {
+    this.#armory.invalidate()
     this.#lastShot = null
     this.#pausedSelection = null
     this.#accept(this.#controller.reset())
@@ -406,6 +445,7 @@ export class PlayerWeapons {
     if (this.#disposed)
       return
     this.#disposed = true
+    this.#armory.dispose()
     this.#controller.dispose()
     this.#audio?.dispose()
     this.#effects?.dispose()

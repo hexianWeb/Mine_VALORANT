@@ -10,7 +10,7 @@ export function mountInputOverlay({ ui, controls, onSettings }) {
       <p>模拟与展示时间已冻结。回到窗口不会自动继续。</p>
       <div class="ui-actions"><button type="button" data-continue>继续</button><button type="button" data-settings>F3 设置</button></div>
     </div>
-    <button type="button" class="capture-hint">点击画面捕获鼠标 · F3 设置</button>
+    <button type="button" class="capture-hint">点击画面捕获鼠标 · B 商店 · F3 设置</button>
     <p class="input-message" role="status"></p>`
   ui.hud.append(root)
   const card = root.querySelector('.pause-card')

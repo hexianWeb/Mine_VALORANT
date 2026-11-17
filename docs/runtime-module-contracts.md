@@ -46,6 +46,8 @@
 | [UI input](../src/app/ui-input.js) | 输入归属、暂停原因、捕获请求状态 | Input、Player、Engine、UI host | 监听真实 Pointer Lock／焦点／可见性；不拥有独立帧循环或游戏时钟 |
 | [Weapon HUD](../src/app/weapon-hud.js) | 当前关卡的 DOM、监听与显示配置 | Engine frame 后读取 `PlayerComponent.readHud()`／`WeaponViewModel.readHud()` | app 挂载／卸载；不读完整诊断快照，按字段变化写入，不拿最新模拟弹药提前显示 |
 | [Look settings](../src/game/player/look-settings.js) | 玩家灵敏度、待提交值及 revision | 初始配置 | request 校验并合并意图，Player 在有效 postPhysics 提交；app 仅负责本地保存适配 |
+| [PracticeArmory](../src/game/weapons/practice-armory.js) | 选择请求 scope／request、静态持有目录、逻辑完成与展示确认状态 | 已有 EquipmentController 固定快照及视模窄读模型、游戏侧访问条件 | PlayerWeapons 在固定步前验证并排队，在固定步后接收结果；重生／Editor／卸载失效，不持有 DOM 或资源 Promise |
+| [Weapon shop](../src/app/weapon-shop.js) | 候选、分类卡片、详情、焦点与只在打开时的 frame 订阅 | `readArmory()` 与 `requestArmorySelection()` | 点击仅发选择意图；选中不等于装备，关窗不撤销已接受请求，不读取完整诊断 |
 
 当前粒子服务由 RuntimeContext 持有，但 ImpactEffects 使用全量 clear。这是**当前单玩家效果生产者的约定**，不是通用多来源作用域隔离。增加其他效果生产者前，应引入 owner／scope 的取消边界，不能继续让任一生产者清空所有效果。本次只记录此边界，不改现有粒子实现。
 
@@ -90,7 +92,9 @@ Engine.step(nowMs)
 - 菜单调用 `PlayerComponent.setInputBlocked()`，清除移动／跳跃／视角及未提交的物理输入，不调用 Editor 的 `setEnabled(false)`。`EquipmentController.clearInput()` 只移除标记为 `source: input` 的排队命令；已接受的换弹／装备事务、准备回复和 UI 命令保留，下一固定步归零持续开火。
 - F3 不暂停模拟。Esc 先关闭顶层模态，再次 Esc 才暂停；解锁失败保持隔离。窗口失焦／后台通过已有 `Engine.pause()` 冻结时钟，回焦不恢复，必须点「继续」且实际捕获成功。应用设置 `autoPauseOnHidden: false`，通用 RuntimeContext／Engine 的原默认行为不变。
 - 灵敏度默认 0.4，范围 `[0.01, 5]`，细／粗步长 0.01／0.1。UI 显示待提交与有效值，只有有效提交值保存至 `mc-valorant.mouse-sensitivity.v1`；无效数据／存储失败不阻塞玩法。
-- 阶段一的模式／难度／数量／护甲仅为明确标注的下一局预选；不冒充挑战、伤害或无限备用弹药已经接入。B 的真实商店与挑战运行中只读／取消留待后续真实模块接入，见[阶段一实施记录](superpowers/plans/2026-11-17-range-ui-phase-one.md)。
+- 模式／难度／数量／护甲仍是明确标注的下一局预选，不冒充挑战、伤害或无限备用弹药已经接入。B 已接入七槽位免费选择商店，选枪后保持打开；挑战运行中 F3 只读／取消仍待真实会话接入，见[阶段二实施记录](superpowers/plans/2026-11-17-range-armory-phase-two.md)。
+- 商店请求带 `scopeId / requestId / slotId`，进入 `PlayerWeapons` 固定步后再次校验访问条件。重复／旧 scope 被拒绝，新选择替代旧请求，准备失败保留原枪并可重试；重生、Editor、卸载使旧请求失效，关闭窗口不使已接受选择失效。
+- `setArmoryAccess(check)` 仅提供游戏侧的条件接入点，当前挑战限制使用注入条件验收，并未实施 ChallengeSession。未来开局须调用 `canStartChallenge()`，它只使用权威装备／准备／排队状态，**不依赖 P 或模态可见性**。权威选择已完成后，即使尚待展示确认，也不能被后续条件倒查为失败。
 
 ## 暂停、挂起、重置、销毁
 
