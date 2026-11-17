@@ -1,5 +1,4 @@
 {
-  "source": "https://valorant-api.com/v1/weapons?language=en-US",
   "observedAt": "2026-11-17",
   "usage": "Local UI icons only. Third-party public asset source, not a gameplay data source or an official project endorsement.",
   "runtimeNetworkDependency": false,
@@ -38,6 +37,112 @@
       "id": "odin",
       "url": "https://media.valorant-api.com/weapons/63e6c2b6-4a8e-869c-3d4c-e38355226584/displayicon.png",
       "sha256": "05522897852930084b5f73253f7e462081d90b1cd036c3e21ca8ec6dedfcff69"
+    },
+    {
+      "id": "ares",
+      "url": "https://media.valorant-api.com/weapons/55d8a0f4-4274-ca67-fe2c-06ab45efdf58/shop/newimage.png",
+      "sha256": "eab2c23c6b9b8c4d6fe7118f5033661e95be37e86db072c13f3fadea4e49d8e4"
+    },
+    {
+      "id": "armor-heavy",
+      "url": "https://media.valorant-api.com/gear/822bcab2-40a2-324e-c137-e09195ad7692/displayicon.png",
+      "sha256": "53cf07c3a6137296c9a3a9f4add8f3db84bb51908485ba50e174fd6285d3fcad"
+    },
+    {
+      "id": "armor-light",
+      "url": "https://media.valorant-api.com/gear/4dec83d5-4902-9ab3-bed6-a7a390761157/displayicon.png",
+      "sha256": "d5fbf9832f2de23358ddb9631004cfd66cf9d5baec8262f8e2fd5a00e55fa898"
+    },
+    {
+      "id": "armor-regen",
+      "url": "https://media.valorant-api.com/gear/b1b9086d-41bd-a516-5d29-e3b34a6f1644/displayicon.png",
+      "sha256": "7f60e5f5b64b84f69e762b496ef1881199d0c122bcb2be97e4cfd15c7d69b2b5"
+    },
+    {
+      "id": "bandit",
+      "url": "https://media.valorant-api.com/weapons/410b2e0b-4ceb-1321-1727-20858f7f3477/shop/newimage.png",
+      "sha256": "a085ad5244df0170e324f0946096a0307087d1f4e6841c836553da14c64683ef"
+    },
+    {
+      "id": "bucky",
+      "url": "https://media.valorant-api.com/weapons/910be174-449b-c412-ab22-d0873436b21b/shop/newimage.png",
+      "sha256": "f703316144468f99be3015001d6752696436b5e6877ca08c00d9ae7ebd86e0cd"
+    },
+    {
+      "id": "bulldog",
+      "url": "https://media.valorant-api.com/weapons/ae3de142-4d85-2547-dd26-4e90bed35cf7/shop/newimage.png",
+      "sha256": "91b75b4f7805b7ae4e59a7d01d98945e24412afb635b3ed5df1603fd6eb6bdfe"
+    },
+    {
+      "id": "frenzy",
+      "url": "https://media.valorant-api.com/weapons/44d4e95c-4157-0037-81b2-17841bf2e8e3/shop/newimage.png",
+      "sha256": "4bfff928e83fe079c724d5131f220f1bf6dd19f6a0506446c871fe46c4a75f0a"
+    },
+    {
+      "id": "guardian",
+      "url": "https://media.valorant-api.com/weapons/4ade7faa-4cf1-8376-95ef-39884480959b/shop/newimage.png",
+      "sha256": "8a355d0130ebebc3c5ac69e0d654886b25ab22c512aade74478e76fb69f86576"
+    },
+    {
+      "id": "marshal",
+      "url": "https://media.valorant-api.com/weapons/c4883e50-4494-202c-3ec3-6b8a9284f00b/shop/newimage.png",
+      "sha256": "4116126f1e58f83ad9c00fb1b5f98530a312f94cf3d49c29f1f19a2543837478"
+    },
+    {
+      "id": "operator",
+      "url": "https://media.valorant-api.com/weapons/a03b24d3-4319-996d-0f8c-94bbfba1dfc7/shop/newimage.png",
+      "sha256": "a58b84d5b9d553b405e5f2868c2fb79591e7bf8b504927afb813919d89ef832e"
+    },
+    {
+      "id": "outlaw",
+      "url": "https://media.valorant-api.com/weapons/5f0aaf7a-4289-3998-d5ff-eb9a5cf7ef5c/shop/newimage.png",
+      "sha256": "2d4d10d993ec8b4a62862d988c2febdd1107dad588f258292a08d773afb630bf"
+    },
+    {
+      "id": "phoenix",
+      "url": "https://media.valorant-api.com/agents/eb93336a-449b-9c1b-0a54-a891f7921d69/displayicon.png",
+      "sha256": "b15901ae8693d703b8b0bdc510b675194ef86cf11da1bcbb92d3a5524f0dad6b"
+    },
+    {
+      "id": "phoenix-fireball",
+      "url": "https://media.valorant-api.com/agents/eb93336a-449b-9c1b-0a54-a891f7921d69/abilities/ability1/displayicon.png",
+      "sha256": "a9e890e68195d5ae06fe9ba569e89a0f4526690eb453e4a623893e76fe07e6d4"
+    },
+    {
+      "id": "phoenix-flash",
+      "url": "https://media.valorant-api.com/agents/eb93336a-449b-9c1b-0a54-a891f7921d69/abilities/ability2/displayicon.png",
+      "sha256": "58d1501e98b24536efb646dc6944495e25c0805cea5622bea49664e80207221d"
+    },
+    {
+      "id": "phoenix-wall",
+      "url": "https://media.valorant-api.com/agents/eb93336a-449b-9c1b-0a54-a891f7921d69/abilities/grenade/displayicon.png",
+      "sha256": "07686804e60f186d5e3c86bcb1aa44fc6170da6aaebe09d50cba47d9041f6682"
+    },
+    {
+      "id": "shorty",
+      "url": "https://media.valorant-api.com/weapons/42da8ccc-40d5-affc-beec-15aa47b42eda/shop/newimage.png",
+      "sha256": "7b606f8d09a0d1358550f11ac9ceb1606576918bd4352c6bfc3c9dedf4f3fc56"
+    },
+    {
+      "id": "spectre",
+      "url": "https://media.valorant-api.com/weapons/462080d1-4035-2937-7c09-27aa2a5c27a7/shop/newimage.png",
+      "sha256": "43d456f579a9e90e1fcb35838d53c9218209491bb7afd3fb17c851c975b5529f"
+    },
+    {
+      "id": "stinger",
+      "url": "https://media.valorant-api.com/weapons/f7e1b454-4ad4-1063-ec0a-159e56b58941/shop/newimage.png",
+      "sha256": "19f73f1cd913a2773ad25827037395572aaf6474402cefb82462c905624c2c60"
+    },
+    {
+      "id": "warden",
+      "url": "https://media.valorant-api.com/weapons/8db0a1bf-4a50-832a-4566-faaaa6d250ca/shop/newimage.png",
+      "sha256": "94fa274c336a27fee327b2461a5a040fe2e261b11e2b4258afb535bcc2bbd075"
     }
+  ],
+  "sources": [
+    "https://valorant-api.com/v1/weapons?language=en-US",
+    "https://valorant-api.com/v1/weapons?language=zh-CN",
+    "https://valorant-api.com/v1/agents?isPlayableCharacter=true&language=zh-CN",
+    "https://valorant-api.com/v1/gear?language=zh-CN"
   ]
 }

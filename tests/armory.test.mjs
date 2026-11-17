@@ -327,11 +327,11 @@ test('lifecycle invalidation changes scope; a read model is small, immutable and
   assert.equal(f.select('primary').accepted, false)
 })
 
-test('the seven bundled UI icons match their recorded third-party source bytes', () => {
+test('bundled shop images match their recorded source bytes', () => {
   const root = new URL('../src/app/assets/armory/', import.meta.url)
   const provenance = JSON.parse(fs.readFileSync(new URL('provenance.json', root), 'utf8'))
   assert.equal(provenance.runtimeNetworkDependency, false)
-  assert.equal(provenance.files.length, 7)
+  assert.deepEqual(provenance.files.map(({ id }) => `${id}.png`).sort(), fs.readdirSync(root).filter(name => name.endsWith('.png')).sort())
   for (const entry of provenance.files) {
     const bytes = fs.readFileSync(new URL(`${entry.id}.png`, root))
     assert.equal(bytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a')
