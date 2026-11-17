@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "karambit",
+  "assetVersion": "v2",
+  "defaultSkinId": "prime-2",
+  "compatibility": {
+    "rig": "a60e6fb5e6b3c0d24990dde12299c5a5c09880fa0c42a36fe13a4f4f6cf726ce",
+    "geometryUV": "64af39c129a6ec97cc08af48f1fe4e60f93fa8b7f6df42fc1fa701be1f535c91",
+    "clipSet": "bcde11dd8fa80ca6eb7f79bb8f464360ebbbd2a11d6b5320e51e41b2660e0537"
+  },
+  "model": {
+    "url": "model.glb",
+    "bytes": 156460,
+    "sha256": "a2755598ccf3c31b4042f8926dd232b1515aa23e2f932fb3459ba8f30000247e"
+  },
+  "view": {
+    "unitsPerMeter": 1,
+    "up": "Y",
+    "forward": "-Z",
+    "mountOffset": [
+      -0.4566527962707564,
+      -1.5277578544869082,
+      -2.166452093474615
+    ],
+    "verticalFov": 70,
+    "aimVerticalFov": 70,
+    "adsAlignmentBaked": true
+  },
+  "meshes": [
+    "Arms_Right",
+    "Weapon_Body"
+  ],
+  "materials": {
+    "armsRight": [
+      "Character_Right"
+    ],
+    "weapon": [
+      "Weapon_Skin"
+    ]
+  },
+  "sockets": {},
+  "clips": [
+    {
+      "name": "idle",
+      "duration": 3.200000047683716,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "inspect",
+      "duration": 2.200000047683716,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "karambit_inspect",
+      "duration": 3.845238208770752,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "draw",
+      "duration": 0.44999998807907104,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "put_away",
+      "duration": 0.25,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "karambit_attack_1",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    }
+  ],
+  "actions": {
+    "idle": "idle",
+    "draw": "draw",
+    "holster": "put_away",
+    "attack": "karambit_attack_1",
+    "inspect": "karambit_inspect"
+  },
+  "requiredActions": [
+    "idle",
+    "draw",
+    "holster",
+    "attack",
+    "inspect"
+  ],
+  "skins": {
+    "prime-2": {
+      "url": "skins/prime-2/skin.json",
+      "bytes": 770,
+      "sha256": "0e75cd895f205c688a7e7a63232a333d1c3d5bdfdc3fce34215746fdf4fdeafc"
+    }
+  },
+  "provenance": {
+    "authoring": {
+      "format": "Blockbench 5.2.2",
+      "bbmodelSha256": "f93aee51ff7f4aae2ce94ece18a3dae6cc0bfa1b1071f4e51870fd69bdf49459",
+      "glbSha256": "cbcf56ec68e2efb4b5d43187652b160353569e9b319b72c7d76db13ffc868cbd",
+      "attackMotion": {
+        "pack": "Karambit Vault x Punchy",
+        "version": "2.2.1",
+        "clip": "karambit_attack_1",
+        "animationFileSha256": "34b2bd035b6669488c728a05cb9545cb60b6920c9f2442ba00d0dfafd1a5e9e3"
+      }
+    },
+    "alignmentReference": {
+      "package": "public/weapons/classic/v4",
+      "glbSha256": "d8cc75a2efd55f6ca83004fd5d79d68dbabe01f84004e8cb420b9f72157dca7e"
+    }
+  }
+}

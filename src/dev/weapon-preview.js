@@ -4,6 +4,7 @@ import { WeaponAssets } from '../game/weapons/assets/weapon-assets.js'
 import { classicDefinition } from '../game/weapons/definitions/classic.js'
 import { ghostDefinition } from '../game/weapons/definitions/ghost.js'
 import { judgeDefinition } from '../game/weapons/definitions/judge.js'
+import { karambitDefinition } from '../game/weapons/definitions/karambit.js'
 import { odinDefinition } from '../game/weapons/definitions/odin.js'
 import { phantomDefinition } from '../game/weapons/definitions/phantom.js'
 import { sheriffDefinition } from '../game/weapons/definitions/sheriff.js'
@@ -41,6 +42,7 @@ const definitions = {
   sheriff: sheriffDefinition,
   judge: judgeDefinition,
   odin: odinDefinition,
+  karambit: karambitDefinition,
 }
 let active = null
 let frame = 0
@@ -77,6 +79,8 @@ async function load(weaponId) {
 async function sample(weaponId, role, time = 0) {
   cancelAnimationFrame(frame)
   const entry = await load(weaponId)
+  if (!Object.hasOwn(entry.handle.manifest.actions, role))
+    role = 'idle'
   for (const other of entries.values()) other.anchor.visible = other === entry
   active = entry
   camera.fov = entry.handle.manifest.view.verticalFov
@@ -88,6 +92,8 @@ async function sample(weaponId, role, time = 0) {
   globalThis.__WEAPON_PREVIEW__.stage = 'ready'
   document.querySelector('#weapon').value = weaponId
   const actionSelect = document.querySelector('#action')
+  for (const option of actionSelect.options)
+    option.disabled = !Object.hasOwn(entry.handle.manifest.actions, option.value)
   if ([...actionSelect.options].some(option => option.value === role))
     actionSelect.value = role
   document.querySelector('#status').textContent = `${options.candidate ? '候选预览（非发布验收） · ' : ''}${weaponId} · ${role} · ${time.toFixed(2)} s`
@@ -126,7 +132,7 @@ async function verify({ weapons = defaultWeapons, quick = false } = {}) {
     second.player.play('idle')
     second.player.advance(0)
     const before = JSON.stringify(meshState(second.root))
-    const roles = quick
+    const roles = quick && weaponId !== 'karambit'
       ? ['idle', 'reloadEmpty', 'inspect']
       : Object.keys(entry.handle.manifest.actions)
     const fractions = quick

@@ -108,7 +108,7 @@ export function mountWeaponHud({ canvas, player, engine, ui, controls }) {
     const weapon = view.weapon
     setText(name, weapon
       ? weapon.melee
-        ? '刀 · Classic 占位'
+        ? '爪刀 · Prime//2.0'
         : weapon.definitionId.toUpperCase()
       : '武器准备中')
     setText(magazine, weapon && !weapon.melee

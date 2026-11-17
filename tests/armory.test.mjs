@@ -6,6 +6,7 @@ import { createArmoryCatalog, rangePurchaseSlots } from '../src/game/weapons/arm
 import { classicDefinition } from '../src/game/weapons/definitions/classic.js'
 import { ghostDefinition } from '../src/game/weapons/definitions/ghost.js'
 import { judgeDefinition } from '../src/game/weapons/definitions/judge.js'
+import { karambitDefinition } from '../src/game/weapons/definitions/karambit.js'
 import { odinDefinition } from '../src/game/weapons/definitions/odin.js'
 import { phantomDefinition } from '../src/game/weapons/definitions/phantom.js'
 import { sheriffDefinition } from '../src/game/weapons/definitions/sheriff.js'
@@ -23,6 +24,7 @@ const definitions = [
   sheriffDefinition,
   judgeDefinition,
   odinDefinition,
+  karambitDefinition,
 ]
 const h = 1 / 60
 
@@ -140,8 +142,9 @@ test('range purchases replace only their category after preparation and survive 
   const step = (...commands) => {
     for (const command of commands) controller.queue(command)
     armory.beforeFixed(command => controller.queue(command))
-    controller.step({ fixedTick: ++tick, fixedElapsed: tick * h, fixedDelta: h })
+    const batch = controller.step({ fixedTick: ++tick, fixedElapsed: tick * h, fixedDelta: h })
     armory.accept(state())
+    return batch
   }
   const prepare = () => step({ type: 'prepared', ticket: state().preparation.ticket })
   const slots = () => state().inventory.weapons.map(weapon => weapon.definitionId)
@@ -149,36 +152,41 @@ test('range purchases replace only their category after preparation and survive 
   prepare()
   step({ type: 'fire' })
   const classic = state().inventory.weapons[1]
-  assert.deepEqual(slots(), ['phantom', 'classic', 'classic'])
+  assert.deepEqual(slots(), ['phantom', 'classic', 'karambit'])
   assert.equal(choose('vandal').accepted, true)
   step()
   assert.equal(state().activeId, 'pistol')
-  assert.deepEqual(slots(), ['phantom', 'classic', 'classic'])
+  assert.deepEqual(slots(), ['phantom', 'classic', 'karambit'])
   const failed = state().preparation.ticket
   step({ type: 'prepareFailed', ticket: failed, message: 'fixture' })
   assert.equal(armory.read().request.status, 'failed')
   assert.equal(choose('vandal').accepted, true)
   step({ type: 'prepared', ticket: failed })
-  assert.deepEqual(slots(), ['phantom', 'classic', 'classic'])
+  assert.deepEqual(slots(), ['phantom', 'classic', 'karambit'])
   prepare()
-  assert.deepEqual(slots(), ['vandal', 'classic', 'classic'])
+  assert.deepEqual(slots(), ['vandal', 'classic', 'karambit'])
   assert.deepEqual(state().inventory.weapons[1], classic)
   assert.equal(choose('ghost').accepted, true)
   step()
   prepare()
-  assert.deepEqual(slots(), ['vandal', 'ghost', 'classic'])
+  assert.deepEqual(slots(), ['vandal', 'ghost', 'karambit'])
   const ghostId = state().activeId
   step({ type: 'selectSlot', slotId: 'tertiary' })
   prepare()
-  assert.equal(state().activeId, 'knife-placeholder')
+  assert.equal(state().activeId, 'karambit')
   assert.equal(state().canFire, false)
   assert.equal(state().canReload, false)
+  const swing = step({ type: 'fire' })
+  assert.deepEqual(swing.events.filter(event => event.type === 'MeleeSwung').map(event => event.instanceId), ['karambit'])
+  assert.ok(!swing.events.some(event => event.type === 'ShotFired'))
+  assert.ok(!step({ type: 'fire' }).events.some(event => event.type === 'MeleeSwung'))
+  assert.equal(state().inventory.weapons[2].shotSequence, 0)
   controller.reset()
   armory.invalidate()
   step()
   prepare()
   assert.equal(state().activeId, ghostId)
-  assert.deepEqual(slots(), ['vandal', 'ghost', 'classic'])
+  assert.deepEqual(slots(), ['vandal', 'ghost', 'karambit'])
 })
 
 test('selection waits for fixed commit; displayed equipment and completion wait for P without gating gameplay on P', (t) => {

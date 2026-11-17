@@ -64,7 +64,7 @@ export function createWeaponDefinition(input) {
   ])
   record(input.equip, 'equip', ['draw', 'holster'])
   record(input.reload, 'reload', ['tactical', 'empty'])
-  record(input.capabilities, 'capabilities', ['ads'])
+  record(input.capabilities, 'capabilities', ['ads', 'melee'])
   record(input.assets, 'assets', [
     'modelId',
     'assetVersion',
@@ -75,6 +75,9 @@ export function createWeaponDefinition(input) {
     throw new TypeError('fire.mode must be semi or auto')
   if (typeof input.capabilities.ads !== 'boolean')
     throw new TypeError('capabilities.ads must be a boolean')
+  const melee = input.capabilities.melee ?? false
+  if (typeof melee !== 'boolean')
+    throw new TypeError('capabilities.melee must be a boolean')
   const defaultSkinId = identifier(input.assets.defaultSkinId, 'assets.defaultSkinId')
   const skinIds = input.assets.skinIds ?? [defaultSkinId]
   if (!Array.isArray(skinIds) || !skinIds.includes(defaultSkinId)
@@ -110,7 +113,7 @@ export function createWeaponDefinition(input) {
   return Object.freeze({
     ...createAimProfile(input),
     id: identifier(input.id, 'id'),
-    capacity: integer(input.capacity, 'capacity', 1),
+    capacity: integer(input.capacity, 'capacity', melee ? 0 : 1),
     initialReserve: integer(input.initialReserve, 'initialReserve'),
     fire: Object.freeze(fire),
     equip: Object.freeze({
@@ -122,7 +125,12 @@ export function createWeaponDefinition(input) {
       empty: reloadPlan(input.reload.empty, 'reload.empty'),
     }),
     inspectDuration: seconds(input.inspectDuration, 'inspectDuration'),
-    capabilities: Object.freeze({ ads: input.capabilities.ads }),
+    capabilities: Object.freeze({
+      ads: input.capabilities.ads,
+      ...(melee
+        ? { melee }
+        : {}),
+    }),
     assets: Object.freeze({
       modelId: identifier(input.assets.modelId, 'assets.modelId'),
       assetVersion: identifier(input.assets.assetVersion, 'assets.assetVersion'),

@@ -665,10 +665,12 @@ export class EquipmentController {
   }
 
   #fire(aimHeld) {
+    const definition = this.#inventory.definition(this.#activeId)
+    if (definition?.capabilities.melee)
+      return this.#swing(definition)
     if (!this.#canFire())
       return false
     this.#cancelAction('fire')
-    const definition = this.#inventory.definition(this.#activeId)
     const automatic = definition.fire.mode === 'auto' && this.#fireHeld
     const burstStartedAt = automatic ? this.#automaticStartedAt : null
     const aiming = Boolean(aimHeld && definition.capabilities.ads)
@@ -682,6 +684,15 @@ export class EquipmentController {
       ? burstStartedAt ?? this.#now
       : null
     this.#emit('ShotFired', this.#activeId, { shotSequence: weapon.shotSequence, magazine: weapon.magazine, aiming })
+    return true
+  }
+
+  #swing(definition) {
+    if (!this.#canAct() || this.#now + 1e-10 < this.#inventory.get(this.#activeId).blockedUntil)
+      return false
+    this.#cancelAction('swing')
+    this.#inventory.update(this.#activeId, { blockedUntil: this.#now + definition.fire.interval })
+    this.#emit('MeleeSwung', this.#activeId, {})
     return true
   }
 

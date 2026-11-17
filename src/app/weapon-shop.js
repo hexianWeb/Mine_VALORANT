@@ -222,7 +222,7 @@ export function mountWeaponShop({ ui, weapons, engine, onNotice }) {
         <dl class="shop-loadout">
           <dt>1 主武器</dt><dd data-primary></dd>
           <dt>2 手枪</dt><dd data-secondary></dd>
-          <dt>3 刀</dt><dd>Classic 占位</dd>
+          <dt>3 刀</dt><dd>Prime//2.0 爪刀</dd>
           <dt>护甲</dt><dd data-player-armor></dd>
         </dl>
         <p class="shop-keys"><kbd>B</kbd> 商店 <kbd>Esc</kbd> 关闭</p>

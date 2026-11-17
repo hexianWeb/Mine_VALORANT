@@ -1,0 +1,31 @@
+{
+  "weaponId": "karambit",
+  "clips": 6,
+  "meshes": 2,
+  "tracks": 38,
+  "stepTracks": 9,
+  "poseSamples": 0,
+  "maxPoseBoundsError": 0,
+  "gltfIssues": {
+    "numErrors": 0,
+    "numWarnings": 0,
+    "numInfos": 0,
+    "numHints": 0,
+    "messages": [],
+    "truncated": false
+  },
+  "alignment": {
+    "originalAngleDegrees": 17.877980692945094,
+    "alignedAngleDegrees": 0,
+    "wrist": [
+      0.3667522391101186,
+      -0.44507670583907766,
+      -1.2400310769350313
+    ],
+    "cuff": [
+      0.4515738905201655,
+      -0.5063340752683945,
+      -0.4973650474439429
+    ]
+  }
+}

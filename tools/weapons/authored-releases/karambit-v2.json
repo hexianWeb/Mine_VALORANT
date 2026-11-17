@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "karambit",
+  "assetVersion": "v2",
+  "defaultSkinId": "prime-2",
+  "source": {
+    "format": "Blockbench 5.2.2",
+    "bbmodelSha256": "f93aee51ff7f4aae2ce94ece18a3dae6cc0bfa1b1071f4e51870fd69bdf49459",
+    "glbSha256": "cbcf56ec68e2efb4b5d43187652b160353569e9b319b72c7d76db13ffc868cbd",
+    "attackMotion": {
+      "pack": "Karambit Vault x Punchy",
+      "version": "2.2.1",
+      "clip": "karambit_attack_1",
+      "animationFileSha256": "34b2bd035b6669488c728a05cb9545cb60b6920c9f2442ba00d0dfafd1a5e9e3"
+    }
+  },
+  "reference": {
+    "package": "public/weapons/classic/v4",
+    "glbSha256": "d8cc75a2efd55f6ca83004fd5d79d68dbabe01f84004e8cb420b9f72157dca7e"
+  },
+  "actions": {
+    "idle": "idle",
+    "draw": "draw",
+    "holster": "put_away",
+    "attack": "karambit_attack_1",
+    "inspect": "karambit_inspect"
+  }
+}

@@ -37,7 +37,7 @@ export async function checkArmory({ browser, press, click, screenshot, record, q
     const held = await ammunition()
     assert.equal(held.length, 3)
     assert.ok(held.every(weapon => weapon.shotSequence === 0))
-    assert.equal(held[2].instanceId, 'knife-placeholder')
+    assert.equal(held[2].instanceId, 'karambit')
   }
   await assertInventory()
 

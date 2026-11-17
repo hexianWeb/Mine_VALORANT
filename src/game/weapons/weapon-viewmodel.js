@@ -275,9 +275,8 @@ export class WeaponViewModel {
       at,
       endAt,
       resting: role === 'idle' || role === 'aim' || !!walkClip,
-      // Gameplay facts end draw/holster/reload/inspect. Only a firing clip returns
-      // naturally to idle; retain its absolute boundary so frame subdivision is irrelevant.
-      naturalEndAt: ['fire', 'fireAds'].includes(role)
+      // Attacks return to idle at their absolute clip boundary.
+      naturalEndAt: ['fire', 'fireAds', 'attack'].includes(role)
         ? at + clip.duration / (rate || 1)
         : null,
     }
@@ -413,6 +412,8 @@ export class WeaponViewModel {
     }
     if (event.type === 'InspectStarted')
       this.#play('inspect', event.at, { endAt: payload.endTick * fixedDelta })
+    if (event.type === 'MeleeSwung')
+      this.#play('attack', event.at, { fade: 0.025 })
     if (event.type === 'ShotFired') {
       this.#presentedShot = event
       this.#play(payload.aiming && this.#active.handle.manifest.actions.fireAds

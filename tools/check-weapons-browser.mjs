@@ -33,7 +33,8 @@ assert.ok([
   'sheriff',
   'judge',
   'odin',
-].includes(weapon), 'Pass a supported --weapon: classic, phantom, ghost, vandal, sheriff, judge or odin')
+  'karambit',
+].includes(weapon), 'Pass a supported --weapon: classic, phantom, ghost, vandal, sheriff, judge, odin or karambit')
 assert.ok(quick || !url.searchParams.has('candidate'), 'Candidate smoke checks require --quick')
 assert.ok(quick || weaponIndex === -1, '--weapon requires --quick; omit both flags for the full regression')
 if (quick)
@@ -78,7 +79,15 @@ try {
   const samples = quick
     ? [
         [weapon, 'idle', 0],
-        [weapon, 'reloadEmpty', 0.8],
+        ...(weapon === 'karambit'
+          ? [
+              [weapon, 'draw', 0.22],
+              [weapon, 'attack', 0.27],
+              [weapon, 'holster', 0.12],
+            ]
+          : [
+              [weapon, 'reloadEmpty', 0.8],
+            ]),
         [weapon, 'inspect', 0.5],
       ]
     : [

@@ -3,6 +3,7 @@ import { createArmoryCatalog } from './armory-catalog.js'
 import { classicDefinition } from './definitions/classic.js'
 import { ghostDefinition } from './definitions/ghost.js'
 import { judgeDefinition } from './definitions/judge.js'
+import { karambitDefinition } from './definitions/karambit.js'
 import { odinDefinition } from './definitions/odin.js'
 import { phantomDefinition } from './definitions/phantom.js'
 import { sheriffDefinition } from './definitions/sheriff.js'
@@ -50,7 +51,7 @@ export const rangeLoadout = Object.freeze([
   practiceLoadout[1],
   Object.freeze({
     id: 'tertiary',
-    weapon: Object.freeze({ instanceId: 'knife-placeholder', definitionId: 'classic' }),
+    weapon: Object.freeze({ instanceId: 'karambit', definitionId: karambitDefinition.id }),
   }),
 ])
 
@@ -163,6 +164,7 @@ export class PlayerWeapons {
       sheriffDefinition,
       judgeDefinition,
       odinDefinition,
+      karambitDefinition,
     ],
     loadout = practiceLoadout,
     initialSlot = 'secondary',
