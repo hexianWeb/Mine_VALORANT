@@ -1,5 +1,5 @@
 import { WeaponInventory } from './inventory.js'
-import { canReloadWeapon, commitReload, durationTicks, fireWeapon } from './weapon-logic.js'
+import { canReloadWeapon, commitReload, durationTicks, fireWeapon, validateAmmoPolicy } from './weapon-logic.js'
 
 const actionCommands = new Set(['fire', 'reload', 'inspect'])
 const commandTypes = new Set([
@@ -86,11 +86,13 @@ export class EquipmentController {
   #resumePending = false
   #disposed = false
   #actionBlockReason = null
+  #ammoPolicy
 
-  constructor({ definitions, loadout, fixedDelta = 1 / 60, initialSlot } = {}) {
+  constructor({ definitions, loadout, fixedDelta = 1 / 60, initialSlot, ammoPolicy = 'finite' } = {}) {
     if (!Number.isFinite(fixedDelta) || fixedDelta <= 0)
       throw new RangeError('[Equipment] fixedDelta must be positive and finite')
     this.#inventory = new WeaponInventory({ definitions, slots: loadout })
+    this.#ammoPolicy = validateAmmoPolicy(ammoPolicy)
     // This controller accepts at most one shot per fixed step; never silently cap a definition.
     for (const definition of definitions) {
       const { interval, adsInterval, spinUp } = definition.fire
@@ -526,7 +528,7 @@ export class EquipmentController {
   #canReload() {
     return this.#canAct() && this.#action?.type !== 'reload'
       && this.#now + 1e-10 >= this.#inventory.get(this.#activeId).blockedUntil
-      && canReloadWeapon(this.#inventory.get(this.#activeId), this.#inventory.definition(this.#activeId))
+      && canReloadWeapon(this.#inventory.get(this.#activeId), this.#inventory.definition(this.#activeId), this.#ammoPolicy)
   }
 
   #canInspect() {
@@ -564,7 +566,7 @@ export class EquipmentController {
     if (!action)
       return
     if (action.type === 'reload' && !action.committed && this.#tick >= action.feedTick) {
-      const result = commitReload(this.#inventory.get(action.instanceId), this.#inventory.definition(action.instanceId), action.endTick * this.#fixedDelta)
+      const result = commitReload(this.#inventory.get(action.instanceId), this.#inventory.definition(action.instanceId), action.endTick * this.#fixedDelta, this.#ammoPolicy)
       this.#inventory.update(action.instanceId, result.patch)
       action.committed = true
       this.#emit('AmmoCommitted', action.instanceId, { actionId: action.actionId, commitIndex: 0, amount: result.amount })
@@ -714,6 +716,7 @@ export class EquipmentController {
     return immutable({
       epoch: this.#epoch,
       fixedTick: this.#tick,
+      ammoPolicy: this.#ammoPolicy,
       at: this.#now,
       phase: this.#phase,
       activeId: this.#activeId,

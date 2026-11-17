@@ -22,8 +22,9 @@ export class PlayerComponent extends Component {
   #footsteps
   #inputBlocked = false
   #presentedPose = null
+  #onLifecycle
 
-  constructor({ collision, input, aim, weapons = null, footsteps = null, config = playerConfig }) {
+  constructor({ collision, input, aim, weapons = null, footsteps = null, config = playerConfig, onLifecycle = null }) {
     super()
     this.collision = collision
     this.input = input
@@ -32,6 +33,7 @@ export class PlayerComponent extends Component {
     this.aim = aim
     this.weapons = weapons
     this.#footsteps = footsteps
+    this.#onLifecycle = onLifecycle
   }
 
   onAttach() {
@@ -58,6 +60,7 @@ export class PlayerComponent extends Component {
     this.motor.enabled = this.enabled
     this.cameraComponent.enabled = this.enabled
     if (!this.enabled) {
+      this.#onLifecycle?.({ type: 'disabled', at: this.#at })
       this.weapons?.suspend()
       this.#footsteps?.reset()
       this.aim.clearInput()
@@ -93,6 +96,7 @@ export class PlayerComponent extends Component {
   }
 
   respawn() {
+    this.#onLifecycle?.({ type: 'respawn', at: this.#at })
     this.teleport(this.collision.spawn.position, this.collision.spawn.yaw)
     this.weapons?.reset()
     this.respawns++
@@ -324,7 +328,7 @@ function createStepOffsetLimiter(world) {
 }
 
 /** Object assembly only; the Level schedules these same types across all objects. */
-export function createPlayer({ camera, collision, input, physics, weapons = null, footsteps = null, config = {} }) {
+export function createPlayer({ camera, collision, input, physics, weapons = null, footsteps = null, config = {}, onLifecycle = null }) {
   const settings = {
     ...playerConfig,
     ...config,
@@ -375,6 +379,7 @@ export function createPlayer({ camera, collision, input, physics, weapons = null
     input,
     aim,
     footsteps,
+    onLifecycle,
     weapons: weapons
       ? new PlayerWeapons({
           ...weapons,

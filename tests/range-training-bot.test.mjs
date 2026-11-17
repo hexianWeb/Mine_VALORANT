@@ -70,11 +70,62 @@ async function fixture(t, { audio = null } = {}) {
   }))
   const bot = object.requireComponent(TrainingBotComponent)
   const root = object.requireComponent(MeshComponent).root
+  const sourceId = targets.openSource(1)
+  let sequence = 0
+  let tick = 0
+  const cached = new Map()
+  const present = (at = tick / 60) => level.tickComponents('motion', {
+    time: { presentationTime: at },
+  })
+  const submit = (impacts, { at = Math.max(1, tick) / 60, definitionId = 'classic', presentation = true } = {}) => {
+    tick = Math.round(at * 60)
+    const time = { fixedTick: tick, fixedElapsed: tick / 60, fixedDelta: 1 / 60 }
+    targets.beginShot(time)
+    const pellets = impacts.map((impact, index) => {
+      const owner = level.objects.get(impact.targetId)
+      if (owner) {
+        const position = owner.requireComponent(TransformComponent).position
+        const captured = targets.trace([position.x, position.y + 2.29, position.z - 4], [0, 0, 1], 200)
+        if (captured?.targetId === owner.id)
+          cached.set(owner.id, captured)
+      }
+      return {
+        index,
+        direction: [0, 0, 1],
+        impact: {
+          hit: null,
+          position: [0, 0, 0],
+          normal: null,
+          distance: 200,
+          ...cached.get(impact.targetId),
+          ...impact,
+        },
+      }
+    })
+    const result = targets.resolveShot({
+      type: 'ShotFired',
+      sourceId,
+      epoch: 1,
+      sequence: ++sequence,
+      fixedTick: time.fixedTick,
+      at: time.fixedElapsed,
+      instanceId: 'test-weapon',
+      payload: {
+        weapon: { definitionId },
+        pellets,
+      },
+    }, time)
+    if (presentation)
+      present(time.fixedElapsed)
+    return result
+  }
   const step = (count) => {
     for (let i = 0; i < count; i++) {
+      tick++
       level.tickComponents('fixed', {
-        time: { fixedDelta: 1 / 60 },
+        time: { fixedTick: tick, fixedElapsed: tick / 60, fixedDelta: 1 / 60 },
       })
+      present()
     }
   }
   return {
@@ -87,6 +138,8 @@ async function fixture(t, { audio = null } = {}) {
     assets,
     requests,
     resources,
+    submit,
+    present,
   }
 }
 
@@ -102,11 +155,11 @@ test('committed head/body hits play one sound per target and shot, and removal c
     invalidate(filter) { invalidations.push(filter) },
     reportOnce(key, error) { assert.fail(`${key}: ${error}`) },
   }
-  const { level, object, bot, targets, requests, assets } = await fixture(t, { audio })
+  const { level, object, bot, targets, requests, assets, submit } = await fixture(t, { audio })
   assert.ok(requests.includes('/audio/bot/Head_Hit.ogg'))
   assert.ok(requests.includes('/audio/bot/Body_Hit.ogg'))
   const impact = (region, distance = 1, targetId = object.id) => ({ targetId, region, distance })
-  targets.react([
+  submit([
     impact('chest', 2),
     impact('head'),
     impact('head'),
@@ -124,7 +177,7 @@ test('committed head/body hits play one sound per target and shot, and removal c
     'leg_r',
   ]
   for (const region of bodyRegions) {
-    targets.react([
+    submit([
       impact(region),
     ], { at: 0.6 })
   }
@@ -135,16 +188,16 @@ test('committed head/body hits play one sound per target and shot, and removal c
   assert.equal(new Set(cues.map(cue => cue.id)).size, cues.length)
 
   bot.enabled = false
-  targets.react([
+  submit([
     impact('head'),
   ], { at: 0.7 })
   bot.enabled = true
   object.active = false
-  targets.react([
+  submit([
     impact('head'),
   ], { at: 0.7 })
   object.active = true
-  targets.react([
+  submit([
     { hit: null },
   ], { at: 0.7 })
   assert.equal(cues.length, 6, 'disabled/inactive bots and misses stay silent')
@@ -154,14 +207,14 @@ test('committed head/body hits play one sound per target and shot, and removal c
     targets,
     position: [3, 0, 0],
   }))
-  targets.react([
+  submit([
     impact('chest', 1, second.id),
   ], { at: 0.8 })
   assert.equal(cues[6].owner, second.id)
   assert.equal(cues[6].buffer, cues[1].buffer, 'audio buffers are shared across instances')
   level.removeObject(object.id)
   assert.deepEqual(invalidations.at(-1), { scope: cues[0].scope, owner: object.id })
-  targets.react([
+  submit([
     impact('head'),
   ], { at: 0.9 })
   assert.equal(cues.length, 7, 'removed bots cannot enqueue sounds')
@@ -329,7 +382,7 @@ test('outline data is shared across bots and released only after their instances
 })
 
 test('the exported GO resolves all six hit regions and its reactions restore the guard pose', async (t) => {
-  const { object, bot, root, targets, step } = await fixture(t)
+  const { object, bot, root, targets, step, submit } = await fixture(t)
   const shots = [
     {
       origin: [0, 2.29, -4],
@@ -370,7 +423,7 @@ test('the exported GO resolves all six hit regions and its reactions restore the
     assert.equal(hit.targetId, object.id)
     assert.equal(hit.region, region)
     assert.equal(hit.surface, 'metal')
-    targets.react([hit])
+    submit([hit])
     assert.equal(bot.snapshot().reaction.clip, `hit_${region}`)
     step(5)
     assert.ok(joint.quaternion.angleTo(guard) > 0.01, bone)
@@ -382,7 +435,7 @@ test('the exported GO resolves all six hit regions and its reactions restore the
 })
 
 test('room occlusion caps target queries, and one shot reacts once at its nearest pellet per GO', async (t) => {
-  const { level, object, bot, targets } = await fixture(t)
+  const { level, object, bot, targets, submit } = await fixture(t)
   const direction = [0, 0, 1]
   const trace = (origin, boxes = []) => traceWeaponImpact(origin, direction, { boxes }, 200, targets)
   const arm = [-0.396, 1.568, -4]
@@ -396,7 +449,7 @@ test('room occlusion caps target queries, and one shot reacts once at its neares
   const armHit = trace(arm)
   const chestHit = trace([0, 1.56, -4])
   assert.ok(armHit.distance < chestHit.distance)
-  targets.react([chestHit, armHit, armHit])
+  submit([chestHit, armHit, armHit])
   assert.equal(bot.snapshot().reaction.clip, 'hit_arm_l')
   assert.equal(bot.snapshot().hitCount, 1)
 
@@ -413,4 +466,119 @@ test('room occlusion caps target queries, and one shot reacts once at its neares
   level.removeObject(object.id)
   assert.equal(traceWeaponImpact(worldOrigin, worldDirection, { boxes: [] }, 200, targets).hit, null)
   assert.equal(level.scene.children.length, 0)
+})
+
+test('real GLB authority/visible skeletons and placements are isolated across P; lethal facts detach pose and transform', async (t) => {
+  const { object, bot, root, targets, submit, present, level } = await fixture(t)
+  const spawn = {
+    targetId: object.id,
+    sessionId: 'test-session',
+    spawnId: 'test-spawn',
+    cellId: '3,1',
+    position: [3, 0, 0],
+    quaternion: [0, 0, 0, 1],
+    scale: [1, 1, 1],
+    at: 1 / 60,
+    bodyHideTicks: 3,
+  }
+  bot.activateSpawn(spawn, { maxHealth: 100, maxArmor: 0 }, { fixedTick: 1, fixedElapsed: 1 / 60, fixedDelta: 1 / 60 })
+  assert.equal(object.requireComponent(MeshComponent).enabled, false, 'latest Transform must not overwrite delayed P placement')
+  assert.equal(root.position.x, 0)
+  const hit = targets.trace([3, 2.29, -4], [0, 0, 1], 200)
+  assert.equal(hit.sessionId, spawn.sessionId)
+  assert.equal(hit.spawnId, spawn.spawnId)
+  const nonlethal = submit([hit], { at: 1 / 60, presentation: false })
+  assert.equal(nonlethal.damage[0].amount, 78)
+  assert.equal(bot.snapshot().combat.attributes.health, 22)
+  assert.equal(bot.snapshot().poses.presentation, null)
+  present(0)
+  assert.equal(root.position.x, 0)
+  present(1 / 60)
+  assert.equal(root.position.x, 3)
+  bot.tick({
+    phase: 'fixed',
+    time: { fixedTick: 6, fixedElapsed: 0.1, fixedDelta: 1 / 60 },
+  })
+  const before = targets.trace([3, 2.29, -4], [0, 0, 1], 200)
+  present(1 / 60)
+  const authority = bot.snapshot().poses.authority
+  present(0.1)
+  assert.deepEqual(targets.trace([3, 2.29, -4], [0, 0, 1], 200), before)
+  assert.deepEqual(bot.snapshot().poses.authority, authority)
+  const secondHit = targets.trace([3, 1.56, -4], [0, 0, 1], 200)
+  const lethal = submit([secondHit], { at: 0.2, definitionId: 'sheriff', presentation: false })
+  assert.equal(lethal.deaths.length, 1)
+  assert.equal(lethal.reactions.length, 0)
+  assert.equal(bot.snapshot().hitCount, 1, 'lethal does not also start a normal hit reaction')
+  assert.equal(targets.trace([3, 1.56, -4], [0, 0, 1], 200), null)
+  const killed = lethal.deaths[0]
+  assert.deepEqual(killed.position, [3, 0, 0])
+  assert.equal(killed.bodyHideAt, 0.25)
+  assert.ok(killed.pose.length > 10)
+  assert.ok(Object.isFrozen(killed.pose[0].quaternion))
+  assert.ok(Number.isSafeInteger(killed.presentationSeed))
+  const captured = JSON.stringify(killed)
+  object.requireComponent(TransformComponent).teleport(new Vector3(9, 0, 0))
+  present(0.2)
+  assert.equal(JSON.stringify(killed), captured, 'death never borrows a new life\'s mutable placement or bones')
+  const state = bot.snapshot()
+  assert.equal(state.poses.pending, 0)
+  present(0.2)
+  assert.equal(bot.snapshot().poses.pending, 0, 'same P does not replay')
+  level.removeObject(object.id)
+})
+
+test('target feedback queues are cleared by lifecycle invalidation before a later P can replay old hits', async (t) => {
+  const cues = []
+  const audio = {
+    decode: async () => ({}),
+    enqueue: cue => cues.push(cue),
+    invalidate() {},
+    reportOnce(key, error) { assert.fail(`${key}: ${error}`) },
+  }
+  const { bot, object, submit, present } = await fixture(t, { audio })
+  submit([
+    { targetId: object.id, region: 'head', distance: 1 },
+  ], { at: 0.1, presentation: false })
+  assert.equal(cues.length, 0)
+  assert.equal(bot.snapshot().poses.pending, 1)
+  bot.invalidateSpawn(0.1, 'respawn')
+  present(0.1)
+  assert.equal(cues.length, 0)
+  assert.equal(bot.snapshot().poses.pending, 0)
+})
+
+test('real target poses and hit queries agree for subdivided rendering, catch-up and opposite same-tick preparation order', async (t) => {
+  const { bot, root, assets, level, targets } = await fixture(t)
+  const otherObject = level.addObject(assets.instantiate({
+    scene: level.scene,
+    targets,
+    position: [0, 0, 0],
+  }))
+  const other = otherObject.requireComponent(TrainingBotComponent)
+  const otherRoot = otherObject.requireComponent(MeshComponent).root
+  for (let tick = 1; tick <= 30; tick++) {
+    const time = { fixedTick: tick, fixedElapsed: tick / 60, fixedDelta: 1 / 60 }
+    bot.preparePose(time)
+    bot.tick({ phase: 'fixed', time })
+    other.tick({ phase: 'fixed', time })
+    other.preparePose(time)
+    if (tick === 3) {
+      bot.react({ region: 'head' }, { at: time.fixedElapsed })
+      other.react({ region: 'head' }, { at: time.fixedElapsed })
+    }
+    bot.tick({
+      phase: 'motion',
+      time: { presentationTime: time.fixedElapsed },
+    })
+    if (tick % 3 === 0) {
+      other.tick({
+        phase: 'motion',
+        time: { presentationTime: time.fixedElapsed },
+      })
+      assert.deepEqual(bot.trace([0, 2.29, -4], [0, 0, 1], 200), other.trace([0, 2.29, -4], [0, 0, 1], 200))
+      assert.ok(root.getObjectByName('head').quaternion.angleTo(otherRoot.getObjectByName('head').quaternion) < 1e-7)
+      assert.deepEqual(bot.snapshot().poses.authority, other.snapshot().poses.authority)
+    }
+  }
 })

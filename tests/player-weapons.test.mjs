@@ -4,6 +4,7 @@ import { AnimationClip, Group, NumberKeyframeTrack, PerspectiveCamera, Scene } f
 import { inputBindings } from '../src/configs/input-bindings.js'
 import { AnimationPlayer } from '../src/engine/runtime/function/animation/animation-player.js'
 import { AimState } from '../src/game/player/aim-state.js'
+import { ShotTargets } from '../src/game/targets/shot-targets.js'
 import { createAimProfile } from '../src/game/weapons/aim-profile.js'
 import { classicDefinition } from '../src/game/weapons/definitions/classic.js'
 import { ghostDefinition } from '../src/game/weapons/definitions/ghost.js'
@@ -144,6 +145,7 @@ function setup(t, {
   camera = null,
   shotTargets = null,
   armoryAccess,
+  onShotResolved,
 } = {}) {
   const assets = fakeAssets()
   const aim = new AimState({ seed: 123, offsetSmoothing: 0 })
@@ -239,6 +241,7 @@ function setup(t, {
     camera,
     shotTargets,
     armoryAccess,
+    onShotResolved,
     world: {
       boxes: [
         {
@@ -427,19 +430,38 @@ test('menu handoff drops pre-fixed input but lets async equipment preparation an
   assert.equal(f.weapons.readHud().weapon.magazine, 30)
 })
 
-test('target reactions receive the committed shot timestamp for synchronized hit audio', async (t) => {
+test('complete shot resolution notifies only after all queries and uses the committed fixed timestamp', async (t) => {
   const reactions = []
-  const f = setup(t, {
-    shotTargets: {
-      trace: () => ({
-        hit: 'bot',
-        targetId: 'bot',
+  const targets = new ShotTargets()
+  const order = []
+  targets.register('bot', {
+    trace() {
+      order.push('trace')
+      return {
         region: 'head',
         distance: 1,
-        position: [0, 1.62, -1],
+        normal: [0, 0, 1],
         surface: 'metal',
-      }),
-      react(impacts, timing) { reactions.push({ impacts, timing }) },
+      }
+    },
+    prepareDamage(entries) {
+      order.push('prepare')
+      return { practice: true, entries }
+    },
+    commitDamage(plan, shot, timing) {
+      order.push('commit')
+      reactions.push({
+        impacts: plan.entries.map(entry => entry.impact),
+        timing,
+      })
+      return { damage: [], deaths: [], reactions: [] }
+    },
+  })
+  const f = setup(t, {
+    shotTargets: targets,
+    onShotResolved(result) {
+      assert.equal(result.disposition, 'combat')
+      order.push('notify')
     },
   })
   await f.ready()
@@ -449,8 +471,67 @@ test('target reactions receive the committed shot timestamp for synchronized hit
   const shot = batch.events.find(event => event.type === 'ShotFired')
   assert.ok(shot)
   assert.equal(reactions.length, 1)
-  assert.equal(reactions[0].timing.at, shot.at)
+  assert.equal(reactions[0].timing.fixedElapsed, shot.at)
   assert.equal(reactions[0].impacts[0].region, 'head')
+  assert.deepEqual(order, ['trace', 'prepare', 'commit', 'notify'])
+})
+
+test('Judge queries all twelve pellets before commit/notification, and reset/disposal reject late shot epochs', async (t) => {
+  const targets = new ShotTargets()
+  const order = []
+  let result
+  const target = {
+    trace() {
+      order.push('trace')
+      return {
+        distance: 1,
+        normal: [0, 0, 1],
+        region: 'chest',
+        surface: 'metal',
+      }
+    },
+    prepareDamage(entries) {
+      order.push('prepare')
+      assert.equal(entries.length, 12)
+      return { practice: true, entries }
+    },
+    commitDamage() {
+      order.push('commit')
+      return { damage: [], deaths: [], reactions: [] }
+    },
+  }
+  targets.register('old-bot', target)
+  const f = setup(t, {
+    judge: true,
+    shotTargets: targets,
+    onShotResolved(value) {
+      result = value
+      order.push('notify')
+      targets.register('replacement', target)
+    },
+  })
+  await f.ready()
+  f.fixed({ type: 'selectSlot', slotId: 'senary' })
+  await f.assets.resolve('judge')
+  f.motion(f.tick * h)
+  f.advance(70)
+  const batch = f.fixed({ type: 'fire' })
+  const shot = batch.events.find(event => event.type === 'ShotFired')
+  assert.ok(shot)
+  assert.equal(shot.payload.pellets.length, 12)
+  assert.ok(shot.payload.pellets.every(pellet => pellet.impact.targetId === 'old-bot'))
+  assert.deepEqual(order, [
+    ...Array.from({ length: 12 }).fill('trace'),
+    'prepare',
+    'commit',
+    'notify',
+  ])
+  const replay = { ...shot, sourceId: result.sourceId, sequence: shot.sequence + 100 }
+  const time = { fixedTick: f.tick, fixedElapsed: f.tick * h, fixedDelta: h }
+  f.weapons.reset()
+  assert.equal(targets.resolveShot(replay, time).disposition, 'ignored')
+  f.weapons.dispose()
+  assert.equal(targets.resolveShot({ ...replay, epoch: replay.epoch + 1 }, time).disposition, 'ignored')
 })
 
 test('initial loading warms asynchronously, instantiates only in motion and equips on the next fixed step', async (t) => {

@@ -131,6 +131,8 @@ export class PlayerWeapons {
   #initialSelectionId
   #disposed = false
   #armory
+  #shotSource = null
+  #onShotResolved
 
   constructor({
     assets,
@@ -156,12 +158,15 @@ export class PlayerWeapons {
     initialSlot = 'secondary',
     fixedDelta = 1 / 60,
     armoryAccess,
+    onShotResolved = null,
+    ammoPolicy = 'finite',
   }) {
     this.#controller = new EquipmentController({
       definitions,
       loadout,
       initialSlot,
       fixedDelta,
+      ammoPolicy,
     })
     this.#definitions = new Map(definitions.map(definition => [definition.id, definition]))
     const equipment = this.#controller.snapshot()
@@ -177,6 +182,8 @@ export class PlayerWeapons {
     this.#aim = aim
     this.#world = world
     this.#shotTargets = shotTargets
+    this.#shotSource = shotTargets?.openSource(equipment.epoch) ?? null
+    this.#onShotResolved = onShotResolved
     this.#effects = particles || scene
       ? new ShotEffects({
           particles,
@@ -323,7 +330,8 @@ export class PlayerWeapons {
       definition,
     })
     const events = batch.events.map((event) => {
-      const weapon = snapshot.inventory.weapons.find(weapon => weapon.instanceId === event.instanceId)
+      const stored = snapshot.inventory.weapons.find(weapon => weapon.instanceId === event.instanceId)
+      const weapon = stored && { ...stored, ammoPolicy: snapshot.ammoPolicy }
       if (event.type !== 'ShotFired') {
         return {
           ...event,
@@ -331,6 +339,8 @@ export class PlayerWeapons {
         }
       }
       const shot = this.#aim.fire({ instanceId: event.instanceId, shotSequence: event.payload.shotSequence, definition })
+      this.#shotTargets?.setSourceEpoch(this.#shotSource, snapshot.epoch)
+      this.#shotTargets?.beginShot(context)
       const trace = direction => traceWeaponImpact(shot.eyeOrigin, direction, this.#world, shotRange, this.#shotTargets)
       const pellets = shot.pelletDirections?.map((direction, index) => ({
         index,
@@ -340,12 +350,6 @@ export class PlayerWeapons {
       const impact = pellets
         ? pellets.filter(pellet => pellet.impact.hit).sort((a, b) => a.impact.distance - b.impact.distance)[0]?.impact ?? pellets[0].impact
         : trace(shot.shotDirection)
-      if (this.#shotTargets) {
-        const impacts = pellets
-          ? pellets.map(pellet => pellet.impact)
-          : [impact]
-        this.#shotTargets.react(impacts, { at: event.at })
-      }
       const enriched = {
         ...event,
         payload: {
@@ -357,6 +361,10 @@ export class PlayerWeapons {
             ? { pellets }
             : {}),
         },
+      }
+      if (this.#shotTargets) {
+        const result = this.#shotTargets.resolveShot({ ...enriched, sourceId: this.#shotSource }, context)
+        this.#onShotResolved?.(result, context)
       }
       this.#lastShot = enriched
       return enriched
@@ -375,6 +383,7 @@ export class PlayerWeapons {
   }
 
   #accept(batch, snapshot = this.#controller.snapshot(), aim = null) {
+    this.#shotTargets?.setSourceEpoch(this.#shotSource, snapshot.epoch)
     this.#events.push(...batch.events)
     this.#events = this.#events.slice(-64)
     this.#view.receive(batch, snapshot, aim)
@@ -445,6 +454,8 @@ export class PlayerWeapons {
     if (this.#disposed)
       return
     this.#disposed = true
+    if (this.#shotSource)
+      this.#shotTargets.closeSource(this.#shotSource)
     this.#armory.dispose()
     this.#controller.dispose()
     this.#audio?.dispose()

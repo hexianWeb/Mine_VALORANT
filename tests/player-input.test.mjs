@@ -8,7 +8,7 @@ import { CollisionWorld, createPhysicsSystem } from '../src/engine/runtime/funct
 import { createPlayer, PlayerComponent } from '../src/game/player/player.js'
 import { setupInput } from './input-fixture.mjs'
 
-function setup(t, bindings = inputBindings, weapons = null) {
+function setup(t, bindings = inputBindings, weapons = null, onLifecycle = null) {
   const events = setupInput({ bindings })
   const { input, element } = events
   const camera = new PerspectiveCamera()
@@ -35,6 +35,7 @@ function setup(t, bindings = inputBindings, weapons = null) {
     input,
     physics,
     weapons,
+    onLifecycle,
   })).requireComponent(PlayerComponent)
   input.setEnabled(true)
   player.setEnabled(true)
@@ -72,6 +73,29 @@ function setup(t, bindings = inputBindings, weapons = null) {
     },
   }
 }
+
+test('game-owned lifecycle notification precedes actual respawn/reset and Editor suspension, never menu handoff', (t) => {
+  const order = []
+  const f = setup(t, inputBindings, null, event => order.push(event.type))
+  f.player.weapons = {
+    reset() { order.push('reset-weapons') },
+    suspend() { order.push('suspend-weapons') },
+    dispose() {},
+    clearInput() {},
+  }
+  f.player.setInputBlocked(true)
+  f.player.setInputBlocked(false)
+  assert.deepEqual(order, [])
+  f.player.respawn()
+  assert.deepEqual(order, ['respawn', 'reset-weapons'])
+  f.player.setEnabled(false)
+  assert.deepEqual(order, [
+    'respawn',
+    'reset-weapons',
+    'disabled',
+    'suspend-weapons',
+  ])
+})
 
 test('Engine pause/resume collects keyboard-only Home before clearing paused holds and look', (t) => {
   const f = setup(t)

@@ -513,6 +513,7 @@ export class WeaponViewModel {
       && previous.weapon?.definitionId === weapon?.definitionId
       && previous.weapon?.magazine === weapon?.magazine
       && previous.weapon?.reserve === weapon?.reserve
+      && (previous.weapon?.ammoPolicy ?? 'finite') === (weapon?.ammoPolicy ?? 'finite')
       && previous.skinId === skinId && previous.action === action
       && previous.error === this.error && previous.skinError === this.skinError
       && previous.hit === hit && previous.moving === moving) {
@@ -526,6 +527,7 @@ export class WeaponViewModel {
             definitionId: weapon.definitionId,
             magazine: weapon.magazine,
             reserve: weapon.reserve,
+            ammoPolicy: weapon.ammoPolicy ?? 'finite',
           })
         : null,
       skinId,

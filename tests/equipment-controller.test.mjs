@@ -22,7 +22,7 @@ function definition(id, overrides = {}) {
   }
 }
 
-function setup(t, { definitions = {}, weapons = {}, initialSlot = 'primary' } = {}) {
+function setup(t, { definitions = {}, weapons = {}, initialSlot = 'primary', ammoPolicy = 'finite' } = {}) {
   const ids = ['A', 'B', 'C']
   const controller = new EquipmentController({
     definitions: ids.map(id => definition(id, definitions[id])),
@@ -38,6 +38,7 @@ function setup(t, { definitions = {}, weapons = {}, initialSlot = 'primary' } = 
     })),
     fixedDelta: h,
     initialSlot,
+    ammoPolicy,
   })
   t.after(() => controller.dispose())
   let tick = 0
@@ -100,6 +101,51 @@ function ofType(result, type) {
 function shots(result) {
   return ofType(result, 'ShotFired')
 }
+
+test('explicit infinite reserve preserves empty magazines, manual reload and exactly-once feed commits without Infinity inventory', (t) => {
+  const f = setup(t, {
+    ammoPolicy: 'infinite-reserve',
+    definitions: {
+      A: {
+        fire: { interval: h },
+      },
+    },
+    weapons: {
+      A: { magazine: 0, reserve: 0 },
+    },
+  })
+  f.ready()
+  assert.equal(f.controller.snapshot().ammoPolicy, 'infinite-reserve')
+  assert.equal(shots(f.step({ type: 'fire' })).length, 0)
+  assert.equal(f.weapon('A').magazine, 0)
+  const started = f.step({ type: 'reload' })
+  assert.equal(ofType(started, 'ReloadStarted').length, 1)
+  f.advance(3)
+  assert.equal(f.weapon('A').magazine, 0, 'no early refill')
+  const committed = f.step()
+  assert.equal(ofType(committed, 'AmmoCommitted').length, 1)
+  assert.equal(f.weapon('A').magazine, 5)
+  assert.equal(f.weapon('A').reserve, 0)
+  f.advance(10)
+  assert.equal(f.events.filter(event => event.type === 'AmmoCommitted').length, 1)
+  for (let i = 0; i < 5; i++) assert.equal(shots(f.step({ type: 'fire' })).length, 1)
+  assert.equal(f.weapon('A').magazine, 0)
+  f.advance(10)
+  assert.equal(f.weapon('A').magazine, 0, 'infinite reserve is not automatic reload or infinite magazine')
+  assert.equal(f.weapon('A').reserve, 0)
+})
+
+test('default finite reserve still blocks empty reloads and rejects unknown supply policies', (t) => {
+  const f = setup(t, {
+    weapons: {
+      A: { magazine: 0, reserve: 0 },
+    },
+  })
+  f.ready()
+  assert.equal(f.controller.snapshot().ammoPolicy, 'finite')
+  assert.equal(ofType(f.step({ type: 'reload' }), 'ReloadStarted').length, 0)
+  assert.throws(() => setup(t, { ammoPolicy: 'infinite-magazine' }), /ammoPolicy/)
+})
 
 test('menu handoff drops uncommitted physical commands, not UI selection or preparation replies', (t) => {
   const f = setup(t)

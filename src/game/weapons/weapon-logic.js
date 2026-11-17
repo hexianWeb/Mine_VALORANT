@@ -3,18 +3,29 @@ export function durationTicks(seconds, fixedDelta) {
   return Math.ceil(seconds / fixedDelta - 1e-10)
 }
 
-export function canReloadWeapon(weapon, definition) {
-  return weapon.magazine < definition.capacity && weapon.reserve > 0
+export function validateAmmoPolicy(policy) {
+  if (!['finite', 'infinite-reserve'].includes(policy))
+    throw new RangeError('[Weapon] Unknown ammoPolicy')
+  return policy
+}
+
+export function canReloadWeapon(weapon, definition, ammoPolicy = 'finite') {
+  validateAmmoPolicy(ammoPolicy)
+  return weapon.magazine < definition.capacity && (ammoPolicy === 'infinite-reserve' || weapon.reserve > 0)
 }
 
 /** Only this transfer changes both ammo stores; the controller owns commit idempotency. */
-export function commitReload(weapon, definition, recoveryUntil) {
-  const amount = Math.min(definition.capacity - weapon.magazine, weapon.reserve)
+export function commitReload(weapon, definition, recoveryUntil, ammoPolicy = 'finite') {
+  validateAmmoPolicy(ammoPolicy)
+  const infinite = ammoPolicy === 'infinite-reserve'
+  const amount = Math.min(definition.capacity - weapon.magazine, infinite ? definition.capacity : weapon.reserve)
   return {
     amount,
     patch: {
       magazine: weapon.magazine + amount,
-      reserve: weapon.reserve - amount,
+      reserve: infinite
+        ? weapon.reserve
+        : weapon.reserve - amount,
       blockedUntil: Math.max(weapon.blockedUntil, recoveryUntil),
     },
   }

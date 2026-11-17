@@ -1,7 +1,10 @@
 import { Quaternion, Vector3 } from 'three/webgpu'
-import { AnimationPlayer } from '../../engine/runtime/function/animation/index.js'
 import { Component, GameObject, MeshComponent, TransformComponent } from '../../engine/runtime/function/framework/index.js'
+import { fixedTime, immutableFact } from '../combat/facts.js'
+import { fixedDamage, validateDamageProfile } from '../combat/fixed-damage.js'
 import { BoneHitboxes } from './bone-hitboxes.js'
+import { TargetCombat } from './target-combat.js'
+import { TargetPoses } from './target-poses.js'
 import { TrainingBotAudio } from './training-bot-audio.js'
 import { createTrainingBotOutline } from './training-bot-outline.js'
 import { loadTrainingBotSkins, trainingBotSkins } from './training-bot-skins.js'
@@ -14,17 +17,17 @@ const up = new Vector3(0, 1, 0)
 
 export class TrainingBotComponent extends Component {
   static requires = [TransformComponent, MeshComponent]
-  static phases = ['fixed']
+  static phases = ['fixed', 'motion']
 
   #targets
   #hitboxes
-  #animation
+  #poses
+  #combat = new TargetCombat()
+  #practice = true
   #hitAudio
   #skin
-  #regions
   #unregister
   #transform
-  #reacting = false
   #lastRegion = null
   #hitCount = 0
 
@@ -33,13 +36,15 @@ export class TrainingBotComponent extends Component {
     this.#targets = targets
     this.#hitAudio = hitAudio
     this.#skin = skin
-    this.#hitboxes = new BoneHitboxes(root, profile)
-    this.#regions = profile.regions
-    const actions = Object.fromEntries(Object.entries(this.#regions).map(([region, clip]) => [
-      region,
-      { clip, fade: 0 },
-    ]))
-    this.#animation = new AnimationPlayer({ root, clips, actions })
+    validateDamageProfile(profile)
+    this.#poses = new TargetPoses(root, clips, profile.regions)
+    try {
+      this.#hitboxes = new BoneHitboxes(this.#poses.authorityRoot, profile)
+    }
+    catch (error) {
+      this.#poses.dispose()
+      throw error
+    }
   }
 
   onAttach() {
@@ -48,36 +53,160 @@ export class TrainingBotComponent extends Component {
   }
 
   trace(origin, direction, limit) {
-    if (!this.enabled || !this.owner?.active)
+    if (!this.enabled || !this.owner?.active || (!this.#practice && !this.#combat.eligible))
       return null
     const hit = this.#hitboxes.trace(origin, direction, this.#transform, limit)
     return hit && { ...hit, surface: 'metal' }
   }
 
-  react({ region }, { at } = {}) {
-    if (!this.enabled || !this.owner?.active)
-      return
-    this.#animation.play(region, { restart: true })
-    this.#lastRegion = region
-    this.#hitCount++
-    this.#reacting = true
-    this.#hitAudio?.play({
-      owner: this.owner.id,
-      region,
-      sequence: this.#hitCount,
+  captureIdentity() {
+    const identity = this.#combat.identity
+    return identity
+      ? { sessionId: identity.sessionId, spawnId: identity.spawnId, cellId: identity.cellId }
+      : {}
+  }
+
+  preparePose(context) {
+    this.#poses.prepare(fixedTime(context).fixedElapsed)
+  }
+
+  /** Activated only by the future challenge adapter, not by the three preview bots. */
+  activateSpawn(spawn, attributes, context) {
+    this.preparePose(context)
+    this.#combat.activate(spawn, attributes)
+    this.#practice = false
+    // Keep mesh mounting/release, but never let its latest Transform overwrite P placement.
+    this.owner.requireComponent(MeshComponent).enabled = false
+    this.#poses.record({ type: 'TargetSpawned', ...spawn })
+    this.#lastRegion = null
+    this.#transform.teleport(new Vector3().fromArray(spawn.position))
+    this.#transform.quaternion.fromArray(spawn.quaternion)
+    this.#transform.scale.fromArray(spawn.scale)
+  }
+
+  removeSpawn(at, reason = 'removed') {
+    this.#combat.deactivate()
+    return this.#poses.record({
+      ...this.captureIdentity(),
+      type: 'TargetRemoved',
       at,
+      reason,
     })
   }
 
-  tick({ delta }) {
-    if (this.#reacting && this.#animation.advance(delta).some(event => event.type === 'finished')) {
-      this.#animation.stop()
-      this.#reacting = false
+  invalidateSpawn() {
+    this.#combat.deactivate()
+    this.#poses.clear()
+    this.owner.requireComponent(MeshComponent).root.visible = false
+    this.#hitAudio?.stop(this.owner.id)
+  }
+
+  /** Kept as a local feedback operation; ShotTargets no longer has a second react path. */
+  react({ region }, { at = this.#poses.snapshot().authorityTime, fixedTick = null, sourceId = null, epoch = null, sequence = null } = {}) {
+    if (!this.enabled || !this.owner?.active)
+      return
+    const fact = this.#poses.record({
+      ...this.captureIdentity(),
+      type: 'TargetReacted',
+      region,
+      at,
+      targetId: this.owner.id,
+      fixedTick,
+      sourceId,
+      epoch,
+      sequence,
+    })
+    this.#lastRegion = region
+    this.#hitCount++
+    return fact
+  }
+
+  prepareDamage(entries, shot, context) {
+    if (!this.enabled || !this.owner?.active)
+      return null
+    if (!this.#practice)
+      return this.#combat.prepareDamage(entries, shot, context)
+    // Preserve the existing free-practice previews until the real pool is assembled in phase four.
+    for (const entry of entries) fixedDamage(shot.definitionId, entry.impact.region)
+    return immutableFact({ practice: true, entries })
+  }
+
+  commitDamage(plan, shot, time) {
+    if (!plan.practice && !this.#combat.commitDamage(plan))
+      return { damage: [], deaths: [], reactions: [] }
+    const damage = plan.damage ?? []
+    if (plan.lethal) {
+      const seedText = `${shot.sourceId}/${shot.epoch}/${shot.sequence}/${plan.identity.spawnId}`
+      let seed = 2166136261
+      for (const char of seedText) seed = Math.imul(seed ^ char.charCodeAt(0), 16777619) >>> 0
+      const death = this.#poses.record({
+        ...plan.identity,
+        type: 'TargetKilled',
+        targetId: this.owner.id,
+        sourceId: shot.sourceId,
+        epoch: shot.epoch,
+        sequence: shot.sequence,
+        pelletIndex: plan.lethal.pelletIndex,
+        region: plan.lethal.region,
+        fixedTick: time.fixedTick,
+        at: time.fixedElapsed,
+        position: this.#transform.position.toArray(),
+        quaternion: this.#transform.quaternion.toArray(),
+        scale: this.#transform.scale.toArray(),
+        pose: this.#poses.capture(),
+        presentationSeed: seed,
+        bodyHideAt: plan.identity.bodyHideTicks
+          ? (time.fixedTick + plan.identity.bodyHideTicks) * time.fixedDelta
+          : null,
+      })
+      return {
+        damage,
+        deaths: [death],
+        reactions: [],
+      }
+    }
+    const impacts = plan.practice
+      ? plan.entries.map(entry => entry.impact)
+      : plan.damage.map(hit => hit.impact)
+    const nearest = impacts.reduce((a, b) => !a || b.distance < a.distance
+      ? b
+      : a, null)
+    const reaction = this.react(nearest, {
+      at: time.fixedElapsed,
+      fixedTick: time.fixedTick,
+      sourceId: shot.sourceId,
+      epoch: shot.epoch,
+      sequence: shot.sequence,
+    })
+    return {
+      damage,
+      deaths: [],
+      reactions: reaction
+        ? [reaction]
+        : [],
+    }
+  }
+
+  tick({ phase, time }) {
+    if (phase === 'fixed') {
+      this.preparePose(time)
+    }
+    else if (phase === 'motion') {
+      for (const fact of this.#poses.present(time.presentationTime)) {
+        if (fact.type === 'TargetReacted') {
+          this.#hitAudio?.play({
+            owner: this.owner.id,
+            region: fact.region,
+            sequence: fact.presentationSequence,
+            at: fact.at,
+          })
+        }
+      }
     }
   }
 
   snapshot() {
-    const current = this.#animation.snapshot().current
+    const poses = this.#poses.snapshot()
     return {
       id: this.owner.id,
       position: this.#transform.position.toArray(),
@@ -86,7 +215,9 @@ export class TrainingBotComponent extends Component {
       difficultyLabel: trainingBotSkins[this.#skin].label,
       hitCount: this.#hitCount,
       lastRegion: this.#lastRegion,
-      reaction: current && { clip: this.#regions[current.role], time: current.localTime },
+      reaction: poses.authority,
+      combat: this.#combat.snapshot(),
+      poses,
     }
   }
 
@@ -96,7 +227,7 @@ export class TrainingBotComponent extends Component {
     this.#unregister?.()
     if (this.owner)
       this.#hitAudio?.stop(this.owner.id)
-    this.#animation.dispose()
+    this.#poses.dispose()
     super.dispose()
   }
 }
