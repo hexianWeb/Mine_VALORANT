@@ -112,13 +112,18 @@ export class ShotTargets {
       return result('ignored')
     const time = fixedTime(context, 'postPhysics')
     const payload = event.payload
-    if (event.type !== 'ShotFired' || event.fixedTick !== time.fixedTick || event.at !== time.fixedElapsed
+    const melee = event.type === 'MeleeContact'
+    if ((!melee && event.type !== 'ShotFired') || event.fixedTick !== time.fixedTick || event.at !== time.fixedElapsed
       || typeof event.instanceId !== 'string' || !payload?.weapon?.definitionId) {
-      throw new TypeError('[ShotTargets] Expected this fixed step\'s accepted ShotFired')
+      throw new TypeError('[ShotTargets] Expected this fixed step\'s accepted attack')
     }
     const shot = immutableFact({ ...base, instanceId: event.instanceId, definitionId: payload.weapon.definitionId })
-    const pellets = payload.pellets ?? [
-      { index: 0, direction: payload.shotDirection, impact: payload.impact },
+    const pellets = (melee ? undefined : payload.pellets) ?? [
+      {
+        index: 0,
+        direction: melee ? payload.direction : payload.shotDirection,
+        impact: payload.impact,
+      },
     ]
     if (!Array.isArray(pellets) || !pellets.length)
       throw new TypeError('[ShotTargets] Empty pellet batch')
@@ -148,7 +153,10 @@ export class ShotTargets {
     this.#resolving = true
     try {
       // Pure preview only: an accepted interaction consumes the ENTIRE shot.
-      const commands = orderedGroups.flatMap(([targetId, { target, entries }]) => {
+      const interactionGroups = melee
+        ? []
+        : orderedGroups
+      const commands = interactionGroups.flatMap(([targetId, { target, entries }]) => {
         const command = target.prepareInteraction?.(entries, shot, time)
         return command
           ? [

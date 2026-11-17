@@ -46,6 +46,7 @@ export function createWeaponDefinition(input) {
     'capacity',
     'initialReserve',
     'fire',
+    'meleeAttack',
     'equip',
     'reload',
     'inspectDuration',
@@ -89,6 +90,19 @@ export function createWeaponDefinition(input) {
     mode: input.fire.mode,
     interval: seconds(input.fire.interval, 'fire.interval', true),
   }
+  let meleeAttack
+  if (melee) {
+    const { contactTime, range } = record(input.meleeAttack, 'meleeAttack', ['contactTime', 'range'])
+    seconds(contactTime, 'meleeAttack.contactTime', true)
+    if (contactTime >= fire.interval)
+      throw new RangeError('meleeAttack.contactTime must be shorter than the attack cooldown')
+    if (!Number.isFinite(range) || range <= 0)
+      throw new RangeError('meleeAttack.range must be positive and finite')
+    meleeAttack = Object.freeze({ contactTime, range })
+  }
+  else if (Object.hasOwn(input, 'meleeAttack')) {
+    throw new TypeError('meleeAttack requires capabilities.melee')
+  }
   if (Object.hasOwn(input.fire, 'adsInterval')) {
     if (!input.capabilities.ads)
       throw new TypeError('fire.adsInterval requires capabilities.ads')
@@ -116,6 +130,9 @@ export function createWeaponDefinition(input) {
     capacity: integer(input.capacity, 'capacity', melee ? 0 : 1),
     initialReserve: integer(input.initialReserve, 'initialReserve'),
     fire: Object.freeze(fire),
+    ...(meleeAttack
+      ? { meleeAttack }
+      : {}),
     equip: Object.freeze({
       draw: seconds(input.equip.draw, 'equip.draw'),
       holster: seconds(input.equip.holster, 'equip.holster'),

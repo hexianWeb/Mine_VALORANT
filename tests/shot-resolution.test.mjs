@@ -106,7 +106,7 @@ function fixture(count = 2, armor = 0) {
   }
 }
 
-test('seven fixed tables match the specification including normalized Judge legs and all six profile regions', () => {
+test('fixed damage covers firearms and flat karambit damage across all six profile regions', () => {
   const profile = JSON.parse(fs.readFileSync(new URL('../public/targets/training-bot/range-training-bot.hitboxes.json', import.meta.url)))
   validateDamageProfile(profile)
   assert.deepEqual(Object.keys(hitRegionDamage).sort(), Object.keys(profile.regions).sort())
@@ -115,13 +115,43 @@ test('seven fixed tables match the specification including normalized Judge legs
   assert.equal(fixedDamage('judge', 'leg_l'), 14.45)
   assert.equal(fixedDamage('classic', 'arm_l'), 26)
   assert.equal(fixedDamage('odin', 'head'), 95)
-  assert.equal(Object.keys(fixedWeaponDamage).length, 7)
+  assert.equal(Object.keys(fixedWeaponDamage).length, 8)
+  for (const region of Object.keys(profile.regions)) assert.equal(fixedDamage('karambit', region), 50)
   assert.throws(() => fixedDamage('missing', 'head'), /Missing/)
   assert.throws(() => fixedDamage('judge', 'unknown'), /Missing/)
   assert.throws(() => validateDamageProfile({
     ...profile,
     regions: { ...profile.regions, tail: 'clip' },
   }), /tail/)
+})
+
+test('a melee contact applies one damage instance, skips panel interactions, and rejects replays', () => {
+  const f = fixture(1)
+  let panelQueries = 0
+  f.bots[0].prepareInteraction = () => {
+    panelQueries++
+    return { type: 'StartRequested' }
+  }
+  const contact = tick => ({
+    ...f.event([], 'karambit', tick),
+    type: 'MeleeContact',
+    payload: {
+      weapon: { definitionId: 'karambit' },
+      direction: [0, 0, -1],
+      impact: f.impact(0),
+    },
+  })
+  const first = contact(20)
+  const hit = f.targets.resolveShot(first, time(20))
+  assert.deepEqual(hit.damage.map(({ amount, health }) => [amount, health]), [
+    [50, 50],
+  ])
+  assert.equal(hit.reactions.length, 1)
+  assert.equal(f.targets.resolveShot(first, time(20)).disposition, 'ignored')
+  const lethal = f.targets.resolveShot(contact(80), time(80))
+  assert.equal(lethal.deaths.length, 1)
+  assert.equal(f.bots[0].model.snapshot().attributes.health, 0)
+  assert.equal(panelQueries, 0)
 })
 
 test('pellets cumulatively damage independent targets, never count the summary hit twice, and emit one death/feedback', () => {

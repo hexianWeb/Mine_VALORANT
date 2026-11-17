@@ -11,6 +11,7 @@ export const fixedWeaponDamage = immutableFact({
   vandal: { head: 160, body: 40, legs: 34 },
   judge: { head: 34, body: 17, legs: 14.45 },
   odin: { head: 95, body: 38, legs: 32.3 },
+  karambit: { head: 50, body: 50, legs: 50 },
 })
 
 // The existing profile assigns pelvis to chest and both upper/lower arms to arm_*.

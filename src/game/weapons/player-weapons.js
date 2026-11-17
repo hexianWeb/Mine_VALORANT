@@ -1,3 +1,4 @@
+import { Quaternion, Vector3 } from 'three/webgpu'
 import { intersectRayBox } from '../../engine/runtime/function/physics/ray-box.js'
 import { createArmoryCatalog } from './armory-catalog.js'
 import { classicDefinition } from './definitions/classic.js'
@@ -109,6 +110,26 @@ export function traceWeaponImpact(origin, direction, world, range = shotRange, s
       ? { surfaceColor: target.surfaceColor }
       : {}),
   }
+}
+
+function traceMeleeImpact(pose, range, world, targets) {
+  const aim = new Quaternion().fromArray(pose.quaternion)
+  const trace = (angle) => {
+    const direction = new Vector3(Math.sin(angle), 0, -Math.cos(angle)).applyQuaternion(aim).toArray()
+    const impact = traceWeaponImpact(pose.position, direction, world, range, targets)
+    return { direction, impact }
+  }
+  const center = trace(0)
+  if (center.impact.targetId)
+    return center
+  const halfAngle = Math.PI / 18
+  const sides = [
+    trace(-halfAngle),
+    trace(halfAngle),
+  ]
+    .filter(hit => hit.impact.targetId)
+    .sort((a, b) => a.impact.distance - b.impact.distance)
+  return sides[0] ?? center
 }
 
 function immutable(value) {
@@ -343,7 +364,7 @@ export class PlayerWeapons {
     const weapon = snapshot.inventory.weapons.find(weapon => weapon.instanceId === snapshot.activeId)
     const definition = this.#definitions.get(weapon?.definitionId)
     const aiming = aimHeld && snapshot.canAct && !snapshot.action && !!definition?.capabilities.ads
-    this.#aim.beginStep({
+    const aimPose = this.#aim.beginStep({
       ...pose,
       at: time.fixedElapsed,
       delta: time.fixedDelta,
@@ -360,41 +381,53 @@ export class PlayerWeapons {
           : {}),
         ammoPolicy: snapshot.ammoPolicy,
       }
-      if (event.type !== 'ShotFired') {
+      if (event.type !== 'ShotFired' && event.type !== 'MeleeContact') {
         return {
           ...event,
           payload: { ...event.payload, weapon },
         }
       }
-      const shot = this.#aim.fire({ instanceId: event.instanceId, shotSequence: event.payload.shotSequence, definition })
+      const shot = event.type === 'ShotFired'
+        ? this.#aim.fire({ instanceId: event.instanceId, shotSequence: event.payload.shotSequence, definition })
+        : null
       this.#shotTargets?.setSourceEpoch(this.#shotSource, snapshot.epoch)
       this.#shotTargets?.beginShot(context)
-      const trace = direction => traceWeaponImpact(shot.eyeOrigin, direction, this.#world, shotRange, this.#shotTargets)
-      const pellets = shot.pelletDirections?.map((direction, index) => ({
-        index,
-        direction,
-        impact: trace(direction),
-      }))
-      const impact = pellets
-        ? pellets.filter(pellet => pellet.impact.hit).sort((a, b) => a.impact.distance - b.impact.distance)[0]?.impact ?? pellets[0].impact
-        : trace(shot.shotDirection)
-      const enriched = {
-        ...event,
-        payload: {
-          ...event.payload,
+      let attack
+      if (shot) {
+        const trace = direction => traceWeaponImpact(shot.eyeOrigin, direction, this.#world, shotRange, this.#shotTargets)
+        const pellets = shot.pelletDirections?.map((direction, index) => ({
+          index,
+          direction,
+          impact: trace(direction),
+        }))
+        const impact = pellets
+          ? pellets.filter(pellet => pellet.impact.hit).sort((a, b) => a.impact.distance - b.impact.distance)[0]?.impact ?? pellets[0].impact
+          : trace(shot.shotDirection)
+        attack = {
           ...shot,
-          weapon,
           impact,
           ...(pellets
             ? { pellets }
             : {}),
+        }
+      }
+      else {
+        attack = traceMeleeImpact(aimPose, definition.meleeAttack.range, this.#world, this.#shotTargets)
+      }
+      const enriched = {
+        ...event,
+        payload: {
+          ...event.payload,
+          ...attack,
+          weapon,
         },
       }
       if (this.#shotTargets) {
         const result = this.#shotTargets.resolveShot({ ...enriched, sourceId: this.#shotSource }, context)
         this.#onShotResolved?.(result, context)
       }
-      this.#lastShot = enriched
+      if (shot)
+        this.#lastShot = enriched
       return enriched
     })
     const view = this.#aim.endStep()

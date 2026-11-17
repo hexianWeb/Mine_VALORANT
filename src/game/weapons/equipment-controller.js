@@ -81,6 +81,7 @@ export class EquipmentController {
   #committedSkinRevisions = new Map()
   #transaction = null
   #action = null
+  #swingImpactTick = null
   #commands = []
   #events = []
   #effects = []
@@ -249,6 +250,10 @@ export class EquipmentController {
       this.#actionBlockReason = 'nextSwitchDeferred'
 
     this.#settleAction()
+    if (this.#swingImpactTick !== null && this.#tick >= this.#swingImpactTick) {
+      this.#swingImpactTick = null
+      this.#emit('MeleeContact', this.#activeId)
+    }
     for (const { command } of commands) {
       if (command.type === 'fireHeld') {
         this.#fireHeld = command.held
@@ -651,6 +656,7 @@ export class EquipmentController {
   }
 
   #cancelAction(reason) {
+    this.#swingImpactTick = null
     if (!this.#action)
       return
     const action = this.#action
@@ -692,7 +698,8 @@ export class EquipmentController {
       return false
     this.#cancelAction('swing')
     this.#inventory.update(this.#activeId, { blockedUntil: this.#now + definition.fire.interval })
-    this.#emit('MeleeSwung', this.#activeId, {})
+    this.#swingImpactTick = this.#tick + durationTicks(definition.meleeAttack.contactTime, this.#fixedDelta)
+    this.#emit('MeleeSwung', this.#activeId, { impactTick: this.#swingImpactTick })
     return true
   }
 
