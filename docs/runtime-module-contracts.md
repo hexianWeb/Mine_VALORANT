@@ -39,10 +39,13 @@
 | [WeaponViewModel](../src/game/weapons/weapon-viewmodel.js) | active／staged 两个视觉槽、anchor、动画播放器使用权、待展示事实和枪口闪光 | receive 收事实／启动预热；motion 准备实例并按展示时间消费事件 | 借用 RenderSystem 的 layer；交接到时才释放旧实例；动画不决定玩法动作时刻 |
 | [AnimationPlayer](../src/engine/runtime/function/animation/animation-player.js) | 每实例 Mixer、播放代次、混合层与稀疏属性覆盖 | 由拥有者显式调用 advance，不自带时钟 | 武器由 motion 驱动；当前训练机器人由 fixed 驱动；dispose 清播放器，不销毁共享模型资源 |
 | [WeaponAudio](../src/game/weapons/weapon-audio.js) | 武器事实队列、动作／cue 游标与声音 owner 标识 | motion 消费已展示事实并提交 cue | 将玩法翻译成通用音频请求；重置／销毁只失效自己的声音，不关闭 AudioContext |
-| [ImpactEffects](../src/game/weapons/impact-effects.js) | 命中表面到粒子参数的玩法预设 | receive 将已接受射击转换为带 born 时间的粒子 | 不自建时钟；当前 PresentationReset／dispose 会 clear 注入的整个粒子服务，见下方范围说明 |
+| [ShotEffects](../src/game/weapons/shot-effects.js) | 命中表面到粒子参数的玩法预设 | receive 将已接受射击转换为带 born 时间的粒子 | 不自建时钟；当前 PresentationReset／dispose 会 clear 注入的整个粒子服务，见下方范围说明 |
 | [ShotTargets / TrainingBot](../src/game/targets/training-bot.js) | Level 持有目标注册表；机器人组件持有命中盒、受击播放器与命中计数 | fixed 采样受击动画；postPhysics 射击查询后 react | 组件挂接时注册，dispose 注销并释放播放器；模型实例由 Mesh 释放，模板归 Level；目前不扣血 |
 | [CombatAttributes](../src/game/combat/attributes.js) | 单个对象的生命／护甲与上限 | 本次只有独立同步 API，没有接入阶段调度 | 无全局注册、计时器或释放资源；未来由对象持有，在固定玩法入口提交 damage／reset，见[模型契约](combat/attributes.md) |
-| [Weapon HUD](../src/app/weapon-hud.js) | 当前关卡的 DOM、监听与显示配置 | Engine frame 后读取已展示武器快照 | app 挂载／卸载；不拿最新模拟弹药提前显示，不直接更改武器状态 |
+| [UI host](../src/app/ui-host.js) | 本关卡 HUD／调试／模态层、模态栈、焦点返回及 Tab 循环 | canvas、已有调试容器 | app `levelTools` 挂载／卸载；顶层窗口先处理关闭，释放后还原借用的调试容器 |
+| [UI input](../src/app/ui-input.js) | 输入归属、暂停原因、捕获请求状态 | Input、Player、Engine、UI host | 监听真实 Pointer Lock／焦点／可见性；不拥有独立帧循环或游戏时钟 |
+| [Weapon HUD](../src/app/weapon-hud.js) | 当前关卡的 DOM、监听与显示配置 | Engine frame 后读取 `PlayerComponent.readHud()`／`WeaponViewModel.readHud()` | app 挂载／卸载；不读完整诊断快照，按字段变化写入，不拿最新模拟弹药提前显示 |
+| [Look settings](../src/game/player/look-settings.js) | 玩家灵敏度、待提交值及 revision | 初始配置 | request 校验并合并意图，Player 在有效 postPhysics 提交；app 仅负责本地保存适配 |
 
 当前粒子服务由 RuntimeContext 持有，但 ImpactEffects 使用全量 clear。这是**当前单玩家效果生产者的约定**，不是通用多来源作用域隔离。增加其他效果生产者前，应引入 owner／scope 的取消边界，不能继续让任一生产者清空所有效果。本次只记录此边界，不改现有粒子实现。
 
@@ -80,6 +83,14 @@ Engine.step(nowMs)
 - 公共展示时间为 `P = max(0, C - h + alpha * h)`。相机、视模、HUD 和声画效果使用同一 P，不直接把最新模拟状态当成已展示状态。
 - 粒子可提前写入带 born 的数据，flush 按 P 采样；Web Audio 自己的设备时钟由 AudioSystem 映射，不构成第二条游戏时间轴。
 - 未来生命／护甲的扣除在伤害被接受的固定步提交；播放受击动画或刷新 HUD 不再扣一次。模型本身不校验 tick，也不负责识别重复命中，调用方必须维护该边界。
+
+## 应用 UI 与输入交接
+
+- `InputSystem.enabled` 仍表示玩法生命周期。`blocked` 是独立的输入归属门：app 仅在真实持有画布 Pointer Lock、窗口可交互、无模态且未暂停时放行，不能仅靠画布聚焦放行。
+- 菜单调用 `PlayerComponent.setInputBlocked()`，清除移动／跳跃／视角及未提交的物理输入，不调用 Editor 的 `setEnabled(false)`。`EquipmentController.clearInput()` 只移除标记为 `source: input` 的排队命令；已接受的换弹／装备事务、准备回复和 UI 命令保留，下一固定步归零持续开火。
+- F3 不暂停模拟。Esc 先关闭顶层模态，再次 Esc 才暂停；解锁失败保持隔离。窗口失焦／后台通过已有 `Engine.pause()` 冻结时钟，回焦不恢复，必须点「继续」且实际捕获成功。应用设置 `autoPauseOnHidden: false`，通用 RuntimeContext／Engine 的原默认行为不变。
+- 灵敏度默认 0.4，范围 `[0.01, 5]`，细／粗步长 0.01／0.1。UI 显示待提交与有效值，只有有效提交值保存至 `mc-valorant.mouse-sensitivity.v1`；无效数据／存储失败不阻塞玩法。
+- 阶段一的模式／难度／数量／护甲仅为明确标注的下一局预选；不冒充挑战、伤害或无限备用弹药已经接入。B 的真实商店与挑战运行中只读／取消留待后续真实模块接入，见[阶段一实施记录](superpowers/plans/2026-11-17-range-ui-phase-one.md)。
 
 ## 暂停、挂起、重置、销毁
 

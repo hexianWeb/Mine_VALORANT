@@ -172,3 +172,93 @@ body {
 .crosshair-actions { justify-content: flex-end; }
 .crosshair-actions button[type="submit"]:enabled { border-color: #76e8d9; background: #76e8d9; color: #102124; font-weight: 600; }
 .crosshair-actions button:disabled { cursor: default; opacity: .48; }
+
+/* The host owns layering; only concrete controls receive pointer input. */
+.app-ui, .ui-hud-layer, .ui-debug-layer, .ui-modal-layer { position: fixed; inset: 0; pointer-events: none; }
+.app-ui { z-index: 5; }
+.ui-hud-layer { z-index: 1; }
+.ui-debug-layer { z-index: 2; }
+.ui-modal-layer { z-index: 3; }
+.ui-debug-layer > * { pointer-events: auto; }
+.ui-hud-layer .weapon-hud { z-index: auto; }
+.range-status {
+  position: absolute;
+  left: clamp(16px, 2.2vw, 36px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 218px;
+  color: #e4f0ed;
+  background: #12201fdb;
+  border: 1px solid #78b89d44;
+  box-shadow: 0 8px 32px #0003;
+  font-size: 13px;
+}
+.range-status h2 { padding: 9px 16px; background: #438873eb; color: #f4fff9; font-size: 16px; letter-spacing: 3px; }
+.range-status dl { display: grid; gap: 10px; padding: 15px 16px; }
+.range-status dl > div { display: flex; justify-content: space-between; gap: 14px; }
+.range-status dt { color: #9fb7b0; }
+.range-status dd { text-align: right; }
+.range-status > button { width: 100%; padding: 10px; border: 0; border-top: 1px solid #86b4a538; color: #b9d6c9; background: #09161566; font: inherit; cursor: pointer; pointer-events: auto; }
+kbd { font: inherit; color: #e0ffef; }
+.settings-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(540px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 24px;
+  border: 1px solid #5d8b825e;
+  border-radius: 8px;
+  background: #142122;
+  color: #e3f0ed;
+  pointer-events: auto;
+}
+.settings-dialog::backdrop { background: #050d12ad; }
+.settings-dialog header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.settings-dialog h2 { margin-top: 5px; font-size: 24px; font-weight: 550; letter-spacing: 2px; }
+.ui-eyebrow { color: #82bca8; font-size: 10px; font-weight: 600; letter-spacing: 2px; }
+.settings-note { margin-top: 18px; padding: 10px 12px; background: #26342f; border-left: 2px solid #8dab75; color: #bdcbbf; font-size: 12px; line-height: 1.6; }
+.settings-dialog fieldset { display: grid; gap: 12px; margin-top: 20px; padding: 15px; border: 1px solid #61877c40; }
+.settings-dialog legend { padding: 0 8px; color: #a8ccbd; font-size: 12px; }
+.settings-dialog label { display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 13px; }
+.settings-dialog :is(select, input, button), .input-overlay button {
+  padding: 8px 12px;
+  border: 1px solid #61877c60;
+  border-radius: 4px;
+  background: #203334;
+  color: #e3f0ed;
+  font: inherit;
+}
+.settings-dialog :is(select, input) { min-width: 150px; font-size: 13px; }
+.settings-dialog input { width: 150px; }
+.settings-dialog button, .input-overlay button { cursor: pointer; font-size: 13px; }
+.settings-dialog button:hover, .input-overlay button:hover { background: #304b48; }
+.settings-dialog button:disabled, .input-overlay button:disabled { opacity: .5; cursor: default; }
+.settings-dialog [aria-invalid="true"] { border-color: #ffaaa4; }
+.settings-help, .range-rule-summary, .sensitivity-status { color: #a0b9b0; font-size: 11px; line-height: 1.6; }
+.sensitivity-status { color: #acd9bf; }
+.sensitivity-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.ui-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.settings-dialog footer { margin-top: 20px; }
+.app-ui :is(button, input, textarea, select):focus-visible { outline: 2px solid #a2e4c4; outline-offset: 3px; }
+.input-overlay { position: absolute; inset: 0; display: grid; place-content: center; }
+.input-overlay.is-paused { background: #050c109e; pointer-events: auto; }
+.pause-card { max-width: min(420px, calc(100vw - 32px)); padding: 26px; border: 1px solid #77b19b50; border-radius: 6px; background: #142122f5; color: #d9ebe2; }
+.pause-card h2 { margin: 8px 0 12px; font-size: 26px; font-weight: 500; letter-spacing: 3px; }
+.pause-card > p:not(.ui-eyebrow) { color: #a0b9b0; font-size: 12px; line-height: 1.8; }
+.pause-card .ui-actions { margin-top: 22px; }
+.pause-card [data-continue] { color: #0e251b; background: #97cbb0; }
+.input-overlay .capture-hint { position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%); background: #132323db; pointer-events: auto; white-space: nowrap; }
+.input-message { position: absolute; top: 32px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px); padding: 10px 14px; border-radius: 4px; background: #132323ee; color: #cbe3d5; font-size: 12px; text-align: center; }
+.input-message:empty { display: none; }
+@media (max-width: 760px) {
+  .range-status { width: 178px; font-size: 11px; }
+  .range-status dl { padding: 10px; gap: 7px; }
+  .weapon-readout small { max-width: 70vw; font-size: 10px; }
+  .settings-dialog { padding: 18px; }
+  .sensitivity-steps button { padding: 8px 3px; font-size: 11px; }
+}
+@media (max-height: 520px) {
+  .range-status { top: 64px; transform: none; }
+}

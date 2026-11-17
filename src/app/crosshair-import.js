@@ -13,7 +13,7 @@ function previewScale(style, width, height) {
 }
 
 /** Keeps the draft local until the player applies it. */
-export function mountCrosshairImport({ root, getProfile, onApply }) {
+export function mountCrosshairImport({ root, ui, getProfile, onApply }) {
   const document = root.ownerDocument
   const open = document.createElement('button')
   open.type = 'button'
@@ -46,7 +46,7 @@ export function mountCrosshairImport({ root, getProfile, onApply }) {
       </div>
     </form>
   `
-  root.append(open, dialog)
+  root.append(open)
   const form = dialog.querySelector('form')
   const code = dialog.querySelector('textarea')
   const mode = dialog.querySelector('select')
@@ -92,36 +92,47 @@ export function mountCrosshairImport({ root, getProfile, onApply }) {
     apply.disabled = !draft
     showPreview()
   }
-  const syncLock = () => {
-    open.hidden = !!document.pointerLockElement
-  }
-  open.addEventListener('click', () => {
-    code.value = getProfile().code
-    mode.value = 'primary'
-    dialog.showModal()
-    readDraft()
+  const modal = ui.registerModal('crosshair', dialog, {
+    onOpen() {
+      code.value = getProfile().code
+      mode.value = 'primary'
+      readDraft()
+    },
   })
-  dialog.querySelector('[data-crosshair-close]').addEventListener('click', () => dialog.close())
+  let enabled = true
+  const syncLock = () => {
+    open.hidden = !enabled || !!document.pointerLockElement
+  }
+  const openDialog = () => modal.open()
+  const closeDialog = () => modal.close()
+  open.addEventListener('click', openDialog)
+  dialog.querySelector('[data-crosshair-close]').addEventListener('click', closeDialog)
   code.addEventListener('input', readDraft)
   mode.addEventListener('change', showPreview)
   form.addEventListener('submit', (event) => {
     event.preventDefault()
     if (draft) {
       onApply(draft)
-      dialog.close()
+      modal.close()
     }
   })
   document.addEventListener('pointerlockchange', syncLock)
   document.defaultView.addEventListener('resize', showPreview)
   syncLock()
   return {
+    open: openDialog,
     setEnabled(value) {
-      if (!value && dialog.open)
-        dialog.close()
+      if (enabled === value)
+        return
+      enabled = value
+      syncLock()
+      if (!value)
+        modal.close('owner')
     },
     dispose() {
-      if (dialog.open)
-        dialog.close()
+      modal.dispose()
+      open.removeEventListener('click', openDialog)
+      open.remove()
       document.removeEventListener('pointerlockchange', syncLock)
       document.defaultView.removeEventListener('resize', showPreview)
     },

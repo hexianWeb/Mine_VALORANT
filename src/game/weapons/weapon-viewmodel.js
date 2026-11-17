@@ -497,6 +497,47 @@ export class WeaponViewModel {
 
   resume() { this.#hidden = false }
 
+  #hud = null
+
+  /** No animation, inventory, audio, effect or event-log diagnostics on the HUD path. */
+  readHud() {
+    const weapon = this.#weapon
+    const skinId = this.#active?.handle.skinId ?? null
+    const action = this.#active?.action?.role ?? null
+    const hit = !!this.#presentedShot?.payload.impact.hit
+      && this.#cursor - this.#presentedShot.at >= 0
+      && this.#cursor - this.#presentedShot.at < 0.12
+    const moving = !!this.#stance.direction
+    const previous = this.#hud
+    if (previous && previous.weapon?.instanceId === weapon?.instanceId
+      && previous.weapon?.definitionId === weapon?.definitionId
+      && previous.weapon?.magazine === weapon?.magazine
+      && previous.weapon?.reserve === weapon?.reserve
+      && previous.skinId === skinId && previous.action === action
+      && previous.error === this.error && previous.skinError === this.skinError
+      && previous.hit === hit && previous.moving === moving) {
+      return previous
+    }
+    this.#hud = Object.freeze({
+      revision: (previous?.revision ?? 0) + 1,
+      weapon: weapon
+        ? Object.freeze({
+            instanceId: weapon.instanceId,
+            definitionId: weapon.definitionId,
+            magazine: weapon.magazine,
+            reserve: weapon.reserve,
+          })
+        : null,
+      skinId,
+      action,
+      error: this.error,
+      skinError: this.skinError,
+      moving,
+      hit,
+    })
+    return this.#hud
+  }
+
   snapshot() {
     return {
       renderActiveId: this.#active?.instanceId ?? null,

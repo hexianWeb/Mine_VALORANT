@@ -237,7 +237,7 @@ export class PlayerWeapons {
       if (paused && command)
         this.#rememberPausedSelection(command)
       else if (command && (command.type !== 'cycleSkin' || command.instanceId))
-        this.#controller.queue(command)
+        this.#controller.queue(command, { source: 'input' })
     }
     if (paused)
       return
@@ -245,7 +245,12 @@ export class PlayerWeapons {
     this.#controller.queue({
       type: 'fireHeld',
       held: input.isDown('fire'),
-    })
+    }, { source: 'input' })
+  }
+
+  clearInput() {
+    this.#aimHeld = false
+    this.#controller.clearInput()
   }
 
   #rememberPausedSelection(command) {
@@ -346,9 +351,9 @@ export class PlayerWeapons {
     this.#effects?.receive(batch)
   }
 
-  motion(time) {
+  motion(time, pose = this.#aim.sample(time.presentationTime)) {
     this.#audio?.motion(time)
-    const shots = this.#view.motion(time, this.#controller.snapshot(), this.#aim.sample(time.presentationTime))
+    const shots = this.#view.motion(time, this.#controller.snapshot(), pose)
     this.#effects?.motion(time, shots)
   }
 
@@ -394,6 +399,8 @@ export class PlayerWeapons {
       recentEvents: [...this.#events],
     })
   }
+
+  readHud() { return this.#view.readHud() }
 
   dispose() {
     if (this.#disposed)

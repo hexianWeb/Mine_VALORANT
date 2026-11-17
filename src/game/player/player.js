@@ -4,6 +4,7 @@ import { CameraComponent, Component, GameObject, MotorComponent, TransformCompon
 import { PlayerWeapons } from '../weapons/player-weapons.js'
 import { AimState } from './aim-state.js'
 import { playerConfig } from './config.js'
+import { createLookSettings } from './look-settings.js'
 
 /** Player input, posture targets and spawn rules. Motion and view live in dependencies. */
 export class PlayerComponent extends Component {
@@ -19,12 +20,15 @@ export class PlayerComponent extends Component {
   #gait = { direction: null, steps: 0 }
   #landing = null
   #footsteps
+  #inputBlocked = false
+  #presentedPose = null
 
   constructor({ collision, input, aim, weapons = null, footsteps = null, config = playerConfig }) {
     super()
     this.collision = collision
     this.input = input
     this.settings = config
+    this.lookSettings = createLookSettings(config.sensitivity)
     this.aim = aim
     this.weapons = weapons
     this.#footsteps = footsteps
@@ -110,8 +114,27 @@ export class PlayerComponent extends Component {
   }
 
   look(dx, dy) {
-    const radiansPerCount = THREE.MathUtils.degToRad(this.settings.degreesPerCount) * this.settings.sensitivity
+    const radiansPerCount = THREE.MathUtils.degToRad(this.settings.degreesPerCount) * this.lookSettings.read().sensitivity
     this.aim.queueLook(-dx * radiansPerCount, -dy * radiansPerCount)
+  }
+
+  /** Menus keep Motor/Camera/equipment alive, but discard uncommitted gameplay intent. */
+  setInputBlocked(value) {
+    if (this.#inputBlocked === !!value)
+      return
+    this.#inputBlocked = !!value
+    this.input.clear?.()
+    this.aim.clearInput()
+    if (this.#inputBlocked)
+      this.#respawnQueued = false
+    Object.assign(this.motor.command, {
+      moveX: 0,
+      moveZ: 0,
+      walk: false,
+      crouch: false,
+      jump: false,
+    })
+    this.weapons?.clearInput()
   }
 
   setPaused(value) {
@@ -131,6 +154,10 @@ export class PlayerComponent extends Component {
 
   readInput(time) {
     this.setPaused(time.timeScale === 0)
+    if (this.#inputBlocked) {
+      this.input.clear?.()
+      return
+    }
     const respawn = this.input.consumePressed('respawn')
     this.#respawnQueued ||= respawn
     const look = this.input.consumeLook()
@@ -181,6 +208,7 @@ export class PlayerComponent extends Component {
       this.readInput(time)
     }
     else if (phase === 'postPhysics') {
+      this.lookSettings.commit()
       if (this.#rebaseViewOnNextStep) {
         this.aim.rebase((time.fixedTick - 1) * time.fixedDelta)
         this.#rebaseViewOnNextStep = false
@@ -212,7 +240,22 @@ export class PlayerComponent extends Component {
     }
     else if (phase === 'motion') {
       this.#presentationAt = time.presentationTime
-      this.weapons?.motion(time)
+      this.#presentedPose = this.aim.sample(this.#presentationAt)
+      this.weapons?.motion(time, this.#presentedPose)
+    }
+  }
+
+  /** Narrow presentation-only read model. Diagnostics remain available through snapshot(). */
+  readHud() {
+    const pose = this.#presentedPose ?? this.aim.sample(this.#presentationAt)
+    return {
+      enabled: this.enabled,
+      weapon: this.weapons?.readHud() ?? null,
+      aiming: pose.aiming,
+      worldFov: pose.worldFov,
+      spread: pose.spread,
+      recoilPitch: pose.recoilPitch,
+      recoilYaw: pose.recoilYaw,
     }
   }
 
@@ -240,6 +283,7 @@ export class PlayerComponent extends Component {
       this.setEnabled(false)
     this.weapons?.dispose()
     this.#footsteps?.dispose()
+    this.lookSettings.dispose()
     this.input.setEnabled(false)
   }
 }

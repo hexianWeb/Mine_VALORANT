@@ -306,6 +306,31 @@ function setup(t, {
   }
 }
 
+test('menu handoff drops pre-fixed input but lets async equipment preparation and committed reload finish', async (t) => {
+  const f = setup(t)
+  await f.ready()
+  f.mouse('mousedown', 0)
+  f.weapons.collectInput(f.input)
+  f.input.setBlocked(true)
+  f.weapons.clearInput()
+  assert.equal(f.fixed().events.some(event => event.type === 'ShotFired'), false)
+  assert.equal(f.weapons.snapshot().lastShot, null)
+  f.fixed({ type: 'select', instanceId: 'rifle' })
+  await f.assets.resolve('phantom')
+  f.motion()
+  f.advance(8)
+  assert.equal(f.weapons.snapshot().activeId, 'rifle')
+  assert.equal(f.weapons.snapshot().phase, 'Ready')
+  f.fixed({ type: 'fire' })
+  f.advance(3)
+  f.fixed({ type: 'reload' })
+  assert.equal(f.weapons.snapshot().action.type, 'reload')
+  f.weapons.clearInput()
+  f.advance(30)
+  assert.equal(f.weapons.snapshot().action, null)
+  assert.equal(f.weapons.readHud().weapon.magazine, 30)
+})
+
 test('target reactions receive the committed shot timestamp for synchronized hit audio', async (t) => {
   const reactions = []
   const f = setup(t, {

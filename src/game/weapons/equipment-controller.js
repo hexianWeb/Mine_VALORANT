@@ -123,7 +123,7 @@ export class EquipmentController {
     this.#desiredId = this.#initialId
   }
 
-  queue(command) {
+  queue(command, { source = 'command' } = {}) {
     if (this.#disposed)
       return false
     if (!command || !commandTypes.has(command.type))
@@ -168,8 +168,15 @@ export class EquipmentController {
     this.#commands.push({
       command: immutable(command),
       generation: this.#equipmentGeneration,
+      source,
     })
     return true
+  }
+
+  /** Drop only not-yet-committed physical input; keep preparation replies and UI commands. */
+  clearInput() {
+    this.#commands = this.#commands.filter(entry => entry.source !== 'input')
+    this.queue({ type: 'fireHeld', held: false }, { source: 'input' })
   }
 
   /** Accept one completed-simulation candidate; a paused caller must not advance the clock. */

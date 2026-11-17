@@ -5,6 +5,10 @@ import { Disposer, RuntimeContext } from '../engine/runtime/index.js'
 import { RangeRoomLevel } from '../game/range-room/level.js'
 import { readAppConfig } from './config.js'
 import { installDiagnostics } from './diagnostics.js'
+import { mountInputOverlay } from './input-overlay.js'
+import { mountRangeSettings } from './range-settings.js'
+import { createUiHost } from './ui-host.js'
+import { createUiInput } from './ui-input.js'
 import { mountWeaponHud } from './weapon-hud.js'
 
 /**
@@ -96,6 +100,7 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
     canvas,
     renderConfig: options.render,
     inputBindings: options.inputBindings,
+    autoPauseOnHidden: false,
   })
   /** 跟随整个应用。登记的清理函数读取当前 `levelTools`，卸下的是最后一关的工具。 */
   const owned = new Disposer()
@@ -118,6 +123,9 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
   const mountLevelTools = (level) => {
     levelTools.dispose()
     levelTools = new Disposer()
+    const ui = levelTools.add(createUiHost({ canvas, debugContainer: panelContainer }))
+    let inputUi = null
+    let weaponHud = null
     /**
      * 把编辑器控件交给观察接口。编辑器关闭时不传控件。
      *
@@ -133,6 +141,7 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
       collisionDebug,
       physics: runtime.physics,
       startMode: options.startMode,
+      onModeChange: () => inputUi?.sync(),
     })
     const editor = options.editor
       ? levelTools.add(createEditor({
@@ -141,6 +150,7 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
           camera: runtime.camera,
           render: runtime.render,
           panelContainer,
+          hudContainer: ui.debug,
           lightingMode: level.snapshot().lightingMode,
           probes: level.probes,
           collisionBoxes: level.collision?.world.boxes,
@@ -148,10 +158,36 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
         }))
       : null
     const inspection = editor?.inspection ?? bindInspection()
-    if (level.player)
-      levelTools.add(mountWeaponHud({ canvas, player: level.player, engine: runtime.engine }))
-    levelTools.add(runtime.engine.events.on('pause', () => level.player?.setPaused(true)))
-    levelTools.add(runtime.engine.events.on('resume', () => level.player?.setPaused(false)))
+    if (level.player) {
+      const settings = levelTools.add(mountRangeSettings({
+        ui,
+        player: level.player,
+        onCrosshair: () => weaponHud?.openCrosshair(),
+      }))
+      inputUi = levelTools.add(createUiInput({
+        canvas,
+        ui,
+        input: runtime.input,
+        player: level.player,
+        engine: runtime.engine,
+        onSettings: () => {
+          if (!ui.topModal || ui.topModal === 'range-settings')
+            settings.toggle()
+        },
+      }))
+      levelTools.add(mountInputOverlay({ ui, controls: inputUi, onSettings: settings.toggle }))
+      weaponHud = levelTools.add(mountWeaponHud({
+        canvas,
+        player: level.player,
+        engine: runtime.engine,
+        ui,
+        controls: inputUi,
+        withEditor: options.editor,
+      }))
+      const syncSettings = state => settings.setEnabled(state.mode !== 'editor')
+      levelTools.add(inputUi.subscribe(syncSettings))
+      syncSettings(inputUi.read())
+    }
     if (editor) {
       levelTools.add(runtime.engine.events.on('input', editor.updateInput))
       levelTools.add(runtime.engine.events.on('frame', editor.update))
@@ -241,9 +277,10 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
  * @param {object | null} args.collisionDebug 碰撞辅助线。没有时为 null。
  * @param {{ lastStepMs: number }} args.physics 物理系统。快照只读取最近一步耗时。
  * @param {AppConfig['startMode']} args.startMode 初始观察模式来源。`player` 保持玩家，`fly` 在有控件时切到飞行。
+ * @param {() => void} args.onModeChange 相机所有权变更后同步应用输入模式。
  * @returns {Inspection} 面板与诊断共用的观察接口。
  */
-function createInspection({ level, canvas, controls, collisionDebug, physics, startMode }) {
+function createInspection({ level, canvas, controls, collisionDebug, physics, startMode, onModeChange }) {
   /** @type {InspectionCameraMode} */
   let mode = /** @type {InspectionCameraMode} */ (level.player
     ? 'player'
@@ -261,7 +298,7 @@ function createInspection({ level, canvas, controls, collisionDebug, physics, st
     collisionDebug,
     labels: {
       help: {
-        player: '点击锁定 · 左键开火 · 右键瞄准 · 1/2/滚轮切枪 · R 换弹 · T 检视 · WASD 移动 · Home 重生 · V 飞行 · Esc 释放',
+        player: '点击锁定 · 左键开火 · 右键瞄准 · 1/2/滚轮切枪 · R 换弹 · T 检视 · WASD 移动 · Home 重生 · F3 设置 · V 飞行 · Esc 暂停',
         fly: '点击画面激活 · 右键拖动视角 · WASD 移动 · Q/E 降/升 · Shift 加速 · 滚轮调速 · Esc 释放',
         orbit: '左键环绕 · 右键平移 · 滚轮缩放 · R 恢复初始机位',
       },
@@ -287,6 +324,7 @@ function createInspection({ level, canvas, controls, collisionDebug, physics, st
       if (value === 'player')
         level.player.placeAtCamera()
       mode = value
+      onModeChange?.()
       canvas.focus({ preventScroll: true })
     },
     /**
@@ -315,6 +353,20 @@ function createInspection({ level, canvas, controls, collisionDebug, physics, st
      * @returns {void}
      */
     setCollisionDebug: value => collisionDebug?.setVisible(value),
+    /** Small tool readout; the complete player/weapon diagnostics stay on snapshot(). */
+    readStatus() {
+      return {
+        cameraMode: mode,
+        flySpeed: controls?.speed ?? 0,
+        shadows: level.shadows?.snapshot(),
+        player: level.player
+          ? {
+              velocity: level.player.velocity.toArray(),
+              collisionDebug: collisionDebug?.visible ?? false,
+            }
+          : null,
+      }
+    },
     /**
      * 收集当前模式、飞行速度、阴影和玩家步进。
      *

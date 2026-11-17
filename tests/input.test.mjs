@@ -352,3 +352,89 @@ test('explicit clear discards all transient input without disabling or releasing
   mouse('mousedown', 0)
   assert.equal(input.consumePressed('fire'), true, 'the same locked input remains usable after clearing')
 })
+
+test('ownership block clears keyboard/mouse/wheel/look without changing enablement or actual capture', (t) => {
+  const f = setup()
+  t.after(() => f.input.dispose())
+  f.input.setEnabled(true)
+  f.click()
+  f.mouse('mousedown', 0)
+  f.key('keydown', 'KeyW')
+  f.input.setBlocked(true)
+  assert.equal(f.input.enabled, true)
+  assert.equal(f.input.locked, true)
+  f.move(9, 4)
+  f.wheel(1)
+  f.key('keydown', 'KeyR')
+  f.mouse('mousedown', 2)
+  assert.equal(f.input.isDown('forward'), false)
+  assert.equal(f.input.isDown('aim'), false)
+  assert.deepEqual(f.input.consumePressedEvents(), [])
+  assert.deepEqual(f.input.consumeLook(), [0, 0])
+  f.input.setBlocked(false)
+  f.key('keydown', 'KeyW', { repeat: true })
+  assert.equal(f.input.isDown('forward'), false)
+  f.key('keyup', 'KeyW')
+  f.key('keydown', 'KeyW')
+  assert.equal(f.input.isDown('forward'), true)
+})
+
+test('pointer-lock requests tolerate sync raw-input failure and report final denial without inventing capture', async (t) => {
+  const f = setup()
+  t.after(() => f.input.dispose())
+  f.input.setEnabled(true)
+  const calls = []
+  f.element.requestPointerLock = (options) => {
+    calls.push(options)
+    if (options)
+      throw new Error('raw input unsupported')
+    return Promise.reject(new Error('capture denied'))
+  }
+  assert.equal(await f.input.requestLock(), false)
+  assert.equal(calls.length, 2)
+  assert.equal(f.input.locked, false)
+  f.element.requestPointerLock = () => Promise.resolve()
+  assert.equal(await f.input.requestLock(), true, 'request acknowledgement is distinct from actual capture')
+  assert.equal(f.input.locked, false)
+})
+
+test('disposing during a raw-input request prevents a late fallback from recapturing the old canvas', async () => {
+  const f = setup()
+  let reject
+  let calls = 0
+  f.element.requestPointerLock = () => {
+    calls++
+    return new Promise((resolve, deny) => {
+      reject = deny
+    })
+  }
+  f.input.setEnabled(true)
+  const request = f.input.requestLock()
+  assert.equal(f.input.requestLock(), request)
+  f.input.dispose()
+  reject(new Error('late raw-input failure'))
+  assert.equal(await request, false)
+  assert.equal(calls, 1)
+})
+
+test('a late successful capture cannot lock a disabled or disposed input owner', async () => {
+  const f = setup()
+  f.input.setEnabled(true)
+  let grant
+  f.element.requestPointerLock = () => new Promise((resolve) => {
+    grant = resolve
+  })
+  const request = f.input.requestLock()
+  f.input.dispose()
+  f.document.pointerLockElement = f.element
+  grant()
+  assert.equal(await request, false)
+  assert.equal(f.document.pointerLockElement, null)
+  const next = setup()
+  next.input.setEnabled(true)
+  next.input.setEnabled(false)
+  next.document.pointerLockElement = next.element
+  next.document.dispatchEvent(new Event('pointerlockchange'))
+  assert.equal(next.document.pointerLockElement, null)
+  next.input.dispose()
+})

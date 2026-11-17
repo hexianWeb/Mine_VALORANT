@@ -101,6 +101,43 @@ function shots(result) {
   return ofType(result, 'ShotFired')
 }
 
+test('menu handoff drops uncommitted physical commands, not UI selection or preparation replies', (t) => {
+  const f = setup(t)
+  f.ready()
+  for (const command of [
+    { type: 'fire' },
+    { type: 'fireHeld', held: true },
+    { type: 'reload' },
+    { type: 'inspect' },
+    { type: 'selectSlot', slotId: 'secondary' },
+  ])
+    f.controller.queue(command, { source: 'input' })
+  f.controller.clearInput()
+  assert.equal(shots(f.step()).length, 0)
+  assert.equal(f.controller.snapshot().action, null)
+  assert.equal(f.controller.snapshot().activeId, 'A')
+  f.controller.queue({ type: 'select', instanceId: 'B' })
+  f.controller.clearInput()
+  f.step()
+  const ticket = f.ticket('B')
+  f.controller.queue({ type: 'prepared', ticket })
+  f.controller.clearInput()
+  f.step()
+  assert.equal(f.controller.snapshot().activeId, 'B')
+})
+
+test('menu input clearing does not cancel a reload that already committed to gameplay', (t) => {
+  const f = setup(t)
+  f.ready()
+  f.step({ type: 'reload' })
+  const action = f.controller.snapshot().action
+  f.controller.clearInput()
+  f.advance(10)
+  assert.ok(action)
+  assert.equal(f.weapon('A').magazine, 5)
+  assert.equal(f.controller.snapshot().action, null)
+})
+
 test('skin preparation commits once without changing reload, ammo, cooldown or instance identity', (t) => {
   const f = setup(t)
   f.ready()

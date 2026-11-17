@@ -5,7 +5,7 @@ import { createInspectionPanel } from './panels/inspection-panel.js'
 import { createDebugPanel } from './panels/render-panel.js'
 
 /** 可选工具。应用提供通往当前游戏关卡的桥。 */
-export function createEditor({ canvas, scene, camera, render, panelContainer, lightingMode, probes, collisionBoxes, bindInspection }) {
+export function createEditor({ canvas, scene, camera, render, panelContainer, hudContainer, lightingMode, probes, collisionBoxes, bindInspection }) {
   const owned = new Disposer()
   try {
     const controls = owned.add(new CameraControls(camera, canvas))
@@ -15,7 +15,7 @@ export function createEditor({ canvas, scene, camera, render, panelContainer, li
     if (collisionDebug)
       scene.add(collisionDebug.root)
     const inspection = bindInspection({ controls, collisionDebug })
-    const hud = owned.add(createInspectionPanel({ canvas, inspection }))
+    const hud = owned.add(createInspectionPanel({ canvas, inspection, container: hudContainer }))
     const panel = owned.add(createDebugPanel(render, panelContainer, lightingMode, probes))
     return {
       controls,

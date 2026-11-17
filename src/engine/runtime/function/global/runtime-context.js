@@ -36,6 +36,7 @@ const defaults = {
  * @property {object} [renderConfig] 渲染配置。缺省为 `{}`。
  * @property {import('../input/input-system.js').InputBindings} [inputBindings] 玩法键位。缺省不绑定键盘动作。
  * @property {import('../../core/time.js').TimeOptions} [time] 时钟选项。由 Engine 持有时钟。
+ * @property {boolean} [autoPauseOnHidden] 使用 Engine 的自动后台暂停／回焦恢复。应用自行协调恢复时传 false。
  * @property {object} [factories] 系统工厂的测试替换项。
  */
 
@@ -49,13 +50,14 @@ export class RuntimeContext {
   /**
    * @param {RuntimeContextOptions} [options] 画布、渲染配置、玩法键位和测试工厂。全部缺省。
    */
-  constructor({ canvas, container = null, renderConfig = {}, inputBindings = {}, time, factories = {} } = {}) {
+  constructor({ canvas, container = null, renderConfig = {}, inputBindings = {}, time, autoPauseOnHidden = true, factories = {} } = {}) {
     this.options = {
       canvas,
       container,
       renderConfig,
       inputBindings,
       time,
+      autoPauseOnHidden,
     }
     this.factories = {
       ...defaults,
@@ -67,7 +69,7 @@ export class RuntimeContext {
     if (this.state !== 'idle')
       throw new Error(`[RuntimeContext] Cannot initialize in state ${this.state}`)
     this.state = 'initializing'
-    const { canvas, container, renderConfig, inputBindings, time } = this.options
+    const { canvas, container, renderConfig, inputBindings, time, autoPauseOnHidden } = this.options
     const factories = this.factories
     try {
       this.size = this.#owned.add(factories.size({ container, maxPixelRatio: renderConfig.maxPixelRatio }))
@@ -89,6 +91,7 @@ export class RuntimeContext {
       this.physics = this.#owned.add(factories.physics())
       this.world = this.#owned.add(factories.world())
       this.engine = this.#owned.add(new Engine({
+        autoPauseOnHidden,
         time: new Time(time),
         frameDriver: factories.frameDriver(),
         world: this.world,

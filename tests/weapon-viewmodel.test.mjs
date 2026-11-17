@@ -23,6 +23,35 @@ const walkRoles = [
   'walkAim',
 ]
 
+test('HUD read model is immutable, cached, diagnostic-free and changes ammo only at presentation time', async (t) => {
+  const f = await fixture(t)
+  f.player.snapshot = () => {
+    throw new Error('animation diagnostics must not be polled by HUD')
+  }
+  const initial = f.view.readHud()
+  assert.equal(initial.weapon.magazine, 10)
+  assert.ok(Object.isFrozen(initial))
+  assert.ok(Object.isFrozen(initial.weapon))
+  f.receive('AmmoCommitted', 0.08, {
+    weapon: {
+      instanceId: 'gun',
+      definitionId: 'test',
+      magazine: 9,
+      reserve: 30,
+    },
+  })
+  f.motion(0.04)
+  assert.equal(f.view.readHud(), initial, 'newer committed ammo cannot leak ahead of P')
+  f.motion(0.08)
+  const next = f.view.readHud()
+  assert.equal(next.weapon.magazine, 9)
+  assert.equal(next.revision, initial.revision + 1)
+  f.motion(0.09)
+  assert.equal(f.view.readHud(), next)
+  assert.equal(Object.hasOwn(next, 'playback'), false)
+  assert.equal(Object.hasOwn(next, 'lastShot'), false)
+})
+
 async function fixture(t, { fireDuration = 0.04, locomotion = false, jumpFeedback } = {}) {
   const ticket = { epoch: 1, requestId: 1, instanceId: 'gun' }
   const weapon = {
