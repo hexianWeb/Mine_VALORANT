@@ -1,11 +1,13 @@
 const samples = {
   body: '/audio/bot/Body_Hit.ogg',
   head: '/audio/bot/Head_Hit.ogg',
+  in: '/audio/bot/botIn.ogg',
+  out: '/audio/bot/botOut.ogg',
 }
 
 let nextScope = 0
 
-/** Shared per level; only committed hits enqueue transients on the gameplay clock. */
+/** Shared per level. Bot presentation cues run on the gameplay clock. */
 export class TrainingBotAudio {
   #audio
   #resources
@@ -27,6 +29,7 @@ export class TrainingBotAudio {
   }
 
   get sampleCount() { return this.#buffers.size }
+  get canPlayInitial() { return this.#audio.unlocked && this.#buffers.has('in') }
 
   async #preload(signal) {
     await Promise.all(this.#entries.map(async ({ kind, ...entry }) => {
@@ -49,22 +52,46 @@ export class TrainingBotAudio {
     const kind = region === 'head'
       ? 'head'
       : 'body'
-    const buffer = this.#buffers.get(kind)
+    return this.#play({
+      owner,
+      sequence,
+      at,
+      sample: kind,
+      group: `bot-hit:${kind}`,
+      rate: 0.85,
+      gain: 0.28,
+    })
+  }
+
+  playLifecycle({ owner, entered, sequence, at }) {
+    const sample = entered ? 'in' : 'out'
+    return this.#play({
+      owner,
+      sequence,
+      at,
+      sample,
+      group: `bot:${sample}`,
+      rate: 1,
+      gain: 0.65,
+    })
+  }
+
+  #play({ owner, sequence, at, sample, group, rate, gain }) {
+    const buffer = this.#buffers.get(sample)
     // Missing/late-loaded sounds are skipped, never replayed on a later hit.
     if (this.#disposed || !buffer || !Number.isFinite(at))
       return false
     return this.#audio.enqueue({
-      id: `${this.#scope}/${owner}/${sequence}/${kind}`,
+      id: `${this.#scope}/${owner}/${sequence}/${sample}`,
       scope: this.#scope,
       owner,
       sequence,
-      group: `bot-hit:${kind}`,
+      group,
       at,
       kind: 'transient',
       lateWindow: 0.1,
-      // Soften the hit feedback without rewriting the source samples.
-      rate: 0.85,
-      gain: 0.28,
+      rate,
+      gain,
       buffer,
     })
   }

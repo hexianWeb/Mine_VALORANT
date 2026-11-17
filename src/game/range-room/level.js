@@ -181,7 +181,12 @@ export class RangeRoomLevel extends Level {
         if (this.collision) {
           let botAssets = null
           if (settings.trainingBot) {
-            botAssets = this.disposer.add(await loadTrainingBotAssets({ resources, audio: this.audio, signal: token }))
+            botAssets = this.disposer.add(await loadTrainingBotAssets({
+              resources,
+              audio: this.audio,
+              registerMovementObstacle: this.collision.registerMovementObstacle,
+              signal: token,
+            }))
             token.throwIfAborted()
             const { skins = [settings.trainingBot.skin ?? 'purple'], spacing = 2.4, ...placement } = settings.trainingBot
             for (const [index, skin] of skins.entries()) {
@@ -338,10 +343,10 @@ export class RangeRoomLevel extends Level {
       },
       release: handle => free.add(handle),
       available: () => free.size,
-      clearPresentation: () => {
+      clearPresentation: (at, reason) => {
         for (const { bot } of this.#challengeBots) {
           if (!bot.disposed)
-            bot.invalidateSpawn()
+            bot.invalidateSpawn(at, reason)
         }
       },
     }

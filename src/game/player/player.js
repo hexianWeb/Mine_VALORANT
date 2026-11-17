@@ -111,7 +111,7 @@ export class PlayerComponent extends Component {
   /** Feet go standEye below the camera; blocked placement falls back to spawn. */
   placeAtCamera() {
     const { position, yaw, pitch } = this.cameraComponent.readCameraPose(this.settings.standEye)
-    if (this.motor.physics.overlaps(this.collision.world, characterBox(position, this.settings)))
+    if (this.motor.physics.overlaps(this.motor.world, characterBox(position, this.settings)))
       this.respawn()
     else
       this.teleport(position.toArray(), yaw, pitch)
@@ -340,7 +340,7 @@ export function createPlayer({ camera, collision, input, physics, weapons = null
     motion: characterMotion,
     state: settings,
     physics,
-    world: collision.world,
+    world: collision.movementWorld ?? collision.world,
   }))
   motor.enabled = false
   const limiter = createStepOffsetLimiter(collision.world)

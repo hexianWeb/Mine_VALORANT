@@ -1,6 +1,5 @@
 import { ClampToEdgeWrapping, NearestFilter, NearestMipmapNearestFilter, SRGBColorSpace } from 'three/webgpu'
 
-// Difficulty is visual metadata for now, not a change to target behavior.
 export const trainingBotSkins = Object.freeze({
   blue: Object.freeze({
     difficulty: 'easy',
@@ -9,8 +8,8 @@ export const trainingBotSkins = Object.freeze({
     url: '/targets/skin/Range_Bot_Blue_128x128.png',
   }),
   yellow: Object.freeze({
-    difficulty: 'normal',
-    label: '普通',
+    difficulty: 'medium',
+    label: '中等',
     outlineColor: 0xD6B64A,
     url: '/targets/skin/Range_Bot_Yellow_128x128.png',
   }),
@@ -61,7 +60,7 @@ export async function loadTrainingBotSkins({ resources, signal }) {
       materials.set(skin, new Map())
     }
     return {
-      apply(mesh, skin) {
+      apply(mesh, skin, source) {
         const variants = materials.get(skin)
         if (!variants)
           throw new Error(`[Training bot] Unknown skin: ${skin}`)
@@ -75,9 +74,9 @@ export async function loadTrainingBotSkins({ resources, signal }) {
           }
           return variants.get(source)
         }
-        mesh.material = Array.isArray(mesh.material)
-          ? mesh.material.map(materialFor)
-          : materialFor(mesh.material)
+        mesh.material = Array.isArray(source)
+          ? source.map(materialFor)
+          : materialFor(source)
       },
       dispose,
     }

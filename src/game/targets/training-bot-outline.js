@@ -67,14 +67,14 @@ export function createTrainingBotOutline() {
     }
     return materials.get(key)
   }
+  const outlineMaterials = (source, outlineColor) => Array.isArray(source)
+    ? source.map(material => materialFor(material, outlineColor))
+    : materialFor(source, outlineColor)
   return {
     attach(mesh, outlineColor = 0x7A56A0) {
       if (!geometries.has(mesh.geometry))
         geometries.set(mesh.geometry, outlineGeometry(mesh.geometry))
-      const material = Array.isArray(mesh.material)
-        ? mesh.material.map(source => materialFor(source, outlineColor))
-        : materialFor(mesh.material, outlineColor)
-      const shell = new SkinnedMesh(geometries.get(mesh.geometry), material)
+      const shell = new SkinnedMesh(geometries.get(mesh.geometry), outlineMaterials(mesh.material, outlineColor))
       shell.name = `${mesh.name}:outline`
       shell.bindMode = mesh.bindMode
       shell.bind(mesh.skeleton, mesh.bindMatrix)
@@ -83,6 +83,9 @@ export function createTrainingBotOutline() {
       shell.frustumCulled = false
       shell.raycast = () => {}
       mesh.add(shell)
+      return (nextColor) => {
+        shell.material = outlineMaterials(mesh.material, nextColor)
+      }
     },
     dispose() {
       for (const geometry of geometries.values()) geometry.dispose()

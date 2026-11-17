@@ -276,7 +276,7 @@ test('three skins bind to the existing UVs with difficulty metadata and independ
   const originalMap = template.material.map
   const entries = [
     ['blue', 'easy', '简单', 0x4F9ED9],
-    ['yellow', 'normal', '普通', 0xD6B64A],
+    ['yellow', 'medium', '中等', 0xD6B64A],
     ['purple', 'hard', '困难', 0x7A56A0],
   ].map(([skin, difficulty, label, outlineColor], index) => {
     const object = level.addObject(assets.instantiate({
@@ -548,6 +548,45 @@ test('real GLB authority/visible skeletons and placements are isolated across P;
   level.removeObject(object.id)
 })
 
+test('a reused challenge bot changes its skin and outline together at the new spawn time', async (t) => {
+  const { bot, object, root, present } = await fixture(t)
+  const mesh = root.getObjectByProperty('isSkinnedMesh', true)
+  const shell = mesh.children.find(node => node.isSkinnedMesh)
+  const purple = mesh.material
+  const originalOutline = shell.material
+  const variants = [
+    ['easy', 'blue', 0x4F9ED9],
+    ['medium', 'yellow', 0xD6B64A],
+    ['hard', 'purple', 0x7A56A0],
+  ]
+  for (const [index, [difficulty, skin, color]] of variants.entries()) {
+    const fixedTick = index + 1
+    const at = fixedTick / 60
+    const previousMaterial = mesh.material
+    const previousOutline = shell.material
+    bot.activateSpawn({
+      targetId: object.id,
+      sessionId: `difficulty-${difficulty}`,
+      spawnId: `life-${fixedTick}`,
+      cellId: '0,1',
+      position: [0, 0, 0],
+      quaternion: [0, 0, 0, 1],
+      scale: [1, 1, 1],
+      at,
+    }, { mode: 'shooting-test', difficulty }, { fixedTick, fixedElapsed: at, fixedDelta: 1 / 60 })
+    present(at - 0.001)
+    assert.equal(mesh.material, previousMaterial)
+    assert.equal(shell.material, previousOutline)
+    present(at)
+    assert.equal(bot.snapshot().skin, skin)
+    assert.equal(mesh.material.map.name, `Training bot:${skin}`)
+    assert.equal(shell.material.color.getHex(), color)
+    assert.equal(mesh.children.filter(node => node.isSkinnedMesh).length, 1)
+  }
+  assert.equal(mesh.material, purple, 'switching back to the default reuses its material')
+  assert.equal(shell.material, originalOutline)
+})
+
 test('target feedback queues are cleared by lifecycle invalidation before a later P can replay old hits', async (t) => {
   const cues = []
   const audio = {
@@ -566,6 +605,53 @@ test('target feedback queues are cleared by lifecycle invalidation before a late
   present(0.1)
   assert.equal(cues.length, 0)
   assert.equal(bot.snapshot().poses.pending, 0)
+})
+
+test('bot lifecycle audio follows presented spawns and non-kill removals', async (t) => {
+  const cues = []
+  const audio = {
+    decode: async () => ({}),
+    enqueue: cue => cues.push(cue),
+    invalidate() {},
+    reportOnce(key, error) { assert.fail(`${key}: ${error}`) },
+  }
+  const { bot, object, targets, submit, present } = await fixture(t, { audio })
+  const spawn = (tick) => {
+    const at = tick / 60
+    bot.activateSpawn({
+      targetId: object.id,
+      spawnId: `spawn-${tick}`,
+      sessionId: 'test-session',
+      cellId: '0,2',
+      position: [0, 0, 0],
+      quaternion: [0, 0, 0, 1],
+      scale: [1, 1, 1],
+      at,
+      bodyHideTicks: 3,
+    }, { maxHealth: 100 }, { fixedTick: tick, fixedElapsed: at, fixedDelta: 1 / 60 })
+    present(at)
+  }
+  spawn(1)
+  assert.deepEqual(cues.map(cue => cue.group), ['bot:in'])
+  bot.removeSpawn(0.05, 'expired')
+  present(0.04)
+  assert.equal(cues.length, 1)
+  present(0.05)
+  assert.deepEqual(cues.map(cue => cue.group), ['bot:in', 'bot:out'])
+  spawn(6)
+  const hit = targets.trace([0, 2.29, -4], [0, 0, 1], 200)
+  assert.equal(submit([hit], { at: 0.15, definitionId: 'vandal' }).deaths.length, 1)
+  // Let the killed body disappear. Reuse and cancellation must not replay old sound.
+  present(0.2)
+  spawn(15)
+  bot.invalidateSpawn(0.25, 'respawn')
+  assert.deepEqual(cues.map(cue => cue.group), [
+    'bot:in',
+    'bot:out',
+    'bot:in',
+    'bot:in',
+    'bot:out',
+  ])
 })
 
 test('real target poses and hit queries agree for subdivided rendering, catch-up and opposite same-tick preparation order', async (t) => {

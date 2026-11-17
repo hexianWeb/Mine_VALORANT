@@ -152,7 +152,7 @@ export class RangeChallengeComponent extends Component {
     }
     this.#active.clear()
     this.#retiring.clear()
-    this.#pool.clearPresentation?.()
+    this.#pool.clearPresentation?.(at, reason)
     this.#clearEffects()
   }
 

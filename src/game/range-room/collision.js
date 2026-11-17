@@ -1,4 +1,4 @@
-import { CollisionWorld } from '../../engine/runtime/function/physics/index.js'
+import { CollisionWorld, overlaps } from '../../engine/runtime/function/physics/index.js'
 import { isImpactColor, isImpactSurface } from '../weapons/impact-surfaces.js'
 
 export const collisionLayerConfig = Object.freeze({
@@ -46,8 +46,24 @@ export function createCollisionLayer(data, ground, config = {}) {
   })
   const floors = world.boxes.filter(box => box.name.includes(settings.floorTag))
   const killY = height - settings.killDepth
+  const movementObstacles = new Set()
   return {
     world,
+    movementWorld: {
+      queryAABB(box, out) {
+        const hits = world.queryAABB(box, out)
+        for (const readBox of movementObstacles) {
+          const obstacle = readBox()
+          if (obstacle && overlaps(box, obstacle))
+            hits.push(obstacle)
+        }
+        return hits
+      },
+    },
+    registerMovementObstacle(readBox) {
+      movementObstacles.add(readBox)
+      return () => movementObstacles.delete(readBox)
+    },
     floors,
     killY,
     groundHeight: height,

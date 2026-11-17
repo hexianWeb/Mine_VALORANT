@@ -57,9 +57,14 @@ test('hit sounds preload once and schedule on the shared audio clock with per-ow
     at: h,
   }), false)
   await bank.ready
-  assert.equal(bank.sampleCount, 2)
-  assert.deepEqual(requests.map(entry => entry.url), ['/audio/bot/Body_Hit.ogg', '/audio/bot/Head_Hit.ogg'])
-  assert.equal(context.decoded.length, 2)
+  assert.equal(bank.sampleCount, 4)
+  assert.deepEqual(requests.map(entry => entry.url), [
+    '/audio/bot/Body_Hit.ogg',
+    '/audio/bot/Head_Hit.ogg',
+    '/audio/bot/botIn.ogg',
+    '/audio/bot/botOut.ogg',
+  ])
+  assert.equal(context.decoded.length, 4)
   assert.equal(enqueue.mock.callCount(), 0, 'hits before readiness are never replayed')
   await audio.unlock()
   audio.flush(audioTime(0, 0))
@@ -93,7 +98,7 @@ test('hit sounds preload once and schedule on the shared audio clock with per-ow
 test('a missing head sample does not disable body sounds or reject visual loading', async (t) => {
   const { bank, warnings, enqueue } = setup(t, { fail: '/audio/bot/Head_Hit.ogg' })
   await bank.ready
-  assert.equal(bank.sampleCount, 1)
+  assert.equal(bank.sampleCount, 3)
   assert.equal(warnings.length, 1)
   assert.equal(bank.play({
     owner: 'a',
@@ -118,11 +123,11 @@ test('disposing during decode releases resources and never resurrects buffers or
     decode: () => pending.promise,
   })
   await Promise.resolve()
-  assert.equal(audio.decode.mock.callCount(), 2)
+  assert.equal(audio.decode.mock.callCount(), 4)
   bank.dispose()
   bank.dispose()
   assert.equal(loaded.size, 0)
-  assert.equal(unloaded.length, 2)
+  assert.equal(unloaded.length, 4)
   pending.resolve({ duration: 1 })
   await bank.ready
   assert.equal(bank.sampleCount, 0)

@@ -110,6 +110,8 @@ export class AudioSystem {
     return buffer
   }
 
+  get unlocked() { return this.#unlocked && this.#context?.state === 'running' }
+
   unlock() {
     if (this.#unlocked && (this.#paused || this.#scalePaused))
       return Promise.resolve(!this.#closed)

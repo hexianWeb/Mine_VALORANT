@@ -14,6 +14,7 @@ const hitboxesName = 'range-room:training-bot:hitboxes'
 const modelUrl = '/targets/training-bot/range-training-bot.glb'
 const hitboxesUrl = '/targets/training-bot/range-training-bot.hitboxes.json'
 const up = new Vector3(0, 1, 0)
+const skinByDifficulty = new Map(Object.entries(trainingBotSkins).map(([skin, { difficulty }]) => [difficulty, skin]))
 
 export class TrainingBotComponent extends Component {
   static requires = [TransformComponent, MeshComponent]
@@ -27,19 +28,35 @@ export class TrainingBotComponent extends Component {
   #practiceEnabled
   #hitAudio
   #skin
+  #defaultSkin
+  #applySkin
   #unregister
+  #registerMovementObstacle
+  #unregisterMovementObstacle
+
+  #bodyBox = {
+    min: [0, 0, 0],
+    max: [0, 0, 0],
+  }
+
   #transform
   #onKillPresented
   #lastRegion = null
   #hitCount = 0
+  #initialSound
+  #immediateExitSequence = 0
 
-  constructor({ root, clips, profile, targets, hitAudio = null, skin = 'purple', practice = true, onKillPresented = null }) {
+  constructor({ root, clips, profile, targets, hitAudio = null, skin = 'purple', applySkin, registerMovementObstacle, practice = true, onKillPresented = null }) {
     super()
     this.#targets = targets
     this.#hitAudio = hitAudio
     this.#skin = skin
+    this.#defaultSkin = skin
+    this.#applySkin = applySkin
+    this.#registerMovementObstacle = registerMovementObstacle
     this.#practice = practice
     this.#practiceEnabled = practice
+    this.#initialSound = practice
     this.#onKillPresented = onKillPresented
     root.visible = practice
     validateDamageProfile(profile)
@@ -56,6 +73,7 @@ export class TrainingBotComponent extends Component {
   onAttach() {
     this.#transform = this.owner.requireComponent(TransformComponent)
     this.#unregister = this.#targets.register(this.owner.id, this)
+    this.#unregisterMovementObstacle = this.#registerMovementObstacle?.(() => this.#readBodyBox())
   }
 
   trace(origin, direction, limit) {
@@ -81,10 +99,26 @@ export class TrainingBotComponent extends Component {
     return this.enabled && this.owner?.active && (this.#practice ? this.#practiceEnabled : this.#combat.eligible)
   }
 
+  #readBodyBox() {
+    if (!this.#hittable)
+      return null
+    const { position, scale } = this.#transform
+    const { min, max } = this.#bodyBox
+    const halfWidth = 0.38 * Math.max(scale.x, scale.z)
+    min[0] = position.x - halfWidth
+    min[1] = position.y
+    min[2] = position.z - halfWidth
+    max[0] = position.x + halfWidth
+    max[1] = position.y + 2.4 * scale.y
+    max[2] = position.z + halfWidth
+    return this.#bodyBox
+  }
+
   setPracticeEnabled(enabled, at) {
     if (!this.#practice || enabled === this.#practiceEnabled)
       return
     this.#practiceEnabled = enabled
+    this.#initialSound = false
     this.#poses.record({ type: 'PracticeVisibilityChanged', enabled, at })
     if (!enabled)
       this.#hitAudio?.stop(this.owner.id)
@@ -94,9 +128,13 @@ export class TrainingBotComponent extends Component {
     this.#poses.prepare(fixedTime(context).fixedElapsed)
     this.#combat.activate(spawn, attributes)
     this.#practice = false
+    this.#initialSound = false
     // Keep mesh mounting/release, but never let its latest Transform overwrite P placement.
     this.owner.requireComponent(MeshComponent).enabled = false
-    this.#poses.record({ type: 'TargetSpawned', ...spawn })
+    const skin = this.#applySkin && attributes.mode === 'shooting-test'
+      ? skinByDifficulty.get(attributes.difficulty) ?? this.#defaultSkin
+      : this.#defaultSkin
+    this.#poses.record({ type: 'TargetSpawned', ...spawn, skin })
     this.#lastRegion = null
     this.#transform.teleport(new Vector3().fromArray(spawn.position))
     this.#transform.quaternion.fromArray(spawn.quaternion)
@@ -113,11 +151,21 @@ export class TrainingBotComponent extends Component {
     })
   }
 
-  invalidateSpawn() {
+  invalidateSpawn(at, reason) {
+    const visible = this.#poses.snapshot().visibleSpawn
+    const needsExit = !!visible && this.#combat.eligible && this.#combat.identity?.spawnId === visible && reason !== 'unload'
     this.#combat.deactivate()
     this.#poses.clear()
     this.owner.requireComponent(MeshComponent).root.visible = false
     this.#hitAudio?.stop(this.owner.id)
+    if (needsExit) {
+      this.#hitAudio?.playLifecycle({
+        owner: this.owner.id,
+        entered: false,
+        sequence: --this.#immediateExitSequence,
+        at,
+      })
+    }
   }
 
   /** Kept as a local feedback operation; ShotTargets no longer has a second react path. */
@@ -212,7 +260,20 @@ export class TrainingBotComponent extends Component {
       this.preparePose(time)
     }
     else if (phase === 'motion') {
+      if (this.#initialSound && this.#hitAudio?.canPlayInitial) {
+        this.#initialSound = false
+        this.#hitAudio.playLifecycle({
+          owner: this.owner.id,
+          entered: true,
+          sequence: 0,
+          at: time.presentationTime,
+        })
+      }
       for (const fact of this.#poses.present(time.presentationTime)) {
+        if (fact.type === 'TargetSpawned' && fact.skin !== this.#skin) {
+          this.#applySkin(fact.skin)
+          this.#skin = fact.skin
+        }
         if (fact.type === 'TargetKilled') {
           this.#onKillPresented?.(fact, time.presentationTime)
         }
@@ -220,6 +281,14 @@ export class TrainingBotComponent extends Component {
           this.#hitAudio?.play({
             owner: this.owner.id,
             region: fact.region,
+            sequence: fact.presentationSequence,
+            at: fact.at,
+          })
+        }
+        else if (['TargetSpawned', 'TargetRemoved', 'PracticeVisibilityChanged'].includes(fact.type)) {
+          this.#hitAudio?.playLifecycle({
+            owner: this.owner.id,
+            entered: fact.type === 'TargetSpawned' || fact.enabled === true,
             sequence: fact.presentationSequence,
             at: fact.at,
           })
@@ -248,6 +317,7 @@ export class TrainingBotComponent extends Component {
     if (this.disposed)
       return
     this.#unregister?.()
+    this.#unregisterMovementObstacle?.()
     if (this.owner)
       this.#hitAudio?.stop(this.owner.id)
     this.#poses.dispose()
@@ -256,7 +326,7 @@ export class TrainingBotComponent extends Component {
 }
 
 /** Templates are level-owned. Each GO owns its instance bones, playback and registration. */
-export async function loadTrainingBotAssets({ resources, audio = null, signal }) {
+export async function loadTrainingBotAssets({ resources, audio = null, registerMovementObstacle, signal }) {
   const outline = createTrainingBotOutline()
   let hitAudio = null
   let skins = null
@@ -313,10 +383,15 @@ export async function loadTrainingBotAssets({ resources, audio = null, signal })
             node.receiveShadow = true
           }
         })
-        for (const mesh of meshes) {
-          skins.apply(mesh, skin)
-          outline.attach(mesh, trainingBotSkins[skin].outlineColor)
-        }
+        const applySkins = meshes.map((mesh) => {
+          const source = mesh.material
+          skins.apply(mesh, skin, source)
+          const applyOutline = outline.attach(mesh, trainingBotSkins[skin].outlineColor)
+          return (nextSkin) => {
+            skins.apply(mesh, nextSkin, source)
+            applyOutline(trainingBotSkins[nextSkin].outlineColor)
+          }
+        })
         const object = new GameObject({ name: `Range training bot (${skin})`, mobility: 'static' })
         object.addComponent(new TransformComponent({
           position: new Vector3().fromArray(position),
@@ -338,6 +413,10 @@ export async function loadTrainingBotAssets({ resources, audio = null, signal })
             targets,
             hitAudio,
             skin,
+            registerMovementObstacle,
+            applySkin: (nextSkin) => {
+              for (const apply of applySkins) apply(nextSkin)
+            },
             practice,
             onKillPresented,
           }))
