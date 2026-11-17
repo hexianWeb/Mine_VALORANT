@@ -280,19 +280,16 @@ kbd { font: inherit; color: #e0ffef; }
 .weapon-shop::backdrop { background: #050a08b5; }
 .shop-header { display: flex; align-items: center; gap: 24px; margin-bottom: 24px; }
 .shop-header h2 { margin-top: 3px; font-size: 27px; letter-spacing: 4px; font-weight: 550; }
-.shop-eyebrow { color: #a2bbab; font-size: 10px; letter-spacing: 3px; }
 .shop-header > p { flex: 1; align-self: flex-end; color: #adb8ac; font-size: 12px; }
 .shop-close { align-self: flex-start; border: 0; background: transparent; color: #f1f2e8; font: 36px/1 system-ui; cursor: pointer; padding: 0 2px; }
 .shop-layout { display: grid; grid-template-columns: 168px minmax(0, 1fr) 260px; gap: 16px; align-items: start; }
 .shop-context { min-width: 0; background: #34383180; border: 1px solid #8e9e8740; }
 .weapon-shop h3 { padding: 8px 10px; background: #315b49; color: #edf6ec; font-size: 14px; font-weight: 550; letter-spacing: 2px; }
-.shop-context-title { margin: 18px 12px; font-size: 18px; letter-spacing: 2px; color: #e2e9db; }
 .shop-context dl { margin: 12px; display: grid; gap: 5px; font-size: 12px; }
 .shop-context dt { margin-top: 9px; color: #a9b6a4; font-size: 10px; letter-spacing: 1px; }
 .shop-context dd { line-height: 1.6; overflow-wrap: anywhere; }
 .shop-context-note { margin: 16px 12px; font-size: 11px; color: #a4b09f; line-height: 1.8; }
-.shop-shortcuts { display: grid; gap: 6px; margin: 16px 12px; color: #c2cbbd; font-size: 10px; letter-spacing: 1px; }
-.shop-shortcuts kbd, .shop-context-note kbd { display: inline-block; padding: 1px 4px; border: 1px solid #bdc6ad4d; color: #e0e9d5; }
+.shop-context-note kbd { display: inline-block; padding: 1px 4px; border: 1px solid #bdc6ad4d; color: #e0e9d5; }
 .shop-catalog { display: grid; grid-template-columns: 0.9fr 1.15fr 1.15fr; gap: 8px; min-width: 0; align-items: start; }
 .shop-category { display: grid; gap: 6px; min-width: 0; }
 .shop-category h3 { text-align: center; }
@@ -325,7 +322,21 @@ kbd { font: inherit; color: #e0ffef; }
 .shop-category-stack .shop-weapon-icon { height: 106px; }
 .shop-card-name { font-size: 17px; font-weight: 500; letter-spacing: 2px; }
 .shop-card-state { display: block; min-height: 16px; margin-top: 4px; color: #e3e0cc; font-size: 10px; }
-.shop-shortcut { position: absolute; right: 9px; bottom: 12px; color: #e9e7d39c; font-size: 11px; }
+.shop-armor { display: grid; gap: 6px; min-width: 0; }
+.shop-armor h3 { text-align: center; }
+.shop-armor-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.shop-armor .shop-armor-card { min-height: 52px; padding: 8px 4px; flex-direction: row; align-items: center; justify-content: center; gap: 7px; }
+.shop-armor-card .shop-card-name { font-size: 13px; letter-spacing: 1px; white-space: nowrap; }
+.shop-armor-icon {
+  flex: 0 0 22px;
+  height: 22px;
+  background: linear-gradient(130deg, #fcfbeb, #aeae9a);
+  clip-path: polygon(27% 0, 39% 0, 42% 22%, 58% 22%, 61% 0, 73% 0, 82% 37%, 88% 93%, 12% 93%, 18% 37%);
+}
+.shop-armor-card[data-armor-option="heavy"] .shop-armor-icon {
+  clip-path: polygon(13% 0, 34% 0, 42% 19%, 58% 19%, 66% 0, 87% 0, 100% 34%, 83% 48%, 87% 88%, 72% 98%, 28% 98%, 13% 88%, 17% 48%, 0 34%);
+}
+.shop-armor > p { color: #b1b5a2; font-size: 10px; text-align: center; }
 .shop-details { align-self: stretch; min-width: 0; border: 1px solid #a4aa954d; background: #5c584b50; }
 .shop-details h3 { display: grid; gap: 5px; background: #3a614e; font-size: 22px; padding: 10px 14px; }
 .shop-details h3 small { font-size: 10px; color: #c4d2c2; letter-spacing: 3px; }
@@ -347,10 +358,10 @@ kbd { font: inherit; color: #e0ffef; }
   .shop-layout { grid-template-columns: minmax(0, 1fr) 240px; }
   .shop-context { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; }
   .shop-context h3 { align-self: stretch; display: grid; place-content: center; }
-  .shop-context-title, .shop-context dl { margin: 8px; }
+  .shop-context dl { margin: 8px; }
   .shop-context dl { display: flex; align-items: center; gap: 8px; }
   .shop-context dt { margin: 0; }
-  .shop-context-note, .shop-shortcuts { display: none; }
+  .shop-context-note { display: none; }
   .shop-category-rifles .shop-card, .shop-category-stack .shop-card { min-height: 190px; }
 }
 @media (max-width: 700px) {
@@ -360,12 +371,13 @@ kbd { font: inherit; color: #e0ffef; }
   .shop-close { margin-left: auto; }
   .shop-header h2 { font-size: 22px; }
   .shop-layout { grid-template-columns: minmax(0, 1fr); }
-  .shop-context-title { display: none; }
   .shop-context dl { flex-wrap: wrap; font-size: 10px; }
   .shop-catalog { gap: 5px; }
   .shop-card, .shop-category-rifles .shop-card, .shop-category-stack .shop-card { min-height: 136px; padding: 18px 7px 10px; }
   .shop-card .shop-weapon-icon { height: 65px; margin-bottom: 8px; }
   .shop-card-name { font-size: 14px; }
+  .shop-armor .shop-armor-card { min-height: 46px; padding: 5px 3px; flex-direction: column; gap: 3px; }
+  .shop-armor-icon { flex-basis: 16px; width: 18px; height: 16px; }
   .weapon-shop h3 { font-size: 12px; letter-spacing: 1px; }
   .shop-details { display: grid; grid-template-columns: 1fr 1fr; }
   .shop-details h3 { grid-column: 1 / -1; }

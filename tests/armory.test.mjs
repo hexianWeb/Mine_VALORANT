@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import test from 'node:test'
-import { createArmoryCatalog } from '../src/game/weapons/armory-catalog.js'
+import { createArmoryCatalog, rangePurchaseSlots } from '../src/game/weapons/armory-catalog.js'
 import { classicDefinition } from '../src/game/weapons/definitions/classic.js'
 import { ghostDefinition } from '../src/game/weapons/definitions/ghost.js'
 import { judgeDefinition } from '../src/game/weapons/definitions/judge.js'
@@ -11,7 +11,7 @@ import { phantomDefinition } from '../src/game/weapons/definitions/phantom.js'
 import { sheriffDefinition } from '../src/game/weapons/definitions/sheriff.js'
 import { vandalDefinition } from '../src/game/weapons/definitions/vandal.js'
 import { EquipmentController } from '../src/game/weapons/equipment-controller.js'
-import { practiceLoadout } from '../src/game/weapons/player-weapons.js'
+import { practiceLoadout, rangeLoadout } from '../src/game/weapons/player-weapons.js'
 import { PracticeArmory } from '../src/game/weapons/practice-armory.js'
 import { createWeaponDefinition } from '../src/game/weapons/weapon-definition.js'
 
@@ -109,6 +109,76 @@ test('catalog covers exactly held slots and derives details from runtime definit
   })
   assert.deepEqual(partial.map(entry => entry.slotId), ['only'])
   controller.dispose()
+})
+
+test('range purchases replace only their category after preparation and survive respawn', (t) => {
+  const instant = definitions.map(definition => createWeaponDefinition({
+    ...definition,
+    equip: { draw: 0, holster: 0 },
+  }))
+  const controller = new EquipmentController({
+    definitions: instant,
+    loadout: rangeLoadout,
+    initialSlot: 'secondary',
+    purchaseSlots: rangePurchaseSlots,
+    meleeSlot: 'tertiary',
+  })
+  const catalog = createArmoryCatalog({ definitions: instant, purchaseSlots: rangePurchaseSlots })
+  const armory = new PracticeArmory({
+    catalog,
+    equipment: controller.snapshot(),
+    purchasing: true,
+  })
+  t.after(() => {
+    armory.dispose()
+    controller.dispose()
+  })
+  let tick = 0
+  let requestId = 0
+  const state = () => controller.snapshot()
+  const choose = definitionId => armory.request({ scopeId: armory.scopeId, requestId: ++requestId, definitionId })
+  const step = (...commands) => {
+    for (const command of commands) controller.queue(command)
+    armory.beforeFixed(command => controller.queue(command))
+    controller.step({ fixedTick: ++tick, fixedElapsed: tick * h, fixedDelta: h })
+    armory.accept(state())
+  }
+  const prepare = () => step({ type: 'prepared', ticket: state().preparation.ticket })
+  const slots = () => state().inventory.weapons.map(weapon => weapon.definitionId)
+  step()
+  prepare()
+  step({ type: 'fire' })
+  const classic = state().inventory.weapons[1]
+  assert.deepEqual(slots(), ['phantom', 'classic', 'classic'])
+  assert.equal(choose('vandal').accepted, true)
+  step()
+  assert.equal(state().activeId, 'pistol')
+  assert.deepEqual(slots(), ['phantom', 'classic', 'classic'])
+  const failed = state().preparation.ticket
+  step({ type: 'prepareFailed', ticket: failed, message: 'fixture' })
+  assert.equal(armory.read().request.status, 'failed')
+  assert.equal(choose('vandal').accepted, true)
+  step({ type: 'prepared', ticket: failed })
+  assert.deepEqual(slots(), ['phantom', 'classic', 'classic'])
+  prepare()
+  assert.deepEqual(slots(), ['vandal', 'classic', 'classic'])
+  assert.deepEqual(state().inventory.weapons[1], classic)
+  assert.equal(choose('ghost').accepted, true)
+  step()
+  prepare()
+  assert.deepEqual(slots(), ['vandal', 'ghost', 'classic'])
+  const ghostId = state().activeId
+  step({ type: 'selectSlot', slotId: 'tertiary' })
+  prepare()
+  assert.equal(state().activeId, 'knife-placeholder')
+  assert.equal(state().canFire, false)
+  assert.equal(state().canReload, false)
+  controller.reset()
+  armory.invalidate()
+  step()
+  prepare()
+  assert.equal(state().activeId, ghostId)
+  assert.deepEqual(slots(), ['vandal', 'ghost', 'classic'])
 })
 
 test('selection waits for fixed commit; displayed equipment and completion wait for P without gating gameplay on P', (t) => {

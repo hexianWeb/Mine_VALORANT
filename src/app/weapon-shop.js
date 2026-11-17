@@ -13,30 +13,34 @@ const progressLabels = Object.freeze({
 })
 const pending = request => request && !['ready', 'failed', 'superseded'].includes(request.status)
 
-/** Free held-slot selector. The only gameplay intent is a scoped armory selection request. */
+/** Purchases and equipping both go through the scoped armory. */
 export function mountWeaponShop({ ui, weapons, engine, onNotice }) {
   const document = ui.root.ownerDocument
   const owned = new Disposer()
   const catalog = weapons.readArmory().catalog
-  const bySlot = new Map(catalog.map(entry => [entry.slotId, entry]))
+  const byId = new Map(catalog.map(entry => [entry.id, entry]))
   const dialog = document.createElement('dialog')
   dialog.className = 'weapon-shop'
   dialog.setAttribute('aria-labelledby', 'weapon-shop-title')
   dialog.innerHTML = `
     <header class="shop-header">
-      <div><p class="shop-eyebrow">RANGE / ARMORY</p><h2 id="weapon-shop-title">武器选择</h2></div>
-      <p>练枪房军械库 <span data-shop-count></span> · 免费选择已有槽位</p>
+      <h2 id="weapon-shop-title">武器商店</h2>
+      <p>靶场免费购买</p>
       <button type="button" class="shop-close" aria-label="关闭武器商店">×</button>
     </header>
     <div class="shop-layout">
       <aside class="shop-context">
-        <h3>靶场</h3><p class="shop-context-title">自由练习</p>
-        <dl><dt>当前装备</dt><dd data-current-weapon>准备中</dd><dt>选择方式</dt><dd>免费 · 已有武器</dd></dl>
-        <p class="shop-context-note">选择后商店保持打开。装备就绪前不会替换当前可用武器；不改变已有背包和剩余弹药。</p>
-        <div class="shop-shortcuts" aria-label="武器快捷键"></div>
+        <h3>当前配装</h3>
+        <dl>
+          <dt>1 主武器</dt><dd data-primary></dd>
+          <dt>2 手枪</dt><dd data-secondary></dd>
+          <dt>3 刀</dt><dd>Classic 占位</dd>
+          <dt>护甲</dt><dd data-player-armor>无</dd>
+        </dl>
+        <p class="shop-context-note">购买后替换对应槽位并装备。</p>
         <p class="shop-context-note"><kbd>B</kbd> 打开商店<br><kbd>Esc</kbd> 关闭窗口<br>再次 <kbd>Esc</kbd> 暂停</p>
       </aside>
-      <div class="shop-catalog" aria-label="已有武器分类"></div>
+      <div class="shop-catalog" aria-label="可购买的装备"></div>
       <aside class="shop-details" aria-label="候选武器详情">
         <h3><span data-detail-name></span><small data-detail-id></small></h3>
         <div class="shop-detail-image"><img alt="" data-detail-image></div>
@@ -47,7 +51,7 @@ export function mountWeaponShop({ ui, weapons, engine, onNotice }) {
         </div>
       </aside>
     </div>
-    <footer class="shop-footer"><p class="shop-feedback" role="status" aria-live="polite"></p><p>候选高亮不代表已装备 · 伤害／护甲将在挑战阶段接入</p></footer>`
+    <footer class="shop-footer"><p class="shop-feedback" role="status" aria-live="polite"></p></footer>`
   const content = dialog.querySelector('.shop-catalog')
   const columns = []
   const stack = document.createElement('div')
@@ -69,13 +73,13 @@ export function mountWeaponShop({ ui, weapons, engine, onNotice }) {
       button.type = 'button'
       button.className = 'shop-card'
       button.dataset.slot = entry.slotId
+      button.dataset.weapon = entry.id
       button.setAttribute('aria-pressed', 'false')
-      button.setAttribute('aria-label', `${entry.name} ${entry.id.toUpperCase()}，免费选择`)
-      button.innerHTML = '<span class="shop-equipped" hidden>已装备</span><img alt="" class="shop-weapon-icon"><span class="shop-card-name"></span><span class="shop-card-state"></span><kbd class="shop-shortcut"></kbd>'
+      button.setAttribute('aria-label', `${entry.name} ${entry.id.toUpperCase()}`)
+      button.innerHTML = '<span class="shop-equipped" hidden></span><img alt="" class="shop-weapon-icon"><span class="shop-card-name"></span><span class="shop-card-state"></span>'
       button.querySelector('img').src = weaponIcons[entry.id]
       button.querySelector('.shop-card-name').textContent = entry.name
-      button.querySelector('kbd').textContent = entry.shortcut
-      cards.set(entry.slotId, {
+      cards.set(entry.id, {
         button,
         badge: button.querySelector('.shop-equipped'),
         state: button.querySelector('.shop-card-state'),
@@ -96,18 +100,26 @@ export function mountWeaponShop({ ui, weapons, engine, onNotice }) {
       columns.push({ stack: false, buttons: column })
     }
   }
-  if (stack.children.length)
-    content.append(stack)
-  const shortcuts = dialog.querySelector('.shop-shortcuts')
-  for (const entry of catalog) {
-    const item = document.createElement('span')
-    const key = document.createElement('kbd')
-    key.textContent = entry.shortcut
-    item.append(key, ` ${entry.id.toUpperCase()}`)
-    shortcuts.append(item)
-  }
-  dialog.querySelector('[data-shop-count]').textContent = `／ ${catalog.length} 槽位`
-  const current = dialog.querySelector('[data-current-weapon]')
+  const armor = document.createElement('section')
+  armor.className = 'shop-armor'
+  armor.setAttribute('aria-label', '护甲占位')
+  armor.innerHTML = `
+    <h3>护甲</h3>
+    <div class="shop-armor-options">
+      <button type="button" class="shop-card shop-armor-card" data-armor-option="light" aria-pressed="false">
+        <span class="shop-armor-icon" aria-hidden="true"></span><span class="shop-card-name">轻甲</span>
+      </button>
+      <button type="button" class="shop-card shop-armor-card" data-armor-option="heavy" aria-pressed="false">
+        <span class="shop-armor-icon" aria-hidden="true"></span><span class="shop-card-name">重甲</span>
+      </button>
+    </div>
+    <p>配装占位</p>`
+  stack.append(armor)
+  content.append(stack)
+  const armorButtons = armor.querySelectorAll('button')
+  const playerArmor = dialog.querySelector('[data-player-armor]')
+  const primary = dialog.querySelector('[data-primary]')
+  const secondary = dialog.querySelector('[data-secondary]')
   const detailName = dialog.querySelector('[data-detail-name]')
   const detailId = dialog.querySelector('[data-detail-id]')
   const detailImage = dialog.querySelector('[data-detail-image]')
@@ -171,7 +183,7 @@ export function mountWeaponShop({ ui, weapons, engine, onNotice }) {
     stats.replaceChildren(...nodes)
     text(note, entry.provisional
       ? '当前运行参数含临时参考值与复用曲线，并非完整官方战斗数据。'
-      : '数值来自当前游戏配置；不显示尚未接入的伤害或护甲数据。')
+      : '')
   }
   const update = () => {
     if (!modal.isOpen)
@@ -180,39 +192,44 @@ export function mountWeaponShop({ ui, weapons, engine, onNotice }) {
     if (scopeId !== state.scopeId) {
       scopeId = state.scopeId
       requestId = 0
-      candidate = state.presentedSlotId ?? catalog[0]?.slotId
+      candidate = state.presentedDefinitionId ?? state.secondary ?? catalog[0]?.id
       localError = ''
     }
     if (!candidate)
       return
     if (shownRevision === state.revision && shownCandidate === candidate)
       return
-    const active = bySlot.get(state.presentedSlotId)
-    text(current, active
-      ? `${active.name} / ${active.id.toUpperCase()}`
-      : '准备中')
-    for (const [slotId, card] of cards) {
-      const selected = candidate === slotId
+    text(primary, byId.get(state.primary)?.name ?? '空')
+    text(secondary, byId.get(state.secondary)?.name ?? '空')
+    for (const button of armorButtons) disabled(button, !state.available)
+    for (const [id, card] of cards) {
+      const selected = candidate === id
       if (card.button.getAttribute('aria-pressed') !== String(selected))
         card.button.setAttribute('aria-pressed', String(selected))
-      const equipped = state.presentedSlotId === slotId
-      if (card.badge.hidden === equipped)
-        card.badge.hidden = !equipped
-      const busy = pending(state.request) && state.request.slotId === slotId
+      const equipped = state.presentedDefinitionId === id
+      const held = state.primary === id || state.secondary === id
+      if (card.badge.hidden === held)
+        card.badge.hidden = !held
+      text(card.badge, equipped ? '已装备' : '已持有')
+      const busy = pending(state.request) && state.request.definitionId === id
       disabled(card.button, !state.available)
       if (card.button.getAttribute('aria-busy') !== String(!!busy))
         card.button.setAttribute('aria-busy', String(!!busy))
       text(card.state, busy
         ? progressLabels[state.request.status]
-        : state.request?.slotId === slotId && state.request.status === 'failed'
+        : state.request?.definitionId === id && state.request.status === 'failed'
           ? '失败 · 可重试'
-          : '免费 · 选择')
+          : owned
+            ? ''
+            : (byId.get(id).slotId === 'primary'
+                ? '替换主武器'
+                : '替换手枪'))
     }
     if (shownCandidate !== candidate)
-      detail(bySlot.get(candidate))
-    const busyCandidate = pending(state.request) && state.request.slotId === candidate
-    const hasOtherRequest = pending(state.request) && state.request.slotId !== candidate
-    const alreadyEquipped = state.presentedSlotId === candidate && state.canStartChallenge && !hasOtherRequest
+      detail(byId.get(candidate))
+    const busyCandidate = pending(state.request) && state.request.definitionId === candidate
+    const hasOtherRequest = pending(state.request) && state.request.definitionId !== candidate
+    const alreadyEquipped = state.presentedDefinitionId === candidate && state.canStartChallenge && !hasOtherRequest
     disabled(select, !state.available || !!busyCandidate || alreadyEquipped)
     text(select, !state.available
       ? '当前不可选择'
@@ -220,15 +237,15 @@ export function mountWeaponShop({ ui, weapons, engine, onNotice }) {
         ? progressLabels[state.request.status]
         : alreadyEquipped
           ? '当前已装备'
-          : state.request?.slotId === candidate && state.request.status === 'failed'
-            ? '免费重试'
-            : '免费选择')
-    const requestName = bySlot.get(state.request?.slotId)?.name ?? ''
+          : state.primary === candidate || state.secondary === candidate
+            ? '装备'
+            : '购买并装备')
+    const requestName = byId.get(state.request?.definitionId)?.name ?? ''
     const requestText = state.request
       ? `${requestName} · ${progressLabels[state.request.status]}${state.request.reason
         ? `：${state.request.reason}`
         : ''}`
-      : '悬停或聚焦查看详情，点击卡片免费选择。'
+      : '点击武器卡片即可购买或装备。'
     text(feedback, state.restriction ?? (localError || `${state.paused && pending(state.request)
       ? '已暂停，恢复后处理选择。'
       : ''}${requestText}`))
@@ -238,29 +255,37 @@ export function mountWeaponShop({ ui, weapons, engine, onNotice }) {
     shownCandidate = candidate
     shownRevision = state.revision
   }
-  const choose = (slotId) => {
-    if (!bySlot.has(slotId))
+  const choose = (id) => {
+    if (!byId.has(id))
       return
-    candidate = slotId
+    candidate = id
     if (localError)
       shownRevision = -1
     localError = ''
     update()
   }
-  const submit = (slotId) => {
-    choose(slotId)
+  const submit = (id) => {
+    choose(id)
     const current = weapons.readArmory()
-    if (pending(current.request) && current.request.slotId === slotId)
+    if (pending(current.request) && current.request.definitionId === id)
       return
-    const result = weapons.requestArmorySelection({ scopeId, requestId: ++requestId, slotId })
+    const result = weapons.requestArmorySelection({ scopeId, requestId: ++requestId, definitionId: id })
     localError = result.accepted ? '' : result.reason
     shownRevision = -1
     update()
   }
-  for (const [slotId, { button }] of cards) {
-    owned.listen(button, 'mouseenter', () => choose(slotId))
-    owned.listen(button, 'focus', () => choose(slotId))
-    owned.listen(button, 'click', () => submit(slotId))
+  for (const [id, { button }] of cards) {
+    owned.listen(button, 'mouseenter', () => choose(id))
+    owned.listen(button, 'focus', () => choose(id))
+    owned.listen(button, 'click', () => submit(id))
+  }
+  for (const button of armorButtons) {
+    owned.listen(button, 'click', () => {
+      if (!weapons.readArmory().available)
+        return
+      for (const option of armorButtons) option.setAttribute('aria-pressed', String(option === button))
+      text(playerArmor, button.querySelector('.shop-card-name').textContent)
+    })
   }
   owned.listen(content, 'keydown', (event) => {
     if (![

@@ -115,6 +115,8 @@ export class WeaponViewModel {
     for (const effect of batch.effects) {
       if (effect.type === 'PrepareSkin') {
         const weapon = snapshot.inventory.weapons.find(weapon => weapon.instanceId === effect.ticket.instanceId)
+        if (!weapon)
+          continue
         const definition = this.#definitions.get(weapon.definitionId)
         const request = {
           ticket: effect.ticket,
@@ -144,7 +146,7 @@ export class WeaponViewModel {
         }
       }
       else if (effect.type === 'PrepareWeapon') {
-        const weapon = snapshot.inventory.weapons.find(weapon => weapon.instanceId === effect.ticket.instanceId)
+        const weapon = effect.weapon ?? snapshot.inventory.weapons.find(weapon => weapon.instanceId === effect.ticket.instanceId)
         const definition = this.#definitions.get(weapon.definitionId)
         const request = { ticket: effect.ticket, handle: null, failed: false }
         this.#request = request
@@ -398,7 +400,7 @@ export class WeaponViewModel {
       this.#play('idle', event.at)
     }
     if (event.type === 'ReloadStarted') {
-      const weapon = snapshot.inventory.weapons.find(weapon => weapon.instanceId === event.instanceId)
+      const weapon = payload.weapon ?? snapshot.inventory.weapons.find(weapon => weapon.instanceId === event.instanceId)
       const definition = this.#definitions.get(weapon.definitionId)
       // Source reload feed uses the same seconds as the gameplay plan. A Classic tail beyond
       // its ready deadline is explicitly cut; it cannot keep the weapon unavailable longer.
@@ -511,6 +513,7 @@ export class WeaponViewModel {
     const previous = this.#hud
     if (previous && previous.weapon?.instanceId === weapon?.instanceId
       && previous.weapon?.definitionId === weapon?.definitionId
+      && previous.weapon?.slotId === weapon?.slotId && previous.weapon?.melee === weapon?.melee
       && previous.weapon?.magazine === weapon?.magazine
       && previous.weapon?.reserve === weapon?.reserve
       && (previous.weapon?.ammoPolicy ?? 'finite') === (weapon?.ammoPolicy ?? 'finite')
@@ -525,6 +528,9 @@ export class WeaponViewModel {
         ? Object.freeze({
             instanceId: weapon.instanceId,
             definitionId: weapon.definitionId,
+            ...(weapon.slotId
+              ? { slotId: weapon.slotId, melee: weapon.melee }
+              : {}),
             magazine: weapon.magazine,
             reserve: weapon.reserve,
             ammoPolicy: weapon.ammoPolicy ?? 'finite',

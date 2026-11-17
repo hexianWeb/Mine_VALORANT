@@ -75,7 +75,7 @@ try {
 
   await evaluate(`(() => {
     const weapons = globalThis.__RANGE_ROOM__.world.player.weapons;
-    return weapons.requestArmorySelection({scopeId:weapons.readArmory().scopeId, requestId:1, slotId:'senary'});
+    return weapons.requestArmorySelection({scopeId:weapons.readArmory().scopeId, requestId:1, definitionId:'judge'});
   })()`)
   await wait('globalThis.__RANGE_ROOM__.world.player.weapons.readArmory().request?.status === "ready"')
   count = await aim()

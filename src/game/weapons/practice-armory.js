@@ -1,11 +1,12 @@
 let nextOwner = 0
 const terminal = new Set(['ready', 'failed', 'superseded'])
 
-/** Scoped adapter for choosing held slots, NOT buying/replacing inventory. No DOM or asset promises. */
+/** Scoped shop intent. Equipment owns the fixed-step replacement and preparation. */
 export class PracticeArmory {
   #owner = ++nextOwner
   #generation = 1
   #catalog
+  #purchasing
   #access
   #equipment
   #view = null
@@ -18,9 +19,10 @@ export class PracticeArmory {
   #closed = false
   #model = null
 
-  constructor({ catalog, equipment, access = () => null }) {
+  constructor({ catalog, equipment, access = () => null, purchasing = false }) {
     this.#catalog = catalog
     this.#equipment = equipment
+    this.#purchasing = purchasing
     this.setAccess(access)
   }
 
@@ -57,19 +59,35 @@ export class PracticeArmory {
     this.#patch({ status, reason })
   }
 
-  request({ scopeId, requestId, slotId } = {}) {
+  #held(slotId) {
+    const inventory = this.#equipment.inventory
+    const instanceId = inventory.slots.find(slot => slot.id === slotId)?.instanceId
+    return inventory.weapons.find(weapon => weapon.instanceId === instanceId)
+  }
+
+  request({ scopeId, requestId, slotId, definitionId } = {}) {
     const reason = this.#restriction()
-    const slot = this.#catalog.find(entry => entry.slotId === slotId)
+    const slot = this.#catalog.find(entry => this.#purchasing || definitionId !== undefined
+      ? entry.id === definitionId
+      : entry.slotId === slotId)
     if (reason || scopeId !== this.scopeId || !Number.isSafeInteger(requestId) || requestId <= this.#lastRequest || !slot)
       return Object.freeze({ accepted: false, reason: reason ?? '选择请求已过期或槽位无效' })
-    if (this.#pending() && this.#request.slotId === slotId)
+    if (this.#pending() && this.#request.definitionId === slot.id)
       return Object.freeze({ accepted: false, reason: '该武器正在准备，请勿重复提交' })
     this.#lastRequest = requestId
+    const held = this.#purchasing
+      ? this.#held(slot.slotId)
+      : null
+    const purchase = this.#purchasing && held?.definitionId !== slot.id
     this.#request = Object.freeze({
       scopeId,
       requestId,
-      slotId,
-      instanceId: slot.instanceId,
+      slotId: slot.slotId,
+      definitionId: slot.id,
+      instanceId: purchase
+        ? `${this.scopeId}:weapon:${requestId}`
+        : held?.instanceId ?? slot.instanceId,
+      purchase,
       status: 'queued',
       reason: null,
     })
@@ -94,7 +112,16 @@ export class PracticeArmory {
       return
     }
     if (this.#queued) {
-      if (!queue({ type: 'selectSlot', slotId: this.#request.slotId })) {
+      const { slotId, definitionId, instanceId, purchase } = this.#request
+      const command = purchase
+        ? {
+            type: 'purchase',
+            slotId,
+            definitionId,
+            instanceId,
+          }
+        : { type: 'selectSlot', slotId }
+      if (!queue(command)) {
         this.#fail('当前不能提交装备选择')
         return
       }
@@ -181,11 +208,21 @@ export class PracticeArmory {
   read() {
     const restriction = this.#restriction()
     const presentedId = this.#view?.weapon?.instanceId ?? null
-    const presentedSlotId = this.#catalog.find(entry => entry.instanceId === presentedId)?.slotId ?? null
+    const presentedSlotId = this.#view?.weapon?.slotId ?? this.#catalog.find(entry => entry.instanceId && entry.instanceId === presentedId)?.slotId ?? null
+    const presentedDefinitionId = this.#view?.weapon?.melee
+      ? null
+      : this.#view?.weapon?.definitionId ?? this.#catalog.find(entry => entry.instanceId && entry.instanceId === presentedId)?.id ?? null
+    const primary = this.#purchasing
+      ? this.#held('primary')?.definitionId ?? null
+      : null
+    const secondary = this.#purchasing
+      ? this.#held('secondary')?.definitionId ?? null
+      : null
     const canStartChallenge = this.canStartChallenge()
     const previous = this.#model
     if (previous && previous.scopeId === this.scopeId && previous.request === this.#request
       && previous.presentedSlotId === presentedSlotId && previous.restriction === restriction
+      && previous.presentedDefinitionId === presentedDefinitionId && previous.primary === primary && previous.secondary === secondary
       && previous.paused === this.#paused && previous.canStartChallenge === canStartChallenge) {
       return previous
     }
@@ -194,6 +231,9 @@ export class PracticeArmory {
       revision: (previous?.revision ?? 0) + 1,
       catalog: this.#catalog,
       presentedSlotId,
+      presentedDefinitionId,
+      primary,
+      secondary,
       request: this.#request,
       restriction,
       available: !restriction,

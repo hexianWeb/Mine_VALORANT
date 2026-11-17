@@ -7,8 +7,10 @@ import { PlayerFootsteps } from '../player/player-footsteps.js'
 import { createPlayer, PlayerComponent } from '../player/player.js'
 import { ShotTargets } from '../targets/shot-targets.js'
 import { loadTrainingBotAssets, TrainingBotComponent } from '../targets/training-bot.js'
+import { rangePurchaseSlots } from '../weapons/armory-catalog.js'
 import { WeaponAssets } from '../weapons/assets/weapon-assets.js'
 import { classicDefinition } from '../weapons/definitions/classic.js'
+import { rangeLoadout } from '../weapons/player-weapons.js'
 import { loadRoomAssets } from './assets/room-assets.js'
 import { challengeRules, defaultChallengeSelection } from './challenges/config.js'
 import { createRangeKillEffects } from './challenges/kill-effects.js'
@@ -217,6 +219,9 @@ export class RangeRoomLevel extends Level {
               shotTargets: this.#shotTargets,
               fixedDelta: this.fixedDelta,
               ammoPolicy: 'infinite-reserve',
+              loadout: rangeLoadout,
+              purchaseSlots: rangePurchaseSlots,
+              meleeSlot: 'tertiary',
               armoryAccess: () => this.challenge?.armoryRestriction(),
               onShotResolved: (result, context) => this.challenge?.onShotResolved(result, context),
             }

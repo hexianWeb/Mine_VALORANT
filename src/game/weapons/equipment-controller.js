@@ -7,6 +7,7 @@ const commandTypes = new Set([
   'fireHeld',
   'select',
   'selectSlot',
+  'purchase',
   'cycle',
   'selectPrevious',
   'prepared',
@@ -55,6 +56,10 @@ export class EquipmentController {
   #definitions
   #resetLoadout
   #initialId
+  #initialSlot
+  #purchaseSlots
+  #purchase = null
+  #meleeSlot
   #fixedDelta
   #tick = null
   #now = 0
@@ -88,7 +93,7 @@ export class EquipmentController {
   #actionBlockReason = null
   #ammoPolicy
 
-  constructor({ definitions, loadout, fixedDelta = 1 / 60, initialSlot, ammoPolicy = 'finite' } = {}) {
+  constructor({ definitions, loadout, fixedDelta = 1 / 60, initialSlot, ammoPolicy = 'finite', purchaseSlots = {}, meleeSlot = null } = {}) {
     if (!Number.isFinite(fixedDelta) || fixedDelta <= 0)
       throw new RangeError('[Equipment] fixedDelta must be positive and finite')
     this.#inventory = new WeaponInventory({ definitions, slots: loadout })
@@ -107,7 +112,15 @@ export class EquipmentController {
     }
     this.#fixedDelta = fixedDelta
     this.#definitions = immutable(definitions)
+    this.#purchaseSlots = new Map(Object.entries(purchaseSlots))
+    this.#meleeSlot = meleeSlot
     const snapshot = this.#inventory.snapshot()
+    for (const [definitionId, slotId] of this.#purchaseSlots) {
+      if (slotId === meleeSlot || !snapshot.slots.some(slot => slot.id === slotId)
+        || !this.#definitions.some(definition => definition.id === definitionId)) {
+        throw new Error(`[Equipment] Invalid purchase route: ${definitionId} -> ${slotId}`)
+      }
+    }
     this.#resetLoadout = snapshot.slots.map((slot) => {
       const weapon = this.#inventory.get(slot.instanceId)
       return {
@@ -122,6 +135,7 @@ export class EquipmentController {
     this.#initialId = initialSlot === undefined
       ? this.#inventory.ids()[0] ?? null
       : this.#inventory.instanceAt(initialSlot)
+    this.#initialSlot = initialSlot ?? this.#inventory.slotFor(this.#initialId)
     this.#desiredId = this.#initialId
   }
 
@@ -135,6 +149,13 @@ export class EquipmentController {
       identifier(command.instanceId, 'instanceId')
     if (type === 'selectSlot')
       identifier(command.slotId, 'slotId')
+    if (type === 'purchase') {
+      identifier(command.instanceId, 'instanceId')
+      if (this.#suspended || this.#purchaseSlots.get(command.definitionId) !== command.slotId
+        || !this.#purchaseSlots.has(command.definitionId) || this.#inventory.get(command.instanceId)) {
+        return false
+      }
+    }
     if (type === 'setSkin' || type === 'cycleSkin') {
       identifier(command.instanceId, 'instanceId')
       if (type === 'setSkin')
@@ -274,6 +295,23 @@ export class EquipmentController {
   }
 
   #select(command) {
+    if (command.type === 'purchase') {
+      if (this.#resumePending || this.#inventory.get(command.instanceId))
+        return false
+      const { slotId, instanceId, definitionId } = command
+      const held = this.#inventory.get(this.#inventory.instanceAt(slotId))
+      if (held?.definitionId === definitionId)
+        return this.#select({ type: 'select', instanceId: held.instanceId })
+      const definition = this.#definitions.find(entry => entry.id === definitionId)
+      this.#purchase = {
+        slotId,
+        instanceId,
+        definitionId,
+        skinId: definition.assets.defaultSkinId,
+      }
+      this.#desiredId = instanceId
+      return true
+    }
     let target
     if (command.type === 'select')
       target = command.instanceId
@@ -291,6 +329,7 @@ export class EquipmentController {
     // Resume must rebind the committed gun; selecting it again retries a failed preparation.
     if (this.#resumePending && target !== this.#activeId)
       return false
+    this.#purchase = null
     this.#desiredId = target
     return true
   }
@@ -314,7 +353,12 @@ export class EquipmentController {
       this.#cancelPreparation()
     if (!target || this.#preparation)
       return
-    const definition = this.#inventory.definition(target)
+    const purchase = this.#purchase?.instanceId === target
+      ? this.#purchase
+      : null
+    const definition = purchase
+      ? this.#definitions.find(entry => entry.id === purchase.definitionId)
+      : this.#inventory.definition(target)
     const ticket = immutable({
       epoch: this.#epoch,
       requestId: ++this.#requestId,
@@ -323,7 +367,13 @@ export class EquipmentController {
       skinRevision: this.#committedSkinRevisions.get(target) ?? 0,
     })
     this.#preparation = { ticket, status: 'loading', error: null }
-    this.#effects.push(immutable({ type: 'PrepareWeapon', ticket }))
+    this.#effects.push(immutable({
+      type: 'PrepareWeapon',
+      ticket,
+      ...(purchase
+        ? { weapon: purchase }
+        : {}),
+    }))
   }
 
   #acceptPreparation(command) {
@@ -476,7 +526,8 @@ export class EquipmentController {
     const holster = reason === 'switch' && this.#phase !== 'Drawing'
       ? this.#inventory.definition(fromId).equip.holster
       : 0
-    const draw = this.#inventory.definition(toId).equip.draw
+    const draw = (this.#inventory.definition(toId)
+      ?? this.#definitions.find(entry => entry.id === this.#purchase?.definitionId)).equip.draw
     const commitTick = this.#tick + durationTicks(holster, this.#fixedDelta)
     this.#transaction = {
       switchId: ++this.#switchId,
@@ -498,8 +549,10 @@ export class EquipmentController {
     if (!transaction)
       return
     if (this.#phase === 'Holstering' && this.#tick >= transaction.commitTick) {
+      if (this.#purchase?.instanceId === transaction.toId)
+        this.#commitPurchase()
       this.#activeId = transaction.toId
-      if (transaction.fromId && transaction.fromId !== transaction.toId)
+      if (transaction.fromId && transaction.fromId !== transaction.toId && this.#inventory.get(transaction.fromId))
         this.#previousId = transaction.fromId
       this.#phase = 'Drawing'
       if (transaction.reason !== 'resume')
@@ -513,6 +566,24 @@ export class EquipmentController {
     }
   }
 
+  #commitPurchase() {
+    const { slotId, ...weapon } = this.#purchase
+    const replaced = this.#inventory.replace(slotId, weapon)
+    const cosmetic = this.#skinRequests.get(replaced)
+    if (cosmetic)
+      this.#effects.push(immutable({ type: 'CancelSkinPreparation', ticket: cosmetic.ticket }))
+    this.#skinRequests.delete(replaced)
+    this.#skinRevisions.delete(replaced)
+    this.#committedSkinRevisions.delete(replaced)
+    if (this.#previousId === replaced)
+      this.#previousId = null
+    // Respawn replenishes gear from the committed slots, including replacements.
+    this.#resetLoadout.find(slot => slot.id === slotId).weapon = weapon
+    if (slotId === this.#initialSlot)
+      this.#initialId = weapon.instanceId
+    this.#purchase = null
+  }
+
   #canAct() {
     return !this.#disposed && !this.#paused && !this.#suspended
       && this.#phase === 'Ready' && this.#activeId !== null && this.#actionBlockReason === null
@@ -520,13 +591,13 @@ export class EquipmentController {
 
   #canFire() {
     const weapon = this.#inventory.get(this.#activeId)
-    return this.#canAct() && this.#action?.type !== 'reload'
+    return this.#canAct() && this.#inventory.slotFor(this.#activeId) !== this.#meleeSlot && this.#action?.type !== 'reload'
       && weapon.magazine > 0 && this.#now + 1e-10 >= weapon.nextFireAt
       && this.#now + 1e-10 >= weapon.blockedUntil
   }
 
   #canReload() {
-    return this.#canAct() && this.#action?.type !== 'reload'
+    return this.#canAct() && this.#inventory.slotFor(this.#activeId) !== this.#meleeSlot && this.#action?.type !== 'reload'
       && this.#now + 1e-10 >= this.#inventory.get(this.#activeId).blockedUntil
       && canReloadWeapon(this.#inventory.get(this.#activeId), this.#inventory.definition(this.#activeId), this.#ammoPolicy)
   }
@@ -671,6 +742,7 @@ export class EquipmentController {
     this.#equipmentGeneration++
     this.#commands = []
     this.#transaction = null
+    this.#purchase = null
     this.#acceptedTickets.clear()
     this.#actionBlockReason = null
     this.#fireHeld = false

@@ -6,7 +6,7 @@ const weapons = 'globalThis.__RANGE_ROOM__.world.player.weapons'
 export async function checkArmory({ browser, press, click, screenshot, record, quick = false }) {
   const evaluate = browser.evaluate
   const read = () => evaluate(`${weapons}.readArmory()`)
-  const selector = slotId => `.shop-card[data-slot="${slotId}"]`
+  const selector = slotId => `.shop-card[data-weapon="${slotId}"]`
   const waitFor = (expression, label) => evaluate(`new Promise((resolve, reject) => {
     const start = performance.now();
     function check() {
@@ -16,7 +16,7 @@ export async function checkArmory({ browser, press, click, screenshot, record, q
     }
     check();
   })`)
-  const ready = slotId => waitFor(`${weapons}.readArmory().request?.status === 'ready' && ${weapons}.readArmory().presentedSlotId === ${JSON.stringify(slotId)}`, `Armory selection did not become presented-ready: ${slotId}`)
+  const ready = slotId => waitFor(`${weapons}.readArmory().request?.status === 'ready' && ${weapons}.readArmory().presentedDefinitionId === ${JSON.stringify(slotId)}`, `Armory selection did not become presented-ready: ${slotId}`)
   const open = async () => {
     await press('KeyB', 66)
     await browser.frames(2)
@@ -28,12 +28,18 @@ export async function checkArmory({ browser, press, click, screenshot, record, q
     await ready(slotId)
     await browser.frames(2)
     const state = await read()
-    const marked = await evaluate('[...document.querySelectorAll(".shop-equipped")].filter(node => !node.hidden).map(node => node.closest("button").dataset.slot)')
-    assert.deepEqual(marked, [state.presentedSlotId])
+    const marked = await evaluate('[...document.querySelectorAll(".shop-equipped")].filter(node => !node.hidden && node.textContent === "已装备").map(node => node.closest("button").dataset.weapon)')
+    assert.deepEqual(marked, [state.presentedDefinitionId])
     assert.equal(await evaluate('document.querySelector(".weapon-shop").open'), true)
   }
   const ammunition = () => evaluate(`${weapons}.snapshot().inventory.weapons.map(({instanceId, magazine, reserve, shotSequence}) => ({instanceId, magazine, reserve, shotSequence}))`)
-  const baselineAmmo = await ammunition()
+  const assertInventory = async () => {
+    const held = await ammunition()
+    assert.equal(held.length, 3)
+    assert.ok(held.every(weapon => weapon.shotSequence === 0))
+    assert.equal(held[2].instanceId, 'knife-placeholder')
+  }
+  await assertInventory()
 
   await open()
   let state = await read()
@@ -42,26 +48,26 @@ export async function checkArmory({ browser, press, click, screenshot, record, q
   assert.equal(await evaluate('[...document.querySelectorAll(".shop-card img")].every(image => image.complete && image.naturalWidth > 0)'), true)
   assert.equal(await evaluate('document.querySelector(".shop-details").getBoundingClientRect().left > document.querySelector(".shop-catalog").getBoundingClientRect().left'), true)
   assert.equal(await evaluate('/99,999|购买护甲|队友请求/.test(document.querySelector(".weapon-shop").textContent)'), false)
-  const beforeCandidate = state.presentedSlotId
-  await evaluate('document.querySelector(\'.shop-card[data-slot="septenary"]\').focus()')
+  const beforeCandidate = state.presentedDefinitionId
+  await evaluate('document.querySelector(\'.shop-card[data-weapon="odin"]\').focus()')
   state = await read()
-  assert.equal(state.presentedSlotId, beforeCandidate)
+  assert.equal(state.presentedDefinitionId, beforeCandidate)
   assert.equal(state.request, null)
   assert.equal(await evaluate('document.querySelector("[data-detail-id]").textContent'), 'ODIN')
   record('armory: four classified columns, seven local icons, independent candidate details, no fake economy')
   await screenshot('shop-desktop.png')
 
-  await evaluate('document.querySelector(\'.shop-card[data-slot="secondary"]\').focus()')
+  await evaluate('document.querySelector(\'.shop-card[data-weapon="classic"]\').focus()')
   await press('ArrowRight', 39)
-  assert.equal(await evaluate('document.activeElement.dataset.slot'), 'primary')
+  assert.equal(await evaluate('document.activeElement.dataset.weapon'), 'phantom')
   await press('Enter', 13)
   await browser.frames(2)
-  assert.equal((await read()).request?.slotId, 'primary', 'keyboard activation must enqueue a selection')
-  await ready('primary')
+  assert.equal((await read()).request?.definitionId, 'phantom', 'keyboard activation must enqueue a selection')
+  await ready('phantom')
   await browser.frames(2)
-  assert.equal((await read()).presentedSlotId, 'primary')
+  assert.equal((await read()).presentedDefinitionId, 'phantom')
   assert.equal(await evaluate('document.querySelector(".weapon-shop").open'), true)
-  const seen = new Set(['secondary', 'primary'])
+  const seen = new Set(['classic', 'phantom'])
   record('armory: keyboard grid/Enter selects through real fixed preparation and stays open')
 
   // Fail a real resource request once. This is not a fabricated challenge or direct inventory edit.
@@ -81,7 +87,7 @@ export async function checkArmory({ browser, press, click, screenshot, record, q
     ],
   })
   try {
-    await click(selector('tertiary'))
+    await click(selector('ghost'))
     await waitFor(`${weapons}.readArmory().request?.status === 'failed'`, 'Fixture Ghost load did not report failure')
     await Promise.all(replies)
   }
@@ -91,22 +97,22 @@ export async function checkArmory({ browser, press, click, screenshot, record, q
   }
   state = await read()
   assert.ok(failures.length > 0, 'fixture must actually interrupt a cold weapon request')
-  assert.equal(state.presentedSlotId, 'primary')
+  assert.equal(state.presentedDefinitionId, 'phantom')
   assert.equal(await evaluate(`${weapons}.snapshot().canFire`), true)
   assert.match(await evaluate('document.querySelector(".shop-feedback").textContent'), /失败/)
   await screenshot('shop-failure.png')
-  await select('tertiary')
-  seen.add('tertiary')
+  await select('ghost')
+  seen.add('ghost')
   record('armory: real resource failure keeps old gun usable; same-card retry succeeds', { expectedNetworkFailures: failures })
 
-  const backgroundTarget = quick ? 'secondary' : 'septenary'
+  const backgroundTarget = quick ? 'classic' : 'odin'
   if (!quick) {
-    await click(selector('quaternary'))
-    await click(selector('senary'))
-    await ready('senary')
+    await click(selector('vandal'))
+    await click(selector('judge'))
+    await ready('judge')
     await browser.frames(10)
-    assert.equal((await read()).presentedSlotId, 'senary')
-    seen.add('senary')
+    assert.equal((await read()).presentedDefinitionId, 'judge')
+    seen.add('judge')
     record('armory: rapid retargeting ends on latest Judge; late Vandal cannot overwrite it')
   }
   await click(selector(backgroundTarget))
@@ -117,18 +123,18 @@ export async function checkArmory({ browser, press, click, screenshot, record, q
   await ready(backgroundTarget)
   seen.add(backgroundTarget)
   await open()
-  assert.equal((await read()).presentedSlotId, backgroundTarget)
+  assert.equal((await read()).presentedDefinitionId, backgroundTarget)
   record('armory: Esc closes only the shop; accepted selection completes while closed')
 
   if (!quick) {
-    for (const slotId of ['quinary', 'quaternary']) {
+    for (const slotId of ['sheriff', 'vandal']) {
       await select(slotId)
       seen.add(slotId)
     }
     assert.equal(seen.size, 7)
-    record('armory: all seven held slots equip through the shop without replacing inventory')
+    record('armory: all seven weapons are obtainable through the three-slot armory')
   }
-  assert.deepEqual(await ammunition(), baselineAmmo, 'no card/confirm/close click may fire or refill ammunition')
+  await assertInventory()
 
   await press('Escape', 27)
   await browser.frames(2)
@@ -136,22 +142,22 @@ export async function checkArmory({ browser, press, click, screenshot, record, q
   await browser.frames(2)
   assert.equal(await evaluate('globalThis.__RANGE_ROOM__.engine.state'), 'paused')
   await open()
-  const pausedActive = (await read()).presentedSlotId
-  const pausedTarget = pausedActive === 'secondary'
-    ? 'primary'
-    : 'secondary'
+  const pausedActive = (await read()).presentedDefinitionId
+  const pausedTarget = pausedActive === 'classic'
+    ? 'phantom'
+    : 'classic'
   const tick = await evaluate('globalThis.__RANGE_ROOM__.engine.time.fixedTick')
   await click(selector(pausedTarget))
   await browser.frames(5)
   assert.equal((await read()).request.status, 'queued')
-  assert.equal((await read()).presentedSlotId, pausedActive)
+  assert.equal((await read()).presentedDefinitionId, pausedActive)
   assert.equal(await evaluate('globalThis.__RANGE_ROOM__.engine.time.fixedTick'), tick)
   await press('Escape', 27)
   await browser.frames(70)
   await click('[data-continue]')
   await ready(pausedTarget)
   assert.equal(await evaluate('document.pointerLockElement === document.querySelector(".webgl")'), true)
-  assert.deepEqual(await ammunition(), baselineAmmo)
+  await assertInventory()
   record('armory: paused DOM selection waits for Continue/fixed simulation and does not fire')
 
   await evaluate(`${weapons}.setArmoryAccess(() => '本局进行中，请先取消挑战')`)
@@ -161,7 +167,7 @@ export async function checkArmory({ browser, press, click, screenshot, record, q
   assert.equal(await evaluate('globalThis.__RANGE_ROOM__.engine.state'), 'running')
   assert.match(await evaluate('document.querySelector(".input-message").textContent'), /本局进行中/)
   state = await read()
-  assert.equal(await evaluate(`${weapons}.requestArmorySelection({scopeId:${JSON.stringify(state.scopeId)},requestId:9999,slotId:'secondary'}).accepted`), false)
+  assert.equal(await evaluate(`${weapons}.requestArmorySelection({scopeId:${JSON.stringify(state.scopeId)},requestId:9999,definitionId:'classic'}).accepted`), false)
   await evaluate(`${weapons}.setArmoryAccess(() => null)`)
   await open()
   await evaluate(`${weapons}.setArmoryAccess(() => '本局进行中，请先取消挑战')`)
@@ -210,6 +216,6 @@ export async function checkArmory({ browser, press, click, screenshot, record, q
   await browser.frames(12)
   assert.equal(await evaluate('globalThis.__armoryReadCount'), 0)
   await evaluate(`${weapons}.readArmory = globalThis.__armoryRead`)
-  assert.deepEqual(await ammunition(), baselineAmmo)
+  await assertInventory()
   record('armory: compact layout stays contained; closing unsubscribes continuous UI reads')
 }

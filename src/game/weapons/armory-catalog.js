@@ -55,40 +55,56 @@ export const armoryCategories = Object.freeze([
   Object.freeze({ id: 'heavy', name: '机关枪' }),
 ])
 
-/** Static, held-slot catalog. All numerical details come from the actual runtime definitions. */
-export function createArmoryCatalog({ definitions, inventory }) {
+export const rangePurchaseSlots = Object.freeze(Object.fromEntries(
+  entries.map(entry => [
+    entry.id,
+    entry.category === 'sidearms'
+      ? 'secondary'
+      : 'primary',
+  ]),
+))
+
+/** All numerical details come from the actual runtime definitions. */
+export function createArmoryCatalog({ definitions, inventory, purchaseSlots }) {
   const byDefinition = new Map(definitions.map(definition => [definition.id, definition]))
   return Object.freeze(entries.flatMap((entry) => {
     const definition = byDefinition.get(entry.id)
-    return inventory.slots.flatMap((slot) => {
-      const weapon = inventory.weapons.find(weapon => weapon.instanceId === slot.instanceId && weapon.definitionId === entry.id)
-      if (!weapon || !definition)
-        return []
-      return [
-        Object.freeze({
-          ...entry,
-          provisional: !!entry.provisional,
-          slotId: slot.id,
-          instanceId: weapon.instanceId,
-          stats: Object.freeze({
-            capacity: definition.capacity,
-            fireMode: definition.fire.mode,
-            fireRate: 1 / definition.fire.interval,
-            adsFireRate: definition.capabilities.ads
-              ? 1 / (definition.fire.adsInterval ?? definition.fire.interval)
-              : null,
-            fullFireRate: definition.fire.spinUp
-              ? 1 / definition.fire.spinUp.interval
-              : null,
-            spinUp: definition.fire.spinUp?.duration ?? null,
-            pellets: definition.fire.pellets ?? 1,
-            reloadTactical: definition.reload.tactical.duration,
-            reloadEmpty: definition.reload.empty.duration,
-            draw: definition.equip.draw,
-            ads: definition.capabilities.ads,
-          }),
+    if (!definition)
+      return []
+    const slots = purchaseSlots
+      ? [
+          { id: purchaseSlots[entry.id], instanceId: null },
+        ].filter(slot => slot.id)
+      : inventory.slots.filter(slot => inventory.weapons.some(weapon => weapon.instanceId === slot.instanceId && weapon.definitionId === entry.id))
+    return slots.map(slot =>
+      Object.freeze({
+        ...entry,
+        shortcut: purchaseSlots
+          ? (slot.id === 'secondary'
+              ? '2'
+              : '1')
+          : entry.shortcut,
+        provisional: !!entry.provisional,
+        slotId: slot.id,
+        instanceId: slot.instanceId,
+        stats: Object.freeze({
+          capacity: definition.capacity,
+          fireMode: definition.fire.mode,
+          fireRate: 1 / definition.fire.interval,
+          adsFireRate: definition.capabilities.ads
+            ? 1 / (definition.fire.adsInterval ?? definition.fire.interval)
+            : null,
+          fullFireRate: definition.fire.spinUp
+            ? 1 / definition.fire.spinUp.interval
+            : null,
+          spinUp: definition.fire.spinUp?.duration ?? null,
+          pellets: definition.fire.pellets ?? 1,
+          reloadTactical: definition.reload.tactical.duration,
+          reloadEmpty: definition.reload.empty.duration,
+          draw: definition.equip.draw,
+          ads: definition.capabilities.ads,
         }),
-      ]
-    })
+      }),
+    )
   }))
 }

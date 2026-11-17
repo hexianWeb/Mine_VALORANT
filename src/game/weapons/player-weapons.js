@@ -45,6 +45,15 @@ export const practiceLoadout = Object.freeze([
   },
 ])
 
+export const rangeLoadout = Object.freeze([
+  practiceLoadout[0],
+  practiceLoadout[1],
+  Object.freeze({
+    id: 'tertiary',
+    weapon: Object.freeze({ instanceId: 'knife-placeholder', definitionId: 'classic' }),
+  }),
+])
+
 const shotRange = 200
 
 function surfaceOf(box) {
@@ -128,7 +137,8 @@ export class PlayerWeapons {
   #lastShot = null
   #paused = false
   #pausedSelection = null
-  #initialSelectionId
+  #initialSlot
+  #meleeSlot
   #disposed = false
   #armory
   #shotSource = null
@@ -158,6 +168,8 @@ export class PlayerWeapons {
     initialSlot = 'secondary',
     fixedDelta = 1 / 60,
     armoryAccess,
+    purchaseSlots,
+    meleeSlot = null,
     onShotResolved = null,
     ammoPolicy = 'finite',
   }) {
@@ -167,18 +179,20 @@ export class PlayerWeapons {
       initialSlot,
       fixedDelta,
       ammoPolicy,
+      purchaseSlots,
+      meleeSlot,
     })
     this.#definitions = new Map(definitions.map(definition => [definition.id, definition]))
     const equipment = this.#controller.snapshot()
     const inventory = equipment.inventory
     this.#armory = new PracticeArmory({
-      catalog: createArmoryCatalog({ definitions, inventory }),
+      catalog: createArmoryCatalog({ definitions, inventory, purchaseSlots }),
+      purchasing: !!purchaseSlots,
       equipment,
       access: armoryAccess,
     })
-    this.#initialSelectionId = initialSlot === undefined
-      ? inventory.weapons[0]?.instanceId ?? null
-      : inventory.slots.find(slot => slot.id === initialSlot)?.instanceId ?? null
+    this.#initialSlot = initialSlot ?? inventory.slots.find(slot => slot.instanceId)?.id
+    this.#meleeSlot = meleeSlot
     this.#aim = aim
     this.#world = world
     this.#shotTargets = shotTargets
@@ -197,7 +211,8 @@ export class PlayerWeapons {
       ? new WeaponAudio({
           audio,
           assets,
-          definitions: definitions.filter(definition => inventory.weapons.some(weapon => weapon.definitionId === definition.id)),
+          definitions: definitions.filter(definition => Object.hasOwn(purchaseSlots ?? {}, definition.id)
+            || inventory.weapons.some(weapon => weapon.definitionId === definition.id)),
         })
       : null
     this.#view = new WeaponViewModel({
@@ -251,6 +266,10 @@ export class PlayerWeapons {
         cycleSkin: { type: 'cycleSkin', instanceId: this.#controller.snapshot().activeId },
         fire: { type: 'fire' },
       }[action]
+      if (this.#meleeSlot && command?.type === 'selectSlot'
+        && !['primary', 'secondary', this.#meleeSlot].includes(command.slotId)) {
+        continue
+      }
       if (paused && command) {
         this.#rememberPausedSelection(command)
       }
@@ -289,7 +308,7 @@ export class PlayerWeapons {
     }
     else if (command.type === 'cycle' && ids.length) {
       const current = this.#pausedSelection ?? state.queuedTarget ?? state.pendingTarget
-        ?? state.transaction?.toId ?? state.activeId ?? this.#initialSelectionId
+        ?? state.transaction?.toId ?? state.activeId ?? state.inventory.slots.find(slot => slot.id === this.#initialSlot)?.instanceId
       target = ids[(ids.indexOf(current) + command.direction + ids.length) % ids.length]
     }
     if (target && ids.includes(target))
@@ -331,7 +350,14 @@ export class PlayerWeapons {
     })
     const events = batch.events.map((event) => {
       const stored = snapshot.inventory.weapons.find(weapon => weapon.instanceId === event.instanceId)
-      const weapon = stored && { ...stored, ammoPolicy: snapshot.ammoPolicy }
+      const slotId = snapshot.inventory.slots.find(slot => slot.instanceId === event.instanceId)?.id
+      const weapon = stored && {
+        ...stored,
+        ...(this.#meleeSlot
+          ? { slotId, melee: slotId === this.#meleeSlot }
+          : {}),
+        ammoPolicy: snapshot.ammoPolicy,
+      }
       if (event.type !== 'ShotFired') {
         return {
           ...event,

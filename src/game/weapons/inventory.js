@@ -44,7 +44,6 @@ export class WeaponInventory {
   #weapons = new Map()
   #slotInstances = new Map()
   #instanceSlots = new Map()
-  #slots
 
   constructor(input) {
     record(input, 'inventory', ['definitions', 'slots'])
@@ -58,53 +57,59 @@ export class WeaponInventory {
       this.#definitions.set(definition.id, definition)
     }
 
-    this.#slots = Object.freeze(Array.from(input.slots, (slot) => {
+    for (const slot of input.slots) {
       record(slot, 'slot', ['id', 'weapon'])
       const slotId = identifier(slot.id, 'slot.id')
       if (this.#slotInstances.has(slotId))
         throw new Error(`Duplicate slot: ${slotId}`)
+      this.#slotInstances.set(slotId, null)
+      if (slot.weapon !== null)
+        this.replace(slotId, slot.weapon)
+    }
+  }
 
-      let instanceId = null
-      if (slot.weapon !== null) {
-        const source = slot.weapon
-        record(source, 'weapon', [
-          'instanceId',
-          'definitionId',
-          'skinId',
-          'magazine',
-          'reserve',
-        ])
-        instanceId = identifier(source.instanceId, 'weapon.instanceId')
-        const definitionId = identifier(source.definitionId, 'weapon.definitionId')
-        if (this.#weapons.has(instanceId))
-          throw new Error(`Duplicate weapon instance: ${instanceId}`)
-        const definition = this.#definitions.get(definitionId)
-        if (!definition)
-          throw new Error(`Unknown weapon definition: ${definitionId}`)
+  replace(slotId, source) {
+    if (!this.#slotInstances.has(slotId))
+      throw new Error(`Unknown slot: ${slotId}`)
+    record(source, 'weapon', [
+      'instanceId',
+      'definitionId',
+      'skinId',
+      'magazine',
+      'reserve',
+    ])
+    const instanceId = identifier(source.instanceId, 'weapon.instanceId')
+    const definitionId = identifier(source.definitionId, 'weapon.definitionId')
+    if (this.#weapons.has(instanceId))
+      throw new Error(`Duplicate weapon instance: ${instanceId}`)
+    const definition = this.#definitions.get(definitionId)
+    if (!definition)
+      throw new Error(`Unknown weapon definition: ${definitionId}`)
 
-        const state = {
-          instanceId,
-          definitionId,
-          skinId: identifier(Object.hasOwn(source, 'skinId')
-            ? source.skinId
-            : definition.assets.defaultSkinId, 'weapon.skinId'),
-          magazine: Object.hasOwn(source, 'magazine')
-            ? source.magazine
-            : definition.capacity,
-          reserve: Object.hasOwn(source, 'reserve')
-            ? source.reserve
-            : definition.initialReserve,
-          nextFireAt: 0,
-          blockedUntil: 0,
-          shotSequence: 0,
-        }
-        validateState(state, definition)
-        this.#weapons.set(instanceId, state)
-        this.#instanceSlots.set(instanceId, slotId)
-      }
-      this.#slotInstances.set(slotId, instanceId)
-      return Object.freeze({ id: slotId, instanceId })
-    }))
+    const state = {
+      instanceId,
+      definitionId,
+      skinId: identifier(Object.hasOwn(source, 'skinId')
+        ? source.skinId
+        : definition.assets.defaultSkinId, 'weapon.skinId'),
+      magazine: Object.hasOwn(source, 'magazine')
+        ? source.magazine
+        : definition.capacity,
+      reserve: Object.hasOwn(source, 'reserve')
+        ? source.reserve
+        : definition.initialReserve,
+      nextFireAt: 0,
+      blockedUntil: 0,
+      shotSequence: 0,
+    }
+    validateState(state, definition)
+    const previous = this.instanceAt(slotId)
+    this.#weapons.delete(previous)
+    this.#instanceSlots.delete(previous)
+    this.#weapons.set(instanceId, state)
+    this.#instanceSlots.set(instanceId, slotId)
+    this.#slotInstances.set(slotId, instanceId)
+    return previous
   }
 
   definition(instanceId) {
@@ -159,13 +164,13 @@ export class WeaponInventory {
 
   ids() {
     return Object.freeze([
-      ...this.#weapons.keys(),
-    ])
+      ...this.#slotInstances.values(),
+    ].filter(Boolean))
   }
 
   snapshot() {
     return Object.freeze({
-      slots: this.#slots,
+      slots: Object.freeze(Array.from(this.#slotInstances, ([id, instanceId]) => Object.freeze({ id, instanceId }))),
       weapons: Object.freeze(this.ids().map(id => this.get(id))),
     })
   }
