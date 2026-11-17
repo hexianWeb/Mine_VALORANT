@@ -197,6 +197,7 @@ export function projectMuzzleToWorld(muzzle, viewCamera, worldCamera, depth = 0.
 
 const tracerSpeed = 160
 const maxPelletTracers = 3
+const bulletHoleLifetime = 8
 
 /** Shot event dispatcher. Engine effects own draws; this layer owns weapon-specific policy. */
 export class ShotEffects {
@@ -217,7 +218,7 @@ export class ShotEffects {
     this.#decals = decals
     if (!decals && scene) {
       const map = this.#owned.add(createBulletHoleTexture())
-      this.#decals = this.#owned.add(createDecalSystem({ scene, map }))
+      this.#decals = this.#owned.add(createDecalSystem({ scene, map, lifetime: bulletHoleLifetime }))
     }
   }
 

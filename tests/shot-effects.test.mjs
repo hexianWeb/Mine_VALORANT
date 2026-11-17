@@ -213,7 +213,20 @@ test('shot effects own their world decal resources and clear them on reset and d
   })
   effects.motion({ presentationTime: 2.4 })
   assert.equal(effects.snapshot().decals.visible, 0)
-  effects.motion({ presentationTime: 1000 })
+  effects.motion({ presentationTime: 10.49 })
+  assert.equal(effects.snapshot().decals.visible, 1)
+  effects.motion({ presentationTime: 10.5 })
+  assert.equal(mesh.visible, false)
+  assert.equal(mesh.count, 0)
+  effects.receive({
+    events: [
+      {
+        ...shot(),
+        at: 11,
+      },
+    ],
+  })
+  effects.motion({ presentationTime: 11 })
   assert.equal(effects.snapshot().decals.visible, 1)
   effects.receive({
     events: [

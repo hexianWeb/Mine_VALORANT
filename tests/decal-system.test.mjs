@@ -143,6 +143,39 @@ test('decals wait for event time, persist indefinitely and release only owned re
   map.dispose()
 })
 
+test('finite decals expire from the draw batch after a wrap and reuse compacted slots', (t) => {
+  const scene = new Scene()
+  const decals = createDecalSystem({ scene, capacity: 3, lifetime: 4 })
+  t.after(() => decals.dispose())
+  const mesh = scene.children[0]
+  const matrix = new Matrix4()
+  const positions = () => Array.from({ length: mesh.count }, (_, slot) => {
+    mesh.getMatrixAt(slot, matrix)
+    return matrix.elements[12]
+  })
+  decals.emit([
+    decal(1, 2),
+    decal(2, 4),
+    decal(3, 1),
+    decal(4, 3),
+  ])
+  decals.flush({ presentationTime: 4.999 })
+  assert.equal(decals.snapshot().visible, 3)
+  decals.flush({ presentationTime: 5 })
+  assert.deepEqual(positions(), [2, 4])
+  decals.emit([
+    decal(5, 5),
+    decal(6, 5),
+  ])
+  assert.equal(decals.snapshot().written, 6)
+  assert.deepEqual(positions().sort(), [4, 5, 6], 'capacity still replaces the oldest surviving decal')
+  decals.flush({ presentationTime: 7 })
+  assert.deepEqual(positions(), [5, 6])
+  decals.flush({ presentationTime: 9 })
+  assert.equal(mesh.count, 0)
+  assert.equal(mesh.visible, false)
+})
+
 test('decal systems reject invalid capacities and offsets', () => {
   for (const capacity of [0, -1, 1.5, Infinity]) {
     assert.throws(() => createDecalSystem({
