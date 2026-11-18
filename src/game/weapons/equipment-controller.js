@@ -76,6 +76,7 @@ export class EquipmentController {
   #desiredId = null
   #acceptedTickets = new Map()
   #preparation = null
+  #selectedSkins = new Map()
   #skinRequests = new Map()
   #skinRevisions = new Map()
   #committedSkinRevisions = new Map()
@@ -94,7 +95,7 @@ export class EquipmentController {
   #actionBlockReason = null
   #ammoPolicy
 
-  constructor({ definitions, loadout, fixedDelta = 1 / 60, initialSlot, ammoPolicy = 'finite', purchaseSlots = {}, meleeSlot = null } = {}) {
+  constructor({ definitions, loadout, fixedDelta = 1 / 60, initialSlot, ammoPolicy = 'finite', purchaseSlots = {}, meleeSlot = null, skinSelections = {} } = {}) {
     if (!Number.isFinite(fixedDelta) || fixedDelta <= 0)
       throw new RangeError('[Equipment] fixedDelta must be positive and finite')
     this.#inventory = new WeaponInventory({ definitions, slots: loadout })
@@ -115,6 +116,26 @@ export class EquipmentController {
     this.#definitions = immutable(definitions)
     this.#purchaseSlots = new Map(Object.entries(purchaseSlots))
     this.#meleeSlot = meleeSlot
+    // Stored preferences are untrusted and may refer to skins removed in a newer release.
+    if (skinSelections && typeof skinSelections === 'object') {
+      for (const definition of this.#definitions) {
+        const skinId = Object.hasOwn(skinSelections, definition.id)
+          ? skinSelections[definition.id]
+          : null
+        if ((definition.assets.skinIds ?? [definition.assets.defaultSkinId]).includes(skinId))
+          this.#selectedSkins.set(definition.id, skinId)
+      }
+    }
+    const initialWeapons = this.#inventory.snapshot().weapons
+    for (const weapon of initialWeapons) {
+      const selected = this.#selectedSkins.get(weapon.definitionId)
+      if (selected)
+        this.#inventory.setSkin(weapon.instanceId, selected)
+    }
+    for (const weapon of initialWeapons) {
+      if (!this.#selectedSkins.has(weapon.definitionId))
+        this.#selectedSkins.set(weapon.definitionId, weapon.skinId)
+    }
     const snapshot = this.#inventory.snapshot()
     for (const [definitionId, slotId] of this.#purchaseSlots) {
       if (slotId === meleeSlot || !snapshot.slots.some(slot => slot.id === slotId)
@@ -312,7 +333,7 @@ export class EquipmentController {
         slotId,
         instanceId,
         definitionId,
-        skinId: definition.assets.defaultSkinId,
+        skinId: this.#selectedSkins.get(definitionId) ?? definition.assets.defaultSkinId,
       }
       this.#desiredId = instanceId
       return true
@@ -493,14 +514,21 @@ export class EquipmentController {
         this.#effects.push(immutable({ type: 'PrepareSkin', ticket: pending.ticket }))
       }
       else if (pending.status === 'prepared') {
-        const previousSkinId = this.#inventory.get(instanceId).skinId
+        const previous = this.#inventory.get(instanceId)
+        const previousSkinId = previous.skinId
         this.#inventory.setSkin(instanceId, pending.ticket.skinId)
+        this.#selectedSkins.set(previous.definitionId, pending.ticket.skinId)
         this.#committedSkinRevisions.set(instanceId, pending.ticket.skinRevision)
         this.#skinRequests.delete(instanceId)
         // Only an unlocked preparation can be invalidated. Accepted tickets stay reserved.
         if (this.#preparation?.ticket.instanceId === instanceId)
           this.#cancelPreparation()
-        this.#emit('SkinChanged', instanceId, { ticket: pending.ticket, previousSkinId, skinId: pending.ticket.skinId })
+        this.#emit('SkinChanged', instanceId, {
+          ticket: pending.ticket,
+          definitionId: previous.definitionId,
+          previousSkinId,
+          skinId: pending.ticket.skinId,
+        })
       }
     }
   }
@@ -794,7 +822,13 @@ export class EquipmentController {
     if (this.#disposed)
       return immutable({ events: [], effects: [] })
     this.#invalidate('reset')
-    this.#inventory = new WeaponInventory({ definitions: this.#definitions, slots: this.#resetLoadout })
+    const slots = this.#resetLoadout.map(slot => ({
+      ...slot,
+      weapon: slot.weapon
+        ? { ...slot.weapon, skinId: this.#selectedSkins.get(slot.weapon.definitionId) ?? slot.weapon.skinId }
+        : null,
+    }))
+    this.#inventory = new WeaponInventory({ definitions: this.#definitions, slots })
     this.#activeId = null
     this.#previousId = null
     this.#desiredId = this.#initialId

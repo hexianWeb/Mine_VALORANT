@@ -265,7 +265,7 @@ test('a new skin invalidates unlocked equipment preparation but never a reserved
   assert.equal(f.weapon('B').skinId, 'other')
 })
 
-test('suspend and reset invalidate skin work synchronously, while committed skins survive only suspend', (t) => {
+test('suspend and reset invalidate pending skin work while preserving the committed skin', (t) => {
   const f = setup(t)
   f.ready()
   const ticket = f.step({ type: 'setSkin', instanceId: 'A', skinId: 'sakura' }).effects[0].ticket
@@ -279,7 +279,7 @@ test('suspend and reset invalidate skin work synchronously, while committed skin
   assert.equal(f.weapon('A').skinId, 'sakura')
   f.controller.reset()
   f.step({ type: 'skinPrepared', ticket })
-  assert.equal(f.weapon('A').skinId, 'default')
+  assert.equal(f.weapon('A').skinId, 'sakura')
 })
 
 test('initial equipment waits for its preparation ticket and gives draw its full quantized duration', (t) => {

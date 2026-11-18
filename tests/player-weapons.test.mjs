@@ -16,6 +16,7 @@ import { vandalDefinition } from '../src/game/weapons/definitions/vandal.js'
 import { EquipmentController } from '../src/game/weapons/equipment-controller.js'
 import { WeaponInventory } from '../src/game/weapons/inventory.js'
 import { PlayerWeapons } from '../src/game/weapons/player-weapons.js'
+import { createSkinPreferences, skinPreferencesStorageKey } from '../src/game/weapons/skin-preferences.js'
 import { createWeaponDefinition } from '../src/game/weapons/weapon-definition.js'
 import { setupInput } from './input-fixture.mjs'
 
@@ -148,6 +149,8 @@ function setup(t, {
   shotTargets = null,
   armoryAccess,
   onShotResolved,
+  purchaseSlots,
+  skinPreferences,
 } = {}) {
   const assets = fakeAssets()
   const aim = new AimState({ seed: 123, offsetSmoothing: 0 })
@@ -244,6 +247,8 @@ function setup(t, {
     shotTargets,
     armoryAccess,
     onShotResolved,
+    purchaseSlots,
+    skinPreferences,
     world: {
       boxes: [
         {
@@ -1196,6 +1201,59 @@ test('changing skin during inspect swaps materials only at P without restarting 
   assert.equal(f.assets.skinSwaps.length, 1)
   assert.equal(f.assets.instances.length, 1)
   assert.equal(f.weapons.snapshot().view.skinId, 'sakura')
+})
+
+test('skin selection survives shop replacement and is restored when the player is recreated', async (t) => {
+  const values = new Map()
+  const storage = {
+    getItem: key => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+  }
+  const preferences = () => createSkinPreferences({
+    getStorage: () => storage,
+  })
+  const f = setup(t, {
+    ghost: true,
+    purchaseSlots: { classic: 'secondary', ghost: 'secondary', phantom: 'primary' },
+    skinPreferences: preferences(),
+  })
+  await f.ready()
+  f.fixed({ type: 'setSkin', instanceId: 'pistol', skinId: 'sakura' })
+  await f.assets.resolve('classic')
+  f.motion()
+  f.fixed()
+  f.motion(f.tick * h)
+  assert.equal(JSON.parse(values.get(skinPreferencesStorageKey)).classic, 'sakura')
+
+  f.fixed({ type: 'setSkin', instanceId: 'pistol', skinId: 'missing' })
+  await f.assets.reject('classic')
+  f.fixed()
+  assert.equal(JSON.parse(values.get(skinPreferencesStorageKey)).classic, 'sakura')
+
+  const scopeId = f.weapons.readArmory().scopeId
+  assert.equal(f.weapons.requestArmorySelection({ scopeId, requestId: 1, definitionId: 'ghost' }).accepted, true)
+  f.fixed()
+  await f.assets.resolve('ghost')
+  f.motion()
+  f.advance(60)
+  f.motion(f.tick * h)
+  assert.equal(f.weapons.readArmory().request.status, 'ready')
+  assert.equal(f.weapons.requestArmorySelection({ scopeId, requestId: 2, definitionId: 'classic' }).accepted, true)
+  f.fixed()
+  assert.equal(f.assets.requests.at(-1).request.skinId, 'sakura')
+  await f.assets.resolve('classic')
+  f.motion()
+  f.advance(20)
+  f.motion(f.tick * h)
+  assert.equal(f.weapons.readArmory().request.status, 'ready')
+  assert.equal(f.weapons.snapshot().view.skinId, 'sakura')
+
+  const restored = setup(t, {
+    skinPreferences: preferences(),
+  })
+  await restored.ready()
+  assert.equal(restored.assets.requests[0].request.skinId, 'sakura')
+  assert.equal(restored.weapons.snapshot().view.skinId, 'sakura')
 })
 
 test('late skin completions, failed requests and choosing the original skin cannot overwrite the newest intent', async (t) => {

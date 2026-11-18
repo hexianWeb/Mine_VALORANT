@@ -172,6 +172,7 @@ export class PlayerWeapons {
   #armory
   #shotSource = null
   #onShotResolved
+  #skinPreferences
 
   constructor({
     assets,
@@ -205,7 +206,9 @@ export class PlayerWeapons {
     meleeSlot = null,
     onShotResolved = null,
     ammoPolicy = 'finite',
+    skinPreferences = null,
   }) {
+    this.#skinPreferences = skinPreferences
     this.#controller = new EquipmentController({
       definitions,
       loadout,
@@ -214,6 +217,7 @@ export class PlayerWeapons {
       ammoPolicy,
       purchaseSlots,
       meleeSlot,
+      skinSelections: skinPreferences?.read(),
     })
     this.#definitions = new Map(definitions.map(definition => [definition.id, definition]))
     this.#equipment = this.#controller.readFrameState()
@@ -380,6 +384,10 @@ export class PlayerWeapons {
     const aimHeld = pose.aimHeld ?? this.#aimHeld
     this.#armory.beforeFixed(command => this.#controller.queue(command))
     const batch = this.#controller.step(context, { aimHeld })
+    for (const event of batch.events) {
+      if (event.type === 'SkinChanged')
+        this.#skinPreferences?.set(event.payload.definitionId, event.payload.skinId)
+    }
     const equipment = this.#controller.readFrameState()
     const definition = this.#definitions.get(equipment.activeDefinitionId)
     const recovering = this.#scopeRecovery && this.#scopeRecovery.instanceId === equipment.activeId

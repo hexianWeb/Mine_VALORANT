@@ -11,6 +11,7 @@ import { rangePurchaseSlots } from '../weapons/armory-catalog.js'
 import { WeaponAssets } from '../weapons/assets/weapon-assets.js'
 import { classicDefinition } from '../weapons/definitions/classic.js'
 import { rangeLoadout } from '../weapons/player-weapons.js'
+import { createSkinPreferences } from '../weapons/skin-preferences.js'
 import { loadRoomAssets } from './assets/room-assets.js'
 import { mountRoomChallenges } from './challenges/room-challenges.js'
 import { loadCollisionLayer } from './collision.js'
@@ -205,6 +206,9 @@ export class RangeRoomLevel extends Level {
             }))
             this.#weaponAssets = assets
             assets.setReflectionEnabled(this.lights.root.visible)
+            const skinPreferences = createSkinPreferences({
+              getStorage: () => this.render.renderer.domElement?.ownerDocument?.defaultView?.localStorage,
+            })
             weapons = {
               assets,
               scene,
@@ -217,12 +221,17 @@ export class RangeRoomLevel extends Level {
               loadout: rangeLoadout,
               purchaseSlots: rangePurchaseSlots,
               meleeSlot: 'tertiary',
+              skinPreferences,
               armoryAccess: () => this.challenge?.armoryRestriction(),
               onShotResolved: (result, context) => this.challenge?.onShotResolved(result, context),
             }
             // Prewarm shared data only. VisualPrepared requires motion ticks after load completes.
             const initial = classicDefinition.assets
-            await assets.load({ weaponId: initial.modelId, assetVersion: initial.assetVersion, skinId: initial.defaultSkinId }).catch((error) => {
+            const savedSkinId = skinPreferences.read()[classicDefinition.id]
+            const initialSkinId = initial.skinIds.includes(savedSkinId)
+              ? savedSkinId
+              : initial.defaultSkinId
+            await assets.load({ weaponId: initial.modelId, assetVersion: initial.assetVersion, skinId: initialSkinId }).catch((error) => {
               token.throwIfAborted()
               console.error('[Range room] Initial weapon unavailable; select its slot to retry', error)
             })

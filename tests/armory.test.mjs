@@ -240,6 +240,61 @@ test('range purchases replace only their category after preparation and survive 
   assert.equal(state().inventory.weapons[0].magazine, 24)
 })
 
+test('repurchasing each weapon uses its last committed skin, including after respawn', (t) => {
+  const instant = definitions.map(definition => createWeaponDefinition({
+    ...definition,
+    equip: { draw: 0, holster: 0 },
+  }))
+  const controller = new EquipmentController({
+    definitions: instant,
+    loadout: rangeLoadout,
+    initialSlot: 'secondary',
+    purchaseSlots: rangePurchaseSlots,
+    meleeSlot: 'tertiary',
+  })
+  t.after(() => controller.dispose())
+  let tick = 0
+  const step = (...commands) => {
+    for (const command of commands) controller.queue(command)
+    return controller.step({ fixedTick: ++tick, fixedElapsed: tick * h, fixedDelta: h })
+  }
+  const prepare = ticket => step({ type: 'prepared', ticket })
+  const setSkin = (instanceId, skinId) => {
+    const effect = step({ type: 'setSkin', instanceId, skinId }).effects.find(entry => entry.type === 'PrepareSkin')
+    assert.ok(effect)
+    return step({ type: 'skinPrepared', ticket: effect.ticket })
+  }
+  const purchase = (definitionId, instanceId, expectedSkin) => {
+    const batch = step({
+      type: 'purchase',
+      definitionId,
+      instanceId,
+      slotId: 'secondary',
+    })
+    const effect = batch.effects.find(entry => entry.type === 'PrepareWeapon')
+    assert.equal(effect.weapon.skinId, expectedSkin, 'the selected skin must be used to prepare the visual')
+    prepare(effect.ticket)
+    assert.equal(controller.readSlot('secondary').skinId, expectedSkin)
+  }
+  prepare(step().effects.find(entry => entry.type === 'PrepareWeapon').ticket)
+  setSkin('pistol', 'sakura')
+  const failed = step({ type: 'setSkin', instanceId: 'pistol', skinId: 'smite' }).effects[0].ticket
+  step({ type: 'skinFailed', ticket: failed, message: 'missing' })
+  purchase('ghost', 'ghost-1', ghostDefinition.assets.defaultSkinId)
+  const ghostSkin = ghostDefinition.assets.skinIds.find(id => id !== ghostDefinition.assets.defaultSkinId)
+  assert.ok(ghostSkin)
+  setSkin('ghost-1', ghostSkin)
+  purchase('classic', 'classic-2', 'sakura')
+
+  controller.reset()
+  assert.equal(controller.readSlot('secondary').skinId, 'sakura')
+  prepare(step().effects.find(entry => entry.type === 'PrepareWeapon').ticket)
+  purchase('ghost', 'ghost-2', ghostSkin)
+  setSkin('ghost-2', ghostDefinition.assets.defaultSkinId)
+  purchase('classic', 'classic-3', 'sakura')
+  purchase('ghost', 'ghost-3', ghostDefinition.assets.defaultSkinId)
+})
+
 test('selection waits for fixed commit; displayed equipment and completion wait for P without gating gameplay on P', (t) => {
   const f = setup(t)
   assert.equal(f.armory.canStartChallenge(), true)
