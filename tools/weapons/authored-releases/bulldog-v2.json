@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "bulldog",
+  "assetVersion": "v2",
+  "scene": "10_BullDog",
+  "source": "skin_work_folder/bulldog_skin_work/Bulldog_Showcase.blend",
+  "sourceSha256": "25c16c077f1509b75f353f3a33ac478ff138e628961672d2c90dd7e9ef884952",
+  "texture": "skin_work_folder/bulldog_skin_work/bulldog_reload_fps_atlas.png",
+  "textureSha256": "31442dadaa0837049d8193c10992140024efb371f626ce1c91e1b423aef54d80",
+  "armReference": "public/weapons/vandal/v1/model.glb",
+  "armReferenceSha256": "b8437c96d3fe5df73ac6434ff4a8fb9501b7d34e6a2eb50ac7fc526280dd9dc2",
+  "armFitting": "authored-sleeve-stretch",
+  "temporaryAudioFrom": "vandal",
+  "adsZoom": 1.25,
+  "actions": {
+    "idle": "idle",
+    "draw": "draw",
+    "holster": "put_away",
+    "fire": "shoot",
+    "fireAds": "shoot_aim",
+    "reloadTactical": "reload_tactical",
+    "reloadEmpty": "reload_empty",
+    "inspect": "inspect",
+    "aimStart": "aim_start",
+    "aim": "aim",
+    "aimEnd": "aim_end"
+  }
+}

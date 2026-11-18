@@ -79,6 +79,19 @@ async function writeCache(file, key, report) {
   }
 }
 
+async function readPreviewPoseSamples(directory, { provenance }) {
+  try {
+    const audit = JSON.parse(await readFile(path.join(directory, 'source-audit.json'), 'utf8'))
+    return audit.poseSamples ?? []
+  }
+  catch (error) {
+    // Published Blockbench packages have no Blender pose evidence. Do not waive it for candidates.
+    if (error.code === 'ENOENT' && !provenance?.preview && /^Blockbench(?: |$)/u.test(provenance?.authoring?.format ?? ''))
+      return []
+    throw error
+  }
+}
+
 /** No Blender and no browser. Fresh hashes/PNG decoding always run; only model work is cached. */
 export async function validateWeaponIteration(directory, {
   cacheRoot = 'D:/opencode-temp/opencode/weapon-validation-cache',
@@ -89,22 +102,24 @@ export async function validateWeaponIteration(directory, {
   try {
     const inspection = await timing.measure('resources-and-bindings', () => inspectWeaponPackage(directory))
     await timing.measure('decode-png', () => {
-      const images = [...inspection.textures]
-      for (const image of inspection.glb.doc.images) {
-        const view = inspection.glb.doc.bufferViews[image.bufferView]
-        images.push(inspection.glb.binary.subarray(view.byteOffset ?? 0, (view.byteOffset ?? 0) + view.byteLength))
-      }
       const decoded = new Set()
-      for (const bytes of images) {
+      const decode = (bytes, allowGlbPadding) => {
         const hash = sha256(bytes)
         if (!decoded.has(hash)) {
-          decodeAtlas(bytes)
+          decodeAtlas(bytes, { allowGlbPadding })
           decoded.add(hash)
         }
       }
+      // Validate external textures strictly before reusing a result for identical embedded bytes.
+      for (const bytes of inspection.textures)
+        decode(bytes, false)
+      const { doc, binary } = inspection.glb
+      for (const image of doc.images) {
+        const { byteOffset = 0, byteLength } = doc.bufferViews[image.bufferView]
+        decode(binary.subarray(byteOffset, byteOffset + byteLength), true)
+      }
     })
-    const audit = JSON.parse(await readFile(path.join(directory, 'source-audit.json'), 'utf8'))
-    const poseSamples = audit.poseSamples ?? []
+    const poseSamples = await readPreviewPoseSamples(directory, inspection.manifest)
     const toolchain = await timing.measure('toolchain-fingerprint', () => iterationToolchainFingerprint())
     const key = iterationModelKey(inspection.manifest, poseSamples, toolchain)
     const file = path.join(cacheRoot, `${key}.json`)

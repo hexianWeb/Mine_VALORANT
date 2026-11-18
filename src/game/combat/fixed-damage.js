@@ -8,6 +8,7 @@ export const fixedWeaponDamage = immutableFact({
   ghost: { head: 105, body: 30, legs: 25.5 },
   sheriff: { head: 159.5, body: 55, legs: 46.75 },
   phantom: { head: 156, body: 39, legs: 33.15 },
+  bulldog: { head: 115.5, body: 35, legs: 29.75 },
   vandal: { head: 160, body: 40, legs: 34 },
   judge: { head: 34, body: 17, legs: 14.45 },
   odin: { head: 95, body: 38, legs: 32.3 },

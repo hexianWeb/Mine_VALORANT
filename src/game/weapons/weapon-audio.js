@@ -1,4 +1,4 @@
-import { weaponAudioProfiles } from './definitions/audio.js'
+import { resolveWeaponAudioProfile, weaponAudioProfiles } from './definitions/audio.js'
 
 let nextOwner = 0
 
@@ -24,7 +24,7 @@ export class WeaponAudio {
     this.#definitions = new Map(definitions.map(definition => [definition.id, definition]))
     this.#profiles = profiles
     for (const definition of definitions) {
-      const profile = profiles[definition.id]
+      const profile = resolveWeaponAudioProfile(profiles, definition.id)
       if (profile)
         void assets.preloadAudio(profile).catch(error => audio.reportOnce(`bank:${definition.id}`, error))
     }
@@ -130,7 +130,7 @@ export class WeaponAudio {
   }
 
   #apply(event, h) {
-    const profile = this.#profiles[event.payload.weapon?.definitionId]
+    const profile = resolveWeaponAudioProfile(this.#profiles, event.payload.weapon?.definitionId)
     if (event.type === 'SwitchStarted')
       this.#cancel(event.instanceId, event.at)
     if (event.type === 'ReloadCancelled')

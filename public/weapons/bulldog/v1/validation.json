@@ -1,0 +1,30 @@
+{
+  "weaponId": "bulldog",
+  "clips": 30,
+  "meshes": 4,
+  "tracks": 569,
+  "stepTracks": 9,
+  "poseSamples": 9,
+  "maxPoseBoundsError": 0.000006905765014497689,
+  "gltfIssues": {
+    "numErrors": 0,
+    "numWarnings": 0,
+    "numInfos": 2,
+    "numHints": 0,
+    "messages": [
+      {
+        "code": "NODE_EMPTY",
+        "message": "Empty node encountered.",
+        "severity": 2,
+        "pointer": "/nodes/0"
+      },
+      {
+        "code": "NODE_EMPTY",
+        "message": "Empty node encountered.",
+        "severity": 2,
+        "pointer": "/nodes/18"
+      }
+    ],
+    "truncated": false
+  }
+}

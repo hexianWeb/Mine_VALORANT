@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import test from 'node:test'
 import { createArmoryCatalog, rangePurchaseSlots } from '../src/game/weapons/armory-catalog.js'
+import { bulldogDefinition } from '../src/game/weapons/definitions/bulldog.js'
 import { classicDefinition } from '../src/game/weapons/definitions/classic.js'
 import { ghostDefinition } from '../src/game/weapons/definitions/ghost.js'
 import { judgeDefinition } from '../src/game/weapons/definitions/judge.js'
@@ -24,6 +25,7 @@ const definitions = [
   sheriffDefinition,
   judgeDefinition,
   odinDefinition,
+  bulldogDefinition,
   karambitDefinition,
 ]
 const h = 1 / 60
@@ -127,6 +129,11 @@ test('range purchases replace only their category after preparation and survive 
     meleeSlot: 'tertiary',
   })
   const catalog = createArmoryCatalog({ definitions: instant, purchaseSlots: rangePurchaseSlots })
+  const bulldog = catalog.find(entry => entry.id === 'bulldog')
+  assert.equal(bulldog.slotId, 'primary')
+  assert.equal(bulldog.shortcut, '1')
+  assert.equal(bulldog.provisional, true)
+  assert.equal(bulldog.stats.capacity, 24)
   const armory = new PracticeArmory({
     catalog,
     equipment: controller.readFrameState(),
@@ -203,6 +210,11 @@ test('range purchases replace only their category after preparation and survive 
   prepare()
   assert.equal(state().activeId, ghostId)
   assert.deepEqual(slots(), ['vandal', 'ghost', 'karambit'])
+  assert.equal(choose('bulldog').accepted, true)
+  step()
+  prepare()
+  assert.deepEqual(slots(), ['bulldog', 'ghost', 'karambit'])
+  assert.equal(state().inventory.weapons[0].magazine, 24)
 })
 
 test('selection waits for fixed commit; displayed equipment and completion wait for P without gating gameplay on P', (t) => {

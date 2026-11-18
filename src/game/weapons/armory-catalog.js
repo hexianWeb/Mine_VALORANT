@@ -26,6 +26,13 @@ const entries = [
     shortcut: '1',
   },
   {
+    id: 'bulldog',
+    name: '獠犬',
+    category: 'rifles',
+    shortcut: '1',
+    provisional: true,
+  },
+  {
     id: 'vandal',
     name: '暴徒',
     category: 'rifles',

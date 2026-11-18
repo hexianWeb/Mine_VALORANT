@@ -6,7 +6,7 @@ import { AudioSystem } from '../src/engine/runtime/function/audio/audio-system.j
 import { loaders } from '../src/engine/runtime/resource/loader/loaders.js'
 import { ResourceManager } from '../src/engine/runtime/resource/resource-manager.js'
 import { WeaponAssets } from '../src/game/weapons/assets/weapon-assets.js'
-import { weaponAudioProfiles } from '../src/game/weapons/definitions/audio.js'
+import { resolveWeaponAudioProfile, weaponAudioProfiles } from '../src/game/weapons/definitions/audio.js'
 import { classicDefinition } from '../src/game/weapons/definitions/classic.js'
 import { karambitDefinition } from '../src/game/weapons/definitions/karambit.js'
 import { WeaponAudio } from '../src/game/weapons/weapon-audio.js'
@@ -23,6 +23,13 @@ test('all configured local sound inputs match the supplied Ogg files; reload ali
       assert.ok(descriptor.gain < 0.5)
     }
   }
+})
+
+test('Bulldog temporarily resolves the same Vandal audio bank without reserving duplicate cue IDs', () => {
+  assert.equal(resolveWeaponAudioProfile(weaponAudioProfiles, 'bulldog'), weaponAudioProfiles.vandal)
+  assert.equal(resolveWeaponAudioProfile(weaponAudioProfiles, 'unconfigured'), undefined)
+  const local = Object.freeze({ cues: {} })
+  assert.equal(resolveWeaponAudioProfile({ ...weaponAudioProfiles, bulldog: local }, 'bulldog'), local)
 })
 
 test('AudioBank coalesces decoding and preserves successful siblings on failure; retries reuse shared bytes', async (t) => {

@@ -9,6 +9,14 @@ const fieldHeight = 170
 // These material-only releases reuse the exact same viewmodel GLBs.
 const sightAliases = { 'odin/v2': 'odin/v1', 'phantom/v4': 'phantom/v3' }
 const sights = {
+  'bulldog/v4': {
+    socketRole: 'sight',
+    // Relative to the Blender locator: center the brackets in the v4 ADS view,
+    // ahead of the stock at camera-space z = -0.40, matching the 720p reference.
+    center: [0.03305, 0.76127, 0.01674],
+    rotationX: -Math.PI / 2,
+    unitsPerPixel: 0.0006224,
+  },
   'odin/v1': {
     center: [0, 0.0766, 0.001],
     unitsPerPixel: 0.000778,
@@ -97,19 +105,21 @@ function projectionMaterial(aim) {
   return material
 }
 
-export function createWeaponSight(root, { weaponId, assetVersion }) {
+export function createWeaponSight(root, { weaponId, assetVersion, manifest }) {
   const key = `${weaponId}/${assetVersion}`
   const profile = sights[sightAliases[key] ?? key]
   if (!profile)
     return null
-  const socket = root.getObjectByName(sightMount)
-  if (!socket?.isBone)
-    throw new Error(`[WeaponAssets] Missing sight mount: ${sightMount}`)
+  const mount = profile.socketRole ? manifest?.sockets?.[profile.socketRole] : sightMount
+  const socket = mount && root.getObjectByName(mount)
+  if (!socket || socket.isMesh || (!profile.socketRole && !socket.isBone))
+    throw new Error(`[WeaponAssets] Missing sight mount: ${mount ?? profile.socketRole}`)
 
   const { center, unitsPerPixel } = profile
   const sight = new Group()
   sight.name = 'Procedural weapon sight'
   sight.position.fromArray(center)
+  sight.rotation.x = profile.rotationX ?? 0
   const aim = uniform(0)
   const owned = new Disposer()
   try {

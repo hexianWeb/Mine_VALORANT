@@ -91,3 +91,13 @@ export const weaponAudioProfiles = Object.freeze({
   odin: profile('odin'),
   karambit: meleeProfile('karambit'),
 })
+
+// Temporary aliases share the donor cue IDs, decoded buffers and URL/hash checks.
+const borrowedAudio = Object.freeze({ bulldog: 'vandal' })
+
+export function resolveWeaponAudioProfile(profiles, definitionId) {
+  if (Object.hasOwn(profiles, definitionId))
+    return profiles[definitionId]
+  if (Object.hasOwn(borrowedAudio, definitionId))
+    return profiles[borrowedAudio[definitionId]]
+}

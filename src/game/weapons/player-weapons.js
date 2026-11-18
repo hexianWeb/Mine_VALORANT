@@ -1,6 +1,7 @@
 import { Quaternion, Vector3 } from 'three/webgpu'
 import { intersectRayBox } from '../../engine/runtime/function/physics/ray-box.js'
 import { createArmoryCatalog } from './armory-catalog.js'
+import { bulldogDefinition } from './definitions/bulldog.js'
 import { classicDefinition } from './definitions/classic.js'
 import { ghostDefinition } from './definitions/ghost.js'
 import { judgeDefinition } from './definitions/judge.js'
@@ -186,6 +187,7 @@ export class PlayerWeapons {
       sheriffDefinition,
       judgeDefinition,
       odinDefinition,
+      bulldogDefinition,
       karambitDefinition,
     ],
     loadout = practiceLoadout,

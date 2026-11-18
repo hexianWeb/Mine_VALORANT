@@ -6,7 +6,7 @@ import test from 'node:test'
 import { checkWeaponIteration } from '../tools/weapons/check-iteration.mjs'
 import { decodeAtlas, encodeAtlas } from '../tools/weapons/gun-atlas.mjs'
 import { iterationModelKey, iterationToolchainFingerprint, validateWeaponIteration } from '../tools/weapons/iteration-validation.mjs'
-import { sha256, validateWeaponPackage } from '../tools/weapons/package-validation.mjs'
+import { inspectWeaponPackage, sha256, validateWeaponPackage } from '../tools/weapons/package-validation.mjs'
 import { publishOptimizedWeapon } from '../tools/weapons/publish-optimized.mjs'
 import { createWorkflowTiming } from '../tools/weapons/workflow-timing.mjs'
 
@@ -58,6 +58,42 @@ test('preview samples only representative actions and reuses unchanged model wor
   assert.ok(!warm.timings.stages.some(stage => stage.name === 'model-preview-checks'))
   assert.ok(warm.timings.stages.some(stage => stage.name === 'resources-and-bindings'))
   assert.ok(warm.timings.stages.some(stage => stage.name === 'decode-png'))
+})
+
+const karambitPackage = 'public/weapons/karambit/v3'
+
+test('Karambit v3 passes quick checks without a Blender pose audit', async () => {
+  const report = await checkWeaponIteration([karambitPackage, '--no-cache'])
+  assert.equal(report.weaponId, 'karambit')
+  assert.equal(report.meshes, 2)
+  assert.equal(report.poseSamples, 0)
+  assert.equal(report.publishable, false)
+  assert.ok(report.timings.stages.some(stage => stage.name === 'decode-png' && stage.passed))
+})
+
+test('only embedded PNGs may end with zero bytes to the next four-byte boundary', async () => {
+  const { glb } = await inspectWeaponPackage(karambitPackage)
+  const { byteOffset = 0, byteLength } = glb.doc.bufferViews[glb.doc.images[0].bufferView]
+  const padded = glb.binary.subarray(byteOffset, byteOffset + byteLength)
+  const options = { allowGlbPadding: true }
+  assert.equal(decodeAtlas(padded, options).width, 256)
+  assert.throws(() => decodeAtlas(padded), /after IEND/)
+  const malformed = Buffer.from(padded)
+  malformed[malformed.length - 1] = 1
+  assert.throws(() => decodeAtlas(malformed, options), /after IEND/)
+  assert.throws(() => decodeAtlas(padded.subarray(0, -1), options), /after IEND/)
+  const extraPadding = Buffer.concat([
+    padded,
+    Buffer.alloc(4),
+  ])
+  assert.throws(() => decodeAtlas(extraPadding, options), /after IEND/)
+})
+
+test('a Blender package with a missing pose audit still fails the quick check', async (t) => {
+  const f = await fixture(t)
+  const auditFile = path.join(f.directory, 'source-audit.json')
+  await rm(auditFile)
+  await assert.rejects(validateWeaponIteration(f.directory, f), { code: 'ENOENT', path: auditFile })
 })
 
 test('external skin-only changes reuse model checks but still decode the current pixels', async (t) => {

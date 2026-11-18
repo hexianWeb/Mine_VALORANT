@@ -1,4 +1,5 @@
 export { WeaponAssets } from './assets/weapon-assets.js'
+export { bulldogDefinition, bulldogGameplayProvenance } from './definitions/bulldog.js'
 export { classicDefinition } from './definitions/classic.js'
 export { ghostDefinition, ghostGameplayProvenance } from './definitions/ghost.js'
 export { judgeDefinition, judgeGameplayProvenance } from './definitions/judge.js'

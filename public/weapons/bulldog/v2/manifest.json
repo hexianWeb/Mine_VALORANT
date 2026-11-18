@@ -1,0 +1,310 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "bulldog",
+  "assetVersion": "v2",
+  "defaultSkinId": "original",
+  "model": {
+    "url": "model.glb",
+    "bytes": 625220,
+    "sha256": "9b3b5cc0a68e30c1edc099ea8227e9ea1fae8057d4d79e3a3c06af68917d03ce"
+  },
+  "compatibility": {
+    "rig": "684c700328c2788449606acf1264ab30d96a61fc3f53cfaf65a0485276e69869",
+    "geometryUV": "ad6f575935f93e61b0262c2b312f4edbf1feb4e35712d34e5977e3f166ec4eb1",
+    "clipSet": "dc0c89cb6b3cdace0169e696ee4f6f67942e21e625bdc8983be4eb6f3e54a9cb"
+  },
+  "view": {
+    "unitsPerMeter": 1,
+    "up": "Y",
+    "forward": "-Z",
+    "mountOffset": [
+      0.5690000057220459,
+      -0.7549999952316284,
+      -1.559999942779541
+    ],
+    "verticalFov": 70.00000207272562,
+    "aimVerticalFov": 58.51213716287393,
+    "source": "10_BullDog Camera_FP"
+  },
+  "meshes": [
+    "Weapon_Body",
+    "Weapon_Magazine",
+    "Arms_Left",
+    "Arms_Right"
+  ],
+  "armContract": {
+    "version": 1,
+    "textureSha256": "2c041879daf6509fe3da88a8e1b857e4b9a7c9b67279d012382f5f03529750e9"
+  },
+  "materials": {
+    "weapon": [
+      "Weapon_Skin"
+    ],
+    "armsLeft": [
+      "Character_Left"
+    ],
+    "armsRight": [
+      "Character_Right"
+    ]
+  },
+  "sockets": {
+    "muzzle": "muzzle_tip",
+    "sight": "sight_line"
+  },
+  "clips": [
+    {
+      "name": "ads_down",
+      "duration": 0.6,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "ads_up",
+      "duration": 0.6,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim",
+      "duration": 1.4,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim_end",
+      "duration": 0.26666666666666666,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim_start",
+      "duration": 0.26666666666666666,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "crouch_idle",
+      "duration": 2.6,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "crouch_walk",
+      "duration": 1.3,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "draw",
+      "duration": 1.0333333333333334,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "idle",
+      "duration": 4.6,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "inspect",
+      "duration": 3.8,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "jump_land",
+      "duration": 0.8,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "put_away",
+      "duration": 0.4,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "reload_empty",
+      "duration": 2.6,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "reload_tactical",
+      "duration": 2.2666666666666666,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run",
+      "duration": 0.8,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_end",
+      "duration": 0.5,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_hold",
+      "duration": 1.2666666666666666,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_start",
+      "duration": 0.36666666666666664,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "shoot",
+      "duration": 0.3,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "shoot_aim",
+      "duration": 0.3,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide",
+      "duration": 0.7333333333333333,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide_back",
+      "duration": 0.8333333333333334,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide_idle",
+      "duration": 1.4,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "static_idle",
+      "duration": 0.3333333333333333,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_aiming",
+      "duration": 1.2,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_backward",
+      "duration": 1.1666666666666667,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_forward",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_left",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_right",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_sideway",
+      "duration": 1.0666666666666667,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    }
+  ],
+  "actions": {
+    "idle": "idle",
+    "draw": "draw",
+    "holster": "put_away",
+    "fire": "shoot",
+    "fireAds": "shoot_aim",
+    "reloadTactical": "reload_tactical",
+    "reloadEmpty": "reload_empty",
+    "inspect": "inspect",
+    "aimStart": "aim_start",
+    "aim": "aim",
+    "aimEnd": "aim_end"
+  },
+  "requiredActions": [
+    "idle",
+    "draw",
+    "holster",
+    "fire",
+    "fireAds",
+    "reloadTactical",
+    "reloadEmpty",
+    "inspect",
+    "aimStart",
+    "aim",
+    "aimEnd"
+  ],
+  "skins": {
+    "original": {
+      "url": "skins/original.json",
+      "bytes": 843,
+      "sha256": "3d1344cbb86a7440e0228dd8c399a7b73541c5670b0188a3bc854a4830f949f9"
+    }
+  },
+  "provenance": {
+    "authoring": {
+      "format": "Blender from Blockbench",
+      "scene": "10_BullDog",
+      "sha256": "25c16c077f1509b75f353f3a33ac478ff138e628961672d2c90dd7e9ef884952"
+    },
+    "armReferenceSha256": "b8437c96d3fe5df73ac6434ff4a8fb9501b7d34e6a2eb50ac7fc526280dd9dc2",
+    "armFitting": "authored-sleeve-stretch",
+    "temporaryAudioFrom": "vandal",
+    "recipeSha256": "6dfeb7417785bac4bc157a20cfbfb94ce7288c1b8fa3b20ce2b7b9734947779e"
+  }
+}

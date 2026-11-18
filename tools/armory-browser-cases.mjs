@@ -18,11 +18,11 @@ export async function checkArmory({ browser, press, click, screenshot, record, q
 
   await open()
   let state = await read()
-  assert.equal(state.catalog.length, 7)
+  assert.equal(state.catalog.length, 8)
   assert.equal(await evaluate('document.querySelectorAll(".shop-column").length'), 5)
   assert.equal(await evaluate('document.querySelectorAll(".shop-category").length'), 7)
-  assert.equal(await evaluate('document.querySelectorAll(".shop-card[data-weapon]:not(:disabled)").length'), 7)
-  assert.equal(await evaluate('document.querySelectorAll(".shop-card[data-weapon][data-unavailable]:disabled").length'), 13)
+  assert.equal(await evaluate('document.querySelectorAll(".shop-card[data-weapon]:not(:disabled)").length'), 8)
+  assert.equal(await evaluate('document.querySelectorAll(".shop-card[data-weapon][data-unavailable]:disabled").length'), 12)
   assert.equal(await evaluate('[...document.querySelectorAll(".shop-card img")].every(image => image.complete && image.naturalWidth > 0)'), true)
   assert.equal(await evaluate('document.querySelector(".shop-details").getBoundingClientRect().left > document.querySelector(".shop-catalog").getBoundingClientRect().left'), true)
   assert.equal(await evaluate('/99,999|购买护甲|队友请求/.test(document.querySelector(".weapon-shop").textContent)'), false)
@@ -38,22 +38,22 @@ export async function checkArmory({ browser, press, click, screenshot, record, q
   assert.equal(state.presentedDefinitionId, beforeCandidate)
   assert.equal(state.request, null)
   assert.equal(await evaluate('document.querySelector("[data-detail-id]").textContent'), 'ODIN')
-  record('armory: five columns, thirteen disabled weapons, selectable armor and independent candidate details')
+  record('armory: five columns, twelve disabled weapons, selectable armor and independent candidate details')
   await screenshot('shop-desktop.png')
 
   await evaluate('document.querySelector(\'.shop-card[data-weapon="classic"]\').focus()')
   await press('ArrowRight', 39)
   assert.equal(await evaluate('document.activeElement.dataset.weapon'), 'judge')
   await press('ArrowRight', 39)
-  assert.equal(await evaluate('document.activeElement.dataset.weapon'), 'phantom')
+  assert.equal(await evaluate('document.activeElement.dataset.weapon'), 'bulldog')
   await press('Enter', 13)
   await browser.frames(2)
-  assert.equal((await read()).request?.definitionId, 'phantom', 'keyboard activation must enqueue a selection')
-  await ready('phantom')
+  assert.equal((await read()).request?.definitionId, 'bulldog', 'keyboard activation must enqueue a selection')
+  await ready('bulldog')
   await browser.frames(2)
-  assert.equal((await read()).presentedDefinitionId, 'phantom')
+  assert.equal((await read()).presentedDefinitionId, 'bulldog')
   assert.equal(await evaluate('document.querySelector(".weapon-shop").open'), true)
-  const seen = new Set(['classic', 'phantom'])
+  const seen = new Set(['classic', 'bulldog'])
   record('armory: keyboard grid/Enter selects through real fixed preparation and stays open')
 
   // Fail a real resource request once. This is not a fabricated challenge or direct inventory edit.
@@ -83,7 +83,7 @@ export async function checkArmory({ browser, press, click, screenshot, record, q
   }
   state = await read()
   assert.ok(failures.length > 0, 'fixture must actually interrupt a cold weapon request')
-  assert.equal(state.presentedDefinitionId, 'phantom')
+  assert.equal(state.presentedDefinitionId, 'bulldog')
   assert.equal(await evaluate(`${weapons}.snapshot().canFire`), true)
   assert.match(await evaluate('document.querySelector(".shop-feedback").textContent'), /失败/)
   await screenshot('shop-failure.png')
@@ -113,12 +113,12 @@ export async function checkArmory({ browser, press, click, screenshot, record, q
   record('armory: Esc closes only the shop; accepted selection completes while closed')
 
   if (!quick) {
-    for (const slotId of ['sheriff', 'vandal']) {
+    for (const slotId of ['sheriff', 'phantom', 'vandal']) {
       await select(slotId)
       seen.add(slotId)
     }
-    assert.equal(seen.size, 7)
-    record('armory: all seven weapons are obtainable through the three-slot armory')
+    assert.equal(seen.size, 8)
+    record('armory: all eight weapons are obtainable through the three-slot armory')
   }
   await assertInventory()
 

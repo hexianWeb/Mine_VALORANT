@@ -1,6 +1,7 @@
 import * as THREE from 'three/webgpu'
 import { ResourceManager } from '../engine/runtime/resource/resource-manager.js'
 import { WeaponAssets } from '../game/weapons/assets/weapon-assets.js'
+import { bulldogDefinition } from '../game/weapons/definitions/bulldog.js'
 import { classicDefinition } from '../game/weapons/definitions/classic.js'
 import { ghostDefinition } from '../game/weapons/definitions/ghost.js'
 import { judgeDefinition } from '../game/weapons/definitions/judge.js'
@@ -42,6 +43,7 @@ const definitions = {
   sheriff: sheriffDefinition,
   judge: judgeDefinition,
   odin: odinDefinition,
+  bulldog: bulldogDefinition,
   karambit: karambitDefinition,
 }
 let active = null
@@ -83,7 +85,12 @@ async function sample(weaponId, role, time = 0) {
     role = 'idle'
   for (const other of entries.values()) other.anchor.visible = other === entry
   active = entry
-  camera.fov = entry.handle.manifest.view.verticalFov
+  const ads = role === 'aim' || role === 'fireAds'
+  const { view } = entry.handle.manifest
+  entry.instance.sight?.setAim(ads ? 1 : 0)
+  camera.fov = ads
+    ? view.aimVerticalFov ?? view.verticalFov
+    : view.verticalFov
   camera.updateProjectionMatrix()
   entry.instance.player.play(role, { restart: true, fade: 0 })
   const events = entry.instance.player.advance(time)

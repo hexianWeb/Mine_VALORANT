@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "bulldog",
+  "assetVersion": "v2",
+  "skinId": "original",
+  "compatibility": {
+    "rig": "684c700328c2788449606acf1264ab30d96a61fc3f53cfaf65a0485276e69869",
+    "geometryUV": "ad6f575935f93e61b0262c2b312f4edbf1feb4e35712d34e5977e3f166ec4eb1",
+    "clipSet": "dc0c89cb6b3cdace0169e696ee4f6f67942e21e625bdc8983be4eb6f3e54a9cb"
+  },
+  "materials": {
+    "weapon": {
+      "map": {
+        "url": "../textures/31442dadaa0837049d8193c10992140024efb371f626ce1c91e1b423aef54d80.png",
+        "bytes": 26536,
+        "sha256": "31442dadaa0837049d8193c10992140024efb371f626ce1c91e1b423aef54d80",
+        "width": 256,
+        "height": 256,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    }
+  }
+}

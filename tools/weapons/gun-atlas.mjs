@@ -40,7 +40,7 @@ function paeth(a, b, c) {
 }
 
 /** Narrow, lossless PNG codec: noninterlaced 8-bit RGB/RGBA; reject other encodings. */
-export function decodeAtlas(bytes) {
+export function decodeAtlas(bytes, { allowGlbPadding = false } = {}) {
   assert.ok(bytes.subarray(0, 8).equals(signature), 'Expected PNG')
   const compressed = []
   const metadata = []
@@ -77,8 +77,13 @@ export function decodeAtlas(bytes) {
     }
     else if (type === 'IEND') {
       assert.equal(length, 0)
-      assert.equal(offset + 12, bytes.length)
+      const end = offset + 12
+      const trailing = bytes.length - end
+      // Some exporters include the BIN alignment bytes in the embedded image's bufferView.
+      assert.ok(trailing === 0 || (allowGlbPadding && trailing <= 3
+        && bytes.length % 4 === 0 && bytes.subarray(end).every(byte => byte === 0)), 'Unexpected bytes after IEND')
       ended = true
+      break
     }
     else {
       assert.ok(!['acTL', 'tRNS'].includes(type), 'Animated PNG or implicit transparency is unsupported')
