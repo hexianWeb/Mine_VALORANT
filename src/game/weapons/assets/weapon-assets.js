@@ -190,16 +190,19 @@ export class WeaponAssets {
   #manifests = new Map()
   // The first validated package owns the map; all contract-compatible weapons borrow it.
   #armMaps = new Map()
+  #armAppearance
+  #armAppearanceTask = null
   #reflectionTexture
   #reflectionIntensity = indoorReflectionIntensity
 
-  constructor({ resources, scopeId, baseUrl = '/weapons/', signal, audio = null, reflectionTexture = null } = {}) {
+  constructor({ resources, scopeId, baseUrl = '/weapons/', signal, audio = null, reflectionTexture = null, armAppearance = null } = {}) {
     identifier(scopeId, 'scopeId')
     if (!resources || !['load', 'get', 'instantiate', 'unload'].every(key => typeof resources[key] === 'function'))
       throw new TypeError('[WeaponAssets] Expected a ResourceManager')
     identifier(baseUrl, 'baseUrl')
     this.#resources = resources
     this.#audio = audio
+    this.#armAppearance = armAppearance
     this.#reflectionTexture = reflectionTexture
     this.#baseUrl = baseUrl.endsWith('/')
       ? baseUrl
@@ -302,6 +305,28 @@ export class WeaponAssets {
     return texture
   }
 
+  async #loadArmAppearance() {
+    if (!this.#armAppearanceTask) {
+      const appearance = this.#armAppearance
+      this.#armAppearanceTask = this.#loadEntry({
+        name: `${this.#prefix}:character-arms:${appearance.id}`,
+        type: 'texture',
+        url: appearance.url,
+        options: { colorSpace: skinTextureSettings.colorSpace },
+      }).then((texture) => {
+        if (texture.image?.width !== appearance.width || texture.image?.height !== appearance.height)
+          throw new Error('[WeaponAssets] Character arm texture dimensions do not match its layout')
+        Object.assign(texture, skinTextureSettings)
+        texture.needsUpdate = true
+        return texture
+      }).catch((error) => {
+        this.#armAppearanceTask = null
+        throw error
+      })
+    }
+    return this.#armAppearanceTask
+  }
+
   async #loadShared(request) {
     const packageKey = `${this.#prefix}:${JSON.stringify([request.weaponId, request.assetVersion])}`
     const manifestURL = resolveURL(`${encodeURIComponent(request.weaponId)}/${encodeURIComponent(request.assetVersion)}/manifest.json`, this.#baseUrl)
@@ -312,7 +337,7 @@ export class WeaponAssets {
       throw new Error('[WeaponAssets] Missing model or requested skin')
     const skinURL = resolveURL(skinEntry.url, manifestURL)
     const modelKey = `${packageKey}:model`
-    const [gltf, skin] = await Promise.all([
+    const [gltf, skin, appearanceMap] = await Promise.all([
       this.#loadEntry({
         name: modelKey,
         type: 'gltf',
@@ -320,6 +345,9 @@ export class WeaponAssets {
         options: { sha256: manifest.model.sha256 },
       }),
       this.#loadEntry({ name: `${packageKey}:skin:${request.skinId}`, type: 'json', url: skinURL }),
+      this.#armAppearance?.supports(request, manifest)
+        ? this.#loadArmAppearance()
+        : null,
     ])
     validateSkin(manifest, skin, request)
     const { actions, locomotion } = profileFrom(manifest)
@@ -415,6 +443,7 @@ export class WeaponAssets {
       materialRoles,
       sharedArmMap,
       armMaterialNames,
+      appearanceMap,
     })
     this.#manifests.set(`${request.weaponId}:${request.assetVersion}`, manifest)
     return handle
@@ -429,6 +458,7 @@ export class WeaponAssets {
     const root = this.#resources.instantiate(record.modelKey)
     const skeletons = new Set()
     const materials = new Map()
+    const armGeometries = new Set()
     let player
     let sight
     let released = false
@@ -445,6 +475,7 @@ export class WeaponAssets {
         () => root.removeFromParent(),
         ...Array.from(skeletons, skeleton => () => skeleton.dispose()),
         ...Array.from(materials.values(), material => () => material.dispose()),
+        ...Array.from(armGeometries, geometry => () => geometry.dispose()),
       ]) {
         try {
           release()
@@ -464,6 +495,8 @@ export class WeaponAssets {
       root.traverse((object) => {
         if (!object.material)
           return
+        const armRole = !Array.isArray(object.material) && record.materialRoles.get(object.material.name)
+        const originalArmImage = object.material.map?.image
         const cloneMaterial = (source) => {
           if (!materials.has(source)) {
             const material = source.clone()
@@ -488,6 +521,13 @@ export class WeaponAssets {
         object.material = Array.isArray(object.material)
           ? object.material.map(cloneMaterial)
           : cloneMaterial(object.material)
+        if (record.appearanceMap && ['armsLeft', 'armsRight'].includes(armRole)) {
+          const geometry = this.#armAppearance.remapGeometry(object.geometry, originalArmImage)
+          armGeometries.add(geometry)
+          object.geometry = geometry
+          object.material.map = record.appearanceMap
+          object.material.needsUpdate = true
+        }
       })
       player = new AnimationPlayer({
         root,
@@ -601,6 +641,7 @@ export class WeaponAssets {
     this.#audioCues.clear()
     this.#manifests.clear()
     this.#armMaps.clear()
+    this.#armAppearanceTask = null
     this.#reflectionTexture = null
     this.#handles = new WeakMap()
     this.#instanceRecords = new WeakMap()

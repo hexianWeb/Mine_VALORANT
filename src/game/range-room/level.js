@@ -2,6 +2,7 @@ import * as THREE from 'three/webgpu'
 import { Disposer } from '../../engine/runtime/core/disposer.js'
 import { GameObject, Level, MeshComponent, TransformComponent } from '../../engine/runtime/function/framework/index.js'
 import { createEnvironmentProxy } from '../../engine/runtime/function/render/sky-environment.js'
+import { phoenixArmAppearance } from '../player/phoenix-arm-appearance.js'
 import { PlayerFootsteps } from '../player/player-footsteps.js'
 import { createPlayer, PlayerComponent } from '../player/player.js'
 import { ShotTargets } from '../targets/shot-targets.js'
@@ -200,6 +201,7 @@ export class RangeRoomLevel extends Level {
               signal: token,
               audio: this.audio,
               reflectionTexture: this.reflection?.texture,
+              armAppearance: phoenixArmAppearance,
             }))
             this.#weaponAssets = assets
             assets.setReflectionEnabled(this.lights.root.visible)

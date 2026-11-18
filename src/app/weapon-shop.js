@@ -5,7 +5,7 @@ import armorRegen from './assets/armory/armor-regen.png'
 import phoenixFireball from './assets/armory/phoenix-fireball.png'
 import phoenixFlash from './assets/armory/phoenix-flash.png'
 import phoenixWall from './assets/armory/phoenix-wall.png'
-import phoenix from './assets/armory/phoenix.png'
+import phoenix from './assets/armory/phoenix-minecraft.png'
 import { weaponIcons } from './weapon-icons.js'
 
 // Display order follows the range shop. The runtime catalog decides what can be equipped.

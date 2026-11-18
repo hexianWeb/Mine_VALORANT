@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
+import { phoenixArmAppearance } from '../src/game/player/phoenix-arm-appearance.js'
 import { weaponAudioProfiles } from '../src/game/weapons/definitions/audio.js'
 import { vandalDefinition } from '../src/game/weapons/definitions/vandal.js'
 import { openBrowser } from './browser-session.mjs'
@@ -91,7 +92,7 @@ try {
   assert.equal(report.asset.loadedModel, true)
   assert.equal(report.asset.sharedArms, true)
   assert.equal(report.asset.hudName, 'VANDAL')
-  assert.deepEqual(report.asset.armsSize, [32, 32])
+  assert.deepEqual(report.asset.armsSize, [phoenixArmAppearance.width, phoenixArmAppearance.height])
   assert.deepEqual(report.asset.imageSize, [256, 256])
   assert.equal(report.asset.sounds, 4)
   for await (const skinId of cycleSkins(vandalDefinition)) {

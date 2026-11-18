@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
+import { phoenixArmAppearance } from '../src/game/player/phoenix-arm-appearance.js'
 import { weaponAudioProfiles } from '../src/game/weapons/definitions/audio.js'
 import { judgeDefinition } from '../src/game/weapons/definitions/judge.js'
 import { odinDefinition } from '../src/game/weapons/definitions/odin.js'
@@ -109,7 +110,7 @@ try {
     assert.equal(result.asset.hudName, id.toUpperCase())
     assert.equal(result.asset.sounds, 4)
     assert.deepEqual(result.asset.image, [originalSize, originalSize])
-    assert.deepEqual(result.asset.arms, [32, 32])
+    assert.deepEqual(result.asset.arms, [phoenixArmAppearance.width, phoenixArmAppearance.height])
     result.initialFeed = await feed()
     assert.equal(result.initialFeed.visible, window)
     for await (const skinId of cycleSkins(definition)) {

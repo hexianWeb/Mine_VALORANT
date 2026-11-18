@@ -15,7 +15,13 @@
 | 16–19 | (8,0)–(12,12) | (8,0)–(12,12) |
 | 20–23 | (0,0)–(4,12) | (0,0)–(4,12) |
 
-材质继续使用 `Character_Left` / `Character_Right`，网格使用 `Arms_Left` / `Arms_Right`，UV 层使用 `SourceUV`。武器皮肤只能替换 `weapon`/`scope`，不能覆盖手臂。GLB 内嵌一份标准 PNG 以支持独立查看；运行时在同一资源作用域中让当前七把兼容武器和左右手借用同一个纹理对象，使用 nearest、关闭 mipmap。不要以为只替换 PNG、不同时更新 UV 就能兼容旧模型。
+材质继续使用 `Character_Left` / `Character_Right`，网格使用 `Arms_Left` / `Arms_Right`，UV 层使用 `SourceUV`。武器皮肤只能替换 `weapon`/`scope`，不能覆盖手臂。GLB 内嵌一份标准 PNG 以支持独立查看；没有指定角色外观时，兼容武器和左右手在同一资源作用域中借用标准纹理对象，使用 nearest、关闭 mipmap。不要以为只替换 PNG、不同时更新 UV 就能兼容旧模型。
+
+## 靶场不死鸟角色外观 v1
+
+靶场为 `WeaponAssets` 明确选择独立角色外观 [`phoenix-arm-appearance.js`](../../src/game/player/phoenix-arm-appearance.js)，使用 [`phoenix-arms-v1.png`](../../src/game/player/assets/phoenix-arms-v1.png)。贴图参考用户提供的 64×64 Minecraft 皮肤图（SHA-256 `314212583d2d9ac0901bdcb0b33270e8502cfafaabaf0a97f5d944afb18a4a8f`），通过 ImageGen 生成；成品 PNG 为 1254×1254，SHA-256 `4ceb3373d1ef6744db436280efccb59e6e44c972fca0b9461ed8d613cbb6c9ce`。
+
+不死鸟外观在实例化时克隆手臂几何并对六个 UV 面进行映射，保留原网格、骨架和动画；左右手、兼容枪械和 `karambit/v3` 在同一资源作用域共用角色贴图。克隆几何随实例释放，贴图随资源作用域释放。已发布的标准手臂契约、GLB 和武器皮肤保持不变；未选择该角色外观的独立预览继续使用包内标准贴图。后续更换生成图时应建立新角色外观版本，并重新校准其 UV 岛坐标。
 
 ## 已处理范围与保留内容
 
