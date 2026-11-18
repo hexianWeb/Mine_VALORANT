@@ -6,6 +6,8 @@ const sightMount = 'light_scope_illuminated'
 // The reference outline spans 208 × 154 px at 720p. The plane includes room for its glow.
 const fieldWidth = 224
 const fieldHeight = 170
+// These material-only releases reuse the exact same viewmodel GLBs.
+const sightAliases = { 'odin/v2': 'odin/v1', 'phantom/v4': 'phantom/v3' }
 const sights = {
   'odin/v1': {
     center: [0, 0.0766, 0.001],
@@ -96,7 +98,8 @@ function projectionMaterial(aim) {
 }
 
 export function createWeaponSight(root, { weaponId, assetVersion }) {
-  const profile = sights[`${weaponId}/${assetVersion}`]
+  const key = `${weaponId}/${assetVersion}`
+  const profile = sights[sightAliases[key] ?? key]
   if (!profile)
     return null
   const socket = root.getObjectByName(sightMount)
@@ -124,6 +127,7 @@ export function createWeaponSight(root, { weaponId, assetVersion }) {
     throw error
   }
   return {
+    ownsBodyGeometry: !!profile.replaceReticle,
     setAim(value) { aim.value = value },
     dispose() { owned.dispose() },
   }

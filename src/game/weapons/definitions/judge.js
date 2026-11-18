@@ -38,8 +38,8 @@ export const judgeDefinition = createWeaponDefinition({
   capabilities: { ads: false },
   assets: {
     modelId: 'judge',
-    assetVersion: 'v1',
-    defaultSkinId: 'smite',
-    skinIds: ['smite', 'rush'],
+    assetVersion: 'v2',
+    defaultSkinId: 'original',
+    skinIds: ['smite', 'rush', 'original'],
   },
 })

@@ -4,13 +4,13 @@
 
 ## 游戏入口与控件
 
-Ghost 已以公开参考临时参数接入，默认 Freehand，保留四皮肤和标准手臂；精确来源与暂定项见 [Ghost 接入](ghost-integration.md)。不是原始 Ghost runtime 或 VALORANT 手感复刻。
+Ghost 已以公开参考临时参数接入，默认 Original，保留四款旧皮肤和标准手臂；精确来源与暂定项见 [Ghost 接入](ghost-integration.md)。不是原始 Ghost runtime 或 VALORANT 手感复刻。
 
-狂徒默认 Sakura，支持六款皮肤，共享手臂。全自动腰射为 9.75 发/秒，开镜为 8.775 发/秒，后坐力暂借 Phantom。[狂徒接入与临时参数](vandal-integration.md)
+狂徒默认 Original，支持六款皮肤，共享手臂。全自动腰射为 9.75 发/秒，开镜为 8.775 发/秒，后坐力暂借 Phantom。[狂徒接入与临时参数](vandal-integration.md)
 
-正义已接入，默认 Smite，三皮肤、共享手臂与完整换弹动画；6 发、半自动 4 发/秒，无 ADS，后坐力暂借 Classic，见[正义接入与临时参数](sheriff-integration.md)。
+正义默认 Original，保留三款旧皮肤、共享手臂与完整换弹动画；6 发、半自动 4 发/秒，无 ADS，后坐力暂借 Classic，见[正义接入与临时参数](sheriff-integration.md)。
 
-判官与奥丁默认均为 Smite，分别支持两款和三款皮肤，每枪 33 个动作。判官弹匣 5 发，射速 3.5 发/秒，每发 12 弹丸。奥丁弹匣 100 发，腰射连发由 12 加速到 15.6 发/秒，开镜起步即为 15.6 发/秒。[判官／奥丁接入与临时参数](judge-odin-integration.md)
+判官与奥丁默认均为 Original，分别保留两款和三款旧皮肤，每枪 33 个动作。判官弹匣 5 发，射速 3.5 发/秒，每发 12 弹丸。奥丁弹匣 100 发，腰射连发由 12 加速到 15.6 发/秒，开镜起步即为 15.6 发/秒。[判官／奥丁接入与临时参数](judge-odin-integration.md)
 
 运行 `npm run dev` 后打开主页面。默认背包为 Phantom（rifle）、Classic（pistol）、Ghost（ghost）、Vandal（vandal）、Sheriff（sheriff）、Judge（judge）、Odin（odin），初始选择 Classic。`?editor=0` 关闭工具 UI，仍保留玩家、武器输入和 HUD。`/weapon-preview.html` 是独立资产预览页，不运行装备玩法。
 
@@ -22,7 +22,7 @@ Ghost 已以公开参考临时参数接入，默认 Freehand，保留四皮肤�
 | 主 / 副 / 额外试玩武器 | 1 Phantom / 2 Classic / 3 Ghost / 4 Vandal / 5 Sheriff / 6 Judge / 7 Odin；3–7 为临时参数 |
 | 循环切枪 / 上一把 | 滚轮 / Q；上一把在新枪到手时更新，掏枪期间也能按 Q 切回 |
 | 换弹 / 检视 | R / T |
-| 循环当前枪皮肤 | K；Classic 为 AG → Smite → Sakura，Phantom 为 Tactiplay → Smite → Rush → Prism，Ghost 为 Freehand → Recon → Ego → Spitfire，Vandal 为 Sakura → Wood & Metal → Smite → Royal Gold → EGO → Original，Sheriff 为 Smite → Sakura → Convex，Judge 为 Smite → Rush，Odin 为 Smite → Prime → BlastX |
+| 循环当前枪皮肤 | K；Classic 从 AG 开始，其余已接入枪械从 Original 开始；旧皮肤可继续循环选择 |
 | 回出生点 | Home；玩家复位按钮走同一排队入口 |
 | 移动 / 静步 / 蹲下 / 跳跃 | WASD / Shift / C / 空格 |
 | 释放鼠标 / 飞行观察 | Esc / V（飞行观察需要 Editor） |

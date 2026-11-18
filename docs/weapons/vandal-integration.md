@@ -5,7 +5,7 @@
 ## 使用
 
 - **4：狂徒**，保留 1 Phantom / 2 Classic / 3 Ghost；初始仍为 Classic。
-- 默认 Sakura；**K** 按 Sakura → Wood & Metal → Smite → Royal Gold → EGO → Original 循环。
+- 游戏默认 Original；**K** 按 Original → Sakura → Wood & Metal → Smite → Royal Gold → EGO 循环。游戏配置选择已发布的 `v1/original`，不改写资产包内的默认项。
 - 左键按住全自动，右键按住 ADS，R 换弹，T 检视；滚轮和 Q 继续切枪。
 - HUD 标注「临时参数」。保留 30 个完整动作、枪身／弹匣／备用弹匣、枪口／抛壳挂点。
 - Original 保留原生 **256×256**，其余五款为 **2048×2048**；不放大、不裁图、不改 Alpha。

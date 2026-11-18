@@ -1,0 +1,34 @@
+{
+  "sourceScene": "E05_PHANTOM_Actions",
+  "sourceBlendSha256": "d7395a1653db4b54e135dceb82d8bb181777a9f12eddec72f39a60a50fb69dd7",
+  "packedAtlasSha256": "e99c0d9ff91084136ad3851f7a69b8d56244f3a381b9eb0a2f4d6440eb4e74e5",
+  "publishedAtlasSha256": "6022842d8afd7498d0696c8cb2aa769dd00ddd9a104c88fa1b8ad5f24151d462",
+  "trailingZeroBytesRemoved": 3,
+  "tolerance": "normalized UVs rounded to 1e-6; triangle multisets, independent of winding",
+  "meshProof": {
+    "Weapon_Body": {
+      "sourceObject": "Weapon_Body.004",
+      "sourceMaterial": "Weapon_Skin.004",
+      "sourceTriangles": 3384,
+      "publishedTriangles": 3384,
+      "sourceUvSha256": "02f7077c174413bdf7eeb3c06fecff51acb069e6559e5ee1bfe3cfca4958ca41",
+      "publishedUvSha256": "02f7077c174413bdf7eeb3c06fecff51acb069e6559e5ee1bfe3cfca4958ca41"
+    },
+    "Weapon_Magazine": {
+      "sourceObject": "Weapon_Magazine.004",
+      "sourceMaterial": "Weapon_Skin.004",
+      "sourceTriangles": 394,
+      "publishedTriangles": 394,
+      "sourceUvSha256": "f4e8484171aca3796e1e588d9ff71125763e08e373d58dd02c8256ffd623dfc0",
+      "publishedUvSha256": "f4e8484171aca3796e1e588d9ff71125763e08e373d58dd02c8256ffd623dfc0"
+    },
+    "Weapon_SpareMagazine": {
+      "sourceObject": "Weapon_SpareMagazine.001",
+      "sourceMaterial": "Weapon_Skin.004",
+      "sourceTriangles": 250,
+      "publishedTriangles": 250,
+      "sourceUvSha256": "0f6bb1106a87ce4e00aa337ea8a9d91c6f66b68c687f298f158ab9511121c759",
+      "publishedUvSha256": "0f6bb1106a87ce4e00aa337ea8a9d91c6f66b68c687f298f158ab9511121c759"
+    }
+  }
+}

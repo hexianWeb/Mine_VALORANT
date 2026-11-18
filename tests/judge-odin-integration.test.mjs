@@ -74,7 +74,20 @@ for (const [id, definition, provenance, window] of entries) {
     const releaseFire = id === 'odin'
       ? { mode: definition.fire.mode, interval: definition.fire.interval }
       : definition.fire
-    assert.deepEqual(runtime.definition, { ...definition, aim: releaseAim, fire: releaseFire })
+    const releaseSkins = id === 'odin'
+      ? ['smite', 'prime', 'blastx']
+      : ['smite', 'rush']
+    assert.deepEqual(runtime.definition, {
+      ...definition,
+      aim: releaseAim,
+      fire: releaseFire,
+      assets: {
+        modelId: id,
+        assetVersion: 'v1',
+        defaultSkinId: 'smite',
+        skinIds: releaseSkins,
+      },
+    })
     assert.deepEqual(runtime.provenance, provenance)
     assert.deepEqual(runtime.audio, weaponAudioProfiles[id])
     assert.equal(runtime.originalRuntimeManifestAvailable, false)
@@ -85,7 +98,7 @@ for (const [id, definition, provenance, window] of entries) {
     assert.equal(metadata.clips.length, 33)
     assert.equal(metadata.runtimeControls.ammoDisplay.tracks.length, window)
     assert.equal(metadata.controlEvidence.sourceSha256, metadata.skins.smite.source.sha256)
-    assert.deepEqual(Object.keys(metadata.skins), definition.assets.skinIds)
+    assert.deepEqual(Object.keys(metadata.skins), releaseSkins)
     for (const skin of Object.values(metadata.skins)) {
       await readPinnedAuthoring(skin.source)
       const texture = await readPinnedAuthoring(skin.texture)

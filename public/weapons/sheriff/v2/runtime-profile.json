@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "originalRuntimeManifestAvailable": false,
+  "provenance": {
+    "status": "temporary-public-reference",
+    "observedAt": "2026-11-14",
+    "referenceUrl": "https://valorant-api.com/v1/weapons/e336c6b8-418d-9340-d77f-7a9e4cfe0702",
+    "requestedWiki": "https://valorant.fandom.com/wiki/Sheriff",
+    "wikiAccess": "Wiki inaccessible earlier in this session; fresh community game-data API snapshot used instead",
+    "recoilAndSpread": "Classic project curves reused temporarily; not Sheriff source curves",
+    "reserve": "Three spare cylinders, project practice policy",
+    "reloadCommit": "At the end of the public 2.25-second duration, project policy",
+    "holster": "Zero-duration switch, project policy",
+    "inspect": "Three-second authoring clip used as a project deadline",
+    "unimplementedReferenceFields": "Damage, penetration and weapon-specific movement are recorded only"
+  },
+  "reference": {
+    "provider": "Valorant-API community game data (not Riot official API)",
+    "url": "https://valorant-api.com/v1/weapons/e336c6b8-418d-9340-d77f-7a9e4cfe0702",
+    "observedAt": "2026-11-14",
+    "requestUrl": "https://valorant-api.com/v1/weapons",
+    "snapshotKind": "selected Sheriff record fields from the successful HTTP tool response",
+    "selectedSnapshotSha256": "de7d5913963d68224132cfbe15a95d2be9246b924be84f00f4a250e81e462447",
+    "uuid": "e336c6b8-418d-9340-d77f-7a9e4cfe0702",
+    "displayName": "Sheriff",
+    "weaponStats": {
+      "fireRate": 4,
+      "magazineSize": 6,
+      "runSpeedMultiplier": 0.8,
+      "equipTimeSeconds": 1,
+      "reloadTimeSeconds": 2.25,
+      "firstBulletAccuracy": 0.25,
+      "shotgunPelletCount": 1,
+      "wallPenetration": "EWallPenetrationDisplayType::High",
+      "feature": null,
+      "fireMode": "EWeaponFireModeDisplayType::SemiAutomatic",
+      "altFireType": null,
+      "adsStats": null,
+      "altShotgunStats": null,
+      "airBurstStats": null,
+      "damageRanges": [
+        {
+          "rangeStartMeters": 0,
+          "rangeEndMeters": 30,
+          "headDamage": 159.5,
+          "bodyDamage": 55,
+          "legDamage": 46.75
+        },
+        {
+          "rangeStartMeters": 30,
+          "rangeEndMeters": 50,
+          "headDamage": 145,
+          "bodyDamage": 50,
+          "legDamage": 42.5
+        }
+      ]
+    },
+    "cost": 800
+  },
+  "definition": {
+    "recoil": {
+      "pitch": [
+        {
+          "time": 0,
+          "min": 0.005235987755982988,
+          "max": 0.005235987755982988
+        },
+        {
+          "time": 0.25,
+          "min": 0.006981317007977318,
+          "max": 0.006981317007977318
+        },
+        {
+          "time": 0.45,
+          "min": -0.0017453292519943296,
+          "max": -0.0017453292519943296
+        },
+        {
+          "time": 0.6,
+          "min": 0,
+          "max": 0
+        }
+      ],
+      "yaw": [
+        {
+          "time": 0,
+          "min": -0.002617993877991494,
+          "max": 0.002617993877991494
+        },
+        {
+          "time": 0.45,
+          "min": 0,
+          "max": 0
+        }
+      ]
+    },
+    "spread": {
+      "stand": 0.006891,
+      "move": 0.103365,
+      "crouch": 0.00516825,
+      "ads": 0.103365
+    },
+    "aim": {
+      "duration": 0.005,
+      "worldFov": 70,
+      "viewmodelFov": 70
+    },
+    "id": "sheriff",
+    "capacity": 6,
+    "initialReserve": 18,
+    "fire": {
+      "mode": "semi",
+      "interval": 0.25
+    },
+    "equip": {
+      "draw": 1,
+      "holster": 0
+    },
+    "reload": {
+      "tactical": {
+        "feed": 2.25,
+        "duration": 2.25
+      },
+      "empty": {
+        "feed": 2.25,
+        "duration": 2.25
+      }
+    },
+    "inspectDuration": 3,
+    "capabilities": {
+      "ads": false
+    },
+    "assets": {
+      "modelId": "sheriff",
+      "assetVersion": "v1",
+      "defaultSkinId": "smite",
+      "skinIds": [
+        "smite",
+        "sakura",
+        "convex"
+      ]
+    }
+  },
+  "audio": {
+    "cues": {
+      "sheriff_shoot": {
+        "id": "sheriff_shoot",
+        "url": "/audio/sheriff/sheriff_shoot.ogg",
+        "sha256": "d24f978e0c83a49a6c4b5f800b847f661dece4776118981fae69a636d566112b",
+        "gain": 0.25
+      },
+      "sheriff_draw": {
+        "id": "sheriff_draw",
+        "url": "/audio/sheriff/sheriff_draw.ogg",
+        "sha256": "9ddbc34cf3167b82e50ce3410c1c532d076e7af3539c41aa399d657a4d282b54",
+        "gain": 0.22
+      },
+      "sheriff_reload": {
+        "id": "sheriff_reload",
+        "url": "/audio/sheriff/sheriff_reload.ogg",
+        "sha256": "adc33e99c444dfe8659272aadd948fdf27efbd715fa10c8faa47ec0cd9c9657e",
+        "gain": 0.22
+      },
+      "sheriff_inspect": {
+        "id": "sheriff_inspect",
+        "url": "/audio/sheriff/sheriff_inspect.ogg",
+        "sha256": "9e87c98ad08771f392e2bfc3a69896a4bbb20d79f66a3e341a7461f98bcfd9f2",
+        "gain": 0.22
+      }
+    },
+    "fire": "sheriff_shoot",
+    "draw": "sheriff_draw",
+    "reloadTactical": "sheriff_reload",
+    "reloadEmpty": "sheriff_reload",
+    "inspect": "sheriff_inspect"
+  }
+}

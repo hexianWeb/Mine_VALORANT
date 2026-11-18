@@ -1,0 +1,1221 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "odin",
+  "metadataSource": "Pinned current Blender Action properties, actual scene camera and audited sparse controls; not original runtime data",
+  "blenderVersion": "5.2.3 LTS",
+  "clips": [
+    {
+      "name": "ADS_down",
+      "duration": 0.6,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "ADS_up",
+      "duration": 0.6333,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim",
+      "duration": 0.25,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim_end",
+      "duration": 0.2083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim_start",
+      "duration": 0.2083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "ammo_display",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "barrel",
+      "duration": 2,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "draw",
+      "duration": 1.25,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "idle",
+      "duration": 7.2667,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "inspect",
+      "duration": 6.5417,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "inspect_empty",
+      "duration": 6.5417,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_1",
+      "duration": 0.8,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_2",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_3",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_push",
+      "duration": 0.7083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_stock",
+      "duration": 0.7083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "put_away",
+      "duration": 0.016666666666666666,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "reload_empty",
+      "duration": 5,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "reload_tactical",
+      "duration": 5,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run",
+      "duration": 0.8,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_end",
+      "duration": 0.65,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_hold",
+      "duration": 0.2917,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_start",
+      "duration": 0.3,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "shoot",
+      "duration": 2.25,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "shoot_aim",
+      "duration": 2.25,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide",
+      "duration": 0.75,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide_back",
+      "duration": 0.85,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide_idle",
+      "duration": 7.3333,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "static_idle",
+      "duration": 0.25,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_aiming",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_backward",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_forward",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_sideway",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    }
+  ],
+  "view": {
+    "unitsPerMeter": 1,
+    "up": "Y",
+    "forward": "-Z",
+    "mountOffset": [
+      0.35062500834465027,
+      -0.9487500190734863,
+      -1.4718749523162842
+    ],
+    "verticalFov": 70,
+    "aimVerticalFov": 62.67247387571614,
+    "source": "Camera_FP.008 authoring alignment, public-reference trial gameplay"
+  },
+  "runtimeControls": {
+    "ammoDisplay": {
+      "clip": "ammo_display",
+      "tracks": [
+        "group_8.scale",
+        "group_7.scale",
+        "group_6.scale",
+        "group_5.scale",
+        "group_4.scale",
+        "group_3.scale",
+        "group_2.scale",
+        "group_1.scale"
+      ]
+    },
+    "barrelIndicators": {
+      "clip": "barrel",
+      "tracks": [
+        "red_1.scale",
+        "red_2.scale"
+      ]
+    }
+  },
+  "ammoDisplay": {
+    "control": "ammoDisplay",
+    "levels": [
+      {
+        "minimum": 0,
+        "time": 0.800000011920929
+      },
+      {
+        "minimum": 1,
+        "time": 0.699999988079071
+      },
+      {
+        "minimum": 2,
+        "time": 0.6000000238418579
+      },
+      {
+        "minimum": 3,
+        "time": 0.5
+      },
+      {
+        "minimum": 4,
+        "time": 0.4000000059604645
+      },
+      {
+        "minimum": 5,
+        "time": 0.30000001192092896
+      },
+      {
+        "minimum": 6,
+        "time": 0.20000000298023224
+      },
+      {
+        "minimum": 7,
+        "time": 0.10000000149011612
+      },
+      {
+        "minimum": 8,
+        "time": 0
+      }
+    ]
+  },
+  "controlEvidence": {
+    "schemaVersion": 1,
+    "weaponId": "odin",
+    "source": "skin_work_folder/odin_skin_work/three_odin_skins/Odin_Smite.blend",
+    "sourceSha256": "b6264337f242c1eb175f26a8e8a703e6c72438cef20ada34ad578b30b1fc09c0",
+    "scene": "E09_ODIN_Actions",
+    "armature": "root.006",
+    "blenderVersion": "5.2.3 LTS",
+    "fps": 60,
+    "timeOriginFrame": 1,
+    "bones": [
+      {
+        "name": "root",
+        "parent": null
+      },
+      {
+        "name": "gun_and_righthand",
+        "parent": "root"
+      },
+      {
+        "name": "Odin",
+        "parent": "gun_and_righthand"
+      },
+      {
+        "name": "part_B",
+        "parent": "Odin"
+      },
+      {
+        "name": "red_1",
+        "parent": "part_B"
+      },
+      {
+        "name": "red_2",
+        "parent": "part_B"
+      },
+      {
+        "name": "righthand",
+        "parent": "gun_and_righthand"
+      },
+      {
+        "name": "righthand_pos",
+        "parent": "righthand"
+      },
+      {
+        "name": "mag_and_lefthand",
+        "parent": "root"
+      },
+      {
+        "name": "mag_and_bullet",
+        "parent": "mag_and_lefthand"
+      },
+      {
+        "name": "ammo_box",
+        "parent": "mag_and_bullet"
+      },
+      {
+        "name": "bullet",
+        "parent": "ammo_box"
+      },
+      {
+        "name": "group_1",
+        "parent": "bullet"
+      },
+      {
+        "name": "bullet_1",
+        "parent": "group_1"
+      },
+      {
+        "name": "chain_1",
+        "parent": "group_1"
+      },
+      {
+        "name": "group_2",
+        "parent": "bullet"
+      },
+      {
+        "name": "bullet_2",
+        "parent": "group_2"
+      },
+      {
+        "name": "chain_2",
+        "parent": "group_2"
+      },
+      {
+        "name": "group_3",
+        "parent": "bullet"
+      },
+      {
+        "name": "bullet_3",
+        "parent": "group_3"
+      },
+      {
+        "name": "chain_3",
+        "parent": "group_3"
+      },
+      {
+        "name": "group_4",
+        "parent": "bullet"
+      },
+      {
+        "name": "bullet_4",
+        "parent": "group_4"
+      },
+      {
+        "name": "chain_4",
+        "parent": "group_4"
+      },
+      {
+        "name": "group_5",
+        "parent": "bullet"
+      },
+      {
+        "name": "bullet_5",
+        "parent": "group_5"
+      },
+      {
+        "name": "chain_5",
+        "parent": "group_5"
+      },
+      {
+        "name": "group_6",
+        "parent": "bullet"
+      },
+      {
+        "name": "bullet_6",
+        "parent": "group_6"
+      },
+      {
+        "name": "chain_6",
+        "parent": "group_6"
+      },
+      {
+        "name": "group_7",
+        "parent": "bullet"
+      },
+      {
+        "name": "bullet_7",
+        "parent": "group_7"
+      },
+      {
+        "name": "chain_7",
+        "parent": "group_7"
+      },
+      {
+        "name": "group_8",
+        "parent": "bullet"
+      },
+      {
+        "name": "bullet_8",
+        "parent": "group_8"
+      },
+      {
+        "name": "chain_8",
+        "parent": "group_8"
+      }
+    ],
+    "clips": [
+      {
+        "name": "ammo_display",
+        "duration": 1,
+        "sourceCurveCount": 250,
+        "selectedSlotCurveCount": 240,
+        "tracks": [
+          {
+            "name": "group_8.scale",
+            "interpolation": "CONSTANT",
+            "sourceKeyCount": 3,
+            "keys": [
+              [
+                1,
+                1,
+                1,
+                1
+              ],
+              [
+                7,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ],
+              [
+                61,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ]
+            ]
+          },
+          {
+            "name": "group_7.scale",
+            "interpolation": "CONSTANT",
+            "sourceKeyCount": 4,
+            "keys": [
+              [
+                1,
+                1,
+                1,
+                1
+              ],
+              [
+                7,
+                1,
+                1,
+                1
+              ],
+              [
+                13,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ],
+              [
+                61,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ]
+            ]
+          },
+          {
+            "name": "group_6.scale",
+            "interpolation": "CONSTANT",
+            "sourceKeyCount": 4,
+            "keys": [
+              [
+                1,
+                1,
+                1,
+                1
+              ],
+              [
+                13,
+                1,
+                1,
+                1
+              ],
+              [
+                19,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ],
+              [
+                61,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ]
+            ]
+          },
+          {
+            "name": "group_5.scale",
+            "interpolation": "CONSTANT",
+            "sourceKeyCount": 4,
+            "keys": [
+              [
+                1,
+                1,
+                1,
+                1
+              ],
+              [
+                19,
+                1,
+                1,
+                1
+              ],
+              [
+                25,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ],
+              [
+                61,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ]
+            ]
+          },
+          {
+            "name": "group_4.scale",
+            "interpolation": "CONSTANT",
+            "sourceKeyCount": 4,
+            "keys": [
+              [
+                1,
+                1,
+                1,
+                1
+              ],
+              [
+                25,
+                1,
+                1,
+                1
+              ],
+              [
+                31,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ],
+              [
+                61,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ]
+            ]
+          },
+          {
+            "name": "group_3.scale",
+            "interpolation": "CONSTANT",
+            "sourceKeyCount": 4,
+            "keys": [
+              [
+                1,
+                1,
+                1,
+                1
+              ],
+              [
+                31,
+                1,
+                1,
+                1
+              ],
+              [
+                37,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ],
+              [
+                61,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ]
+            ]
+          },
+          {
+            "name": "group_2.scale",
+            "interpolation": "CONSTANT",
+            "sourceKeyCount": 4,
+            "keys": [
+              [
+                1,
+                1,
+                1,
+                1
+              ],
+              [
+                37,
+                1,
+                1,
+                1
+              ],
+              [
+                43,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ],
+              [
+                61,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ]
+            ]
+          },
+          {
+            "name": "group_1.scale",
+            "interpolation": "CONSTANT",
+            "sourceKeyCount": 4,
+            "keys": [
+              [
+                1,
+                1,
+                1,
+                1
+              ],
+              [
+                43,
+                1,
+                1,
+                1
+              ],
+              [
+                49,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ],
+              [
+                61,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ]
+            ]
+          },
+          {
+            "name": "righthand.scale",
+            "interpolation": "LINEAR",
+            "sourceKeyCount": 2,
+            "keys": [
+              [
+                1,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ],
+              [
+                61,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "name": "barrel",
+        "duration": 2,
+        "sourceCurveCount": 250,
+        "selectedSlotCurveCount": 240,
+        "tracks": [
+          {
+            "name": "red_1.scale",
+            "interpolation": "LINEAR",
+            "sourceKeyCount": 121,
+            "keys": [
+              [
+                1,
+                1,
+                1,
+                1
+              ],
+              [
+                88,
+                1,
+                1,
+                1
+              ],
+              [
+                89,
+                0.6666666865348816,
+                0.6666666865348816,
+                0.6666666865348816
+              ],
+              [
+                90,
+                0.3333333432674408,
+                0.3333333432674408,
+                0.3333333432674408
+              ],
+              [
+                91,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ],
+              [
+                121,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ]
+            ]
+          },
+          {
+            "name": "red_2.scale",
+            "interpolation": "LINEAR",
+            "sourceKeyCount": 121,
+            "keys": [
+              [
+                1,
+                1,
+                1,
+                1
+              ],
+              [
+                55,
+                1,
+                1,
+                1
+              ],
+              [
+                56,
+                0.6666666865348816,
+                0.6666666865348816,
+                0.6666666865348816
+              ],
+              [
+                57,
+                0.3333333432674408,
+                0.3333333432674408,
+                0.3333333432674408
+              ],
+              [
+                58,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ],
+              [
+                121,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ]
+            ]
+          },
+          {
+            "name": "righthand.scale",
+            "interpolation": "LINEAR",
+            "sourceKeyCount": 2,
+            "keys": [
+              [
+                1,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ],
+              [
+                121,
+                0.000009999999747378752,
+                0.000009999999747378752,
+                0.000009999999747378752
+              ]
+            ]
+          }
+        ]
+      }
+    ],
+    "runtimeControls": {
+      "ammoDisplay": {
+        "clip": "ammo_display",
+        "tracks": [
+          "group_8.scale",
+          "group_7.scale",
+          "group_6.scale",
+          "group_5.scale",
+          "group_4.scale",
+          "group_3.scale",
+          "group_2.scale",
+          "group_1.scale"
+        ]
+      },
+      "barrelIndicators": {
+        "clip": "barrel",
+        "tracks": [
+          "red_1.scale",
+          "red_2.scale"
+        ]
+      }
+    },
+    "displayPolicy": "visible-feed-window: min(magazine, authored indicator count), not total capacity",
+    "ammoDisplay": {
+      "control": "ammoDisplay",
+      "levels": [
+        {
+          "minimum": 0,
+          "time": 0.800000011920929
+        },
+        {
+          "minimum": 1,
+          "time": 0.699999988079071
+        },
+        {
+          "minimum": 2,
+          "time": 0.6000000238418579
+        },
+        {
+          "minimum": 3,
+          "time": 0.5
+        },
+        {
+          "minimum": 4,
+          "time": 0.4000000059604645
+        },
+        {
+          "minimum": 5,
+          "time": 0.30000001192092896
+        },
+        {
+          "minimum": 6,
+          "time": 0.20000000298023224
+        },
+        {
+          "minimum": 7,
+          "time": 0.10000000149011612
+        },
+        {
+          "minimum": 8,
+          "time": 0
+        }
+      ]
+    },
+    "weightedDescendants": {
+      "group_1": {
+        "Weapon_Magazine.007": {
+          "bullet_1": 398,
+          "chain_1": 40
+        }
+      },
+      "group_2": {
+        "Weapon_Magazine.007": {
+          "bullet_2": 398,
+          "chain_2": 40
+        }
+      },
+      "group_3": {
+        "Weapon_Magazine.007": {
+          "bullet_3": 391,
+          "chain_3": 40
+        }
+      },
+      "group_4": {
+        "Weapon_Magazine.007": {
+          "bullet_4": 391,
+          "chain_4": 40
+        }
+      },
+      "group_5": {
+        "Weapon_Magazine.007": {
+          "bullet_5": 398,
+          "chain_5": 40
+        }
+      },
+      "group_6": {
+        "Weapon_Magazine.007": {
+          "bullet_6": 398,
+          "chain_6": 40
+        }
+      },
+      "group_7": {
+        "Weapon_Magazine.007": {
+          "bullet_7": 398,
+          "chain_7": 40
+        }
+      },
+      "group_8": {
+        "Weapon_Magazine.007": {
+          "bullet_8": 398,
+          "chain_8": 40
+        }
+      },
+      "red_1": {
+        "Weapon_Body.008": {
+          "red_1": 432
+        }
+      },
+      "red_2": {
+        "Weapon_Body.008": {
+          "red_2": 432
+        }
+      },
+      "righthand": {
+        "Arms_Right.008": {
+          "righthand_pos": 24
+        }
+      }
+    }
+  },
+  "skins": {
+    "smite": {
+      "source": {
+        "path": "skin_work_folder/odin_skin_work/three_odin_skins/Odin_Smite.blend",
+        "sha256": "b6264337f242c1eb175f26a8e8a703e6c72438cef20ada34ad578b30b1fc09c0"
+      },
+      "texture": {
+        "path": "skin_work_folder/odin_skin_work/three_odin_skins/odin_smite_texture.png",
+        "sha256": "02f61fcd3bb55211af3a560341b2d673d9db3bae840899a83ab8af84f9cef6ed"
+      },
+      "textureSize": {
+        "width": 2048,
+        "height": 2048
+      },
+      "authoringSignature": {
+        "geometryUV": "9bda60dea6bf442db63234d5c0452449fe83e07e2034000d599831dfa6b099cb",
+        "rig": "12a1c9a4ce862b68b566ad98fa3f6ceeb3ddd09b2c8868213c0546962b8195d0",
+        "clipSet": "7ea624d86262bae2ac14e5b896c223e1101bad6536bfcff116bd49a6ccdc66eb"
+      },
+      "inspection": {
+        "actualSceneArmsValidated": true,
+        "packedExternalPngIdentical": true,
+        "image": {
+          "channels": 4,
+          "alphaMin": 0,
+          "alphaMax": 1,
+          "transparentPixels": 3754496
+        },
+        "adapter": {
+          "meshAliases": {
+            "Arms_Right.008": "Arms_Right",
+            "Arms_Left.008": "Arms_Left",
+            "Weapon_Body.008": "Weapon_Body",
+            "Weapon_Magazine.007": "Weapon_Magazine"
+          },
+          "actionAliases": {
+            "odin / ADS_down": "ADS_down",
+            "odin / ADS_up": "ADS_up",
+            "odin / aim": "aim",
+            "odin / aim_end": "aim_end",
+            "odin / aim_start": "aim_start",
+            "odin / ammo_display": "ammo_display",
+            "odin / barrel": "barrel",
+            "odin / draw": "draw",
+            "odin / idle": "idle",
+            "odin / inspect": "inspect",
+            "odin / inspect_empty": "inspect_empty",
+            "odin / melee_bayonet_1": "melee_bayonet_1",
+            "odin / melee_bayonet_2": "melee_bayonet_2",
+            "odin / melee_bayonet_3": "melee_bayonet_3",
+            "odin / melee_push": "melee_push",
+            "odin / melee_stock": "melee_stock",
+            "odin / put_away": "put_away",
+            "odin / reload_empty": "reload_empty",
+            "odin / reload_tactical": "reload_tactical",
+            "odin / run": "run",
+            "odin / run_end": "run_end",
+            "odin / run_hold": "run_hold",
+            "odin / run_start": "run_start",
+            "odin / shoot": "shoot",
+            "odin / shoot_aim": "shoot_aim",
+            "odin / slide": "slide",
+            "odin / slide_back": "slide_back",
+            "odin / slide_idle": "slide_idle",
+            "odin / static_idle": "static_idle",
+            "odin / walk_aiming": "walk_aiming",
+            "odin / walk_backward": "walk_backward",
+            "odin / walk_forward": "walk_forward",
+            "odin / walk_sideway": "walk_sideway"
+          },
+          "weaponMaterial": "Odin_Smite_Skin",
+          "armAppearanceSamples": {
+            "Left": 248,
+            "Right": 248
+          },
+          "preservedMeshRigActions": true
+        }
+      }
+    },
+    "prime": {
+      "source": {
+        "path": "skin_work_folder/odin_skin_work/three_odin_skins/Odin_Prime.blend",
+        "sha256": "b181a8a9941006707ed65f1aad589181760b75bfe0ee2cf01925a163a6a88ad3"
+      },
+      "texture": {
+        "path": "skin_work_folder/odin_skin_work/three_odin_skins/odin_prime_texture.png",
+        "sha256": "125596a1f9425f758ceba32320f50a3112c9ee192d1a22fb47f0b8a99e16098d"
+      },
+      "textureSize": {
+        "width": 2048,
+        "height": 2048
+      },
+      "authoringSignature": {
+        "geometryUV": "9bda60dea6bf442db63234d5c0452449fe83e07e2034000d599831dfa6b099cb",
+        "rig": "12a1c9a4ce862b68b566ad98fa3f6ceeb3ddd09b2c8868213c0546962b8195d0",
+        "clipSet": "7ea624d86262bae2ac14e5b896c223e1101bad6536bfcff116bd49a6ccdc66eb"
+      },
+      "inspection": {
+        "actualSceneArmsValidated": true,
+        "packedExternalPngIdentical": true,
+        "image": {
+          "channels": 4,
+          "alphaMin": 0,
+          "alphaMax": 1,
+          "transparentPixels": 3754496
+        },
+        "adapter": {
+          "meshAliases": {
+            "Arms_Right.008": "Arms_Right",
+            "Arms_Left.008": "Arms_Left",
+            "Weapon_Body.008": "Weapon_Body",
+            "Weapon_Magazine.007": "Weapon_Magazine"
+          },
+          "actionAliases": {
+            "odin / ADS_down": "ADS_down",
+            "odin / ADS_up": "ADS_up",
+            "odin / aim": "aim",
+            "odin / aim_end": "aim_end",
+            "odin / aim_start": "aim_start",
+            "odin / ammo_display": "ammo_display",
+            "odin / barrel": "barrel",
+            "odin / draw": "draw",
+            "odin / idle": "idle",
+            "odin / inspect": "inspect",
+            "odin / inspect_empty": "inspect_empty",
+            "odin / melee_bayonet_1": "melee_bayonet_1",
+            "odin / melee_bayonet_2": "melee_bayonet_2",
+            "odin / melee_bayonet_3": "melee_bayonet_3",
+            "odin / melee_push": "melee_push",
+            "odin / melee_stock": "melee_stock",
+            "odin / put_away": "put_away",
+            "odin / reload_empty": "reload_empty",
+            "odin / reload_tactical": "reload_tactical",
+            "odin / run": "run",
+            "odin / run_end": "run_end",
+            "odin / run_hold": "run_hold",
+            "odin / run_start": "run_start",
+            "odin / shoot": "shoot",
+            "odin / shoot_aim": "shoot_aim",
+            "odin / slide": "slide",
+            "odin / slide_back": "slide_back",
+            "odin / slide_idle": "slide_idle",
+            "odin / static_idle": "static_idle",
+            "odin / walk_aiming": "walk_aiming",
+            "odin / walk_backward": "walk_backward",
+            "odin / walk_forward": "walk_forward",
+            "odin / walk_sideway": "walk_sideway"
+          },
+          "weaponMaterial": "Odin_Prime_Skin",
+          "armAppearanceSamples": {
+            "Left": 248,
+            "Right": 248
+          },
+          "preservedMeshRigActions": true
+        }
+      }
+    },
+    "blastx": {
+      "source": {
+        "path": "skin_work_folder/odin_skin_work/three_odin_skins/Odin_BlastX.blend",
+        "sha256": "7bb36b84aeb75acb9ad1ccb9098eb294778d29bf52f12799511a9b808b6726a6"
+      },
+      "texture": {
+        "path": "skin_work_folder/odin_skin_work/three_odin_skins/odin_blastx_texture.png",
+        "sha256": "a3fb038e51c8e1171a36b82858674a4325ca2d0560150920e6ab91f3bcb6057d"
+      },
+      "textureSize": {
+        "width": 2048,
+        "height": 2048
+      },
+      "authoringSignature": {
+        "geometryUV": "9bda60dea6bf442db63234d5c0452449fe83e07e2034000d599831dfa6b099cb",
+        "rig": "12a1c9a4ce862b68b566ad98fa3f6ceeb3ddd09b2c8868213c0546962b8195d0",
+        "clipSet": "7ea624d86262bae2ac14e5b896c223e1101bad6536bfcff116bd49a6ccdc66eb"
+      },
+      "inspection": {
+        "actualSceneArmsValidated": true,
+        "packedExternalPngIdentical": true,
+        "image": {
+          "channels": 4,
+          "alphaMin": 0,
+          "alphaMax": 1,
+          "transparentPixels": 3754496
+        },
+        "adapter": {
+          "meshAliases": {
+            "Arms_Right.008": "Arms_Right",
+            "Arms_Left.008": "Arms_Left",
+            "Weapon_Body.008": "Weapon_Body",
+            "Weapon_Magazine.007": "Weapon_Magazine"
+          },
+          "actionAliases": {
+            "odin / ADS_down": "ADS_down",
+            "odin / ADS_up": "ADS_up",
+            "odin / aim": "aim",
+            "odin / aim_end": "aim_end",
+            "odin / aim_start": "aim_start",
+            "odin / ammo_display": "ammo_display",
+            "odin / barrel": "barrel",
+            "odin / draw": "draw",
+            "odin / idle": "idle",
+            "odin / inspect": "inspect",
+            "odin / inspect_empty": "inspect_empty",
+            "odin / melee_bayonet_1": "melee_bayonet_1",
+            "odin / melee_bayonet_2": "melee_bayonet_2",
+            "odin / melee_bayonet_3": "melee_bayonet_3",
+            "odin / melee_push": "melee_push",
+            "odin / melee_stock": "melee_stock",
+            "odin / put_away": "put_away",
+            "odin / reload_empty": "reload_empty",
+            "odin / reload_tactical": "reload_tactical",
+            "odin / run": "run",
+            "odin / run_end": "run_end",
+            "odin / run_hold": "run_hold",
+            "odin / run_start": "run_start",
+            "odin / shoot": "shoot",
+            "odin / shoot_aim": "shoot_aim",
+            "odin / slide": "slide",
+            "odin / slide_back": "slide_back",
+            "odin / slide_idle": "slide_idle",
+            "odin / static_idle": "static_idle",
+            "odin / walk_aiming": "walk_aiming",
+            "odin / walk_backward": "walk_backward",
+            "odin / walk_forward": "walk_forward",
+            "odin / walk_sideway": "walk_sideway"
+          },
+          "weaponMaterial": "Odin_BlastX_Skin",
+          "armAppearanceSamples": {
+            "Left": 248,
+            "Right": 248
+          },
+          "preservedMeshRigActions": true
+        }
+      }
+    }
+  }
+}

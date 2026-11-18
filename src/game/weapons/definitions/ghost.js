@@ -31,8 +31,14 @@ export const ghostDefinition = createWeaponDefinition({
   capabilities: { ads: false },
   assets: {
     modelId: 'ghost',
-    assetVersion: 'v1',
-    defaultSkinId: 'freehand',
-    skinIds: ['freehand', 'recon', 'ego', 'spitfire'],
+    assetVersion: 'v2',
+    defaultSkinId: 'original',
+    skinIds: [
+      'freehand',
+      'recon',
+      'ego',
+      'spitfire',
+      'original',
+    ],
   },
 })

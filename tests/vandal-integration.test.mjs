@@ -19,6 +19,7 @@ test('Vandal keeps its pinned release evidence and applies runtime ADS tuning', 
     ...vandalDefinition,
     aim: { ...vandalDefinition.aim, duration: 0.2083 },
     fire: releaseFire,
+    assets: { ...vandalDefinition.assets, defaultSkinId: 'sakura' },
   })
   assert.deepEqual(profile.provenance, vandalGameplayProvenance)
   assert.deepEqual(profile.audio, weaponAudioProfiles.vandal)
@@ -91,6 +92,7 @@ test('Vandal release preserves all meshes, shared arms and validation evidence w
   assert.equal(manifest.meshes.length, 5)
   assert.ok(manifest.meshes.includes('Weapon_SpareMagazine'))
   assert.deepEqual(Object.keys(manifest.skins), vandalDefinition.assets.skinIds)
+  assert.equal(vandalDefinition.assets.defaultSkinId, 'original')
   for (const [skinId, descriptor] of Object.entries(manifest.skins)) {
     const filename = path.join(directory, descriptor.url)
     const bytes = await readFile(filename)
@@ -101,6 +103,11 @@ test('Vandal release preserves all meshes, shared arms and validation evidence w
     assert.equal(skin.materials.weapon.map.width, skinId === 'original'
       ? 256
       : 2048)
+    if (skinId === 'original') {
+      const texture = await readFile(path.resolve(path.dirname(filename), skin.materials.weapon.map.url))
+      assert.equal(sha256(texture), skin.materials.weapon.map.sha256)
+      assert.deepEqual(texture, await readFile('assets/weapons/original-textures/vandal/weapon.png'))
+    }
   }
   assert.equal(report.clips, 30)
   assert.equal(report.poseSamples, 9)

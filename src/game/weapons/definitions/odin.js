@@ -44,8 +44,8 @@ export const odinDefinition = createWeaponDefinition({
   capabilities: { ads: true },
   assets: {
     modelId: 'odin',
-    assetVersion: 'v1',
-    defaultSkinId: 'smite',
-    skinIds: ['smite', 'prime', 'blastx'],
+    assetVersion: 'v2',
+    defaultSkinId: 'original',
+    skinIds: ['smite', 'prime', 'blastx', 'original'],
   },
 })

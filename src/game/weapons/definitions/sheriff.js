@@ -31,8 +31,13 @@ export const sheriffDefinition = createWeaponDefinition({
   capabilities: { ads: false },
   assets: {
     modelId: 'sheriff',
-    assetVersion: 'v1',
-    defaultSkinId: 'smite',
-    skinIds: ['smite', 'sakura', 'convex'],
+    assetVersion: 'v2',
+    defaultSkinId: 'original',
+    skinIds: [
+      'smite',
+      'sakura',
+      'convex',
+      'original',
+    ],
   },
 })

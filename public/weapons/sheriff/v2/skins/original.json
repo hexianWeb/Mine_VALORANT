@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "sheriff",
+  "assetVersion": "v2",
+  "skinId": "original",
+  "compatibility": {
+    "rig": "512e9eddc386b1616c6e3c2076d21a86d48e3e440478e3efc316528223023a43",
+    "geometryUV": "856a9f3a47edf40269a403717f3094fc7ead2ef2de3a05b142f8de0953eeb5a9",
+    "clipSet": "1c57b4ae30eacb0cc36bb2dd758b64b89b9227491130e794724e2b7a68f5a997"
+  },
+  "materials": {
+    "weapon": {
+      "map": {
+        "url": "../textures/ac740f94eab9a0d79e1b0052ce8d982faf4a428d9be38c8235b47105c47b177f.png",
+        "sha256": "ac740f94eab9a0d79e1b0052ce8d982faf4a428d9be38c8235b47105c47b177f",
+        "bytes": 36991,
+        "width": 512,
+        "height": 512,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    }
+  }
+}

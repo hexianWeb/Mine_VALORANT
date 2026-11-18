@@ -601,7 +601,7 @@ test('accepted shots dispatch world effects while muzzle cards remain in the del
   assert.deepEqual(scene.children, [])
 })
 
-test('real Digit3 selects Ghost and its semi-auto, reload and four-skin inputs preserve the visual', async (t) => {
+test('real Digit3 selects Ghost and its semi-auto, reload and skin inputs preserve the visual', async (t) => {
   const f = setup(t, { ghost: true })
   await f.ready()
   f.key('keydown', 'Digit3')
@@ -639,7 +639,7 @@ test('real Digit3 selects Ghost and its semi-auto, reload and four-skin inputs p
   f.advance(1)
   assert.equal(ghost().magazine, 13)
   assert.equal(ghost().reserve, 37)
-  for (const skinId of ['recon', 'ego', 'spitfire', 'freehand']) {
+  for (const skinId of ghostDefinition.assets.skinIds) {
     f.key('keydown', 'KeyK')
     f.key('keyup', 'KeyK')
     f.weapons.collectInput(f.input)
@@ -673,6 +673,7 @@ test('real Digit4 selects Vandal; held fire, ADS, reload deadlines and six skins
   const weapon = () => f.weapons.snapshot().inventory.weapons.find(weapon => weapon.instanceId === 'vandal')
   const visual = f.assets.instances.find(instance => instance.weaponId === 'vandal')
   assert.equal(f.weapons.snapshot().view.renderActiveId, 'vandal')
+  assert.equal(f.weapons.snapshot().view.skinId, 'original')
   f.mouse('mousedown', 0)
   f.weapons.collectInput(f.input)
   f.advance(7)
@@ -695,10 +696,7 @@ test('real Digit4 selects Vandal; held fire, ADS, reload deadlines and six skins
   f.advance(1)
   assert.equal(weapon().magazine, 25)
   assert.equal(weapon().reserve, 75 - (25 - magazine))
-  for (const skinId of [
-    ...vandalDefinition.assets.skinIds.slice(1),
-    'sakura',
-  ]) {
+  for (const skinId of vandalDefinition.assets.skinIds) {
     f.key('keydown', 'KeyK')
     f.key('keyup', 'KeyK')
     f.weapons.collectInput(f.input)
@@ -726,7 +724,7 @@ test('real Digit4 selects Vandal; held fire, ADS, reload deadlines and six skins
   assert.equal(weapon().magazine, 25)
 })
 
-test('real Digit5 selects Sheriff; semi-auto cooldown, no ADS, reload branches and three skins work', async (t) => {
+test('real Digit5 selects Sheriff; semi-auto cooldown, no ADS, reload branches and skin cycling work', async (t) => {
   const f = setup(t, { sheriff: true })
   await f.ready()
   f.key('keydown', 'Digit5')
@@ -777,7 +775,7 @@ test('real Digit5 selects Sheriff; semi-auto cooldown, no ADS, reload branches a
   f.advance(1)
   assert.equal(weapon().magazine, 6)
   assert.equal(weapon().reserve, 15)
-  for (const skinId of ['sakura', 'convex', 'smite']) {
+  for (const skinId of sheriffDefinition.assets.skinIds) {
     f.key('keydown', 'KeyK')
     f.key('keyup', 'KeyK')
     f.weapons.collectInput(f.input)
@@ -814,7 +812,7 @@ for (const [id, code, option, capacity, reloadTicks, skinIds] of [
     'judge',
     5,
     22,
-    ['rush', 'smite'],
+    ['smite', 'rush', 'original'],
   ],
   [
     'odin',
@@ -822,7 +820,7 @@ for (const [id, code, option, capacity, reloadTicks, skinIds] of [
     'odin',
     100,
     50,
-    ['prime', 'blastx', 'smite'],
+    ['smite', 'prime', 'blastx', 'original'],
   ],
 ]) {
   test(`${code} selects ${id}; automatic fire, ammo conservation, reload and skins preserve existing weapons`, async (t) => {

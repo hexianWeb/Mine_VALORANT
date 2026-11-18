@@ -92,15 +92,15 @@ Blender 日常制作、单枪候选预览与正式发布已分级，见[快速�
 
 Classic 已使用精简后的 `classic/v4`：枪械图集为 336×336，默认 AG，保留 Smite／Sakura；完整动作与统一手臂保持兼容。可复用的裁图、UV 调整、版本化导出和验收步骤见[枪械专用图集工作流](docs/weapons/gun-only-uv-workflow.md)。
 
-Phantom 当前使用 `phantom/v3`，复用 v2 模型，接入预览图同款的 Tactiplay／Smite／Rush／Prism 四张 2048×2048 贴图；默认 Tactiplay，K 循环换肤。未改变枪械、手臂或动画，来源与发布记录见[Phantom 四款皮肤](docs/weapons/animation-and-assets.md#phantom-四款皮肤--2026-11-14)。
+Phantom 当前使用 `phantom/v4`，默认 256×256 的 Original，保留 Tactiplay／Smite／Rush／Prism 四款旧皮肤。复用 v3 的模型、手臂和动画；旧版来源见[Phantom 四款皮肤](docs/weapons/animation-and-assets.md#phantom-四款皮肤--2026-11-14)。
 
-Ghost 已接入 `ghost/v1`：按 **3** 切换，**K** 循环 Freehand／Recon／Ego／Spitfire，保留共享 32×32 手臂。使用明确标注的公开参考临时玩法，当前为 13 发、半自动 6.75 发/秒、1.5 秒换弹；后坐力等暂定项与来源见 [Ghost 接入](docs/weapons/ghost-integration.md)。
+Ghost 使用 `ghost/v2`，默认 Original，保留 Freehand／Recon／Ego／Spitfire 和共享 32×32 手臂。使用明确标注的公开参考临时玩法，来源见 [Ghost 接入](docs/weapons/ghost-integration.md)。
 
-狂徒已接入 `vandal/v1`：按 **4** 切换，**K** 循环 Sakura／Wood & Metal／Smite／Royal Gold／EGO／Original，共享同一 32×32 手臂。公开参考临时玩法为 25 发、全自动 9.75 发/秒、2.5 秒换弹；可 ADS，但独立 ADS 射速暂未实现，后坐力暂借 Phantom，见[狂徒接入](docs/weapons/vandal-integration.md)。
+狂徒已接入 `vandal/v1`，默认 Original；**K** 循环 Original／Sakura／Wood & Metal／Smite／Royal Gold／EGO，共享同一 32×32 手臂。公开参考临时玩法为 25 发、全自动 9.75 发/秒、2.5 秒换弹；可 ADS，但独立 ADS 射速暂未实现，后坐力暂借 Phantom，见[狂徒接入](docs/weapons/vandal-integration.md)。
 
-正义已接入 `sheriff/v1`：按 **5** 切换，**K** 循环 Smite／Sakura／Convex，保留 30 动作、快速装填器和共享手臂。公开参考临时玩法为 6 发、半自动 4 发/秒、2.25 秒换弹，无 ADS；后坐力暂借 Classic，见[正义接入](docs/weapons/sheriff-integration.md)。
+正义使用 `sheriff/v2`，默认 Original，保留 Smite／Sakura／Convex、30 个动作、快速装填器和共享手臂。公开参考临时玩法见[正义接入](docs/weapons/sheriff-integration.md)。
 
-判官已接入 `judge/v1`：按 **6** 切换，K 循环 Smite／Rush；5 发、全自动 3.5 发/秒，每发实际查询 12 条弹丸射线，2.2 秒换弹，无 ADS。奥丁已接入 `odin/v1`：按 **7** 切换，K 循环 Smite／Prime／BlastX；100 发、固定 12 发/秒、5 秒换弹，支持 ADS，**未实现连射加速或 ADS 15.6 发/秒**。两枪各保留 33 动作、共享手臂和弹药显示，七枪共预热 28 个本地 cue；临时后坐力、控制策略与实测结果见[判官／奥丁接入](docs/weapons/judge-odin-integration.md)。
+判官和奥丁分别使用 `judge/v2`、`odin/v2`，默认 Original，保留其它皮肤、33 个动作、共享手臂和弹药显示。玩法和控制策略见[判官／奥丁接入](docs/weapons/judge-odin-integration.md)。
 
 `tools/export_range_room.py` 只允许在后台 Blender 副本中运行，要求显式对象 scope，拒绝覆盖已存在的正式资产。副本中调用 `repair_blender_alpha.py` 按图像实际 alpha 分类，防止后续重新导出时退回全部 BLEND；不改源 `.blend`，不重新展开或烘焙。
 

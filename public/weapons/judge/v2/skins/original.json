@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "judge",
+  "assetVersion": "v2",
+  "skinId": "original",
+  "compatibility": {
+    "rig": "24cc46d470afd3642d3d329ad5af032194a0dc66c7aa6d343106cb299c3a615b",
+    "geometryUV": "0fe8673310e26337ac75d43d2297e346e7a78ccd193575f599aed59489d8ae0c",
+    "clipSet": "75c71cbc91cfc50ab3376fab3990514640167a447e66025b507fc68a0f9b7c78"
+  },
+  "materials": {
+    "weapon": {
+      "map": {
+        "url": "../textures/2750112b120bc4b729a4f554f6b6760706fbcd1e0481221fe9502a176c44b64e.png",
+        "sha256": "2750112b120bc4b729a4f554f6b6760706fbcd1e0481221fe9502a176c44b64e",
+        "bytes": 12578,
+        "width": 256,
+        "height": 256,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    }
+  }
+}

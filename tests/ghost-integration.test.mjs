@@ -12,7 +12,15 @@ const readJSON = async file => JSON.parse(await readFile(file, 'utf8'))
 
 test('Ghost uses an explicit temporary public reference without pretending to recover original gameplay', async () => {
   const profile = await readJSON('tools/weapons/authored-releases/ghost-temporary-runtime.json')
-  assert.deepEqual(profile.definition, ghostDefinition)
+  assert.deepEqual(profile.definition, {
+    ...ghostDefinition,
+    assets: {
+      modelId: 'ghost',
+      assetVersion: 'v1',
+      defaultSkinId: 'freehand',
+      skinIds: ['freehand', 'recon', 'ego', 'spitfire'],
+    },
+  })
   assert.deepEqual(profile.provenance, ghostGameplayProvenance)
   assert.equal(profile.originalRuntimeManifestAvailable, false)
   assert.equal(profile.reference.weaponStats.magazineSize, ghostDefinition.capacity)
@@ -62,7 +70,7 @@ test('Ghost v1 is a freshly validated authored release, not a relabelled art pre
   assert.equal(manifest.provenance.releaseRecipeSha256, sha256(await readFile('tools/weapons/authored-releases/ghost-v1.json')))
   assert.equal(manifest.provenance.authoringMetadataSha256, sha256(await readFile(`${directory}/authoring-metadata.json`)))
   assert.equal(manifest.armContract.textureSha256, '2c041879daf6509fe3da88a8e1b857e4b9a7c9b67279d012382f5f03529750e9')
-  assert.deepEqual(Object.keys(manifest.skins), ghostDefinition.assets.skinIds)
+  assert.deepEqual(Object.keys(manifest.skins), ['freehand', 'recon', 'ego', 'spitfire'])
   for (const [skinId, descriptor] of Object.entries(manifest.skins)) {
     const filename = path.join(directory, descriptor.url)
     const bytes = await readFile(filename)

@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "sourceContract": "blender-actions-with-temporary-public-runtime",
+  "weaponId": "odin",
+  "assetVersion": "v1",
+  "defaultSkinId": "smite",
+  "authoring": {
+    "path": "tools/weapons/authored-releases/odin-authoring.json",
+    "sha256": "d18a12cc8854f4321352238489b01f864cfd3706031896cf703aaae38ec3a47d"
+  },
+  "runtimeProfile": {
+    "path": "tools/weapons/authored-releases/odin-temporary-runtime.json",
+    "sha256": "e98487e166d79b7b751a3f4e5f59d768d28b99b010f52ef0cc89b48b5ddd0a85"
+  },
+  "scene": "E09_ODIN_Actions",
+  "meshes": [
+    "Arms_Left",
+    "Arms_Right",
+    "Weapon_Body",
+    "Weapon_Magazine"
+  ],
+  "armatures": [
+    "root.006",
+    "views.008",
+    "camera.008",
+    "positioning.008"
+  ],
+  "authoringAdapter": {
+    "meshAliases": {
+      "Arms_Right.008": "Arms_Right",
+      "Arms_Left.008": "Arms_Left",
+      "Weapon_Body.008": "Weapon_Body",
+      "Weapon_Magazine.007": "Weapon_Magazine"
+    },
+    "actionAliases": {
+      "odin / ADS_down": "ADS_down",
+      "odin / ADS_up": "ADS_up",
+      "odin / aim": "aim",
+      "odin / aim_end": "aim_end",
+      "odin / aim_start": "aim_start",
+      "odin / ammo_display": "ammo_display",
+      "odin / barrel": "barrel",
+      "odin / draw": "draw",
+      "odin / idle": "idle",
+      "odin / inspect": "inspect",
+      "odin / inspect_empty": "inspect_empty",
+      "odin / melee_bayonet_1": "melee_bayonet_1",
+      "odin / melee_bayonet_2": "melee_bayonet_2",
+      "odin / melee_bayonet_3": "melee_bayonet_3",
+      "odin / melee_push": "melee_push",
+      "odin / melee_stock": "melee_stock",
+      "odin / put_away": "put_away",
+      "odin / reload_empty": "reload_empty",
+      "odin / reload_tactical": "reload_tactical",
+      "odin / run": "run",
+      "odin / run_end": "run_end",
+      "odin / run_hold": "run_hold",
+      "odin / run_start": "run_start",
+      "odin / shoot": "shoot",
+      "odin / shoot_aim": "shoot_aim",
+      "odin / slide": "slide",
+      "odin / slide_back": "slide_back",
+      "odin / slide_idle": "slide_idle",
+      "odin / static_idle": "static_idle",
+      "odin / walk_aiming": "walk_aiming",
+      "odin / walk_backward": "walk_backward",
+      "odin / walk_forward": "walk_forward",
+      "odin / walk_sideway": "walk_sideway"
+    },
+    "weaponMaterial": "Odin_Smite_Skin"
+  },
+  "materials": {
+    "weapon": [
+      "Weapon_Skin"
+    ],
+    "armsLeft": [
+      "Character_Left"
+    ],
+    "armsRight": [
+      "Character_Right"
+    ]
+  },
+  "sockets": {
+    "muzzle": "muzzle_flash",
+    "shell": "shell"
+  },
+  "actions": {
+    "idle": "static_idle",
+    "draw": "draw",
+    "holster": "put_away",
+    "fire": "shoot",
+    "fireAds": "shoot_aim",
+    "reloadTactical": "reload_tactical",
+    "reloadEmpty": "reload_empty",
+    "inspect": "inspect",
+    "aimStart": "aim_start",
+    "aim": "aim",
+    "aimEnd": "aim_end"
+  },
+  "requiredActions": [
+    "idle",
+    "draw",
+    "holster",
+    "fire",
+    "reloadTactical",
+    "reloadEmpty",
+    "inspect",
+    "fireAds",
+    "aimStart",
+    "aim",
+    "aimEnd"
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "sourceBlend": {
+    "path": "skin_work_folder/vandal_skin_work/three_vandals/Vandal_EGO_Magazine_Fixed.blend",
+    "sha256": "d7395a1653db4b54e135dceb82d8bb181777a9f12eddec72f39a60a50fb69dd7"
+  },
+  "weaponReleases": {
+    "ghost": {
+      "scene": "E02_GHOST_Actions",
+      "baseVersion": "v1",
+      "assetVersion": "v2",
+      "baseManifestSha256": "b040b4b215008f754ec150b4d030e53bcd8fd478cf0a92d9a26ef343a217a88c",
+      "baseSourceAuditSha256": "7594e347909b89866c37468c0f8ff341ee99db6ea308bf70cb3fc9348dcd3c4b",
+      "atlasSize": 256,
+      "atlasSha256": "da05119a20b5e8338b665c9677ccfdb0b25f812f75243c25854a0659c4a1cf02"
+    },
+    "sheriff": {
+      "scene": "E03_SHERIFF_Actions",
+      "baseVersion": "v1",
+      "assetVersion": "v2",
+      "baseManifestSha256": "ce1dd9248dd7e724e8e0fe63518000273cec3d71a9c7eba04afb919c28c1ec5a",
+      "baseSourceAuditSha256": "73ed4289c5ac32eb24f9733544202d4e27c862d42c6e3ea1c6a6332a8dfa4dd6",
+      "atlasSize": 512,
+      "atlasSha256": "4ac5ac3c80336a9930c16201f019047c6e9cceb3de3cb433190539cde97613e8"
+    },
+    "phantom": {
+      "scene": "E05_PHANTOM_Actions",
+      "baseVersion": "v3",
+      "assetVersion": "v4",
+      "baseManifestSha256": "0a9db23ee507ebf6e26a224b68180054e106ef2ae0eaf6f8906d98bd0cb86c18",
+      "baseSourceAuditSha256": "021c1318a1427572d0343b72745e954b438ef840670f74191eeb8e596e5006ed",
+      "atlasSize": 256,
+      "atlasSha256": "e99c0d9ff91084136ad3851f7a69b8d56244f3a381b9eb0a2f4d6440eb4e74e5"
+    },
+    "judge": {
+      "scene": "E08_JUDGE_Actions",
+      "baseVersion": "v1",
+      "assetVersion": "v2",
+      "baseManifestSha256": "4010958264fee19b08fdb1d92b13783a5afb4270e15d94cf7f4d815772cabc0a",
+      "baseSourceAuditSha256": "2945d81f338c294b60349424a0dfc6c431edcbf4838ad7486f44f71c2ef6df3f",
+      "atlasSize": 256,
+      "atlasSha256": "e346d80ab39d76125a6d65c8fffcc77d379b4119b37bb4396530bd8fb4edcb5e"
+    },
+    "odin": {
+      "scene": "E09_ODIN_Actions",
+      "baseVersion": "v1",
+      "assetVersion": "v2",
+      "baseManifestSha256": "18195ac4bfe3ff110231ab162de4add7f11f825b00ab78986376fcfed97b982f",
+      "baseSourceAuditSha256": "8c3e4dfa8a801c74d3d49d9d9266fb8637e0e02f4440515fdf14a7a9d9863be2",
+      "atlasSize": 512,
+      "atlasSha256": "1c38ce0788cd3a92a50c04fdbd9cd50247d24652b2e7295c2061f0c926c541f6"
+    }
+  }
+}

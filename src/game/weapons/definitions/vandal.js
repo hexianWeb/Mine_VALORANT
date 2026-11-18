@@ -38,7 +38,7 @@ export const vandalDefinition = createWeaponDefinition({
   assets: {
     modelId: 'vandal',
     assetVersion: 'v1',
-    defaultSkinId: 'sakura',
+    defaultSkinId: 'original',
     skinIds: [
       'sakura',
       'wood-metal',

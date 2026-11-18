@@ -19,8 +19,14 @@ export const phantomDefinition = createWeaponDefinition({
   // Logical publication IDs keep source authoring paths out of gameplay.
   assets: {
     modelId: 'phantom',
-    assetVersion: 'v3',
-    defaultSkinId: 'tactiplay',
-    skinIds: ['tactiplay', 'smite', 'rush', 'prism'],
+    assetVersion: 'v4',
+    defaultSkinId: 'original',
+    skinIds: [
+      'tactiplay',
+      'smite',
+      'rush',
+      'prism',
+      'original',
+    ],
   },
 })

@@ -150,7 +150,8 @@ async function verify({ weapons = defaultWeapons, quick = false } = {}) {
     require(before === JSON.stringify(meshState(second.root)), 'Animation leaked into the second skeleton')
     const a = entry.instance.root.getObjectByName('Weapon_Body')
     const b = second.root.getObjectByName('Weapon_Body')
-    require(a.geometry === b.geometry && a.skeleton !== b.skeleton && a.material !== b.material, 'Resource ownership mismatch')
+    const sharedGeometry = !entry.instance.sight?.ownsBodyGeometry
+    require((a.geometry === b.geometry) === sharedGeometry && a.skeleton !== b.skeleton && a.material !== b.material, 'Resource ownership mismatch')
     second.dispose()
     require(second.player.snapshot().stats.actions === 0 && second.player.snapshot().stats.bindings === 0, 'Mixer cache leak')
     await sample(weaponId, 'idle')

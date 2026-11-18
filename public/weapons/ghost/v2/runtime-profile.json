@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "originalRuntimeManifestAvailable": false,
+  "provenance": {
+    "status": "temporary-public-reference",
+    "observedAt": "2026-11-14",
+    "referenceUrl": "https://valorant-api.com/v1/weapons/1baa85b4-4c70-1284-64bb-6481dfc3bb4e",
+    "requestedWiki": "https://valorant.fandom.com/wiki/Ghost",
+    "wikiAccess": "403; public game-data API used instead",
+    "recoilAndSpread": "Classic project profile reused temporarily; not Ghost source curves",
+    "reserve": "Three spare magazines, project practice policy",
+    "reloadCommit": "At the end of the public reload duration, project policy",
+    "holster": "Zero-duration switch, project policy",
+    "inspect": "Three-second authoring clip used as a project deadline"
+  },
+  "reference": {
+    "provider": "Valorant-API community game data (not Riot official API)",
+    "url": "https://valorant-api.com/v1/weapons/1baa85b4-4c70-1284-64bb-6481dfc3bb4e",
+    "observedAt": "2026-11-14",
+    "requestUrl": "https://valorant-api.com/v1/weapons",
+    "snapshotKind": "selected Ghost record fields from the successful HTTP tool response",
+    "selectedSnapshotSha256": "9d3903b34e05eb2d402ed814bf3b9ccbcfb711e4619048e5385d75c35aaaf217",
+    "uuid": "1baa85b4-4c70-1284-64bb-6481dfc3bb4e",
+    "displayName": "Ghost",
+    "weaponStats": {
+      "fireRate": 6.75,
+      "magazineSize": 13,
+      "runSpeedMultiplier": 0.85,
+      "equipTimeSeconds": 0.75,
+      "reloadTimeSeconds": 1.5,
+      "firstBulletAccuracy": 0.3,
+      "shotgunPelletCount": 1,
+      "wallPenetration": "EWallPenetrationDisplayType::Medium",
+      "feature": "EWeaponStatsFeature::Silenced",
+      "fireMode": "EWeaponFireModeDisplayType::SemiAutomatic",
+      "altFireType": null,
+      "adsStats": null,
+      "damageRanges": [
+        {
+          "rangeStartMeters": 0,
+          "rangeEndMeters": 30,
+          "headDamage": 105,
+          "bodyDamage": 30,
+          "legDamage": 25.5
+        },
+        {
+          "rangeStartMeters": 30,
+          "rangeEndMeters": 50,
+          "headDamage": 87.5,
+          "bodyDamage": 25,
+          "legDamage": 21.25
+        }
+      ]
+    },
+    "cost": 500
+  },
+  "definition": {
+    "recoil": {
+      "pitch": [
+        {
+          "time": 0,
+          "min": 0.005235987755982988,
+          "max": 0.005235987755982988
+        },
+        {
+          "time": 0.25,
+          "min": 0.006981317007977318,
+          "max": 0.006981317007977318
+        },
+        {
+          "time": 0.45,
+          "min": -0.0017453292519943296,
+          "max": -0.0017453292519943296
+        },
+        {
+          "time": 0.6,
+          "min": 0,
+          "max": 0
+        }
+      ],
+      "yaw": [
+        {
+          "time": 0,
+          "min": -0.002617993877991494,
+          "max": 0.002617993877991494
+        },
+        {
+          "time": 0.45,
+          "min": 0,
+          "max": 0
+        }
+      ]
+    },
+    "spread": {
+      "stand": 0.006891,
+      "move": 0.103365,
+      "crouch": 0.00516825,
+      "ads": 0.103365
+    },
+    "aim": {
+      "duration": 0.005,
+      "worldFov": 70,
+      "viewmodelFov": 70
+    },
+    "id": "ghost",
+    "capacity": 13,
+    "initialReserve": 39,
+    "fire": {
+      "mode": "semi",
+      "interval": 0.14814814814814814
+    },
+    "equip": {
+      "draw": 0.75,
+      "holster": 0
+    },
+    "reload": {
+      "tactical": {
+        "feed": 1.5,
+        "duration": 1.5
+      },
+      "empty": {
+        "feed": 1.5,
+        "duration": 1.5
+      }
+    },
+    "inspectDuration": 3,
+    "capabilities": {
+      "ads": false
+    },
+    "assets": {
+      "modelId": "ghost",
+      "assetVersion": "v1",
+      "defaultSkinId": "freehand",
+      "skinIds": [
+        "freehand",
+        "recon",
+        "ego",
+        "spitfire"
+      ]
+    }
+  },
+  "audio": {
+    "cues": {
+      "ghost_shoot": {
+        "id": "ghost_shoot",
+        "url": "/audio/ghost/ghost_shoot.ogg",
+        "sha256": "ceab17e7a257808ada95f1720367c36218b99d78afefc5c064db23f4ad09457f",
+        "gain": 0.25
+      },
+      "ghost_draw": {
+        "id": "ghost_draw",
+        "url": "/audio/ghost/ghost_draw.ogg",
+        "sha256": "76146cc5a899625979e247123660944113791181525bf88d30f5a50aefb371fa",
+        "gain": 0.22
+      },
+      "ghost_reload": {
+        "id": "ghost_reload",
+        "url": "/audio/ghost/ghost_reload.ogg",
+        "sha256": "c9bafa4819fa2b634d8656cd9da315ea265cf4b34646ed5e394bd77dc35e10e8",
+        "gain": 0.22
+      },
+      "ghost_inspect": {
+        "id": "ghost_inspect",
+        "url": "/audio/ghost/ghost_inspect.ogg",
+        "sha256": "ff3d3e466afb6beeedcee584092dcc5cf8236b1d876c0a8b51d1698cc5046009",
+        "gain": 0.22
+      }
+    },
+    "fire": "ghost_shoot",
+    "draw": "ghost_draw",
+    "reloadTactical": "ghost_reload",
+    "reloadEmpty": "ghost_reload",
+    "inspect": "ghost_inspect"
+  }
+}

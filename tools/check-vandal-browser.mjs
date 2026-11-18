@@ -99,7 +99,7 @@ try {
   report.initial = await state()
   assert.equal(report.initial.view.weapon.definitionId, 'vandal')
   assert.equal(report.initial.view.weapon.magazine, 25)
-  assert.equal(report.initial.view.skinId, 'sakura')
+  assert.equal(report.initial.view.skinId, 'original')
   report.asset = await evaluate(`(() => {
     const root = __RANGE_ROOM__.render.viewmodel.scene;
     const body = root.getObjectByName('Weapon_Body');
@@ -118,9 +118,9 @@ try {
   assert.equal(report.asset.sharedArms, true)
   assert.equal(report.asset.temporaryLabel, true)
   assert.deepEqual(report.asset.armsSize, [32, 32])
-  assert.deepEqual(report.asset.imageSize, [2048, 2048])
+  assert.deepEqual(report.asset.imageSize, [256, 256])
   assert.equal(report.asset.sounds, 4)
-  for (const skinId of [...vandalDefinition.assets.skinIds, 'sakura']) {
+  for (const skinId of vandalDefinition.assets.skinIds) {
     if ((await state()).view.skinId !== skinId) {
       await key('KeyK', 'k', 75)
       await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.view.skinId === ${JSON.stringify(skinId)}`)

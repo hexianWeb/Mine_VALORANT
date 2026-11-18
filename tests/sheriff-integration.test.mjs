@@ -13,7 +13,15 @@ const readJSON = async file => JSON.parse(await readFile(file, 'utf8'))
 
 test('Sheriff uses pinned public-reference timing and labels the missing original gameplay', async () => {
   const profile = await readJSON('tools/weapons/authored-releases/sheriff-temporary-runtime.json')
-  assert.deepEqual(profile.definition, sheriffDefinition)
+  assert.deepEqual(profile.definition, {
+    ...sheriffDefinition,
+    assets: {
+      modelId: 'sheriff',
+      assetVersion: 'v1',
+      defaultSkinId: 'smite',
+      skinIds: ['smite', 'sakura', 'convex'],
+    },
+  })
   assert.deepEqual(profile.provenance, sheriffGameplayProvenance)
   assert.deepEqual(profile.audio, weaponAudioProfiles.sheriff)
   assert.equal(profile.originalRuntimeManifestAvailable, false)
@@ -51,7 +59,7 @@ test('three Sheriff sources and packed skins are pinned and share the actual exp
   assert.equal(recipe.scene, '80_ThreeJS_Export')
   assert.equal(recipe.authoringAdapter, undefined, 'the actual Sheriff arms already match the contract')
   assert.equal(authoring.clips.find(clip => clip.name === 'inspect').duration, sheriffDefinition.inspectDuration)
-  assert.deepEqual(Object.keys(authoring.skins), sheriffDefinition.assets.skinIds)
+  assert.deepEqual(Object.keys(authoring.skins), ['smite', 'sakura', 'convex'])
   for (const skin of Object.values(authoring.skins)) {
     await readPinnedAuthoring(skin.source)
     const texture = await readPinnedAuthoring(skin.texture)
@@ -79,7 +87,7 @@ test('Sheriff v1 contains all actions, loader mesh, shared arms and fresh releas
   assert.ok(manifest.meshes.includes('Weapon_Magazine'), 'reload loader must not be dropped')
   assert.equal(manifest.meshes.length, 4)
   assert.equal(audit.poseSamples.length, 9)
-  assert.deepEqual(Object.keys(manifest.skins), sheriffDefinition.assets.skinIds)
+  assert.deepEqual(Object.keys(manifest.skins), ['smite', 'sakura', 'convex'])
   for (const [skinId, descriptor] of Object.entries(manifest.skins)) {
     const bytes = await readFile(path.join(directory, descriptor.url))
     assert.equal(sha256(bytes), descriptor.sha256)
