@@ -29,6 +29,9 @@ const hashes = {
   odin_draw: '9c3d9ebc9de14803c551974a4218dfe11eeda8a575a1e74f9220a5953f5f0c12',
   odin_reload: '547862e65b90a666fa571fcdab7aa1659005490c06f645446f96860370e1cd8f',
   odin_inspect: '1074135015bc642c37fe00164a12d5d6d88e38366292cab1573f9b6ca06ee9fa',
+  // Original synthesized cues, peak-aligned with the firearm shoots. Not extracted game audio.
+  karambit_swing: '01f32cb55113227a563f3de972bca6ad0112e814873d74545c3733011affa3bd',
+  karambit_hit: 'd3d63426576c61f17510ff10c6074db4658e368d2e1154dac989a88cbdec0add',
 }
 
 function profile(weaponId) {
@@ -56,6 +59,28 @@ function profile(weaponId) {
   })
 }
 
+function meleeProfile(weaponId) {
+  const cues = Object.fromEntries(['swing', 'hit'].map((role) => {
+    const id = `${weaponId}_${role}`
+    return [
+      id,
+      Object.freeze({
+        id,
+        url: `/audio/${weaponId}/${id}.ogg`,
+        sha256: hashes[id],
+        gain: role === 'hit'
+          ? 0.3
+          : 0.26,
+      }),
+    ]
+  }))
+  return Object.freeze({
+    cues: Object.freeze(cues),
+    swing: `${weaponId}_swing`,
+    hit: `${weaponId}_hit`,
+  })
+}
+
 export const weaponAudioProfiles = Object.freeze({
   classic: profile('classic'),
   phantom: profile('phantom'),
@@ -64,4 +89,5 @@ export const weaponAudioProfiles = Object.freeze({
   sheriff: profile('sheriff'),
   judge: profile('judge'),
   odin: profile('odin'),
+  karambit: meleeProfile('karambit'),
 })

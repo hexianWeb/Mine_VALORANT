@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { Engine } from '../src/engine/runtime/engine.js'
 import { ChallengeSession } from '../src/game/range-room/challenges/challenge-session.js'
 import { challengeRules, lockChallengeConfig } from '../src/game/range-room/challenges/config.js'
 import { GridCapacityError, sectorCells, SpawnGrid, validateSectorCells } from '../src/game/range-room/challenges/spawn-grid.js'
@@ -37,7 +38,7 @@ test('locked rules use only the confirmed values, ceil windows once, and reject 
   for (const [difficulty, ticks] of [
     ['easy', 120],
     ['medium', 60],
-    ['hard', 30],
+    ['hard', 42],
   ]) {
     const config = lockChallengeConfig(selection({ difficulty }), h)
     assert.equal(config.windowTicks, ticks)
@@ -53,7 +54,7 @@ test('locked rules use only the confirmed values, ceil windows once, and reject 
   assert.equal(config.concurrency, 10)
   assert.equal(config.windowTicks, null)
   assert.equal(config.maxArmor, 50)
-  assert.equal(lockChallengeConfig(selection({ difficulty: 'hard' }), 0.07).windowTicks, 8)
+  assert.equal(lockChallengeConfig(selection({ difficulty: 'hard' }), 0.08).windowTicks, 9)
   for (const patch of [
     { mode: 'other' },
     { difficulty: 'normal' },
@@ -64,6 +65,25 @@ test('locked rules use only the confirmed values, ceil windows once, and reject 
   ])
     assert.throws(() => lockChallengeConfig(selection(patch), h))
   assert.throws(() => lockChallengeConfig(selection(), 2), /collapses/)
+})
+
+test('hard gives one target 42 ticks and expires exactly at its deadline', () => {
+  const session = new ChallengeSession()
+  session.start(selection({ difficulty: 'hard' }), time(1), 'owner')
+  fill(session, 1)
+  const [first] = session.snapshot().active
+  assert.equal(first.deadlineTick, 43)
+  assert.equal(session.fixed(time(42)).removed.length, 0)
+  const transition = session.resolveDeaths([
+    death(first, 42),
+  ], time(42))
+  assert.equal(transition.removed[0].reason, 'killed')
+  fill(session, 42)
+  const [second] = session.snapshot().active
+  assert.equal(second.deadlineTick, 84)
+  assert.equal(session.fixed(time(84)).removed[0].reason, 'expired')
+  assert.equal(session.snapshot().kills, 1)
+  assert.equal(session.snapshot().settled, 2)
 })
 
 test('shooting test has exactly 30 opportunities, one life, half-open deadlines and no target 31', () => {
@@ -112,17 +132,18 @@ test('misses, nonlethal hits and paused/no-step reads do not reset windows or sp
   session.start(selection({ difficulty: 'hard' }), time(1), 'owner')
   fill(session, 1)
   const before = session.snapshot()
-  for (let tick = 2; tick <= 30; tick++) {
+  const { deadlineTick } = before.active[0]
+  for (let tick = 2; tick < deadlineTick; tick++) {
     session.fixed(time(tick))
     session.resolveDeaths([], time(tick))
   }
   assert.deepEqual(session.snapshot().active, before.active)
   for (let frame = 0; frame < 100; frame++) assert.deepEqual(session.snapshot().active, before.active)
   assert.equal(session.snapshot().settled, 0)
-  session.fixed(time(31))
+  session.fixed(time(deadlineTick))
   assert.equal(session.snapshot().settled, 1)
   assert.throws(() => session.fixed({
-    ...time(32),
+    ...time(deadlineTick + 1),
     timeScale: 0,
   }))
 })
@@ -144,6 +165,66 @@ test('thirty unattended deadlines finish at 0/30 without a shot consumer or an e
   assert.equal(state.result.settled, 30)
   assert.equal(state.active.length, 0)
   assert.equal(state.deficit, 0)
+})
+
+test('hard scores and elimination stop times match at 30/60/144 FPS and five-step catch-up', () => {
+  function run(fps, config, kills) {
+    const session = new ChallengeSession()
+    const engine = new Engine({
+      world: {
+        tickComponents(phase, { time: step }) {
+          if (phase !== 'fixed')
+            return
+          const tick = step.fixedTick
+          if (tick === 1)
+            session.start(config, step, 'fps')
+          const expired = session.fixed(step)
+          const { active, settled, status } = session.snapshot()
+          if (status !== 'running')
+            return
+          const [target] = active
+          if (target && (config.mode === 'elimination'
+            ? tick % 5 === 0
+            : settled < kills && tick === target.spawnedTick + 1)) {
+            session.resolveDeaths([
+              death(target, tick),
+            ], step)
+          }
+          if (session.deficit)
+            fill(session, tick)
+          if (expired.removed.length && session.running)
+            assert.notEqual(session.snapshot().active[0].cellId, expired.removed[0].spawn.cellId)
+        },
+      },
+    })
+    for (let frame = 0; frame < fps * 24 && session.snapshot().status !== 'completed'; frame++)
+      engine.step(frame * 1000 / fps)
+    engine.destroy()
+    const { result, active } = session.snapshot()
+    assert.equal(active.length, 0)
+    assert.equal(result.kills, kills)
+    const opportunities = config.mode === 'shooting-test'
+      ? 30
+      : 0
+    assert.equal(result.settled, opportunities)
+    return result
+  }
+
+  for (const [config, kills] of [
+    ...[0, 23, 30].map(kills => [
+      selection({ difficulty: 'hard' }),
+      kills,
+    ]),
+    ...[50, 100].map(targetKills => [
+      selection({ mode: 'elimination', targetKills }),
+      targetKills,
+    ]),
+  ]) {
+    const baseline = run(60, config, kills)
+    for (const fps of [30, 144, 12]) assert.deepEqual(run(fps, config, kills), baseline)
+    if (config.mode === 'elimination')
+      assert.equal(baseline.completedAt, kills * 5 * h)
+  }
 })
 
 test('elimination keeps ten independent identities, bulk-replaces only deaths and has no timeout', () => {

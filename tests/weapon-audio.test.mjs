@@ -8,12 +8,14 @@ import { ResourceManager } from '../src/engine/runtime/resource/resource-manager
 import { WeaponAssets } from '../src/game/weapons/assets/weapon-assets.js'
 import { weaponAudioProfiles } from '../src/game/weapons/definitions/audio.js'
 import { classicDefinition } from '../src/game/weapons/definitions/classic.js'
+import { karambitDefinition } from '../src/game/weapons/definitions/karambit.js'
 import { WeaponAudio } from '../src/game/weapons/weapon-audio.js'
 import { audioTime, cue, FakeAudioContext, h } from './audio-fixture.mjs'
 
 test('all configured local sound inputs match the supplied Ogg files; reload aliases share one cue', async () => {
   for (const profile of Object.values(weaponAudioProfiles)) {
-    assert.equal(profile.reloadEmpty, profile.reloadTactical)
+    if (profile.reloadTactical)
+      assert.equal(profile.reloadEmpty, profile.reloadTactical)
     for (const descriptor of Object.values(profile.cues)) {
       const bytes = await readFile(`public${descriptor.url}`)
       assert.equal(bytes.subarray(0, 4).toString(), 'OggS')
@@ -202,6 +204,65 @@ function adapter(t) {
     motion(at) { bridge.motion(audioTime(Math.round(at / h), at)) },
   }
 }
+
+test('a karambit swing plays one whoosh, and only a connecting contact plays the strike', (t) => {
+  const enqueued = []
+  const profile = weaponAudioProfiles.karambit
+  const bank = new Map(Object.values(profile.cues).map(cue => [
+    cue.id,
+    { buffer: { duration: 0.3 }, gain: cue.gain },
+  ]))
+  const bridge = new WeaponAudio({
+    audio: {
+      enqueue(cue) { enqueued.push(cue) },
+      cancelAction() {},
+      invalidate() {},
+      reportOnce() {},
+    },
+    assets: {
+      audioScope: 'melee',
+      async preloadAudio() {},
+      audioCue(id) { return bank.get(id) },
+      audioSnapshot() { return { cues: bank.size } },
+      manifest() { return null },
+    },
+    definitions: [karambitDefinition],
+    profiles: { karambit: profile },
+  })
+  t.after(() => bridge.dispose())
+  const weapon = { definitionId: 'karambit' }
+  const event = (sequence, type, payload) => ({
+    epoch: 1,
+    sequence,
+    fixedTick: sequence,
+    at: sequence * h,
+    type,
+    instanceId: 'karambit',
+    payload: { weapon, ...payload },
+  })
+  bridge.receive({
+    events: [
+      event(1, 'MeleeSwung', { impactTick: 5 }),
+      event(2, 'MeleeContact', { impact: { hit: null } }),
+    ],
+  }, { epoch: 1 })
+  bridge.motion(audioTime(2, 2 * h))
+  assert.equal(enqueued.length, 1)
+  assert.equal(enqueued[0].kind, 'transient')
+  assert.equal(enqueued[0].id.endsWith('karambit_swing'), true)
+  assert.equal(enqueued[0].gain, profile.cues.karambit_swing.gain)
+  bridge.receive({
+    events: [event(3, 'MeleeContact', { impact: { hit: 'training-bot' } })],
+  }, { epoch: 1 })
+  bridge.motion(audioTime(3, 3 * h))
+  assert.equal(enqueued.length, 2)
+  assert.equal(enqueued[1].id.endsWith('karambit_hit'), true)
+  bridge.receive({
+    events: [event(3, 'MeleeContact', { impact: { hit: 'training-bot' } })],
+  }, { epoch: 1 })
+  bridge.motion(audioTime(3, 3 * h))
+  assert.equal(enqueued.length, 2)
+})
 
 test('accepted facts alone own start sounds; independent markers use real at and duplicate delivery is ignored', (t) => {
   const f = adapter(t)

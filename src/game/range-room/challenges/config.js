@@ -10,14 +10,15 @@ export const defaultChallengeSelection = Object.freeze({
 })
 
 export const challengeRules = immutableFact({
-  version: rangeDamageVersion,
+  version: 'range-challenges-v3-2026-11-18',
+  damageVersion: rangeDamageVersion,
   opportunities: 30,
   concurrency: 10,
   cellSize: 1,
   spawnOffsetRows: 2,
   radius: 18,
   angle: Math.PI / 2,
-  windows: { easy: 2, medium: 1, hard: 0.5 },
+  windows: { easy: 2, medium: 1, hard: 0.7 },
   maxHealth: 100,
   spawnDelay: 0,
 })

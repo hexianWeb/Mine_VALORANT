@@ -139,6 +139,10 @@ export class WeaponAudio {
       this.#cancel(event.instanceId, event.at, `inspect:${event.payload.actionId}`)
     if (!profile)
       return
+    if (event.type === 'MeleeSwung' && profile.swing)
+      this.#cue(event, profile.swing, { kind: 'transient' })
+    if (event.type === 'MeleeContact' && profile.hit && event.payload.impact?.hit)
+      this.#cue(event, profile.hit, { kind: 'transient' })
     if (event.type === 'ShotFired') {
       this.#cancel(event.instanceId, event.at)
       this.#cue(event, profile.fire, { kind: 'transient' })
@@ -162,15 +166,16 @@ export class WeaponAudio {
     }
     if (['DrawStarted', 'ReloadStarted', 'InspectStarted'].includes(event.type)) {
       this.#cancel(event.instanceId, event.at)
-      if (event.type === 'DrawStarted')
+      if (event.type === 'DrawStarted' && profile.draw)
         this.#start(event, 'draw', profile.draw, event.payload.readyTick * h, `draw:${event.payload.switchId}`)
       if (event.type === 'ReloadStarted') {
         const role = event.payload.branch === 'empty'
           ? 'reloadEmpty'
           : 'reloadTactical'
-        this.#start(event, role, profile[role], event.payload.endTick * h, `reload:${event.payload.actionId}`)
+        if (profile[role])
+          this.#start(event, role, profile[role], event.payload.endTick * h, `reload:${event.payload.actionId}`)
       }
-      if (event.type === 'InspectStarted')
+      if (event.type === 'InspectStarted' && profile.inspect)
         this.#start(event, 'inspect', profile.inspect, event.payload.endTick * h, `inspect:${event.payload.actionId}`)
     }
   }
