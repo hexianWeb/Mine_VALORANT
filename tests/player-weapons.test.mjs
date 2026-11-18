@@ -13,6 +13,8 @@ import { odinDefinition } from '../src/game/weapons/definitions/odin.js'
 import { phantomDefinition } from '../src/game/weapons/definitions/phantom.js'
 import { sheriffDefinition } from '../src/game/weapons/definitions/sheriff.js'
 import { vandalDefinition } from '../src/game/weapons/definitions/vandal.js'
+import { EquipmentController } from '../src/game/weapons/equipment-controller.js'
+import { WeaponInventory } from '../src/game/weapons/inventory.js'
 import { PlayerWeapons } from '../src/game/weapons/player-weapons.js'
 import { createWeaponDefinition } from '../src/game/weapons/weapon-definition.js'
 import { setupInput } from './input-fixture.mjs'
@@ -310,6 +312,36 @@ function setup(t, {
     },
   }
 }
+
+test('delayed HUD replays shot and reload ammo at their own boundaries without full equipment snapshots', async (t) => {
+  const f = setup(t)
+  await f.ready()
+  const initial = f.weapons.readHud().weapon
+  for (const type of [EquipmentController, WeaponInventory])
+    t.mock.method(type.prototype, 'snapshot', () => assert.fail('unexpected full snapshot in the frame loop'))
+
+  const shot = f.fixed({ type: 'fire' }).events.find(event => event.type === 'ShotFired')
+  f.key('keydown', 'KeyR')
+  f.key('keyup', 'KeyR')
+  f.weapons.collectInput(f.input)
+  const reload = f.fixed().events.find(event => event.type === 'ReloadStarted')
+  let feed
+  while (f.tick < reload.payload.feedTick)
+    feed = f.fixed().events.find(event => event.type === 'AmmoCommitted')
+  assert.ok(feed)
+  assert.equal(f.weapons.readHud().weapon, initial, 'fixed has already refilled the magazine; P is still before the shot')
+
+  const present = (at) => {
+    f.weapons.motion({ presentationTime: at, fixedElapsed: f.tick * h, fixedDelta: h })
+    return f.weapons.readHud()
+  }
+  assert.equal(present(shot.at).weapon.magazine, initial.magazine - 1)
+  assert.equal(present(reload.at).action, 'reloadTactical')
+  assert.equal(present(feed.at - h / 2).weapon.magazine, initial.magazine - 1)
+  const refilled = present(feed.at).weapon
+  assert.equal(refilled.magazine, initial.magazine)
+  assert.equal(refilled.reserve, initial.reserve - 1)
+})
 
 test('shop selection follows actual fixed preparation and delayed presentation, preserving ammo', async (t) => {
   const f = setup(t)

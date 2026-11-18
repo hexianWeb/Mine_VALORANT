@@ -31,6 +31,7 @@ export class WeaponViewModel {
   #assets
   #layer
   #queue
+  #readWeapon
   #definitions
   #jumpFeedback
   #active = null
@@ -55,10 +56,11 @@ export class WeaponViewModel {
     return Array.from(this.#skinRequests.values()).findLast(request => request.ticket.instanceId === this.#active?.instanceId && request.error)?.error ?? null
   }
 
-  constructor({ assets, layer, queue, definitions, jumpFeedback }) {
+  constructor({ assets, layer, queue, readWeapon, definitions, jumpFeedback }) {
     this.#assets = assets
     this.#layer = layer
     this.#queue = queue
+    this.#readWeapon = readWeapon
     this.#definitions = new Map(definitions.map(definition => [definition.id, definition]))
     this.#jumpFeedback = {
       ...playerConfig.jumpFeedback,
@@ -114,7 +116,7 @@ export class WeaponViewModel {
     }
     for (const effect of batch.effects) {
       if (effect.type === 'PrepareSkin') {
-        const weapon = snapshot.inventory.weapons.find(weapon => weapon.instanceId === effect.ticket.instanceId)
+        const weapon = this.#readWeapon(effect.ticket.instanceId)
         if (!weapon)
           continue
         const definition = this.#definitions.get(weapon.definitionId)
@@ -146,7 +148,7 @@ export class WeaponViewModel {
         }
       }
       else if (effect.type === 'PrepareWeapon') {
-        const weapon = effect.weapon ?? snapshot.inventory.weapons.find(weapon => weapon.instanceId === effect.ticket.instanceId)
+        const weapon = effect.weapon ?? this.#readWeapon(effect.ticket.instanceId)
         const definition = this.#definitions.get(weapon.definitionId)
         const request = { ticket: effect.ticket, handle: null, failed: false }
         this.#request = request
@@ -335,7 +337,7 @@ export class WeaponViewModel {
       this.#active.visual.player.setControls(ammoControlSamples(manifest, this.#weapon.magazine))
   }
 
-  #apply(event, fixedDelta, snapshot) {
+  #apply(event, fixedDelta) {
     if (event.type === 'SkinChanged') {
       const request = this.#skinRequests.get(key(event.payload.ticket))
       if (!request?.handle)
@@ -399,8 +401,7 @@ export class WeaponViewModel {
       this.#play('idle', event.at)
     }
     if (event.type === 'ReloadStarted') {
-      const weapon = payload.weapon ?? snapshot.inventory.weapons.find(weapon => weapon.instanceId === event.instanceId)
-      const definition = this.#definitions.get(weapon.definitionId)
+      const definition = this.#definitions.get(this.#weapon.definitionId)
       // Source reload feed uses the same seconds as the gameplay plan. A Classic tail beyond
       // its ready deadline is explicitly cut; it cannot keep the weapon unavailable longer.
       this.#play(payload.branch === 'empty'
@@ -443,7 +444,7 @@ export class WeaponViewModel {
       if (event.epoch !== snapshot.epoch)
         continue
       this.#advance(event.at)
-      const muzzle = this.#apply(event, time.fixedDelta, snapshot)
+      const muzzle = this.#apply(event, time.fixedDelta)
       if (muzzle)
         shots.push({ event, muzzle })
     }

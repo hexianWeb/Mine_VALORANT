@@ -106,7 +106,7 @@ export class WeaponInventory {
     const previous = this.instanceAt(slotId)
     this.#weapons.delete(previous)
     this.#instanceSlots.delete(previous)
-    this.#weapons.set(instanceId, state)
+    this.#weapons.set(instanceId, Object.freeze(state))
     this.#instanceSlots.set(instanceId, slotId)
     this.#slotInstances.set(slotId, instanceId)
     return previous
@@ -120,10 +120,7 @@ export class WeaponInventory {
   }
 
   get(instanceId) {
-    const state = this.#weapons.get(instanceId)
-    return state
-      ? Object.freeze({ ...state })
-      : null
+    return this.#weapons.get(instanceId) ?? null
   }
 
   /** Validate the complete replacement before changing any state. Identity is never patchable. */
@@ -137,7 +134,7 @@ export class WeaponInventory {
       ...patch,
     }
     validateState(next, this.#definitions.get(state.definitionId))
-    this.#weapons.set(instanceId, next)
+    this.#weapons.set(instanceId, Object.freeze(next))
     return this.get(instanceId)
   }
 
@@ -146,10 +143,10 @@ export class WeaponInventory {
     const state = this.#weapons.get(instanceId)
     if (!state)
       throw new Error(`Unknown weapon instance: ${instanceId}`)
-    this.#weapons.set(instanceId, {
+    this.#weapons.set(instanceId, Object.freeze({
       ...state,
       skinId: identifier(skinId, 'skinId'),
-    })
+    }))
     return this.get(instanceId)
   }
 

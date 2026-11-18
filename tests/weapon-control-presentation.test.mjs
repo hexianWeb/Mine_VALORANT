@@ -95,6 +95,7 @@ async function fixture(t, id) {
       setFov() {},
     },
     queue: command => controller.queue(command),
+    readWeapon: id => controller.readEventWeapon(id),
     definitions: [definition],
   })
   t.after(() => {
@@ -103,23 +104,22 @@ async function fixture(t, id) {
   })
   let tick = 0
   const receive = (batch) => {
-    const snapshot = controller.snapshot()
     // Same committed-weapon enrichment used by PlayerWeapons.fixed.
     const events = batch.events.map(event => ({
       ...event,
       payload: {
         ...event.payload,
-        weapon: snapshot.inventory.weapons.find(weapon => weapon.instanceId === event.instanceId),
+        weapon: controller.readEventWeapon(event.instanceId),
       },
     }))
-    view.receive({ ...batch, events }, snapshot)
+    view.receive({ ...batch, events }, controller.readFrameState())
     return events
   }
   const step = (...commands) => {
     for (const command of commands) controller.queue(command)
     return receive(controller.step({ fixedTick: ++tick, fixedElapsed: tick * h, fixedDelta: h }))
   }
-  const motion = at => view.motion({ presentationTime: at, fixedDelta: h }, controller.snapshot())
+  const motion = at => view.motion({ presentationTime: at, fixedDelta: h }, controller.readFrameState())
   step()
   await Promise.resolve()
   await Promise.resolve()

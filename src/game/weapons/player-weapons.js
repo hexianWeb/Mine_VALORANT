@@ -147,6 +147,7 @@ function immutable(value) {
 /** Player's single weapon interface: fixed gameplay facts, then committed presentation. */
 export class PlayerWeapons {
   #controller
+  #equipment
   #view
   #audio
   #effects
@@ -206,12 +207,13 @@ export class PlayerWeapons {
       meleeSlot,
     })
     this.#definitions = new Map(definitions.map(definition => [definition.id, definition]))
-    const equipment = this.#controller.snapshot()
-    const inventory = equipment.inventory
+    this.#equipment = this.#controller.readFrameState()
+    const { inventory } = this.#controller.snapshot()
     this.#armory = new PracticeArmory({
       catalog: createArmoryCatalog({ definitions, inventory, purchaseSlots }),
       purchasing: !!purchaseSlots,
-      equipment,
+      equipment: this.#equipment,
+      readSlot: slotId => this.#controller.readSlot(slotId),
       access: armoryAccess,
     })
     this.#initialSlot = initialSlot ?? inventory.slots.find(slot => slot.instanceId)?.id
@@ -219,7 +221,7 @@ export class PlayerWeapons {
     this.#aim = aim
     this.#world = world
     this.#shotTargets = shotTargets
-    this.#shotSource = shotTargets?.openSource(equipment.epoch) ?? null
+    this.#shotSource = shotTargets?.openSource(this.#equipment.epoch) ?? null
     this.#onShotResolved = onShotResolved
     this.#effects = particles || scene
       ? new ShotEffects({
@@ -243,6 +245,7 @@ export class PlayerWeapons {
       layer,
       definitions,
       jumpFeedback,
+      readWeapon: id => this.#controller.readEventWeapon(id),
       queue: command => this.#controller.queue(command),
     })
   }
@@ -286,7 +289,7 @@ export class PlayerWeapons {
         previousEquipped: { type: 'selectPrevious' },
         reload: { type: 'reload' },
         inspect: { type: 'inspect' },
-        cycleSkin: { type: 'cycleSkin', instanceId: this.#controller.snapshot().activeId },
+        cycleSkin: { type: 'cycleSkin', instanceId: this.#equipment.activeId },
         fire: { type: 'fire' },
       }[action]
       if (this.#meleeSlot && command?.type === 'selectSlot'
@@ -360,10 +363,9 @@ export class PlayerWeapons {
     const aimHeld = pose.aimHeld ?? this.#aimHeld
     this.#armory.beforeFixed(command => this.#controller.queue(command))
     const batch = this.#controller.step(context, { aimHeld })
-    const snapshot = this.#controller.snapshot()
-    const weapon = snapshot.inventory.weapons.find(weapon => weapon.instanceId === snapshot.activeId)
-    const definition = this.#definitions.get(weapon?.definitionId)
-    const aiming = aimHeld && snapshot.canAct && !snapshot.action && !!definition?.capabilities.ads
+    const equipment = this.#controller.readFrameState()
+    const definition = this.#definitions.get(equipment.activeDefinitionId)
+    const aiming = aimHeld && equipment.canAim && !!definition?.capabilities.ads
     const aimPose = this.#aim.beginStep({
       ...pose,
       at: time.fixedElapsed,
@@ -372,15 +374,7 @@ export class PlayerWeapons {
       definition,
     })
     const events = batch.events.map((event) => {
-      const stored = snapshot.inventory.weapons.find(weapon => weapon.instanceId === event.instanceId)
-      const slotId = snapshot.inventory.slots.find(slot => slot.instanceId === event.instanceId)?.id
-      const weapon = stored && {
-        ...stored,
-        ...(this.#meleeSlot
-          ? { slotId, melee: slotId === this.#meleeSlot }
-          : {}),
-        ammoPolicy: snapshot.ammoPolicy,
-      }
+      const weapon = this.#controller.readEventWeapon(event.instanceId)
       if (event.type !== 'ShotFired' && event.type !== 'MeleeContact') {
         return {
           ...event,
@@ -390,7 +384,7 @@ export class PlayerWeapons {
       const shot = event.type === 'ShotFired'
         ? this.#aim.fire({ instanceId: event.instanceId, shotSequence: event.payload.shotSequence, definition })
         : null
-      this.#shotTargets?.setSourceEpoch(this.#shotSource, snapshot.epoch)
+      this.#shotTargets?.setSourceEpoch(this.#shotSource, equipment.epoch)
       this.#shotTargets?.beginShot(context)
       let attack
       if (shot) {
@@ -431,7 +425,7 @@ export class PlayerWeapons {
       return enriched
     })
     const view = this.#aim.endStep()
-    this.#accept({ ...batch, events }, snapshot, {
+    this.#accept({ ...batch, events }, equipment, {
       at: time.fixedElapsed,
       aiming,
       duration: definition?.aim?.duration ?? 0,
@@ -443,20 +437,21 @@ export class PlayerWeapons {
     return immutable({ ...batch, events })
   }
 
-  #accept(batch, snapshot = this.#controller.snapshot(), aim = null) {
-    this.#shotTargets?.setSourceEpoch(this.#shotSource, snapshot.epoch)
+  #accept(batch, equipment = this.#controller.readFrameState(), aim = null) {
+    this.#equipment = equipment
+    this.#shotTargets?.setSourceEpoch(this.#shotSource, equipment.epoch)
     this.#events.push(...batch.events)
     this.#events = this.#events.slice(-64)
-    this.#view.receive(batch, snapshot, aim)
-    this.#audio?.receive(batch, snapshot)
+    this.#view.receive(batch, equipment, aim)
+    this.#audio?.receive(batch, equipment)
     this.#effects?.receive(batch)
-    this.#armory.accept(snapshot)
+    this.#armory.accept(equipment)
     this.#armory.present(this.#view.readHud())
   }
 
   motion(time, pose = this.#aim.sample(time.presentationTime)) {
     this.#audio?.motion(time)
-    const shots = this.#view.motion(time, this.#controller.snapshot(), pose)
+    const shots = this.#view.motion(time, this.#equipment, pose)
     this.#effects?.motion(time, shots)
     this.#armory.present(this.#view.readHud())
   }
@@ -488,6 +483,7 @@ export class PlayerWeapons {
   resume() {
     this.#armory.setEnabled(true)
     this.#controller.resume()
+    this.#equipment = this.#controller.readFrameState()
     this.#view.resume()
   }
 

@@ -49,7 +49,7 @@
 | [UI input](../src/app/ui-input.js) | 输入归属、暂停原因、捕获请求状态 | Input、Player、Engine、UI host | 监听真实 Pointer Lock／焦点／可见性；不拥有独立帧循环或游戏时钟 |
 | [Weapon HUD](../src/app/weapon-hud.js) | 当前关卡的 DOM、监听与显示配置 | Engine frame 后读取 `PlayerComponent.readHud()`／`WeaponViewModel.readHud()` | app 挂载／卸载；不读完整诊断快照，按字段变化写入，不拿最新模拟弹药提前显示 |
 | [Look settings](../src/game/player/look-settings.js) | 玩家灵敏度、待提交值及 revision | 初始配置 | request 校验并合并意图，Player 在有效 postPhysics 提交；app 仅负责本地保存适配 |
-| [PracticeArmory](../src/game/weapons/practice-armory.js) | 选择请求 scope／request、静态持有目录、逻辑完成与展示确认状态 | 已有 EquipmentController 固定快照及视模窄读模型、游戏侧访问条件 | PlayerWeapons 在固定步前验证并排队，在固定步后接收结果；重生／Editor／卸载失效，不持有 DOM 或资源 Promise |
+| [PracticeArmory](../src/game/weapons/practice-armory.js) | 选择请求 scope／request、静态目录、逻辑完成与展示确认状态 | 固定步的装备就绪状态、按槽查询的持有实例、已展示的 HUD | PlayerWeapons 在固定步前验证并排队，在固定步后接收结果；重生／Editor／卸载失效，不持有 DOM 或资源 Promise |
 | [Weapon shop](../src/app/weapon-shop.js) | 候选、分类卡片、详情、焦点与只在打开时的 frame 订阅 | `readArmory()` 与 `requestArmorySelection()` | 点击仅发选择意图；选中不等于装备，关窗不撤销已接受请求，不读取完整诊断 |
 
 当前粒子服务由 RuntimeContext 持有，但 ImpactEffects 使用全量 clear。这是**当前单玩家效果生产者的约定**，不是通用多来源作用域隔离。增加其他效果生产者前，应引入 owner／scope 的取消边界，不能继续让任一生产者清空所有效果。本次只记录此边界，不改现有粒子实现。

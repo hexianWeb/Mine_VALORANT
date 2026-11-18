@@ -802,6 +802,46 @@ export class EquipmentController {
     return this.#flush()
   }
 
+  get #queuedTarget() {
+    return this.#transaction && this.#desiredId !== this.#transaction.toId
+      ? this.#desiredId
+      : null
+  }
+
+  /** Fixed-step authority shared with presentation and the shop, without inventory or diagnostics. */
+  readFrameState() {
+    return Object.freeze({
+      epoch: this.#epoch,
+      phase: this.#phase,
+      activeId: this.#activeId,
+      activeDefinitionId: this.#inventory.definition(this.#activeId)?.id ?? null,
+      canAim: this.#canAct() && !this.#action,
+      queuedTarget: this.#queuedTarget,
+      switchTarget: this.#transaction?.toId ?? null,
+      preparation: this.#preparation && Object.freeze({ ...this.#preparation }),
+      hasPendingSkin: this.#skinRequests.size > 0 && Array.from(this.#skinRequests.values()).some(request => request.status !== 'failed'),
+    })
+  }
+
+  readSlot(slotId) {
+    return this.#inventory.get(this.#inventory.instanceAt(slotId))
+  }
+
+  /** Capture just this instance at the fixed boundary, before delayed presentation can use it. */
+  readEventWeapon(instanceId) {
+    const weapon = this.#inventory.get(instanceId)
+    if (!weapon)
+      return undefined
+    const slotId = this.#inventory.slotFor(instanceId)
+    return Object.freeze({
+      ...weapon,
+      ...(this.#meleeSlot
+        ? { slotId, melee: slotId === this.#meleeSlot }
+        : {}),
+      ammoPolicy: this.#ammoPolicy,
+    })
+  }
+
   snapshot() {
     return immutable({
       epoch: this.#epoch,
@@ -811,9 +851,7 @@ export class EquipmentController {
       phase: this.#phase,
       activeId: this.#activeId,
       previousId: this.#previousId,
-      queuedTarget: this.#transaction && this.#desiredId !== this.#transaction.toId
-        ? this.#desiredId
-        : null,
+      queuedTarget: this.#queuedTarget,
       pendingTarget: this.#preparation?.ticket.instanceId ?? null,
       pendingReadiness: this.#preparation?.status ?? null,
       actionBlockReason: this.#actionBlockReason,

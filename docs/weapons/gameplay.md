@@ -124,6 +124,8 @@ Player 在 input 收集 look、移动和动作指令，不直接更新相机朝�
 
 HUD 由 `app/weapon-hud.js` 读取已展示事实，不能用最新背包数值提前显示换弹或切枪。`__RANGE_ROOM__.snapshot().player.weapons` 同时提供实时装备快照与 view 表现快照，两者的 active、弹药与 lastShot 属于不同时间。
 
+`PlayerWeapons.fixed()` 只读取当前枪型、切换与准备状态，按事件的 `instanceId` 附上该步的弹量与槽位。`motion()` 复用最近提交的状态，只在展示时钟到达事件时更新动画和 HUD；两条更新路径都不构建完整背包快照。
+
 来源与项目策略集中在 [aim-profile.js](../../src/game/weapons/aim-profile.js)：recoil 角度从度转换为弧度，保留时间与轴向含义；每发按确定性 seed 采样 min/max 时间曲线点并保留恢复段，切枪不抹去已有偏移。这两枪的来源字段是 recoil，没有额外 camera_recoil；GLB 的 camera / views 装饰轨道不会再次叠加到世界相机。当前采用发射后立即生效的首关键帧与线性恢复，不声称复刻 TACZ 的 30 ms 延迟样条或仅保留最新一发的行为。`patternIndex = shotSequence - 1` 记录逐发身份顺序，不表示实现了来源的按发数图案。
 
 来源 inaccuracy 是无量纲参数，本项目按 `source * 0.0172275` 标定相机局部三轴独立三角分布噪声，方向归一化后再转到世界空间；原值不是锥角，也没有另造每发累积 bloom。表现采样不会推进状态或抽取随机数。世界默认 FOV 从运行时相机注入；Phantom ADS 将世界与视模 FOV 平滑到 45°，Classic 的能力字段禁止 ADS。

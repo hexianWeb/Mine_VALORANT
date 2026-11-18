@@ -42,7 +42,8 @@ function setup(t, access = () => null) {
   const catalog = createArmoryCatalog({ definitions: fixtureDefinitions, inventory: controller.snapshot().inventory })
   const armory = new PracticeArmory({
     catalog,
-    equipment: controller.snapshot(),
+    equipment: controller.readFrameState(),
+    readSlot: id => controller.readSlot(id),
     access,
   })
   let tick = 0
@@ -51,7 +52,7 @@ function setup(t, access = () => null) {
     for (const command of commands) controller.queue(command)
     armory.beforeFixed(command => controller.queue(command))
     const batch = controller.step({ fixedTick: ++tick, fixedElapsed: tick * h, fixedDelta: h })
-    armory.accept(controller.snapshot())
+    armory.accept(controller.readFrameState())
     return batch
   }
   const prepare = () => {
@@ -128,7 +129,8 @@ test('range purchases replace only their category after preparation and survive 
   const catalog = createArmoryCatalog({ definitions: instant, purchaseSlots: rangePurchaseSlots })
   const armory = new PracticeArmory({
     catalog,
-    equipment: controller.snapshot(),
+    equipment: controller.readFrameState(),
+    readSlot: id => controller.readSlot(id),
     purchasing: true,
   })
   t.after(() => {
@@ -143,7 +145,7 @@ test('range purchases replace only their category after preparation and survive 
     for (const command of commands) controller.queue(command)
     armory.beforeFixed(command => controller.queue(command))
     const batch = controller.step({ fixedTick: ++tick, fixedElapsed: tick * h, fixedDelta: h })
-    armory.accept(state())
+    armory.accept(controller.readFrameState())
     return batch
   }
   const prepare = () => step({ type: 'prepared', ticket: state().preparation.ticket })

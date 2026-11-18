@@ -30,11 +30,6 @@ test('only the instantiated viewmodel skinned meshes bypass stale animated frust
     epoch: 1,
     phase: 'Empty',
     preparation: { ticket },
-    inventory: {
-      weapons: [
-        { instanceId: 'pistol', definitionId: 'classic', skinId: 'smite' },
-      ],
-    },
   }
   const view = new WeaponViewModel({
     assets: {
@@ -56,6 +51,7 @@ test('only the instantiated viewmodel skinned meshes bypass stale animated frust
       },
     ],
     queue() {},
+    readWeapon: () => ({ definitionId: 'classic', skinId: 'smite' }),
   })
   t.after(() => {
     view.dispose()

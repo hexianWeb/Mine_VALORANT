@@ -128,15 +128,15 @@ async function fixture(t, { fireDuration = 0.04, locomotion = false, jumpFeedbac
     definitions: [definition],
     jumpFeedback,
     queue() {},
+    readWeapon: id => id === weapon.instanceId
+      ? weapon
+      : null,
   })
   t.after(() => view.dispose())
   let snapshot = {
     epoch: 1,
     phase: 'Empty',
     preparation: { ticket },
-    inventory: {
-      weapons: [weapon],
-    },
   }
   let sequence = 0
   const receive = (type, at, payload = {}) => view.receive({

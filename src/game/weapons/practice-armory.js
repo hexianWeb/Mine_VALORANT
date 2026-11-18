@@ -9,6 +9,7 @@ export class PracticeArmory {
   #purchasing
   #access
   #equipment
+  #readSlot
   #view = null
   #request = null
   #queued = false
@@ -19,9 +20,10 @@ export class PracticeArmory {
   #closed = false
   #model = null
 
-  constructor({ catalog, equipment, access = () => null, purchasing = false }) {
+  constructor({ catalog, equipment, readSlot, access = () => null, purchasing = false }) {
     this.#catalog = catalog
     this.#equipment = equipment
+    this.#readSlot = readSlot
     this.#purchasing = purchasing
     this.setAccess(access)
   }
@@ -59,12 +61,6 @@ export class PracticeArmory {
     this.#patch({ status, reason })
   }
 
-  #held(slotId) {
-    const inventory = this.#equipment.inventory
-    const instanceId = inventory.slots.find(slot => slot.id === slotId)?.instanceId
-    return inventory.weapons.find(weapon => weapon.instanceId === instanceId)
-  }
-
   request({ scopeId, requestId, slotId, definitionId } = {}) {
     const reason = this.#restriction()
     const slot = this.#catalog.find(entry => this.#purchasing || definitionId !== undefined
@@ -76,7 +72,7 @@ export class PracticeArmory {
       return Object.freeze({ accepted: false, reason: '该武器正在准备，请勿重复提交' })
     this.#lastRequest = requestId
     const held = this.#purchasing
-      ? this.#held(slot.slotId)
+      ? this.#readSlot(slot.slotId)
       : null
     const purchase = this.#purchasing && held?.definitionId !== slot.id
     this.#request = Object.freeze({
@@ -130,7 +126,7 @@ export class PracticeArmory {
     }
   }
 
-  /** Borrow the already-built fixed snapshot; UI never gets its inventory/diagnostics. */
+  /** Accept fixed readiness independently of when presentation catches up. */
   accept(equipment) {
     this.#equipment = equipment
     if (!this.#pending() || this.#queued)
@@ -142,17 +138,17 @@ export class PracticeArmory {
       return
     }
     const intended = equipment.queuedTarget ?? preparation?.ticket.instanceId
-      ?? equipment.transaction?.toId ?? equipment.activeId
+      ?? equipment.switchTarget ?? equipment.activeId
     if (intended !== target) {
       this.#fail('已由新的装备选择替代', 'superseded')
       return
     }
     this.#logicalDone = equipment.activeId === target && equipment.phase === 'Ready'
-      && !equipment.transaction && (!preparation || preparation.status === 'failed')
+      && !equipment.switchTarget && (!preparation || preparation.status === 'failed')
     this.#patch({
       status: this.#logicalDone
         ? 'presenting'
-        : equipment.transaction?.toId === target || equipment.activeId === target
+        : equipment.switchTarget === target || equipment.activeId === target
           ? 'drawing'
           : 'preparing',
     })
@@ -200,9 +196,9 @@ export class PracticeArmory {
   canStartChallenge() {
     const equipment = this.#equipment
     return !this.#restriction() && !this.#paused && !this.#queued
-      && equipment.phase === 'Ready' && !!equipment.activeId && !equipment.transaction
+      && equipment.phase === 'Ready' && !!equipment.activeId && !equipment.switchTarget
       && (!equipment.preparation || equipment.preparation.status === 'failed')
-      && !(equipment.skinRequests ?? []).some(request => request.status !== 'failed')
+      && !equipment.hasPendingSkin
   }
 
   read() {
@@ -213,10 +209,10 @@ export class PracticeArmory {
       ? null
       : this.#view?.weapon?.definitionId ?? this.#catalog.find(entry => entry.instanceId && entry.instanceId === presentedId)?.id ?? null
     const primary = this.#purchasing
-      ? this.#held('primary')?.definitionId ?? null
+      ? this.#readSlot('primary')?.definitionId ?? null
       : null
     const secondary = this.#purchasing
-      ? this.#held('secondary')?.definitionId ?? null
+      ? this.#readSlot('secondary')?.definitionId ?? null
       : null
     const canStartChallenge = this.canStartChallenge()
     const previous = this.#model
