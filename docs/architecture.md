@@ -62,6 +62,7 @@ src/
       ├─ collision.js             碰撞数据、出生与越界规则
       ├─ ground.js                Minecraft 地面
       ├─ assets/                  manifest、材质绑定、资产实例
+      ├─ challenges/              room-challenges 装配靶池、规则组件、场景面板与特效
       └─ lighting/                房间灯光、阴影、探针
 ```
 
@@ -237,6 +238,8 @@ level.addObject(object)
 5. WorldManager 发出 `load`，app 挂载当前关卡的工具与诊断；最后启动 Engine。
 
 关卡卸载：WorldManager 先清除活动引用并取消加载，发出 `unload` 让 app 释放当前工具与诊断，然后释放 Level。`await world.unloadLevel()` 会等待被取消的关卡加载 Promise 收尾；此期间拒绝新的加载。再次 load 会重新绑定工具，不复用旧玩家或监听器。
+
+练枪房在玩家、武器和机器人资源齐备后调用 [`mountRoomChallenges()`](../src/game/range-room/challenges/room-challenges.js)。它借用练习机器人和共享模板，将池中对象及规则／显示组件挂到现有 Level 的 tick；面板、特效与池实例由这次挂载负责清理。完整装配后才暴露 `level.challenge`、HUD 和诊断；装配中途失败会撤销已挂对象，卸载后这些入口返回 `null`。
 
 资源加载接受 `resources.load(entries, { signal })`。signal 中止、`unload(name)` 或 ResourceManager 销毁会立即拒绝等待者，并取消该任务的下载／解码，不必等待服务器返回。每个任务独立持有取消控制器；同名资源的并发加载共享任务，因此任一等待者取消都会让该任务的所有等待者收到 `AbortError`。已经缓存的资源仍由关卡显式卸载。取消后允许立即同名重试；不支持取消的扩展加载器若迟到返回，旧任务只释放自己的结果，不影响新缓存。探针捕获的逐帧等待也响应取消，不依赖隐藏页面继续触发 RAF。
 

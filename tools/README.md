@@ -99,6 +99,7 @@ Phantom 四款皮肤使用 `node tools/weapons/publish-skins.mjs tools/weapons/s
 | `check-player-browser.mjs` | 出生、撞墙、跳跃、掉出地图 | `pnpm dev` 后跑，会自己设 `probes=0` |
 | `check-pipeline-browser.mjs` | 法线预通道、lightmap 材质、AO、分辨率 | **必须**开发服务器 `http://localhost:5173/` |
 | `check-runtime-browser.mjs` | 有 / 无 Editor 重载、独立渲染 | 同上，必须开发服务器 |
+| `check-range-rules-browser.mjs` | 练习靶反馈；`--lifecycle` 加查挑战装配取消、回滚和卸载后重进 | `npm run dev` 后运行 `node tools/check-range-rules-browser.mjs --lifecycle`；可追加 URL 和报告目录 |
 | `check-weapons-browser.mjs` | 七枪动作采样、实例隔离与释放；不带 quick 时遍历七枪，截图仍为 Classic/Phantom | 日常只跑 `node tools/check-weapons-browser.mjs <preview-url> --quick --weapon judge`（可选 classic/phantom/ghost/vandal/sheriff/judge/odin）；输出目录用 `WEAPON_TEST_OUTPUT` |
 | `check-weapon-gameplay-browser.mjs` | 主游戏真实输入、切枪／打断、射击／ADS、统一表现时间与生命周期 | `npm run dev` 后 `node tools/check-weapon-gameplay-browser.mjs http://localhost:5173/`；输出目录用 `WEAPON_GAME_TEST_OUTPUT` |
 | `check-weapon-lighting-browser.mjs` | 主游戏四款皮肤截图、双枪 HDR 光照、换肤自发光、室内反射和全局灯光开关 | 开发服务器下 `node tools/check-weapon-lighting-browser.mjs http://localhost:5173/`，输出目录用 `WEAPON_LIGHTING_TEST_OUTPUT` |

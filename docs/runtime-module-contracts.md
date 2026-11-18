@@ -43,7 +43,8 @@
 | [ShotTargets](../src/game/targets/shot-targets.js) | Level 本地目标／注册代次、活跃 source 的射击游标、当前整发查询身份 | postPhysics 准备姿态／查询；resolveShot 全发预校验后同步提交 | 不持有伤害表或挑战进度；注册失效与 source close 不允许旧命中复活；结果返回后才通知挑战 |
 | [TrainingBot](../src/game/targets/training-bot.js)／[TargetCombat](../src/game/targets/target-combat.js) | 出靶属性／资格、独立权威与可见骨架、命中盒及 P 反馈事实 | fixed 幂等采样权威姿态；整发提交 damage；motion 消费 P | 默认三只自由练习展示仍为非致死反馈；activateSpawn 才启用独立生命；模型实例归 Mesh，权威骨架归组件，共享模板归 Level |
 | [CombatAttributes](../src/game/combat/attributes.js) | 单个对象的生命／护甲与上限 | TargetCombat 在整发预校验后逐弹丸同步调用 | 无注册或时钟，不自做去重，见[模型契约](combat/attributes.md) |
-| [ChallengeSession](../src/game/range-room/challenges/challenge-session.js)／[RangeChallengeComponent](../src/game/range-room/challenges/range-challenge.js) | 纯会话规则；关卡适配的网格、保护与目标池借用句柄、P 历史 | 适配者 fixed 处理截止／释放；onShotResolved 批量计分／补位；motion 采样 | RangeRoomLevel 在武器和训练机器人可用时装配；靶池 GO 仍归关卡，无全局 System |
+| [挑战装配](../src/game/range-room/challenges/room-challenges.js) | 本次挂载的靶池实例、规则／显示 GO、面板和击杀特效；借用练习机器人和共享模板 | 将 GO 加到 Level，由已有阶段调度 | 中途失败与卸载均逆序释放：规则组件先取消会话，随后移除池中 GO，最后清理特效和面板 |
+| [ChallengeSession](../src/game/range-room/challenges/challenge-session.js)／[RangeChallengeComponent](../src/game/range-room/challenges/range-challenge.js) | 纯会话规则；网格、退场保护、从池中借用的句柄与 P 历史 | 适配者 fixed 处理截止／释放；onShotResolved 批量计分／补位；motion 采样 | 取消归还活靶与退场靶，不销毁共享机器人模板 |
 | [UI host](../src/app/ui-host.js) | 本关卡 HUD／调试／模态层、模态栈、焦点返回及 Tab 循环 | canvas、已有调试容器 | app `levelTools` 挂载／卸载；顶层窗口先处理关闭，释放后还原借用的调试容器 |
 | [UI input](../src/app/ui-input.js) | 输入归属、暂停原因、捕获请求状态 | Input、Player、Engine、UI host | 监听真实 Pointer Lock／焦点／可见性；不拥有独立帧循环或游戏时钟 |
 | [Weapon HUD](../src/app/weapon-hud.js) | 当前关卡的 DOM、监听与显示配置 | Engine frame 后读取 `PlayerComponent.readHud()`／`WeaponViewModel.readHud()` | app 挂载／卸载；不读完整诊断快照，按字段变化写入，不拿最新模拟弹药提前显示 |
@@ -117,7 +118,7 @@ Engine.step(nowMs)
 
 1. Engine 停止帧驱动，失效运行中的声音；app 先卸下 HUD、工具和诊断监听。
 2. WorldManager 卸载 Level。RangeRoomLevel 先取消加载、还原阴影／探针材质绑定。
-3. Level 逆序移除 GO；GO 逆序释放组件。玩家释放 PlayerWeapons；机器人注销目标、停播放器；Mesh 释放各自实例。
+3. 关卡卸下挑战装配，再由 Level 逆序移除其余 GO。GO 逆序释放组件；玩家释放 PlayerWeapons，机器人注销目标、停播放器，Mesh 释放各自实例。
 4. Level 清理武器、机器人等共享模板与关卡资源。WeaponAssets 自身也兜底释放尚存实例。
 5. RuntimeContext 继续逆序释放 Physics、Input、Particles、Audio、Render、ResourceManager、Size。
 
@@ -132,6 +133,7 @@ Engine.step(nowMs)
 - 通用服务：`tests/audio.test.mjs`、`tests/particle-system.test.mjs`。
 - 属性与伤害：`tests/combat-attributes.test.mjs`。
 - 挑战规则／网格／适配：`tests/range-challenge-rules.test.mjs`、`tests/range-challenge-integration.test.mjs`；这些不代替实际场景容量与可玩挑战验收。
+- 挑战装配生命周期：`node tools/check-range-rules-browser.mjs --lifecycle`，在真实关卡检查活动会话卸载、加载取消、靶池已挂接时失败回滚，以及重新进入后的 HUD、靶池与布局。
 - 新依赖边界：`tests/architecture.test.mjs`。
 
 按改动范围选择检查；这份清单不是要求每次改动运行全量浏览器、资产导出或 Blender 验证。

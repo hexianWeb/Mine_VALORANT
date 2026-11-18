@@ -2,11 +2,13 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
+import { checkChallengeLifecycle } from '../tests/range-challenge-lifecycle-browser.js'
 import { openBrowser } from './browser-session.mjs'
 
 // Regression of the room's free practice and whole-shot hit feedback.
-const url = process.argv[2] ?? 'http://127.0.0.1:5173/?editor=0&probes=0&ao=0&aa=none'
-const output = path.resolve(process.argv[3] ?? `D:/opencode-temp/opencode/range-phase-three/browser-${Date.now()}`)
+const args = process.argv.slice(2)
+const [url = 'http://127.0.0.1:5173/?editor=0&probes=0&ao=0&aa=none', directory] = args.filter(arg => arg !== '--lifecycle')
+const output = path.resolve(directory ?? `D:/opencode-temp/opencode/range-phase-three/browser-${Date.now()}`)
 const started = performance.now()
 const errors = []
 const checks = []
@@ -25,6 +27,7 @@ function wait(expression) {
 }
 let failure = null
 let failureState = null
+let lifecycle = null
 try {
   await browser.send('Emulation.setDeviceMetricsOverride', {
     width: 1280,
@@ -36,6 +39,11 @@ try {
   await browser.send('Page.bringToFront')
   await browser.send('Emulation.setFocusEmulationEnabled', { enabled: true })
   await wait('globalThis.__RANGE_ROOM__?.ready && globalThis.__RANGE_ROOM__.world.player?.weapons?.snapshot().phase === "Ready"')
+  if (args.includes('--lifecycle')) {
+    lifecycle = await evaluate(`(${checkChallengeLifecycle.toString()})(__RANGE_ROOM__)`)
+    checks.push('active unload, cancelled asset load and partial pool rollback all allow a clean challenge remount')
+    await wait('globalThis.__RANGE_ROOM__?.world.player.weapons.snapshot().phase === "Ready"')
+  }
   const initial = await evaluate(`(() => {
     const world = globalThis.__RANGE_ROOM__.world;
     return { count: world.trainingBots.length, ammoPolicy: world.player.weapons.snapshot().ammoPolicy };
@@ -123,6 +131,7 @@ finally {
     messages: browser.messages,
     failure,
     failureState,
+    lifecycle,
     elapsedMs: Math.round(performance.now() - started),
     playableChallenge: false,
   }
@@ -133,6 +142,7 @@ finally {
     checks: checks.length,
     errors,
     failure,
+    lifecycle,
     elapsedMs: report.elapsedMs,
   }))
 }
