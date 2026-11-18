@@ -9,6 +9,8 @@ import { ghostDefinition } from '../src/game/weapons/definitions/ghost.js'
 import { judgeDefinition } from '../src/game/weapons/definitions/judge.js'
 import { karambitDefinition } from '../src/game/weapons/definitions/karambit.js'
 import { odinDefinition } from '../src/game/weapons/definitions/odin.js'
+import { operatorDefinition } from '../src/game/weapons/definitions/operator.js'
+import { outlawDefinition } from '../src/game/weapons/definitions/outlaw.js'
 import { phantomDefinition } from '../src/game/weapons/definitions/phantom.js'
 import { sheriffDefinition } from '../src/game/weapons/definitions/sheriff.js'
 import { vandalDefinition } from '../src/game/weapons/definitions/vandal.js'
@@ -26,6 +28,8 @@ const definitions = [
   judgeDefinition,
   odinDefinition,
   bulldogDefinition,
+  outlawDefinition,
+  operatorDefinition,
   karambitDefinition,
 ]
 const h = 1 / 60
@@ -134,6 +138,25 @@ test('range purchases replace only their category after preparation and survive 
   assert.equal(bulldog.shortcut, '1')
   assert.equal(bulldog.provisional, true)
   assert.equal(bulldog.stats.capacity, 24)
+  assert.deepEqual(catalog.filter(entry => entry.category === 'snipers').map(entry => ({
+    id: entry.id,
+    slot: entry.slotId,
+    capacity: entry.stats.capacity,
+    ads: entry.stats.ads,
+  })), [
+    {
+      id: 'outlaw',
+      slot: 'primary',
+      capacity: 2,
+      ads: true,
+    },
+    {
+      id: 'operator',
+      slot: 'primary',
+      capacity: 5,
+      ads: true,
+    },
+  ])
   const armory = new PracticeArmory({
     catalog,
     equipment: controller.readFrameState(),

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "outlaw",
+  "assetVersion": "v3",
+  "skinId": "original",
+  "compatibility": {
+    "rig": "080c361f6a14633d09dfc823460dfeede252dc397d622d01c02efa1e386378dd",
+    "geometryUV": "2a7dc55b9d687b9d451976317cbefbfc0fc2d5795a1916043f7eb22260f6e185",
+    "clipSet": "44b8b4251a6e8c028c11cb35b986b9a6d8ce7482a3348cddf2b2be861da2dafb"
+  },
+  "materials": {
+    "weapon": {
+      "map": {
+        "url": "../textures/a7cd39f60cd990d8072ff20d9a35a6b6e4bf1ade0cdce980c4609e3ba5b6e6be.png",
+        "sha256": "a7cd39f60cd990d8072ff20d9a35a6b6e4bf1ade0cdce980c4609e3ba5b6e6be",
+        "bytes": 21164,
+        "width": 256,
+        "height": 256,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    },
+    "scope": {
+      "map": {
+        "url": "../textures/9fea34f59affacff2f37733d4771623320ea214510e5ca4a24849b957b8179d2.png",
+        "sha256": "9fea34f59affacff2f37733d4771623320ea214510e5ca4a24849b957b8179d2",
+        "bytes": 5921,
+        "width": 256,
+        "height": 256,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    }
+  }
+}

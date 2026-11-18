@@ -1,4 +1,4 @@
-import { context, vec4 } from 'three/tsl'
+import { context, uniform, vec4 } from 'three/tsl'
 import * as THREE from 'three/webgpu'
 
 /** Add borrowed world lights without reparenting them or duplicating probe atlases. */
@@ -49,6 +49,7 @@ export function createViewModelLayer({ aspect = 1, lightIntensity = 0.18 } = {})
   scene.visible = false
   let enabled = false
   let disposed = false
+  const opacity = uniform(1)
   const assertLive = () => {
     if (disposed)
       throw new Error('[Viewmodel] Layer is disposed')
@@ -56,6 +57,13 @@ export function createViewModelLayer({ aspect = 1, lightIntensity = 0.18 } = {})
   return Object.freeze({
     scene,
     camera,
+    opacity,
+    setOpacity(value) {
+      assertLive()
+      if (!Number.isFinite(value) || value < 0 || value > 1)
+        throw new RangeError('[Viewmodel] Opacity must be in [0, 1]')
+      opacity.value = value
+    },
     get enabled() { return enabled },
     setEnabled(value) {
       assertLive()

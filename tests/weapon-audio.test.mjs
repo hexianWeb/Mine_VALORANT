@@ -12,10 +12,18 @@ import { karambitDefinition } from '../src/game/weapons/definitions/karambit.js'
 import { WeaponAudio } from '../src/game/weapons/weapon-audio.js'
 import { audioTime, cue, FakeAudioContext, h } from './audio-fixture.mjs'
 
-test('all configured local sound inputs match the supplied Ogg files; reload aliases share one cue', async () => {
-  for (const profile of Object.values(weaponAudioProfiles)) {
-    if (profile.reloadTactical)
-      assert.equal(profile.reloadEmpty, profile.reloadTactical)
+test('all configured local sound inputs match the supplied Ogg files and reload roles', async () => {
+  for (const [id, profile] of Object.entries(weaponAudioProfiles)) {
+    if (profile.reloadTactical) {
+      if (id === 'outlaw') {
+        assert.equal(profile.reloadTactical, 'outlaw_reload_tactical')
+        assert.equal(profile.reloadEmpty, 'outlaw_reload_empty')
+      }
+      else {
+        assert.equal(profile.reloadEmpty, profile.reloadTactical)
+      }
+      assert.ok(profile.cues[profile.reloadTactical] && profile.cues[profile.reloadEmpty])
+    }
     for (const descriptor of Object.values(profile.cues)) {
       const bytes = await readFile(`public${descriptor.url}`)
       assert.equal(bytes.subarray(0, 4).toString(), 'OggS')

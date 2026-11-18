@@ -64,7 +64,7 @@ export function buildPipeline(renderer, scene, camera, config, grading = null, v
     ? own(new ViewModelPass(viewmodel, scene, camera))
     : null
   const composite = viewmodelPass
-    ? own(convertToTexture(compositeViewModel(scenePass.getTextureNode(), viewmodelPass.getTextureNode()), null, null, {
+    ? own(convertToTexture(compositeViewModel(scenePass.getTextureNode(), viewmodelPass.getTextureNode().mul(viewmodel.opacity)), null, null, {
         depthBuffer: false,
         type: THREE.HalfFloatType,
       }))

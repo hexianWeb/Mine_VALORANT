@@ -1,5 +1,5 @@
 import { Euler, MathUtils, Quaternion, Vector3 } from 'three/webgpu'
-import { createAimProfile } from '../weapons/aim-profile.js'
+import { aimTransitionDuration, createAimProfile } from '../weapons/aim-profile.js'
 
 const neutral = createAimProfile()
 const wrap = angle => Math.atan2(Math.sin(angle), Math.cos(angle))
@@ -82,6 +82,10 @@ function quaternion(yaw, pitch) {
   return new Quaternion().setFromEuler(new Euler(pitch, yaw, 0, 'YXZ')).toArray()
 }
 
+function scopeMagnification(zoom, progress) {
+  return MathUtils.lerp(1, zoom, MathUtils.smoothstep(progress, 0, 1))
+}
+
 /** Fixed gameplay view and shot authority. Presentation reads history without advancing it. */
 export class AimState {
   #yaw = 0
@@ -102,6 +106,7 @@ export class AimState {
   #at = 0
   #feet = [0, 0, 0]
   #ads = 0
+  #scopeZoom = 1
   #aiming = false
   #spread = 0
   #profile = neutral
@@ -142,8 +147,9 @@ export class AimState {
   queueLook(deltaYaw, deltaPitch) {
     finite(deltaYaw, 'deltaYaw')
     finite(deltaPitch, 'deltaPitch')
-    const yaw = finite(this.#pendingYaw + deltaYaw, 'pending yaw')
-    const pitch = finite(this.#pendingPitch + deltaPitch, 'pending pitch')
+    const scale = 1 / scopeMagnification(this.#scopeZoom, this.#ads)
+    const yaw = finite(this.#pendingYaw + deltaYaw * scale, 'pending yaw')
+    const pitch = finite(this.#pendingPitch + deltaPitch * scale, 'pending pitch')
     this.#pendingYaw = yaw
     this.#pendingPitch = pitch
   }
@@ -200,6 +206,7 @@ export class AimState {
     this.#stepOffset = 0
     this.#at = at
     this.#ads = 0
+    this.#scopeZoom = 1
     this.#aiming = false
     this.#spread = 0
     this.#profile = neutral
@@ -219,7 +226,7 @@ export class AimState {
     ]
   }
 
-  beginStep({ at, delta, feet, verticalOffset = this.#verticalOffset, stepDeltaY = this.#stepDeltaY, aim = false, definition = null, moving = false, crouched = false }) {
+  beginStep({ at, delta, feet, verticalOffset = this.#verticalOffset, stepDeltaY = this.#stepDeltaY, aim = false, alternateScope = false, definition = null, moving = false, crouched = false }) {
     const position = point(feet)
     for (const [name, value] of Object.entries({
       at,
@@ -236,6 +243,7 @@ export class AimState {
     this.#yaw = this.headingYaw
     this.#pitch = MathUtils.clamp(this.#pitch + this.#pendingPitch, -this.#maxPitch, this.#maxPitch)
     this.clearInput()
+    const previousScope = this.#profile.aim.scopeZoom
     this.#profile = definition
       ? {
           recoil: definition.recoil ?? neutral.recoil,
@@ -243,14 +251,21 @@ export class AimState {
           aim: definition.aim ?? neutral.aim,
         }
       : neutral
+    const scopeZoom = this.#profile.aim.scopeZoom
+    this.#scopeZoom = (alternateScope ? this.#profile.aim.scopeAltZoom : scopeZoom) ?? scopeZoom ?? 1
+    if (previousScope !== scopeZoom)
+      this.#ads = 0
     this.#aiming = !!aim && !!definition?.capabilities?.ads
     const target = Number(this.#aiming)
-    if (!definition?.capabilities?.ads || this.#profile.aim.duration === 0)
+    const duration = aimTransitionDuration(this.#profile.aim, this.#aiming)
+    if (!definition?.capabilities?.ads || duration === 0)
       this.#ads = target
     else
-      this.#ads += MathUtils.clamp(target - this.#ads, -delta / this.#profile.aim.duration, delta / this.#profile.aim.duration)
+      this.#ads += MathUtils.clamp(target - this.#ads, -delta / duration, delta / duration)
+    if (Math.abs(target - this.#ads) < 1e-10)
+      this.#ads = target
     const spread = this.#profile.spread
-    this.#spread = this.#aiming
+    this.#spread = this.#aiming && (scopeZoom === undefined || this.#ads === 1)
       ? spread.ads
       : moving
         ? spread.move
@@ -277,7 +292,10 @@ export class AimState {
     const yaw = wrap(this.#yaw + recoil.yaw)
     const pitch = MathUtils.clamp(this.#pitch + recoil.pitch, -this.#maxPitch, this.#maxPitch)
     const rotation = quaternion(yaw, pitch)
-    const worldFov = MathUtils.lerp(this.#worldFov, this.#profile.aim.worldFov, this.#ads)
+    const scopeZoom = this.#profile.aim.scopeZoom
+    const worldFov = scopeZoom === undefined
+      ? MathUtils.lerp(this.#worldFov, this.#profile.aim.worldFov, this.#ads)
+      : MathUtils.radToDeg(2 * Math.atan(Math.tan(MathUtils.degToRad(this.#worldFov / 2)) / scopeMagnification(this.#scopeZoom, this.#ads)))
     const position = [this.#feet[0], this.#feet[1] + this.#verticalOffset, this.#feet[2]]
     let stepOffset = this.#stepOffset
     if (stepOffset > 0 && this.#limitStepOffset) {
@@ -299,6 +317,9 @@ export class AimState {
       worldFov,
       viewmodelFov: MathUtils.lerp(this.#viewmodelFov, this.#profile.aim.viewmodelFov, this.#ads),
       ads: this.#ads,
+      scopeProgress: scopeZoom === undefined
+        ? 0
+        : this.#ads,
       aiming: this.#aiming,
       spread: this.#spread,
       verticalOffset: this.#verticalOffset,
@@ -425,6 +446,7 @@ export class AimState {
       worldFov: interpolate('worldFov'),
       viewmodelFov: interpolate('viewmodelFov'),
       ads: interpolate('ads'),
+      scopeProgress: interpolate('scopeProgress'),
       aiming: start.aiming,
       spread: interpolate('spread'),
       verticalOffset: interpolate('verticalOffset'),

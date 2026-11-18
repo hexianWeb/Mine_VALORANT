@@ -100,6 +100,36 @@ body {
   height: 100%;
   image-rendering: pixelated;
 }
+.weapon-scope {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.weapon-scope[hidden] { display: none; }
+.weapon-scope-window {
+  position: relative;
+  width: 95vmin;
+  aspect-ratio: 1;
+  border: 1px solid #0c1215;
+  border-radius: 50%;
+  box-shadow: 0 0 0 150vmax #080b0e, inset 0 0 2.4vmin 0.3vmin #080b0e;
+}
+.weapon-scope-texture {
+  position: absolute;
+  inset: -8%;
+  width: 116%;
+  height: 116%;
+}
+.weapon-scope-window::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(#090c0e, #090c0e) center / 100% 1px no-repeat,
+    linear-gradient(#090c0e, #090c0e) center / 1px 100% no-repeat;
+}
 .weapon-readout {
   --hud-join: clamp(12px, 3vw, 46px);
   position: absolute;

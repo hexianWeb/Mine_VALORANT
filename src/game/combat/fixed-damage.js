@@ -12,6 +12,9 @@ export const fixedWeaponDamage = immutableFact({
   vandal: { head: 160, body: 40, legs: 34 },
   judge: { head: 34, body: 17, legs: 14.45 },
   odin: { head: 95, body: 38, legs: 32.3 },
+  // Snipers use local source damage and the range's leg factor.
+  outlaw: { head: 40.8, body: 24, legs: 20.4 },
+  operator: { head: 75, body: 50, legs: 42.5 },
   karambit: { head: 50, body: 50, legs: 50 },
 })
 

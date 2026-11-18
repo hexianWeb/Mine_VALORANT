@@ -1,3 +1,5 @@
+import { scopeBlend } from '../game/weapons/scope-view.js'
+import scopeTexture from './assets/sights/outlaw-scope-overlay.png'
 import { defaultCrosshairProfile } from './crosshair-code.js'
 import { mountCrosshairImport } from './crosshair-import.js'
 import { createCrosshairRenderer } from './crosshair-renderer.js'
@@ -8,6 +10,8 @@ const phoenixAbilities = [
   { key: 'E', name: '炽热手球', path: 'M32 8v9 M32 47v9 M8 32h9 M47 32h9 M15 15l7 7 M42 42l7 7 M15 49l7-7 M42 22l7-7 M32 20l4 7 8 5-8 4-4 8-4-8-8-4 8-5z' },
   { key: 'X', name: '再火一回', path: 'M32 53c-9-6-17-11-20-23l1-14 10 12 2-17 7 13 7-13 2 17 10-12 1 14c-3 12-11 17-20 23z M23 38l9 6 9-6 M32 30v14' },
 ]
+
+const sniperNames = { outlaw: '莽侠', operator: '冥驹' }
 
 function mountAbilityPlaceholders(container) {
   const document = container.ownerDocument
@@ -74,6 +78,11 @@ export function mountWeaponHud({ canvas, player, engine, ui, controls }) {
   const root = canvas.ownerDocument.createElement('div')
   root.className = 'weapon-hud'
   root.innerHTML = `
+    <div class="weapon-scope" aria-hidden="true" hidden>
+      <div class="weapon-scope-window">
+        <img class="weapon-scope-texture" src="${scopeTexture}" alt="">
+      </div>
+    </div>
     <canvas class="weapon-crosshair" aria-hidden="true"></canvas>
     <div class="weapon-readout">
       <div class="hud-health" aria-label="生命值 100（占位）"><i aria-hidden="true"></i><b>100</b></div>
@@ -87,8 +96,27 @@ export function mountWeaponHud({ canvas, player, engine, ui, controls }) {
   const magazine = root.querySelector('[data-magazine]')
   const reserve = root.querySelector('[data-reserve]')
   const weaponStatus = root.querySelector('.hud-weapon-status')
-  const crosshair = mountCrosshair(root.querySelector('.weapon-crosshair'))
+  const crosshairCanvas = root.querySelector('.weapon-crosshair')
+  const crosshair = mountCrosshair(crosshairCanvas)
+  const scope = root.querySelector('.weapon-scope')
   let profile = defaultCrosshairProfile
+  let gameplay = false
+  const updateSight = (state) => {
+    const scoped = state.scopeProgress > 0
+    const blend = scopeBlend(state.scopeProgress ?? 0)
+    scope.hidden = !gameplay || blend === 0
+    if (!scope.hidden)
+      scope.style.opacity = String(blend)
+    const sniper = blend >= 0.5
+    crosshairCanvas.style.opacity = String(sniper
+      ? blend
+      : 1 - blend)
+    crosshair.update(sniper
+      ? profile.sniper
+      : state.aiming && !scoped
+        ? profile.ads
+        : profile.primary, state, state.weapon?.hit)
+  }
   let enabled
   let importer
   const setText = (node, text) => {
@@ -109,7 +137,7 @@ export function mountWeaponHud({ canvas, player, engine, ui, controls }) {
     setText(name, weapon
       ? weapon.melee
         ? '爪刀 · Prime//2.0'
-        : weapon.definitionId.toUpperCase()
+        : sniperNames[weapon.definitionId] ?? weapon.definitionId.toUpperCase()
       : '武器准备中')
     setText(magazine, weapon && !weapon.melee
       ? String(weapon.magazine)
@@ -120,7 +148,7 @@ export function mountWeaponHud({ canvas, player, engine, ui, controls }) {
         : String(weapon.reserve)
       : '')
     setText(weaponStatus, view.error ?? (view.skinError ? '换肤失败，按 K 重试' : ''))
-    crosshair.update(state.aiming ? profile.ads : profile.primary, state, view.hit)
+    updateSight(state)
   }
   importer = mountCrosshairImport({
     root,
@@ -132,11 +160,10 @@ export function mountWeaponHud({ canvas, player, engine, ui, controls }) {
     },
   })
   const off = engine.events.on('frame', update)
-  const crosshairCanvas = root.querySelector('.weapon-crosshair')
   const inputState = (state) => {
-    const hidden = state.mode !== 'gameplay'
-    if (crosshairCanvas.hidden !== hidden)
-      crosshairCanvas.hidden = hidden
+    gameplay = state.mode === 'gameplay'
+    crosshairCanvas.hidden = !gameplay
+    updateSight(player.readHud())
   }
   const offInput = controls.subscribe(inputState)
   inputState(controls.read())

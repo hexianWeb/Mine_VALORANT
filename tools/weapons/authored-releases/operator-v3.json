@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "sourceContract": "blender-actions-with-local-source-runtime",
+  "weaponId": "operator",
+  "assetVersion": "v3",
+  "defaultSkinId": "original",
+  "authoring": {
+    "path": "tools/weapons/authored-releases/operator-authoring.json",
+    "sha256": "79038662faef244b92e3c5b38bd757b97a7254334f4d22e5dd5ebd50ec45125a"
+  },
+  "runtimeProfile": {
+    "path": "tools/weapons/authored-releases/operator-runtime.json",
+    "sha256": "0c3cb70c1e99b2ba52d4a50ca231e562759ac11242345e643182015b4a07141f"
+  },
+  "scene": "80_ThreeJS_Export",
+  "meshes": [
+    "Arms_Left",
+    "Arms_Right",
+    "Weapon_Body",
+    "Weapon_Magazine",
+    "Weapon_Scope"
+  ],
+  "armatures": [
+    "aim_move",
+    "views",
+    "camera",
+    "positioning"
+  ],
+  "materials": {
+    "weapon": [
+      "Weapon_Skin"
+    ],
+    "scope": [
+      "Weapon_Scope"
+    ],
+    "armsLeft": [
+      "Character_Left"
+    ],
+    "armsRight": [
+      "Character_Right"
+    ]
+  },
+  "sockets": {
+    "muzzle": "muzzle_flash"
+  },
+  "actions": {
+    "idle": "static_idle",
+    "draw": "draw",
+    "holster": "put_away",
+    "fire": "shoot",
+    "fireAds": "shoot_aim",
+    "reloadTactical": "reload_tactical",
+    "reloadEmpty": "reload_empty",
+    "inspect": "inspect",
+    "aimStart": "aim_start",
+    "aim": "aim",
+    "aimEnd": "aim_end"
+  },
+  "requiredActions": [
+    "idle",
+    "draw",
+    "holster",
+    "fire",
+    "fireAds",
+    "reloadTactical",
+    "reloadEmpty",
+    "inspect",
+    "aimStart",
+    "aim",
+    "aimEnd"
+  ]
+}

@@ -11,6 +11,16 @@ import { installWeaponPackage } from './publish.mjs'
 
 const project = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const json = value => Buffer.from(`${JSON.stringify(value, null, 2)}\n`)
+const runtimeSources = new Map([
+  [
+    'blender-actions-with-temporary-public-runtime',
+    { status: 'temporary-public-reference', originalManifest: false },
+  ],
+  [
+    'blender-actions-with-local-source-runtime',
+    { status: 'local-source-pack', originalManifest: true },
+  ],
+])
 function resource(url, bytes) {
   return {
     url,
@@ -85,7 +95,8 @@ export async function publishAuthoredWeapon({
   const recipeBytes = await readFile(recipeFile)
   const recipe = JSON.parse(recipeBytes)
   assert.equal(recipe.schemaVersion, 1)
-  assert.equal(recipe.sourceContract, 'blender-actions-with-temporary-public-runtime')
+  const runtimeSource = runtimeSources.get(recipe.sourceContract)
+  assert.ok(runtimeSource, 'Unsupported authored source contract')
   for (const key of ['weaponId', 'assetVersion'])
     assert.match(recipe[key], /^[\w-]+$/, `Invalid ${key}`)
   const metadataInput = await readPinnedAuthoring(recipe.authoring)
@@ -95,8 +106,10 @@ export async function publishAuthoredWeapon({
   assert.equal(metadata.weaponId, recipe.weaponId)
   assert.equal(runtime.definition.id, recipe.weaponId)
   assert.equal(runtime.definition.assets.assetVersion, recipe.assetVersion)
-  assert.equal(runtime.provenance.status, 'temporary-public-reference')
-  assert.equal(runtime.originalRuntimeManifestAvailable, false)
+  assert.equal(runtime.provenance.status, runtimeSource.status)
+  assert.equal(runtime.originalRuntimeManifestAvailable, runtimeSource.originalManifest)
+  if (runtimeSource.originalManifest)
+    await readPinnedAuthoring(runtime.provenance.sourceManifest)
   assert.ok(!metadata.provenance?.preview && !metadata.model, 'Use authoring facts, not a preview model/manifest')
   const base = metadata.skins[recipe.defaultSkinId]
   assert.ok(base, 'Missing default authoring skin')
@@ -107,9 +120,16 @@ export async function publishAuthoredWeapon({
     inputs.set(skin.source.path, await readPinnedAuthoring(skin.source))
     const texture = await readPinnedAuthoring(skin.texture)
     validateAuthoredTexture(texture.bytes, skin)
-    textures.set(skinId, texture)
-    for (const key of ['geometryUV', 'rig', 'clipSet'])
-      assert.equal(skin.authoringSignature[key], base.authoringSignature[key], `Incompatible ${skinId}: ${key}`)
+    const maps = { weapon: texture }
+    if (recipe.materials.scope) {
+      maps.scope = await readPinnedAuthoring(skin.scopeTexture)
+      validateAuthoredTexture(maps.scope.bytes, { textureSize: skin.scopeTextureSize })
+    }
+    textures.set(skinId, maps)
+    if (skinId !== recipe.defaultSkinId) {
+      for (const key of ['geometryUV', 'rig', 'clipSet'])
+        assert.equal(skin.authoringSignature[key], base.authoringSignature[key], `Incompatible ${skinId}: ${key}`)
+    }
   }
   for (const cue of Object.values(runtime.audio.cues)) {
     assert.ok(cue.url.startsWith('/audio/'), 'Expected explicit public audio input')
@@ -124,7 +144,7 @@ export async function publishAuthoredWeapon({
     await writeFile(metadataFile, metadataInput.bytes)
     const request = {
       blend: inputs.get(base.source.path).filename,
-      texture: textures.get(recipe.defaultSkinId).filename,
+      texture: textures.get(recipe.defaultSkinId).weapon.filename,
       sourceManifest: metadataFile,
       scene: recipe.scene,
       meshes: recipe.meshes,
@@ -163,31 +183,42 @@ export async function publishAuthoredWeapon({
     assert.equal(audit.textureSha256, base.texture.sha256)
     const bytes = await readFile(request.output)
     const glb = readGlb(bytes)
+    for (const name of recipe.materials.scope ?? []) {
+      const material = glb.doc.materials.find(entry => entry.name === name)
+      const texture = glb.doc.textures[material?.pbrMetallicRoughness?.baseColorTexture?.index]
+      const image = glb.doc.images[texture?.source]
+      const view = glb.doc.bufferViews[image?.bufferView]
+      assert.ok(view, `Missing embedded scope texture for ${name}`)
+      const start = view.byteOffset ?? 0
+      assert.equal(sha256(glb.binary.subarray(start, start + view.byteLength)), base.scopeTexture.sha256, `Embedded scope texture changed: ${name}`)
+    }
     const compatibility = compatibilityFor(glb)
     const controlProfile = authoredControlProfile(metadata, glb)
     const skins = {}
-    for (const [skinId, texture] of textures) {
-      const textureName = `${sha256(texture.bytes)}.png`
-      await writeFile(path.join(staging, 'textures', textureName), texture.bytes)
+    for (const [skinId, maps] of textures) {
+      const materials = {}
+      for (const [role, texture] of Object.entries(maps)) {
+        const textureName = `${sha256(texture.bytes)}.png`
+        await writeFile(path.join(staging, 'textures', textureName), texture.bytes)
+        materials[role] = {
+          map: {
+            ...resource(`../textures/${textureName}`, texture.bytes),
+            ...pngSize(texture.bytes),
+            colorSpace: 'srgb',
+            flipY: false,
+            magFilter: 'nearest',
+            minFilter: 'nearest',
+            generateMipmaps: false,
+          },
+        }
+      }
       const skinBytes = json({
         schemaVersion: 1,
         weaponId: recipe.weaponId,
         assetVersion: recipe.assetVersion,
         skinId,
         compatibility,
-        materials: {
-          weapon: {
-            map: {
-              ...resource(`../textures/${textureName}`, texture.bytes),
-              ...pngSize(texture.bytes),
-              colorSpace: 'srgb',
-              flipY: false,
-              magFilter: 'nearest',
-              minFilter: 'nearest',
-              generateMipmaps: false,
-            },
-          },
-        },
+        materials,
       })
       await writeFile(path.join(staging, 'skins', `${skinId}.json`), skinBytes)
       skins[skinId] = resource(`skins/${skinId}.json`, skinBytes)
@@ -219,11 +250,14 @@ export async function publishAuthoredWeapon({
         sourceBlend: base.source.path,
         sourceBlendSha256: audit.sourceSha256,
         sourceTextureSha256: audit.textureSha256,
+        ...(base.scopeTexture
+          ? { sourceScopeTextureSha256: base.scopeTexture.sha256 }
+          : {}),
         authoringMetadataSha256: recipe.authoring.sha256,
         runtimeProfileSha256: recipe.runtimeProfile.sha256,
         releaseRecipeSha256: sha256(recipeBytes),
-        originalRuntimeManifestAvailable: false,
-        gameplayParameters: 'temporary-public-reference',
+        originalRuntimeManifestAvailable: runtime.originalRuntimeManifestAvailable,
+        gameplayParameters: runtime.provenance.status,
         exportScene: recipe.scene,
         blenderVersion: audit.blenderVersion,
       },

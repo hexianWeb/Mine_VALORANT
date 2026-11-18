@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "operator",
+  "assetVersion": "v3",
+  "skinId": "original",
+  "compatibility": {
+    "rig": "a9df5fd10da96853f072d80508a84827002d66e6769bba89c57141e95e41c8e2",
+    "geometryUV": "b89455989d1fe338a3184b637fc4b430b7b06632687490876df753c80a920363",
+    "clipSet": "5e8d6e16f5e4f081318b61d62b59e821710e0f86a64cdbbd80369febcc4e3612"
+  },
+  "materials": {
+    "weapon": {
+      "map": {
+        "url": "../textures/4f2ed0c21e8c669e54dc6dc14e239beb82bdd1088d18842ef31c5555f65ae084.png",
+        "sha256": "4f2ed0c21e8c669e54dc6dc14e239beb82bdd1088d18842ef31c5555f65ae084",
+        "bytes": 22637,
+        "width": 256,
+        "height": 256,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    },
+    "scope": {
+      "map": {
+        "url": "../textures/92ba7fca7f186e4bdc4e008472bb2ed1148373d7d97c1255df1a2506376af88c.png",
+        "sha256": "92ba7fca7f186e4bdc4e008472bb2ed1148373d7d97c1255df1a2506376af88c",
+        "bytes": 9516,
+        "width": 256,
+        "height": 256,
+        "colorSpace": "srgb",
+        "flipY": false,
+        "magFilter": "nearest",
+        "minFilter": "nearest",
+        "generateMipmaps": false
+      }
+    }
+  }
+}

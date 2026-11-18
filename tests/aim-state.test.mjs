@@ -5,10 +5,91 @@ import { Time } from '../src/engine/runtime/core/time.js'
 import { AimState } from '../src/game/player/aim-state.js'
 import { classicAimProfile, createAimProfile, phantomAimProfile } from '../src/game/weapons/aim-profile.js'
 import { classicDefinition } from '../src/game/weapons/definitions/classic.js'
+import { operatorDefinition } from '../src/game/weapons/definitions/operator.js'
+import { outlawDefinition } from '../src/game/weapons/definitions/outlaw.js'
 import { phantomDefinition } from '../src/game/weapons/definitions/phantom.js'
 import { createWeaponDefinition } from '../src/game/weapons/weapon-definition.js'
 
 const close = (actual, expected, tolerance = 1e-10) => assert.ok(Math.abs(actual - expected) < tolerance, `${actual} vs ${expected}`)
+
+test('Operator changes optical magnification and look gain without restarting the scope transition', () => {
+  const worldFov = 54
+  const aim = new AimState({ worldFov })
+  const delta = 1 / 60
+  let tick = 0
+  const sample = (aiming, alternateScope = false) => {
+    aim.beginStep({
+      at: ++tick * delta,
+      delta,
+      feet: [0, 0, 0],
+      aim: aiming,
+      alternateScope,
+      definition: operatorDefinition,
+    })
+    return aim.endStep()
+  }
+  const magnification = pose => Math.tan(worldFov * Math.PI / 360) / Math.tan(pose.worldFov * Math.PI / 360)
+  const rifleDuration = phantomDefinition.aim.duration
+  for (let i = 1; i < Math.ceil(rifleDuration / delta); i++)
+    close(sample(true).scopeProgress, i * delta / rifleDuration)
+  close(magnification(sample(true)), 4)
+  const alternate = sample(true, true)
+  assert.equal(alternate.scopeProgress, 1)
+  close(magnification(alternate), 10)
+  aim.queueLook(0.1, 0)
+  close(aim.headingYaw, 0.01)
+  const releasing = sample(false, true)
+  close(releasing.scopeProgress, 20 / 21)
+  assert.ok(magnification(releasing) > 9)
+})
+
+test('scoped FOV, look gain and shot precision follow the same reversible aiming progress', () => {
+  const worldFov = 54
+  const aim = new AimState({ worldFov })
+  const gun = outlawDefinition
+  const fixedDelta = 1 / 60
+  let tick = 0
+  function advance(holding, definition = gun) {
+    aim.beginStep({
+      at: ++tick * fixedDelta,
+      delta: fixedDelta,
+      feet: [0, 0, 0],
+      aim: holding,
+      definition,
+    })
+    return aim.endStep()
+  }
+
+  const rifleDuration = phantomDefinition.aim.duration
+  for (let i = 1; i < Math.ceil(rifleDuration / fixedDelta); i++) {
+    const pose = advance(true)
+    close(pose.scopeProgress, i * fixedDelta / rifleDuration)
+    assert.equal(pose.spread, gun.spread.stand)
+  }
+  const scoped = advance(true)
+  assert.equal(scoped.scopeProgress, 1)
+  assert.equal(scoped.spread, gun.spread.ads)
+  close(Math.tan(worldFov * Math.PI / 360) / Math.tan(scoped.worldFov * Math.PI / 360), 2.5)
+  aim.queueLook(0.1, 0)
+  close(aim.headingYaw, 0.04)
+
+  const releasing = advance(false)
+  assert.equal(releasing.spread, gun.spread.stand)
+  close(releasing.scopeProgress, 14 / 15)
+  assert.ok(releasing.worldFov > scoped.worldFov)
+  assert.equal(advance(true).scopeProgress, 1)
+  for (let i = 1; i < 15; i++)
+    close(advance(false).scopeProgress, 1 - i / 15)
+  const restored = advance(false)
+  assert.equal(restored.scopeProgress, 0)
+  close(restored.worldFov, worldFov)
+  advance(true)
+  const switched = advance(false, phantomDefinition)
+  assert.equal(switched.scopeProgress, 0)
+  assert.equal(switched.worldFov, worldFov)
+  aim.queueLook(0.1, 0)
+  close(aim.headingYaw, 0.14)
+})
 function definition(overrides) {
   return {
     capabilities: { ads: true },

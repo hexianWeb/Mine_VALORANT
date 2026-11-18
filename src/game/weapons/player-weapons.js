@@ -1,5 +1,6 @@
 import { Quaternion, Vector3 } from 'three/webgpu'
 import { intersectRayBox } from '../../engine/runtime/function/physics/ray-box.js'
+import { aimTransitionDuration } from './aim-profile.js'
 import { createArmoryCatalog } from './armory-catalog.js'
 import { bulldogDefinition } from './definitions/bulldog.js'
 import { classicDefinition } from './definitions/classic.js'
@@ -7,6 +8,8 @@ import { ghostDefinition } from './definitions/ghost.js'
 import { judgeDefinition } from './definitions/judge.js'
 import { karambitDefinition } from './definitions/karambit.js'
 import { odinDefinition } from './definitions/odin.js'
+import { operatorDefinition } from './definitions/operator.js'
+import { outlawDefinition } from './definitions/outlaw.js'
 import { phantomDefinition } from './definitions/phantom.js'
 import { sheriffDefinition } from './definitions/sheriff.js'
 import { vandalDefinition } from './definitions/vandal.js'
@@ -157,6 +160,8 @@ export class PlayerWeapons {
   #shotTargets
   #definitions
   #aimHeld = false
+  #alternateScopeId = null
+  #scopeRecovery = null
   #events = []
   #lastShot = null
   #paused = false
@@ -188,6 +193,8 @@ export class PlayerWeapons {
       judgeDefinition,
       odinDefinition,
       bulldogDefinition,
+      outlawDefinition,
+      operatorDefinition,
       karambitDefinition,
     ],
     loadout = practiceLoadout,
@@ -261,6 +268,8 @@ export class PlayerWeapons {
       return
     }
     this.setPaused(paused)
+    const aimHeld = !paused && input.isDown('aim')
+    const hasAlternateScope = this.#definitions.get(this.#equipment.activeDefinitionId)?.aim?.scopeAltZoom !== undefined
     const edges = input.consumePressedEvents?.() ?? [
       'primaryWeapon',
       'secondaryWeapon',
@@ -278,6 +287,12 @@ export class PlayerWeapons {
       'fire',
     ].filter(action => input.consumePressed(action)).map(action => ({ action }))
     for (const { action } of edges) {
+      if (aimHeld && hasAlternateScope && (action === 'previousWeapon' || action === 'nextWeapon')) {
+        this.#alternateScopeId = action === 'previousWeapon'
+          ? this.#equipment.activeId
+          : null
+        continue
+      }
       const command = {
         primaryWeapon: { type: 'selectSlot', slotId: 'primary' },
         secondaryWeapon: { type: 'selectSlot', slotId: 'secondary' },
@@ -310,7 +325,7 @@ export class PlayerWeapons {
     }
     if (paused)
       return
-    this.#aimHeld = input.isDown('aim')
+    this.#aimHeld = aimHeld
     this.#controller.queue({
       type: 'fireHeld',
       held: input.isDown('fire'),
@@ -367,14 +382,21 @@ export class PlayerWeapons {
     const batch = this.#controller.step(context, { aimHeld })
     const equipment = this.#controller.readFrameState()
     const definition = this.#definitions.get(equipment.activeDefinitionId)
-    const aiming = aimHeld && equipment.canAim && !!definition?.capabilities.ads
+    const recovering = this.#scopeRecovery && this.#scopeRecovery.instanceId === equipment.activeId
+      && time.fixedElapsed + 1e-10 < this.#scopeRecovery.until
+    const aiming = aimHeld && equipment.canAim && !!definition?.capabilities.ads && !recovering
+    if (this.#alternateScopeId !== equipment.activeId)
+      this.#alternateScopeId = null
     const aimPose = this.#aim.beginStep({
       ...pose,
       at: time.fixedElapsed,
       delta: time.fixedDelta,
       aim: aiming,
+      alternateScope: this.#alternateScopeId !== null,
       definition,
     })
+    if (!aimHeld && aimPose.ads === 0)
+      this.#alternateScopeId = null
     const events = batch.events.map((event) => {
       const weapon = this.#controller.readEventWeapon(event.instanceId)
       if (event.type !== 'ShotFired' && event.type !== 'MeleeContact') {
@@ -390,6 +412,12 @@ export class PlayerWeapons {
       this.#shotTargets?.beginShot(context)
       let attack
       if (shot) {
+        if (definition.fire.scopeRecovery) {
+          this.#scopeRecovery = {
+            instanceId: event.instanceId,
+            until: event.at + definition.fire.scopeRecovery,
+          }
+        }
         const trace = direction => traceWeaponImpact(shot.eyeOrigin, direction, this.#world, shotRange, this.#shotTargets)
         const pellets = shot.pelletDirections?.map((direction, index) => ({
           index,
@@ -414,6 +442,9 @@ export class PlayerWeapons {
         ...event,
         payload: {
           ...event.payload,
+          ...(shot && definition.aim.scopeZoom !== undefined
+            ? { aiming: aimPose.aiming && aimPose.ads === 1 }
+            : {}),
           ...attack,
           weapon,
         },
@@ -430,7 +461,7 @@ export class PlayerWeapons {
     this.#accept({ ...batch, events }, equipment, {
       at: time.fixedElapsed,
       aiming,
-      duration: definition?.aim?.duration ?? 0,
+      duration: aimTransitionDuration(definition?.aim, aiming),
       gait: pose.gait,
       verticalSpeed: pose.verticalSpeed,
       landing: pose.landing,
@@ -478,6 +509,7 @@ export class PlayerWeapons {
   suspend() {
     this.#armory.setEnabled(false)
     this.#aimHeld = false
+    this.#alternateScopeId = null
     this.#pausedSelection = null
     this.#accept(this.#controller.suspend())
   }
@@ -492,6 +524,8 @@ export class PlayerWeapons {
   reset() {
     this.#armory.invalidate()
     this.#lastShot = null
+    this.#alternateScopeId = null
+    this.#scopeRecovery = null
     this.#pausedSelection = null
     this.#accept(this.#controller.reset())
   }

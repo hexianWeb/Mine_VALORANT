@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "originalRuntimeManifestAvailable": true,
+  "provenance": {
+    "status": "local-source-pack",
+    "sourceManifest": {
+      "path": "skin_work_folder/operator_skin_work/operator_source_manifest.json",
+      "sha256": "16c815a5d6d741e25e1c63d174c2da4f066c09277298791bcf974e5341934c7f"
+    },
+    "tuning": "Source timing with project scope transitions, reserve, reload commit, and equip policy"
+  },
+  "definition": {
+    "recoil": {
+      "pitch": [
+        {
+          "time": 0,
+          "min": 0.06981317007977318,
+          "max": 0.06981317007977318
+        },
+        {
+          "time": 0.1,
+          "min": 0.05235987755982988,
+          "max": 0.05235987755982988
+        },
+        {
+          "time": 0.2,
+          "min": 0.06283185307179587,
+          "max": 0.06283185307179587
+        },
+        {
+          "time": 0.45,
+          "min": 0,
+          "max": 0
+        }
+      ],
+      "yaw": [
+        {
+          "time": 0,
+          "min": -0.013962634015954637,
+          "max": 0.013962634015954637
+        },
+        {
+          "time": 0.1,
+          "min": 0.012217304763960306,
+          "max": 0.012217304763960306
+        },
+        {
+          "time": 0.18,
+          "min": -0.006981317007977318,
+          "max": -0.006981317007977318
+        },
+        {
+          "time": 0.35,
+          "min": 0,
+          "max": 0
+        }
+      ]
+    },
+    "spread": {
+      "stand": 0.103365,
+      "move": 0.20673,
+      "crouch": 0.0861375,
+      "ads": 0.00172275
+    },
+    "aim": {
+      "duration": 0.12,
+      "releaseDuration": 0.35,
+      "worldFov": 45,
+      "viewmodelFov": 45,
+      "scopeZoom": 4,
+      "scopeAltZoom": 10
+    },
+    "id": "operator",
+    "capacity": 5,
+    "initialReserve": 15,
+    "fire": {
+      "mode": "semi",
+      "interval": 1.6666666666666667,
+      "scopeRecovery": 1.65
+    },
+    "equip": {
+      "draw": 2,
+      "holster": 0
+    },
+    "reload": {
+      "tactical": {
+        "feed": 3.6,
+        "duration": 3.6
+      },
+      "empty": {
+        "feed": 3.6,
+        "duration": 3.6
+      }
+    },
+    "inspectDuration": 5,
+    "capabilities": {
+      "ads": true
+    },
+    "assets": {
+      "modelId": "operator",
+      "assetVersion": "v3",
+      "defaultSkinId": "original",
+      "skinIds": [
+        "original"
+      ]
+    }
+  },
+  "audio": {
+    "cues": {
+      "operator_shoot": {
+        "id": "operator_shoot",
+        "url": "/audio/operator/operator_shoot.ogg",
+        "sha256": "9d53e900c9c694a476734402340ebcf06c6b4eb5dabbb7e6f41177032a22ab3b",
+        "gain": 0.25
+      },
+      "operator_draw": {
+        "id": "operator_draw",
+        "url": "/audio/operator/operator_draw.ogg",
+        "sha256": "efdd815533781dd8f8a62c0056187f63a6ea56cab989760518ef5effdd9705d1",
+        "gain": 0.22
+      },
+      "operator_reload": {
+        "id": "operator_reload",
+        "url": "/audio/operator/operator_reload.ogg",
+        "sha256": "0802a13da6eb2bb33b0ed6c1086c2531ff7b4dd1436a6774504129075681481d",
+        "gain": 0.22
+      },
+      "operator_inspect": {
+        "id": "operator_inspect",
+        "url": "/audio/operator/operator_inspect.ogg",
+        "sha256": "cf733412b4783637d4a4eba6bc1131b46710738c6de46e433041b00cca0899f9",
+        "gain": 0.22
+      },
+      "operator_bolt": {
+        "id": "operator_bolt",
+        "url": "/audio/operator/operator_bolt.ogg",
+        "sha256": "d25b717f2cdc45717599e725df96f597341de7e08f886973e0cdb2518dc7097b",
+        "gain": 0.22
+      }
+    },
+    "fire": "operator_shoot",
+    "draw": "operator_draw",
+    "reloadTactical": "operator_reload",
+    "reloadEmpty": "operator_reload",
+    "inspect": "operator_inspect"
+  }
+}

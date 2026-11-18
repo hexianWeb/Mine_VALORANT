@@ -256,6 +256,7 @@ export class PlayerComponent extends Component {
       enabled: this.enabled,
       weapon: this.weapons?.readHud() ?? null,
       aiming: pose.aiming,
+      scopeProgress: pose.scopeProgress,
       worldFov: pose.worldFov,
       spread: pose.spread,
       recoilPitch: pose.recoilPitch,

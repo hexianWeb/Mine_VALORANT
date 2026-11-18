@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "originalRuntimeManifestAvailable": true,
+  "provenance": {
+    "status": "local-source-pack",
+    "sourceManifest": {
+      "path": "skin_work_folder/outlaw_skin_work/outlaw_source_manifest.json",
+      "sha256": "dbec70e2cc83fffd6631dbf6f8bf862ae6e20a47afb7239c926d2f97a9612e21"
+    },
+    "tuning": "Source timing with project scope transitions, reserve, reload commit, and equip policy"
+  },
+  "definition": {
+    "recoil": {
+      "pitch": [
+        {
+          "time": 0,
+          "min": 0.013962634015954637,
+          "max": 0.013962634015954637
+        },
+        {
+          "time": 0.1,
+          "min": 0.012217304763960306,
+          "max": 0.012217304763960306
+        },
+        {
+          "time": 0.45,
+          "min": -0.003490658503988659,
+          "max": -0.003490658503988659
+        },
+        {
+          "time": 0.6,
+          "min": 0,
+          "max": 0
+        }
+      ],
+      "yaw": [
+        {
+          "time": 0,
+          "min": -0.005235987755982988,
+          "max": 0.004363323129985824
+        },
+        {
+          "time": 0.35,
+          "min": 0,
+          "max": 0
+        }
+      ]
+    },
+    "spread": {
+      "stand": 0.07752375,
+      "move": 0.1550475,
+      "crouch": 0.060296249999999996,
+      "ads": 0.00172275
+    },
+    "aim": {
+      "duration": 0.12,
+      "releaseDuration": 0.25,
+      "worldFov": 45,
+      "viewmodelFov": 45,
+      "scopeZoom": 2.5
+    },
+    "id": "outlaw",
+    "capacity": 2,
+    "initialReserve": 6,
+    "fire": {
+      "mode": "semi",
+      "interval": 0.2608695652173913
+    },
+    "equip": {
+      "draw": 1.2,
+      "holster": 0
+    },
+    "reload": {
+      "tactical": {
+        "feed": 1.45,
+        "duration": 1.45
+      },
+      "empty": {
+        "feed": 3.7,
+        "duration": 3.7
+      }
+    },
+    "inspectDuration": 4,
+    "capabilities": {
+      "ads": true
+    },
+    "assets": {
+      "modelId": "outlaw",
+      "assetVersion": "v3",
+      "defaultSkinId": "original",
+      "skinIds": [
+        "original"
+      ]
+    }
+  },
+  "audio": {
+    "cues": {
+      "outlaw_shoot": {
+        "id": "outlaw_shoot",
+        "url": "/audio/outlaw/outlaw_shoot.ogg",
+        "sha256": "7c454db79bb6c72cba4eb229d609ac2561b9c561ebb7282c1ecdb9868cda84de",
+        "gain": 0.25
+      },
+      "outlaw_draw": {
+        "id": "outlaw_draw",
+        "url": "/audio/outlaw/outlaw_draw.ogg",
+        "sha256": "607c6c3602e42d23ca917aed18d75073f849306e9e1e3ec4c6e7193966740059",
+        "gain": 0.22
+      },
+      "outlaw_reload_tactical": {
+        "id": "outlaw_reload_tactical",
+        "url": "/audio/outlaw/outlaw_reload_tactical.ogg",
+        "sha256": "c59e2b784987428b86f04679cba78ebdc23d18741436bb248353f10abc43ca50",
+        "gain": 0.22
+      },
+      "outlaw_reload_empty": {
+        "id": "outlaw_reload_empty",
+        "url": "/audio/outlaw/outlaw_reload_empty.ogg",
+        "sha256": "b7edbaff901369f1b96c6a968409700555c0efa7bf5fa4c26c02f00f905adc9e",
+        "gain": 0.22
+      },
+      "outlaw_inspect": {
+        "id": "outlaw_inspect",
+        "url": "/audio/outlaw/outlaw_inspect.ogg",
+        "sha256": "75d8fcd4d805cf28eeb8844ee668aaf1b03738ccb312f1b123f6097672064383",
+        "gain": 0.22
+      }
+    },
+    "fire": "outlaw_shoot",
+    "draw": "outlaw_draw",
+    "reloadTactical": "outlaw_reload_tactical",
+    "reloadEmpty": "outlaw_reload_empty",
+    "inspect": "outlaw_inspect"
+  }
+}

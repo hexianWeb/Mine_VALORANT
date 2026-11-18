@@ -38,11 +38,24 @@ function curve(source, axis) {
 export function createAimProfile({ recoil = { pitch: [], yaw: [] }, spread = {}, aim = {} } = {}) {
   record(recoil, 'recoil', ['pitch', 'yaw'])
   record(spread, 'spread', ['stand', 'move', 'crouch', 'ads'])
-  record(aim, 'aim', ['duration', 'worldFov', 'viewmodelFov'])
+  record(aim, 'aim', [
+    'duration',
+    'releaseDuration',
+    'worldFov',
+    'viewmodelFov',
+    'scopeZoom',
+    'scopeAltZoom',
+  ])
   const worldFov = finite(aim.worldFov ?? 45, 'worldFov')
   const viewmodelFov = finite(aim.viewmodelFov ?? 45, 'viewmodelFov')
   if (worldFov <= 0 || worldFov >= 180 || viewmodelFov <= 0 || viewmodelFov >= 180)
     throw new RangeError('[AimProfile] FOV must be in (0, 180)')
+  const scopeZoom = aim.scopeZoom === undefined
+    ? undefined
+    : finite(aim.scopeZoom, 'scopeZoom', 1)
+  const scopeAltZoom = aim.scopeAltZoom
+  if (scopeAltZoom !== undefined && (scopeZoom === undefined || !Number.isFinite(scopeAltZoom) || scopeAltZoom <= scopeZoom))
+    throw new RangeError('[AimProfile] Alternate scope magnification must exceed the primary magnification')
   return Object.freeze({
     recoil: Object.freeze({
       pitch: curve(recoil.pitch, 'pitch'),
@@ -55,10 +68,28 @@ export function createAimProfile({ recoil = { pitch: [], yaw: [] }, spread = {},
       ]))),
     aim: Object.freeze({
       duration: finite(aim.duration ?? 0, 'aim.duration'),
+      ...(aim.releaseDuration === undefined
+        ? {}
+        : {
+            releaseDuration: finite(aim.releaseDuration, 'aim.releaseDuration'),
+          }),
       worldFov,
       viewmodelFov,
+      ...(scopeZoom === undefined
+        ? {}
+        : { scopeZoom }),
+      ...(scopeAltZoom === undefined
+        ? {}
+        : { scopeAltZoom }),
     }),
   })
+}
+
+export function aimTransitionDuration(profile, aiming) {
+  const duration = profile?.duration ?? 0
+  return aiming
+    ? duration
+    : profile?.releaseDuration ?? duration
 }
 
 // Source: first-person-pack/{classic,phantom}/sources/*_data.json, recoil/inaccuracy/aim_time.
@@ -83,6 +114,7 @@ function recoilCurve(points) {
 // The coefficient/distribution is project policy, not a claim of exact TACZ/Minecraft parity.
 // There is no source per-shot bloom, so none is invented here; stance/ADS determines spread.
 const spreadScale = 0.0172275
+const phantomAimDuration = 0.12
 function spreadProfile(stand, move, crouch, ads) {
   return {
     stand: stand * spreadScale,
@@ -91,6 +123,55 @@ function spreadProfile(stand, move, crouch, ads) {
     ads: ads * spreadScale,
   }
 }
+
+// Outlaw's local source pack provides these recoil curves and stance values.
+export const outlawAimProfile = createAimProfile({
+  aim: {
+    duration: phantomAimDuration,
+    releaseDuration: 0.25,
+    viewmodelFov: 45,
+    scopeZoom: 2.5,
+  },
+  recoil: {
+    pitch: recoilCurve([
+      [0, 0.8, 0.8],
+      [0.1, 0.7, 0.7],
+      [0.45, -0.2, -0.2],
+      [0.6, 0, 0],
+    ]),
+    yaw: recoilCurve([
+      [0, -0.3, 0.25],
+      [0.35, 0, 0],
+    ]),
+  },
+  spread: spreadProfile(4.5, 9, 3.5, 0.1),
+})
+
+// Source curves retain their local keys and recover to neutral after the last authored key.
+export const operatorAimProfile = createAimProfile({
+  aim: {
+    duration: phantomAimDuration,
+    releaseDuration: 0.35,
+    viewmodelFov: 45,
+    scopeZoom: 4,
+    scopeAltZoom: 10,
+  },
+  recoil: {
+    pitch: recoilCurve([
+      [0, 4, 4],
+      [0.1, 3, 3],
+      [0.2, 3.6, 3.6],
+      [0.45, 0, 0],
+    ]),
+    yaw: recoilCurve([
+      [0, -0.8, 0.8],
+      [0.1, 0.7, 0.7],
+      [0.18, -0.4, -0.4],
+      [0.35, 0, 0],
+    ]),
+  },
+  spread: spreadProfile(6, 12, 5, 0.1),
+})
 
 export const classicAimProfile = createAimProfile({
   recoil: {
@@ -124,5 +205,5 @@ export const phantomAimProfile = createAimProfile({
   },
   spread: spreadProfile(0.2, 6.8, 0.17, 0.11),
   // Practice range transition shared with Vandal and Odin.
-  aim: { duration: 0.12, worldFov: 45, viewmodelFov: 45 },
+  aim: { duration: phantomAimDuration, worldFov: 45, viewmodelFov: 45 },
 })

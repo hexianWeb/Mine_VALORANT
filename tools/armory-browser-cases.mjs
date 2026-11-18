@@ -18,11 +18,11 @@ export async function checkArmory({ browser, press, click, screenshot, record, q
 
   await open()
   let state = await read()
-  assert.equal(state.catalog.length, 8)
+  assert.equal(state.catalog.length, 10)
   assert.equal(await evaluate('document.querySelectorAll(".shop-column").length'), 5)
   assert.equal(await evaluate('document.querySelectorAll(".shop-category").length'), 7)
-  assert.equal(await evaluate('document.querySelectorAll(".shop-card[data-weapon]:not(:disabled)").length'), 8)
-  assert.equal(await evaluate('document.querySelectorAll(".shop-card[data-weapon][data-unavailable]:disabled").length'), 12)
+  assert.equal(await evaluate('document.querySelectorAll(".shop-card[data-weapon]:not(:disabled)").length'), 10)
+  assert.equal(await evaluate('document.querySelectorAll(".shop-card[data-weapon][data-unavailable]:disabled").length'), 10)
   assert.equal(await evaluate('[...document.querySelectorAll(".shop-card img")].every(image => image.complete && image.naturalWidth > 0)'), true)
   assert.equal(await evaluate('document.querySelector(".shop-details").getBoundingClientRect().left > document.querySelector(".shop-catalog").getBoundingClientRect().left'), true)
   assert.equal(await evaluate('/99,999|购买护甲|队友请求/.test(document.querySelector(".weapon-shop").textContent)'), false)
@@ -38,7 +38,7 @@ export async function checkArmory({ browser, press, click, screenshot, record, q
   assert.equal(state.presentedDefinitionId, beforeCandidate)
   assert.equal(state.request, null)
   assert.equal(await evaluate('document.querySelector("[data-detail-id]").textContent'), 'ODIN')
-  record('armory: five columns, twelve disabled weapons, selectable armor and independent candidate details')
+  record('armory: five columns, ten disabled weapons, selectable armor and independent candidate details')
   await screenshot('shop-desktop.png')
 
   await evaluate('document.querySelector(\'.shop-card[data-weapon="classic"]\').focus()')
@@ -113,12 +113,19 @@ export async function checkArmory({ browser, press, click, screenshot, record, q
   record('armory: Esc closes only the shop; accepted selection completes while closed')
 
   if (!quick) {
-    for (const slotId of ['sheriff', 'phantom', 'vandal']) {
-      await select(slotId)
-      seen.add(slotId)
+    const remaining = [
+      'sheriff',
+      'phantom',
+      'vandal',
+      'outlaw',
+      'operator',
+    ]
+    for (const definitionId of remaining) {
+      await select(definitionId)
+      seen.add(definitionId)
     }
-    assert.equal(seen.size, 8)
-    record('armory: all eight weapons are obtainable through the three-slot armory')
+    assert.equal(seen.size, 10)
+    record('armory: all ten weapons are obtainable through the three-slot armory')
   }
   await assertInventory()
 

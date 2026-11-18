@@ -53,12 +53,27 @@ const entries = [
     shortcut: '7',
     provisional: true,
   },
+  {
+    id: 'outlaw',
+    name: '莽侠',
+    category: 'snipers',
+    shortcut: '1',
+    provisional: true,
+  },
+  {
+    id: 'operator',
+    name: '冥驹',
+    category: 'snipers',
+    shortcut: '1',
+    provisional: true,
+  },
 ]
 
 export const armoryCategories = Object.freeze([
   Object.freeze({ id: 'sidearms', name: '随身武器' }),
   Object.freeze({ id: 'rifles', name: '步枪' }),
   Object.freeze({ id: 'shotguns', name: '霰弹枪' }),
+  Object.freeze({ id: 'snipers', name: '狙击枪' }),
   Object.freeze({ id: 'heavy', name: '机关枪' }),
 ])
 

@@ -2,6 +2,7 @@ import { Group, MathUtils } from 'three/webgpu'
 import { playerConfig } from '../player/config.js'
 import { ammoControlSamples } from './assets/weapon-control-profile.js'
 import { createMuzzleFlash, muzzleFlashDuration } from './muzzle-flash.js'
+import { scopeBlend } from './scope-view.js'
 
 const key = ticket => `${ticket.epoch}:${ticket.requestId}`
 const walkRoles = Object.freeze({ forward: 'walkForward', backward: 'walkBackward', side: 'walkSide' })
@@ -359,7 +360,8 @@ export class WeaponViewModel {
       const aimChanged = event.stance.aiming !== this.#stance.aiming
       this.#stance = event.stance
       const action = this.#active?.action
-      if (action && action.role !== this.#restRole() && (action.resting || (aimChanged && action.naturalEndAt !== null))) {
+      const keepsBolt = this.#definitions.get(this.#weapon?.definitionId)?.fire?.scopeRecovery
+      if (action && action.role !== this.#restRole() && (action.resting || (aimChanged && action.naturalEndAt !== null && !keepsBolt))) {
         this.#play('idle', event.at, {
           fade: aimChanged ? event.fade : undefined,
         })
@@ -417,7 +419,8 @@ export class WeaponViewModel {
       this.#play('attack', event.at, { fade: 0.025 })
     if (event.type === 'ShotFired') {
       this.#presentedShot = event
-      this.#play(payload.aiming && this.#active.handle.manifest.actions.fireAds
+      const exposesBolt = this.#definitions.get(this.#weapon?.definitionId)?.fire?.scopeRecovery
+      this.#play(payload.aiming && !exposesBolt && this.#active.handle.manifest.actions.fireAds
         ? 'fireAds'
         : 'fire', event.at, { fade: 0.025 })
       const socketName = this.#active.handle.manifest.sockets?.muzzle
@@ -456,7 +459,9 @@ export class WeaponViewModel {
       }
     }
     this.#prepare(snapshot)
-    this.#layer.setEnabled(!!this.#active)
+    const blend = scopeBlend(pose?.scopeProgress ?? 0)
+    this.#layer.setEnabled(!!this.#active && blend < 1)
+    this.#layer.setOpacity?.(1 - blend)
     if (pose) {
       this.#layer.setFov(pose.viewmodelFov)
       this.#active?.visual.sight?.setAim(pose.ads ?? 0)
@@ -496,6 +501,7 @@ export class WeaponViewModel {
       kept.action = null
     }
     this.#hidden = retain
+    this.#layer.setOpacity?.(1)
     this.#layer.setEnabled(false)
   }
 

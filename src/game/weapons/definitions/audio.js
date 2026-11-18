@@ -29,13 +29,31 @@ const hashes = {
   odin_draw: '9c3d9ebc9de14803c551974a4218dfe11eeda8a575a1e74f9220a5953f5f0c12',
   odin_reload: '547862e65b90a666fa571fcdab7aa1659005490c06f645446f96860370e1cd8f',
   odin_inspect: '1074135015bc642c37fe00164a12d5d6d88e38366292cab1573f9b6ca06ee9fa',
+  outlaw_shoot: '7c454db79bb6c72cba4eb229d609ac2561b9c561ebb7282c1ecdb9868cda84de',
+  outlaw_draw: '607c6c3602e42d23ca917aed18d75073f849306e9e1e3ec4c6e7193966740059',
+  outlaw_inspect: '75d8fcd4d805cf28eeb8844ee668aaf1b03738ccb312f1b123f6097672064383',
+  outlaw_reload_empty: 'b7edbaff901369f1b96c6a968409700555c0efa7bf5fa4c26c02f00f905adc9e',
+  outlaw_reload_tactical: 'c59e2b784987428b86f04679cba78ebdc23d18741436bb248353f10abc43ca50',
+  operator_shoot: '9d53e900c9c694a476734402340ebcf06c6b4eb5dabbb7e6f41177032a22ab3b',
+  operator_bolt: 'd25b717f2cdc45717599e725df96f597341de7e08f886973e0cdb2518dc7097b',
+  operator_draw: 'efdd815533781dd8f8a62c0056187f63a6ea56cab989760518ef5effdd9705d1',
+  operator_inspect: 'cf733412b4783637d4a4eba6bc1131b46710738c6de46e433041b00cca0899f9',
+  operator_reload: '0802a13da6eb2bb33b0ed6c1086c2531ff7b4dd1436a6774504129075681481d',
   // Original synthesized cues, peak-aligned with the firearm shoots. Not extracted game audio.
   karambit_swing: '01f32cb55113227a563f3de972bca6ad0112e814873d74545c3733011affa3bd',
   karambit_hit: 'd3d63426576c61f17510ff10c6074db4658e368d2e1154dac989a88cbdec0add',
 }
 
-function profile(weaponId) {
-  const cues = Object.fromEntries(['shoot', 'draw', 'reload', 'inspect'].map((role) => {
+function profile(weaponId, { reloadTactical = 'reload', reloadEmpty = 'reload', markers = [] } = {}) {
+  const roles = new Set([
+    'shoot',
+    'draw',
+    reloadTactical,
+    reloadEmpty,
+    'inspect',
+    ...markers,
+  ])
+  const cues = Object.fromEntries([...roles].map((role) => {
     const id = `${weaponId}_${role}`
     return [
       id,
@@ -53,8 +71,8 @@ function profile(weaponId) {
     cues: Object.freeze(cues),
     fire: `${weaponId}_shoot`,
     draw: `${weaponId}_draw`,
-    reloadTactical: `${weaponId}_reload`,
-    reloadEmpty: `${weaponId}_reload`,
+    reloadTactical: `${weaponId}_${reloadTactical}`,
+    reloadEmpty: `${weaponId}_${reloadEmpty}`,
     inspect: `${weaponId}_inspect`,
   })
 }
@@ -89,6 +107,13 @@ export const weaponAudioProfiles = Object.freeze({
   sheriff: profile('sheriff'),
   judge: profile('judge'),
   odin: profile('odin'),
+  outlaw: profile('outlaw', {
+    reloadTactical: 'reload_tactical',
+    reloadEmpty: 'reload_empty',
+  }),
+  operator: profile('operator', {
+    markers: ['bolt'],
+  }),
   karambit: meleeProfile('karambit'),
 })
 

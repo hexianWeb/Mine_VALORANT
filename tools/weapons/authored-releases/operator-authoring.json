@@ -1,0 +1,299 @@
+{
+  "schemaVersion": 1,
+  "weaponId": "operator",
+  "metadataSource": "Pinned Blender Action ranges and local first-person source manifest",
+  "clips": [
+    {
+      "name": "static_idle",
+      "duration": 2,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "idle",
+      "duration": 7.2667,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "draw",
+      "duration": 2.25,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "shoot",
+      "duration": 1.6471,
+      "loop": false,
+      "markers": [
+        {
+          "time": 0.2549,
+          "cue": "operator_bolt"
+        }
+      ],
+      "controlBones": []
+    },
+    {
+      "name": "shoot_aim",
+      "duration": 1.6471,
+      "loop": false,
+      "markers": [
+        {
+          "time": 0.2549,
+          "cue": "operator_bolt"
+        }
+      ],
+      "controlBones": []
+    },
+    {
+      "name": "reload_tactical",
+      "duration": 4.25,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "reload_empty",
+      "duration": 4.25,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "inspect",
+      "duration": 5,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim_start",
+      "duration": 0.35,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim",
+      "duration": 0.35,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aim_end",
+      "duration": 0.35,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_forward",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_backward",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_sideway",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "walk_aiming",
+      "duration": 1,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_start",
+      "duration": 0.3,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run",
+      "duration": 0.8,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_hold",
+      "duration": 0.2917,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "run_end",
+      "duration": 0.65,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "put_away",
+      "duration": 0.4667,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "ADS_up",
+      "duration": 0.6333,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "ADS_down",
+      "duration": 0.6,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_1",
+      "duration": 0.8,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_2",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_bayonet_3",
+      "duration": 1,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide",
+      "duration": 0.75,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide_back",
+      "duration": 0.85,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "slide_idle",
+      "duration": 7.3333,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_push",
+      "duration": 0.7083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "melee_stock",
+      "duration": 0.7083,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "bolt",
+      "duration": 2,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "inspect_empty",
+      "duration": 5,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "shoot_old",
+      "duration": 2.0392,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "aiming",
+      "duration": 0.35,
+      "loop": true,
+      "markers": [],
+      "controlBones": []
+    },
+    {
+      "name": "offset",
+      "duration": 1.4118,
+      "loop": false,
+      "markers": [],
+      "controlBones": []
+    }
+  ],
+  "view": {
+    "unitsPerMeter": 1,
+    "up": "Y",
+    "forward": "-Z",
+    "mountOffset": [
+      0.3875,
+      -0.84375,
+      -1.5625
+    ],
+    "verticalFov": 70,
+    "aimVerticalFov": 45,
+    "adsAlignmentBaked": true
+  },
+  "skins": {
+    "original": {
+      "source": {
+        "path": "skin_work_folder/operator_skin_work/Operator_Original_Bolt_Fixed.blend",
+        "sha256": "a49a95bdcf811eb82ebd2ac1c4c496a57ca0b51467dfcbd9c22122ef063f7d64"
+      },
+      "texture": {
+        "path": "skin_work_folder/operator_skin_work/operator_original_body.png",
+        "sha256": "4f2ed0c21e8c669e54dc6dc14e239beb82bdd1088d18842ef31c5555f65ae084"
+      },
+      "textureSize": {
+        "width": 256,
+        "height": 256
+      },
+      "scopeTexture": {
+        "path": "skin_work_folder/operator_skin_work/operator_original_scope.png",
+        "sha256": "92ba7fca7f186e4bdc4e008472bb2ed1148373d7d97c1255df1a2506376af88c"
+      },
+      "scopeTextureSize": {
+        "width": 256,
+        "height": 256
+      }
+    }
+  }
+}

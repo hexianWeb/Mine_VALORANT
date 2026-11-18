@@ -60,6 +60,7 @@ export function createWeaponDefinition(input) {
     'mode',
     'interval',
     'adsInterval',
+    'scopeRecovery',
     'spinUp',
     'pellets',
   ])
@@ -107,6 +108,11 @@ export function createWeaponDefinition(input) {
     if (!input.capabilities.ads)
       throw new TypeError('fire.adsInterval requires capabilities.ads')
     fire.adsInterval = seconds(input.fire.adsInterval, 'fire.adsInterval', true)
+  }
+  if (Object.hasOwn(input.fire, 'scopeRecovery')) {
+    if (!input.capabilities.ads || input.aim?.scopeZoom === undefined)
+      throw new TypeError('fire.scopeRecovery requires a scope')
+    fire.scopeRecovery = seconds(input.fire.scopeRecovery, 'fire.scopeRecovery', true)
   }
   if (Object.hasOwn(input.fire, 'spinUp')) {
     if (fire.mode !== 'auto')

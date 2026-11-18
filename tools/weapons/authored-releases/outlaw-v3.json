@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "sourceContract": "blender-actions-with-local-source-runtime",
+  "weaponId": "outlaw",
+  "assetVersion": "v3",
+  "defaultSkinId": "original",
+  "authoring": {
+    "path": "tools/weapons/authored-releases/outlaw-authoring.json",
+    "sha256": "0a0c7138bfe6d65564c9032317839fb2ffd9cb8fa4ba92ce5d52315566b442c7"
+  },
+  "runtimeProfile": {
+    "path": "tools/weapons/authored-releases/outlaw-runtime.json",
+    "sha256": "24fdd02c4f0e2db872af8ef5add34d09161a7b3f9dfcfd8d56462582aeb916c9"
+  },
+  "scene": "80_ThreeJS_Export",
+  "meshes": [
+    "Arms_Left",
+    "Arms_Right",
+    "Weapon_Body",
+    "Weapon_Scope"
+  ],
+  "armatures": [
+    "root",
+    "views",
+    "camera",
+    "positioning"
+  ],
+  "materials": {
+    "weapon": [
+      "Weapon_Skin"
+    ],
+    "scope": [
+      "Weapon_Scope"
+    ],
+    "armsLeft": [
+      "Character_Left"
+    ],
+    "armsRight": [
+      "Character_Right"
+    ]
+  },
+  "sockets": {
+    "muzzle": "muzzle_flash"
+  },
+  "actions": {
+    "idle": "static_idle",
+    "draw": "draw",
+    "holster": "put_away",
+    "fire": "shoot",
+    "fireAds": "shoot_aim",
+    "reloadTactical": "reload_tactical",
+    "reloadEmpty": "reload_empty",
+    "inspect": "inspect",
+    "aimStart": "aim_start",
+    "aim": "aim",
+    "aimEnd": "aim_end"
+  },
+  "requiredActions": [
+    "idle",
+    "draw",
+    "holster",
+    "fire",
+    "fireAds",
+    "reloadTactical",
+    "reloadEmpty",
+    "inspect",
+    "aimStart",
+    "aim",
+    "aimEnd"
+  ]
+}
