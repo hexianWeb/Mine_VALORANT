@@ -4,11 +4,11 @@
 
 ## 使用
 
-- **5：Sheriff**，保留 1 Phantom / 2 Classic / 3 Ghost / 4 Vandal；初始仍为 Classic。
-- 默认 **Smite**；**K** 按 Smite → Sakura → Convex 循环。
+- 在 [B 商店](gameplay.md#游戏入口与控件)选购 Sheriff，替换 **2 号手枪槽**。
+- 当前 `sheriff/v2` 默认 **Original**（512×512）；**K** 按 Original → Smite → Sakura → Convex 循环。
 - 左键半自动，按住只打一发；R 换弹，T 检视；无 ADS。
 - 三款 2048×2048 RGBA 贴图、30 个动作、枪口／抛壳挂点、换弹快速装填器及共享 32×32 双手均保留。
-- HUD 在当前枪名及键位说明中标注临时参数。
+- 商店详情标注参数近似，HUD 显示已装备的枪名与弹药。下文的发布配方和验收数字记录 v1 首发。
 
 ## 制作来源与保留内容
 

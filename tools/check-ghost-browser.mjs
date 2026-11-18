@@ -6,6 +6,7 @@ import process from 'node:process'
 import { weaponAudioProfiles } from '../src/game/weapons/definitions/audio.js'
 import { ghostDefinition } from '../src/game/weapons/definitions/ghost.js'
 import { openBrowser } from './browser-session.mjs'
+import { createRangeWeaponDriver } from './range-weapon-driver.mjs'
 
 const output = path.resolve(process.env.GHOST_TEST_OUTPUT ?? 'D:/opencode-temp/opencode/ghost-gameplay-browser')
 const url = new URL(process.argv[2] ?? 'http://localhost:5173/')
@@ -24,7 +25,8 @@ const audioCueCount = Object.values(weaponAudioProfiles).reduce((sum, profile) =
 let session
 try {
   session = await openBrowser({ output, errors: report.errors, messages: report.messages })
-  const { send, evaluate, frames } = session
+  const { send, evaluate, frames, key } = session
+  const { waitFor: until, readyInstance: ready, buy, checkSlotKeys, cycleSkins, packageRequests } = createRangeWeaponDriver(session)
   await send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
     const probe = globalThis.__GHOST_AUDIO_CHECK__ = { analyser: null };
     const connect = AudioNode.prototype.connect;
@@ -44,34 +46,7 @@ try {
     deviceScaleFactor: 1,
     mobile: false,
   })
-  const until = condition => evaluate(`new Promise((resolve, reject) => {
-    const end = performance.now() + 60000;
-    function check() {
-      if (${condition}) return resolve(true);
-      if (performance.now() > end) return reject(new Error('Timeout: ' + ${JSON.stringify(condition)}));
-      requestAnimationFrame(check);
-    }
-    check();
-  })`)
   const state = () => evaluate('__RANGE_ROOM__.inspection.player.snapshot().weapons')
-  const ready = id => until(`globalThis.__RANGE_ROOM__?.ready &&
-    __RANGE_ROOM__.inspection.player.snapshot().weapons.canAct &&
-    __RANGE_ROOM__.inspection.player.snapshot().weapons.view.renderActiveId === ${JSON.stringify(id)} &&
-    __RANGE_ROOM__.inspection.player.snapshot().weapons.view.action === 'idle'`)
-  const key = async (code, value, windowsVirtualKeyCode) => {
-    await send('Input.dispatchKeyEvent', {
-      type: 'keyDown',
-      code,
-      key: value,
-      windowsVirtualKeyCode,
-    })
-    await send('Input.dispatchKeyEvent', {
-      type: 'keyUp',
-      code,
-      key: value,
-      windowsVirtualKeyCode,
-    })
-  }
   const mouse = (type, button = 'left') => send('Input.dispatchMouseEvent', {
     type,
     x: 640,
@@ -94,37 +69,32 @@ try {
   await mouse('mouseReleased')
   await until('!!document.pointerLockElement && __RANGE_ROOM__.audio.snapshot().state === \'running\'')
   assert.equal((await state()).lastShot, null, 'first click only unlocks input/audio')
-  await key('Digit3', '3', 51)
-  await ready('ghost')
+  const instanceId = await buy('ghost', 'secondary')
   report.initial = await state()
   assert.equal(report.initial.view.weapon.definitionId, 'ghost')
   assert.equal(report.initial.view.weapon.magazine, ghostDefinition.capacity)
-  assert.equal(report.initial.view.skinId, 'freehand')
+  assert.equal(report.initial.view.skinId, ghostDefinition.assets.defaultSkinId)
+  assert.equal(report.initial.view.weapon.ammoPolicy, 'infinite-reserve')
   report.asset = await evaluate(`(() => {
     const root = __RANGE_ROOM__.render.viewmodel.scene;
     const body = root.getObjectByName('Weapon_Body');
     const left = root.getObjectByName('Arms_Left'), right = root.getObjectByName('Arms_Right');
     globalThis.__GHOST_VISUAL_CHECK__ = { body, material: body.material, skeleton: body.skeleton, arms: left.material.map };
     return {
-      loadedV1: performance.getEntriesByType('resource').some(entry => entry.name.includes('/weapons/ghost/v1/model.glb')),
       imageSize: [body.material.map.image.width, body.material.map.image.height],
       armsSize: [left.material.map.image.width, left.material.map.image.height],
       sharedArms: left.material.map === right.material.map && left.material.map === __CLASSIC_ARM_MAP__,
-      temporaryLabel: document.querySelector('.weapon-readout strong').textContent.includes('临时参数'),
-      ghostSounds: performance.getEntriesByType('resource').filter(entry => entry.name.includes('/audio/ghost/')).length
+      hudName: document.querySelector('.weapon-readout strong').textContent
     };
   })()`)
-  assert.equal(report.asset.loadedV1, true)
+  Object.assign(report.asset, packageRequests(ghostDefinition))
+  assert.equal(report.asset.loadedModel, true)
   assert.equal(report.asset.sharedArms, true)
-  assert.equal(report.asset.temporaryLabel, true)
+  assert.equal(report.asset.hudName, 'GHOST')
   assert.deepEqual(report.asset.armsSize, [32, 32])
-  assert.deepEqual(report.asset.imageSize, [2048, 2048])
-  assert.equal(report.asset.ghostSounds, 4)
-  for (const skinId of [...ghostDefinition.assets.skinIds, 'freehand']) {
-    if ((await state()).view.skinId !== skinId) {
-      await key('KeyK', 'k', 75)
-      await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.view.skinId === ${JSON.stringify(skinId)}`)
-    }
+  assert.deepEqual(report.asset.imageSize, [256, 256])
+  assert.equal(report.asset.sounds, 4)
+  for await (const skinId of cycleSkins(ghostDefinition)) {
     const identity = await evaluate(`(() => {
       const root = __RANGE_ROOM__.render.viewmodel.scene;
       const body = root.getObjectByName('Weapon_Body'), proof = __GHOST_VISUAL_CHECK__;
@@ -141,7 +111,7 @@ try {
     await screenshot(`ghost-${skinId}.png`)
   }
   await mouse('mousePressed')
-  await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.lastShot?.instanceId === \'ghost\'')
+  await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.lastShot?.instanceId === ${JSON.stringify(instanceId)}`)
   report.waveform = await evaluate(`new Promise(resolve => {
     const analyser = __GHOST_AUDIO_CHECK__.analyser;
     const data = new Float32Array(analyser.fftSize), end = performance.now() + 400;
@@ -161,11 +131,11 @@ try {
   report.shot = { magazine: shot.view.weapon.magazine, shot: shot.lastShot }
   await key('KeyR', 'r', 82)
   await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.action?.type === \'reload\'')
-  assert.equal((await state()).inventory.weapons.find(weapon => weapon.instanceId === 'ghost').magazine, ghostDefinition.capacity - 1)
-  await ready('ghost')
+  assert.equal((await state()).inventory.weapons.find(weapon => weapon.instanceId === instanceId).magazine, ghostDefinition.capacity - 1)
+  await ready(instanceId)
   const reloaded = await state()
   assert.equal(reloaded.view.weapon.magazine, ghostDefinition.capacity)
-  assert.equal(reloaded.view.weapon.reserve, ghostDefinition.initialReserve - 1)
+  assert.equal(reloaded.view.weapon.reserve, ghostDefinition.initialReserve)
   report.reload = { magazine: reloaded.view.weapon.magazine, reserve: reloaded.view.weapon.reserve }
   await mouse('mousePressed', 'right')
   await frames(12)
@@ -175,14 +145,7 @@ try {
   await key('KeyT', 't', 84)
   await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.view.action === \'inspect\'')
   await screenshot('ghost-inspect.png')
-  for (const [code, value, vk, instance] of [
-    ['Digit2', '2', 50, 'pistol'],
-    ['Digit1', '1', 49, 'rifle'],
-    ['Digit3', '3', 51, 'ghost'],
-  ]) {
-    await key(code, value, vk)
-    await ready(instance)
-  }
+  await checkSlotKeys('secondary', instanceId)
   report.returned = await state()
   assert.equal(report.returned.view.weapon.magazine, ghostDefinition.capacity)
   assert.equal(report.returned.view.visibleInstances, 1)

@@ -6,6 +6,7 @@ import process from 'node:process'
 import { weaponAudioProfiles } from '../src/game/weapons/definitions/audio.js'
 import { sheriffDefinition } from '../src/game/weapons/definitions/sheriff.js'
 import { openBrowser } from './browser-session.mjs'
+import { createRangeWeaponDriver } from './range-weapon-driver.mjs'
 
 const output = path.resolve(process.env.SHERIFF_TEST_OUTPUT ?? 'D:/opencode-temp/opencode/sheriff-gameplay-browser')
 const url = new URL(process.argv[2] ?? 'http://localhost:5173/')
@@ -24,7 +25,8 @@ const audioCueCount = Object.values(weaponAudioProfiles).reduce((sum, profile) =
 let session
 try {
   session = await openBrowser({ output, errors: report.errors, messages: report.messages })
-  const { send, evaluate, frames } = session
+  const { send, evaluate, frames, key } = session
+  const { waitFor: until, readyInstance: ready, buy, checkSlotKeys, cycleSkins, packageRequests } = createRangeWeaponDriver(session)
   await send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
     const probe = globalThis.__SHERIFF_AUDIO_CHECK__ = { analyser: null };
     const connect = AudioNode.prototype.connect;
@@ -44,34 +46,7 @@ try {
     deviceScaleFactor: 1,
     mobile: false,
   })
-  const until = condition => evaluate(`new Promise((resolve, reject) => {
-    const end = performance.now() + 60000;
-    function check() {
-      if (${condition}) return resolve(true);
-      if (performance.now() > end) return reject(new Error('Timeout: ' + ${JSON.stringify(condition)}));
-      requestAnimationFrame(check);
-    }
-    check();
-  })`)
   const state = () => evaluate('__RANGE_ROOM__.inspection.player.snapshot().weapons')
-  const ready = id => until(`globalThis.__RANGE_ROOM__?.ready &&
-    __RANGE_ROOM__.inspection.player.snapshot().weapons.canAct &&
-    __RANGE_ROOM__.inspection.player.snapshot().weapons.view.renderActiveId === ${JSON.stringify(id)} &&
-    __RANGE_ROOM__.inspection.player.snapshot().weapons.view.action === 'idle'`)
-  const key = async (code, value, windowsVirtualKeyCode) => {
-    await send('Input.dispatchKeyEvent', {
-      type: 'keyDown',
-      code,
-      key: value,
-      windowsVirtualKeyCode,
-    })
-    await send('Input.dispatchKeyEvent', {
-      type: 'keyUp',
-      code,
-      key: value,
-      windowsVirtualKeyCode,
-    })
-  }
   const mouse = (type, button = 'left') => send('Input.dispatchMouseEvent', {
     type,
     x: 640,
@@ -94,37 +69,32 @@ try {
   await mouse('mouseReleased')
   await until('!!document.pointerLockElement && __RANGE_ROOM__.audio.snapshot().state === \'running\'')
   assert.equal((await state()).lastShot, null, 'first click only unlocks input/audio')
-  await key('Digit5', '5', 53)
-  await ready('sheriff')
+  const instanceId = await buy('sheriff', 'secondary')
   report.initial = await state()
   assert.equal(report.initial.view.weapon.definitionId, 'sheriff')
   assert.equal(report.initial.view.weapon.magazine, 6)
-  assert.equal(report.initial.view.skinId, 'smite')
+  assert.equal(report.initial.view.skinId, sheriffDefinition.assets.defaultSkinId)
+  assert.equal(report.initial.view.weapon.ammoPolicy, 'infinite-reserve')
   report.asset = await evaluate(`(() => {
     const root = __RANGE_ROOM__.render.viewmodel.scene;
     const body = root.getObjectByName('Weapon_Body');
     const left = root.getObjectByName('Arms_Left'), right = root.getObjectByName('Arms_Right');
     globalThis.__SHERIFF_VISUAL_CHECK__ = { body, material: body.material, skeleton: body.skeleton, arms: left.material.map };
     return {
-      loadedV1: performance.getEntriesByType('resource').some(entry => entry.name.includes('/weapons/sheriff/v1/model.glb')),
       imageSize: [body.material.map.image.width, body.material.map.image.height],
       armsSize: [left.material.map.image.width, left.material.map.image.height],
       sharedArms: left.material.map === right.material.map && left.material.map === __CLASSIC_ARM_MAP__,
-      temporaryLabel: document.querySelector('.weapon-readout strong').textContent.includes('临时参数'),
-      sounds: performance.getEntriesByType('resource').filter(entry => entry.name.includes('/audio/sheriff/')).length
+      hudName: document.querySelector('.weapon-readout strong').textContent
     };
   })()`)
-  assert.equal(report.asset.loadedV1, true)
+  Object.assign(report.asset, packageRequests(sheriffDefinition))
+  assert.equal(report.asset.loadedModel, true)
   assert.equal(report.asset.sharedArms, true)
-  assert.equal(report.asset.temporaryLabel, true)
+  assert.equal(report.asset.hudName, 'SHERIFF')
   assert.deepEqual(report.asset.armsSize, [32, 32])
-  assert.deepEqual(report.asset.imageSize, [2048, 2048])
+  assert.deepEqual(report.asset.imageSize, [512, 512])
   assert.equal(report.asset.sounds, 4)
-  for (const skinId of [...sheriffDefinition.assets.skinIds, 'smite']) {
-    if ((await state()).view.skinId !== skinId) {
-      await key('KeyK', 'k', 75)
-      await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.view.skinId === ${JSON.stringify(skinId)}`)
-    }
+  for await (const skinId of cycleSkins(sheriffDefinition)) {
     const identity = await evaluate(`(() => {
       const root = __RANGE_ROOM__.render.viewmodel.scene;
       const body = root.getObjectByName('Weapon_Body'), proof = __SHERIFF_VISUAL_CHECK__;
@@ -142,7 +112,7 @@ try {
     await screenshot(`sheriff-${skinId}.png`)
   }
   await mouse('mousePressed')
-  await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.lastShot?.instanceId === \'sheriff\'')
+  await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.lastShot?.instanceId === ${JSON.stringify(instanceId)}`)
   report.waveform = await evaluate(`new Promise(resolve => {
     const analyser = __SHERIFF_AUDIO_CHECK__.analyser;
     const data = new Float32Array(analyser.fftSize), end = performance.now() + 450;
@@ -162,7 +132,7 @@ try {
   report.shot = { magazine: shot.view.weapon.magazine, lastShot: shot.lastShot }
   await key('KeyR', 'r', 82)
   await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.action?.type === \'reload\'')
-  assert.equal((await state()).inventory.weapons.find(weapon => weapon.instanceId === 'sheriff').magazine, 5)
+  assert.equal((await state()).inventory.weapons.find(weapon => weapon.instanceId === instanceId).magazine, 5)
   await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.view.action === 'reloadTactical' &&
     __RANGE_ROOM__.inspection.player.snapshot().weapons.view.playback.current.localTime >= 1.6`)
   report.loader = await evaluate(`(() => {
@@ -185,10 +155,10 @@ try {
   ].every(Number.isFinite))
   assert.ok(Math.max(...report.loader.size) > 0.05, 'reload loader must not collapse')
   await screenshot('sheriff-reload-loader.png')
-  await ready('sheriff')
+  await ready(instanceId)
   const reloaded = await state()
   assert.equal(reloaded.view.weapon.magazine, 6)
-  assert.equal(reloaded.view.weapon.reserve, 17)
+  assert.equal(reloaded.view.weapon.reserve, sheriffDefinition.initialReserve)
   report.tacticalReload = { magazine: reloaded.view.weapon.magazine, reserve: reloaded.view.weapon.reserve }
   await mouse('mousePressed', 'right')
   await frames(15)
@@ -198,35 +168,26 @@ try {
   for (let index = 0; index < 6; index++) {
     await until(`(() => {
       const state=__RANGE_ROOM__.inspection.player.snapshot().weapons;
-      return state.inventory.weapons.find(weapon=>weapon.instanceId==='sheriff').nextFireAt <= state.at;
+      return state.inventory.weapons.find(weapon=>weapon.instanceId===${JSON.stringify(instanceId)}).nextFireAt <= state.at;
     })()`)
     await mouse('mousePressed')
     await mouse('mouseReleased')
-    await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.inventory.weapons.find(w=>w.instanceId==='sheriff').magazine === ${5 - index}`)
+    await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.inventory.weapons.find(w=>w.instanceId===${JSON.stringify(instanceId)}).magazine === ${5 - index}`)
   }
   await key('KeyR', 'r', 82)
   await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.view.action === \'reloadEmpty\'')
   await frames(12)
   await screenshot('sheriff-reload-empty.png')
-  await ready('sheriff')
+  await ready(instanceId)
   const emptyReloaded = await state()
   assert.equal(emptyReloaded.view.weapon.magazine, 6)
-  assert.equal(emptyReloaded.view.weapon.reserve, 11)
+  assert.equal(emptyReloaded.view.weapon.reserve, sheriffDefinition.initialReserve)
   report.emptyReload = { magazine: emptyReloaded.view.weapon.magazine, reserve: emptyReloaded.view.weapon.reserve }
   await key('KeyT', 't', 84)
   await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.view.action === 'inspect' &&
     __RANGE_ROOM__.inspection.player.snapshot().weapons.view.playback.current.localTime >= 0.5`)
   await screenshot('sheriff-inspect.png')
-  for (const [code, value, vk, instance] of [
-    ['Digit2', '2', 50, 'pistol'],
-    ['Digit1', '1', 49, 'rifle'],
-    ['Digit3', '3', 51, 'ghost'],
-    ['Digit4', '4', 52, 'vandal'],
-    ['Digit5', '5', 53, 'sheriff'],
-  ]) {
-    await key(code, value, vk)
-    await ready(instance)
-  }
+  await checkSlotKeys('secondary', instanceId)
   report.returned = await state()
   assert.equal(report.returned.view.weapon.magazine, 6)
   assert.equal(report.returned.view.visibleInstances, 1)

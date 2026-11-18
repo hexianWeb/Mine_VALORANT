@@ -4,11 +4,13 @@
 
 ## 使用
 
-- **6：Judge**，默认 Smite；**K** 按 Smite → Rush 循环。
-- **7：Odin**，默认 Smite；**K** 按 Smite → Prime → BlastX 循环。
-- 1 Phantom / 2 Classic / 3 Ghost / 4 Vandal / 5 Sheriff 保留，初始仍为 Classic；滚轮与 Q 继续切枪。
-- 两枪左键按住全自动，R 换弹，T 检视；Odin 右键按住 ADS，Judge 不支持 ADS。HUD 标注临时参数。
+- 两枪都在 [B 商店](gameplay.md#游戏入口与控件)选购，替换 **1 号主武器槽**；手枪和爪刀保留。
+- `judge/v2` 默认 Original（256×256）；**K** 按 Original → Smite → Rush 循环。
+- `odin/v2` 默认 Original（512×512）；**K** 按 Original → Smite → Prime → BlastX 循环。
+- 两枪左键按住全自动，R 换弹，T 检视；Odin 右键按住 ADS，Judge 不支持 ADS。商店详情标注参数近似。
 - 五张原生 2048×2048 RGBA 皮肤、每枪 33 个动作、枪口／抛壳挂点、弹药与手臂动画保留。
+
+下文的发布配方与验收数字记录两枪的 v1 首发；现行主关卡的默认皮肤、槽位和备用弹药以[玩法说明](gameplay.md#游戏入口与控件)为准。
 
 ## 制作来源与共享手臂
 

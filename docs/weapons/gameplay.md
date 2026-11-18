@@ -12,22 +12,25 @@ Ghost 已以公开参考临时参数接入，默认 Original，保留四款旧�
 
 判官与奥丁默认均为 Original，分别保留两款和三款旧皮肤，每枪 33 个动作。判官弹匣 5 发，射速 3.5 发/秒，每发 12 弹丸。奥丁弹匣 100 发，腰射连发由 12 加速到 15.6 发/秒，开镜起步即为 15.6 发/秒。[判官／奥丁接入与临时参数](judge-odin-integration.md)
 
-运行 `npm run dev` 后打开主页面。默认背包为 Phantom（rifle）、Classic（pistol）、Ghost（ghost）、Vandal（vandal）、Sheriff（sheriff）、Judge（judge）、Odin（odin），初始选择 Classic。`?editor=0` 关闭工具 UI，仍保留玩家、武器输入和 HUD。`/weapon-preview.html` 是独立资产预览页，不运行装备玩法。
+运行 `npm run dev` 后打开主页面。练枪房使用 `rangeLoadout`：1 主武器（初始 Phantom）、2 手枪（初始 Classic）、3 近战（Prime//2.0 爪刀），入场手持 Classic。B 商店提供七把枪；选购后替换对应的主武器或手枪，爪刀保留。等卡片标为「已装备」再关窗，即可使用新枪。另一个七槽位的 `practiceLoadout` 用于独立玩法测试，不是主关卡的背包。`?editor=0` 关闭观察工具，保留商店和 HUD；`/weapon-preview.html` 只预览资产。
 
 | 操作 | 控件 |
 | --- | --- |
 | 捕获鼠标 | 点击画面；首次捕获点击不射击 |
 | 开火 | 左键；Classic/Ghost/Sheriff 单发，Phantom/Vandal/Judge/Odin 按住连射 |
 | ADS | 按住右键；Phantom/Vandal/Odin 支持 |
-| 主 / 副 / 额外试玩武器 | 1 Phantom / 2 Classic / 3 Ghost / 4 Vandal / 5 Sheriff / 6 Judge / 7 Odin；3–7 为临时参数 |
+| 选择持有槽位 | 1 主武器 / 2 手枪 / 3 爪刀 |
+| 免费选购并装备 | B 打开商店；Classic、Ghost、Sheriff 替换手枪，Phantom、Vandal、Judge、Odin 替换主武器。挑战进行中不能选购 |
 | 循环切枪 / 上一把 | 滚轮 / Q；上一把在新枪到手时更新，掏枪期间也能按 Q 切回 |
 | 换弹 / 检视 | R / T |
 | 循环当前枪皮肤 | K；Classic 从 AG 开始，其余已接入枪械从 Original 开始；旧皮肤可继续循环选择 |
 | 回出生点 | Home；玩家复位按钮走同一排队入口 |
 | 移动 / 静步 / 蹲下 / 跳跃 | WASD / Shift / C / 空格 |
-| 释放鼠标 / 飞行观察 | Esc / V（飞行观察需要 Editor） |
+| 关闭窗口 / 暂停 / 飞行观察 | Esc 先关顶层窗口，无窗口时暂停；V 切换飞行观察（需要 Editor） |
 
-鼠标按钮、滚轮与视角增量只在输入启用且 Pointer Lock 生效时接收；键盘还允许画布聚焦时输入。失焦、解锁、隐藏或禁用会清除 held、边沿和鼠标增量。InputSystem 的 `consumePressedEvents()` 保留动作顺序，与 `consumePressed(action)` 共用队列，不重复派发。
+主关卡在画布真正捕获鼠标时才放行玩法输入；打开商店会隔离游戏输入但不暂停模拟。关窗后若未重新捕获，点击画面继续。主关卡使用 `infinite-reserve`：HUD 备用弹药显示 `∞`，开火仍消耗弹匣，R 换弹在规定时刻补满，不扣库存的备用数值。
+
+失焦、解锁、隐藏或禁用会清除 held、边沿和鼠标增量。InputSystem 的 `consumePressedEvents()` 保留动作顺序，与 `consumePressed(action)` 共用队列，不重复派发。
 
 七把枪的前进、后退和横移使用各自武器包的循环动画。幻影、狂徒、奥丁在开镜移动时使用各自的 `walk_aiming`。玩家接地时累计碰撞解算后的水平位移，每 1.85 米产生一步，视模按两步一个循环采样。切枪、换弹、检视和开火继续用各自的动作时钟。
 
@@ -101,13 +104,13 @@ equipment.step({ fixedTick: 2, fixedElapsed: 2 * fixedDelta, fixedDelta })
 | 空仓换弹 feed / duration | 1.75 / 1.75 秒 | 2.25 / 2.5 秒 |
 | 检视时长 | 3 秒 | 4 秒 |
 | ADS 能力声明 | false | true |
-| 模型 / 默认皮肤 | classic / ag | phantom / tactiplay |
+| 模型 / 默认皮肤 | classic / ag | phantom / original |
 
-弹量、射速、装备和换弹时刻依据本地 `valorant-first-person-pack` 的 manifest runtime；模式与检视时长依据来源数据及 clip。备用弹药为本项目选择的三个备用弹匣。Classic 当前使用 v4（AG / Smite / Sakura），Phantom 使用 v3（Tactiplay / Smite / Rush / Prism），均已发布到 `public/weapons/`，见[发布和播放](animation-and-assets.md)。
+弹量、射速、装备和换弹时刻依据本地 `valorant-first-person-pack` 的 manifest runtime；模式与检视时长依据来源数据及 clip。定义中的初始备用数值为三个弹匣，有限备用策略的独立测试仍使用这些数值。Classic 当前使用 v4（AG / Smite / Sakura），Phantom 使用 v4（Original / Tactiplay / Smite / Rush / Prism），均已发布到 `public/weapons/`，见[发布和播放](animation-and-assets.md)。
 
 loadout 可覆盖实例的初始 magazine、reserve、skinId；其他状态从零开始。`reset()` 保留 loadout 的槽位、枪型、实例标识和皮肤，将弹药补至定义的 capacity / initialReserve，并清零冷却与射击序号。跨重生身份以 `(epoch, instanceId)` 区分。
 
-EquipmentController 的 ShotFired 包含射击序号、弹药和瞄准状态。PlayerWeapons 在同一 postPhysics 步调用 AimState，补充 eyeOrigin、aimDirection、shotDirection、seed 与 impact。impact 是最远 200 米的碰撞盒射线查询，提供盒名、距离、交点、法线与表面类型；多弹丸还提供逐条方向／命中的 pellets，兼容 impact 取最近命中或第一条未命中结果。额外弹丸使用独立确定性随机流，不扰动旧射线／后坐力序列。当前没有敌人生命值、伤害、穿透或联网同步。枪口闪光、命中准星和粒子只提供表现反馈。
+EquipmentController 的 ShotFired 包含射击序号、弹药和瞄准状态。PlayerWeapons 在同一 postPhysics 步调用 AimState，补充 eyeOrigin、aimDirection、shotDirection、seed 与 impact。impact 是最远 200 米的碰撞盒射线查询，提供盒名、距离、交点、法线与表面类型；多弹丸还提供逐条方向／命中的 pellets，兼容 impact 取最近命中或第一条未命中结果。额外弹丸使用独立确定性随机流，不扰动旧射线／后坐力序列。挑战出靶的生命和护甲按整发结果结算，见[模块时序契约](../runtime-module-contracts.md#每帧唯一时间线)。枪口闪光、命中准星和粒子只提供表现反馈。
 
 练枪房按命中的金属、石头、木头和泥地预设发出火花、碎屑或烟尘。武器层从 `ShotFired.impact` 生成粒子，通用粒子服务使用展示时间驱动运动与消散。[命中粒子](../superpowers/specs/2026-11-14-impact-particles-design.md)
 

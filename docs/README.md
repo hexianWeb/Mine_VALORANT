@@ -10,11 +10,12 @@
 | --- | --- |
 | [运行时架构](architecture.md) | 当前目录、依赖、tick、对象组合、生命周期和公共接口 |
 | [模块所有权与时序契约](runtime-module-contracts.md) | 已有模块的拥有／借用关系、更新阶段、暂停／重置／销毁及相机控制权 |
-| [最小战斗属性模型](combat/attributes.md) | 独立的生命、护甲与 2/3 分担伤害模型；仅模型与测试，尚未接入玩家、机器人或 HUD |
+| [最小战斗属性模型](combat/attributes.md) | 独立的生命、护甲与 2/3 分担伤害模型；挑战出靶通过 TargetCombat 使用 |
 | [阶段优先组件 Tick](superpowers/specs/2026-11-11-phase-first-component-tick.md) | 当前更新契约：Engine 编排阶段，Level 扫描对象，组件承载行为 |
 | [function 层结构](superpowers/specs/2026-11-11-function-layer-layout.md) | `component / level / object / world` 与 `function/global` 的目录迁移 |
 | [CameraComponent](superpowers/specs/2026-11-11-camera-component.md) | 相机组件提取时的记录；当前玩家固定 AimState 历史接线以运行时架构为准 |
 | [武器玩法模块](weapons/gameplay.md) | 七枪控件、临时参数边界、装备事务、固定瞄准、多弹丸、延迟 HUD 与生命周期 |
+| [靶场核心玩法：30 靶与消灭 50／100 个](superpowers/specs/2026-11-16-range-challenges-design.md) | 两种挑战的设计；当前关卡接线、计分和商店限制见[模块时序契约](runtime-module-contracts.md) |
 | [准星代码导入](weapons/gameplay.md#准星代码导入) | VALORANT 代码解析、实时预览与 HUD 应用 |
 | [武器发布与动画播放](weapons/animation-and-assets.md) | 发布包、AnimationPlayer、WeaponAssets、独立视模 pass、现行旧材质兼容边界与验收 |
 | [枪械图集与发布工作流](weapons/gun-only-uv-workflow.md) | Classic 精简网格、336 图集与 UV、动作／手臂兼容及 Three.js 接入 |
@@ -22,10 +23,10 @@
 | [命中粒子](superpowers/specs/2026-11-14-impact-particles-design.md) | 引擎粒子服务、四种表面预设、展示时钟与练枪房验收 |
 | [稀疏控制与弹药显示](weapons/runtime-controls.md) | Mixer 后的显式属性覆盖、Judge/Odin 源曲线、弹药事实与数值验收边界 |
 | [Ghost 美术导出](weapons/ghost-art-export.md) | 原非发布美术交接包：四皮肤、完整动画、共享 32×32 手臂与音频；后续游戏接入见下项 |
-| [Ghost 接入与临时参数](weapons/ghost-integration.md) | 3 号键、四皮肤、本地音效；公开数据与项目暂定项、独立发布及验收 |
-| [狂徒接入与临时参数](weapons/vandal-integration.md) | 4 号键、六皮肤、无损共享手臂；全自动、ADS 与明确记录的玩法近似 |
-| [正义接入与临时参数](weapons/sheriff-integration.md) | 5 号键、三皮肤、共享手臂与快速装填器；半自动、换弹及本地声音 |
-| [判官／奥丁接入与临时参数](weapons/judge-odin-integration.md) | 6／7 号键、五款皮肤、判官 12 弹丸、弹药显示、奥丁 ADS 与固定射速近似 |
+| [Ghost 接入与临时参数](weapons/ghost-integration.md) | 商店手枪、兼容皮肤与本地音效；公开数据与项目暂定项、首发及验收 |
+| [狂徒接入与临时参数](weapons/vandal-integration.md) | 商店主武器、六款皮肤、共享手臂；全自动、ADS 与玩法近似 |
+| [正义接入与临时参数](weapons/sheriff-integration.md) | 商店手枪、共享手臂与快速装填器；半自动、换弹及本地声音 |
+| [判官／奥丁接入与临时参数](weapons/judge-odin-integration.md) | 商店主武器、本地音效、弹药显示；判官多弹丸、奥丁 ADS 与连射加速 |
 
 ### 光照与场景
 
@@ -50,7 +51,6 @@
 
 | 文档 | 范围 | 状态 |
 | --- | --- | --- |
-| [靶场核心玩法：30 靶与消灭 50／100 个](superpowers/specs/2026-11-16-range-challenges-design.md) | 模式规则、射击面板、出靶／伤害边界、计分计时、架构衔接与验收 | 设计草案，尚未实施；具体时限、伤害、弹药与部分交互待确认 |
 | [动画运行时与多枪切换](superpowers/specs/2026-11-11-animation-and-multi-weapon-design.md) | animation 层、武器实例与背包、切换事务、资源发布、换肤、音频与验收 | 阶段 1—4、七枪发布／本地音频、稀疏控制及弹药事实采样已实现；Operator／Outlaw 与空间声待实施，五枪玩法明确为临时参考配置 |
 | [武器材质与质感优化路线图](weapons/material-quality-roadmap.md) | 平直着色、全金属、皮肤自发光和静态室内反射 | Classic 与 Phantom 已使用默认材质，盒投影和走廊混合待评估 |
 

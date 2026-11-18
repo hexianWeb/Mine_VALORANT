@@ -2,7 +2,7 @@
 
 参考 [Piccolo runtime](https://github.com/BoomingTech/Piccolo/tree/main/engine/source/runtime)，采用实例化 Context、明确的逻辑／渲染 tick 和关卡／对象生命周期。当前更新契约见[阶段优先组件 Tick](superpowers/specs/2026-11-11-phase-first-component-tick.md)；function 目录依据[结构重构记录](superpowers/specs/2026-11-11-function-layer-layout.md)；对象组合粒度依据[组件化消融 Spec](superpowers/specs/2026-11-10-component-based-game-objects.md)；第一轮分层决策见[重构 Spec](superpowers/specs/2026-11-10-piccolo-runtime-architecture.md)。
 
-模块级的拥有／借用关系、更新阶段与暂停／重置／销毁约定集中在[模块时序契约](runtime-module-contracts.md)。独立的[最小战斗属性模型](combat/attributes.md)位于 game/combat，目前仅提供模型与测试，不改变现有游戏行为。
+模块级的拥有／借用关系、更新阶段与暂停／重置／销毁约定集中在[模块时序契约](runtime-module-contracts.md)。`game/combat` 的[战斗属性模型](combat/attributes.md)由挑战出靶使用。
 
 ## 目录与职责
 
@@ -49,7 +49,7 @@ src/
 │     ├─ camera-controls.js        自由／轨道观察与相机控制权
 │     └─ panels/                  渲染、探针、观察 HUD
 └─ game/
-   ├─ combat/                     独立生命／护甲／伤害模型；尚未接入玩法
+   ├─ combat/                     独立生命／护甲／伤害模型，供出靶结算使用
    ├─ player/
    │  ├─ config.js                玩家移动与视角参数
    │  ├─ aim-state.js             固定步瞄准、眼位、后坐力与表现历史
@@ -139,7 +139,7 @@ runtime 不导入 app、game、editor；game 与 editor 互不导入。只有 ap
 
 玩法键位位于 `src/configs/input-bindings.js`，由 `readAppConfig()` 经 app 和 RuntimeContext 注入 InputSystem；runtime 不导入这份配置。`createInputSystem({ element, bindings })` 省略 bindings 时不绑定动作，动作名可自定义。输入系统提供 `isDown(action)`、`consumePressed(action)`、`consumeReleased(action)`、`consumePressedEvents()`、`consumeLook()` 和 `clear()`，支持键盘、MouseN 和滚轮；玩法映射仍由 Player / PlayerWeapons 完成。有序边沿与单动作消费共享一条队列，已消费的记录不会再次返回。同动作多键独立保持；滚轮只产生边沿，不产生 held。鼠标按钮与滚轮仅在启用且 Pointer Lock 生效时接收，首次点击只捕获鼠标。失焦、解锁、禁用和隐藏页面清空输入；`clear()` 不改变启用或锁定状态。
 
-默认移动为 WASD、Shift、C、空格；左键射击、右键 Phantom ADS、R 换弹、T 检视、1 主武器、2 副武器、Q 上一把、滚轮切枪。Home 回出生点属于游戏输入，关闭 Editor 后仍可用。玩家复位按钮通过 `Player.requestRespawn()` 排队，和 Home 一起在下一实际 postPhysics 固定步提交；暂停以及恢复首帧零步都不会提前修改模拟。飞行／轨道观察相机复位仍由 Editor 处理。完整操作见[武器玩法](weapons/gameplay.md)。
+主关卡的数字键选择持有槽位：1 主武器、2 手枪、3 爪刀；七把枪通过 B 商店选购。Q 切回上一把，滚轮循环持有槽位。Home 回出生点属于游戏输入，关闭 Editor 后仍可用。玩家复位按钮通过 `Player.requestRespawn()` 排队，和 Home 一起在下一实际 postPhysics 固定步提交；暂停以及恢复首帧零步都不会提前修改模拟。飞行／轨道观察相机复位仍由 Editor 处理。完整操作见[游戏入口与控件](weapons/gameplay.md#游戏入口与控件)。
 
 Context 每个应用实例独立持有。业务代码不使用全局服务查找；`__RANGE_ROOM__` 仅由 app 安装供诊断与浏览器测试使用。
 
@@ -147,7 +147,7 @@ Context 每个应用实例独立持有。业务代码不使用全局服务查找
 
 角色移动调用关系：Player 写 command → Motor 调用 characterMotion → PhysicsSystem 调用 controller 的 moveAABB → Motor 提交 Transform。controller 直接依赖 physics/collision-world 的盒子数据和空间查询。
 
-武器玩法位于 `game/weapons`：EquipmentController 私有持有 WeaponInventory，接收普通命令和固定步快照，返回只读事实及资源准备意图；不依赖 Three.js、DOM 或 Promise。PlayerWeapons 连接有序输入、装备裁定、AimState 射击方向与碰撞盒／目标射线，再把事实交给 WeaponViewModel、WeaponAudio 与 ImpactEffects。当前练枪房接入七枪，支持切换、射击、换弹打断、检视、适用枪型的 ADS、实例冷却、本地动作声音及兼容皮肤。换肤同样走 epoch/revision 票据、固定步事实和到时的表现提交，不重建 Mixer，不改弹药或手臂材质。game/combat 已提供独立的生命／护甲／伤害模型，但尚未接到武器或目标，也没有完整伤害玩法或 3p 空间声。
+武器玩法位于 `game/weapons`：EquipmentController 私有持有 WeaponInventory，接收普通命令和固定步快照，返回只读事实及资源准备意图；不依赖 Three.js、DOM 或 Promise。PlayerWeapons 连接有序输入、装备裁定、AimState 射击方向与碰撞盒／目标射线，再把事实交给 WeaponViewModel、WeaponAudio 与 ShotEffects。主关卡采用三槽背包和无限备用弹药，枪型与买入后的实例分别通过 `definitionId` 和 `instanceId` 标识。换肤同样走 epoch/revision 票据、固定步事实和到时的表现提交，不重建 Mixer，不改弹药或手臂材质。挑战出靶由 ShotTargets / TargetCombat 同步结算，表现层不重复提交伤害。
 
 WeaponAssets 复用 ResourceManager，在关卡作用域加载发布包，实例独有骨架／材质／AnimationPlayer，共享几何与纹理；退出关卡先销毁实例再卸载模板。异步加载只预热资源，motion 阶段才创建有效票据对应的实例并排队确认，下一固定步裁定装备。WeaponViewModel 拥有最多 active / staged 两个实例，按公共表现时间提交可见枪；RenderSystem 独占独立视模 Scene、Camera 与 pass。function/animation 只管理播放、采样和表现事件，不能决定射速、补弹或装备时机。接口见[武器玩法模块](weapons/gameplay.md)与[发布和播放](weapons/animation-and-assets.md)。
 

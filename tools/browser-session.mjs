@@ -55,6 +55,7 @@ export async function openBrowser({ output, errors = [], messages = [] }) {
     })
     let nextId = 0
     const urls = new Map()
+    const receivedPaths = new Set()
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data)
       if (message.id) {
@@ -81,6 +82,11 @@ export async function openBrowser({ output, errors = [], messages = [] }) {
       }
       else if (message.method === 'Network.requestWillBeSent') {
         urls.set(message.params.requestId, message.params.request.url)
+      }
+      else if (message.method === 'Network.responseReceived') {
+        const { url, status } = message.params.response
+        if (/^https?:/u.test(url) && ((status >= 200 && status < 300) || status === 304))
+          receivedPaths.add(new URL(url).pathname)
       }
       else if (message.method === 'Network.loadingFailed') {
         messages.push({
@@ -131,12 +137,44 @@ export async function openBrowser({ output, errors = [], messages = [] }) {
       }
     }
     const frames = count => evaluate(`new Promise(resolve => { let n=${count}; function tick(){ if(--n<=0) resolve(true); else requestAnimationFrame(tick); } requestAnimationFrame(tick); })`)
+    const key = async (code, value, windowsVirtualKeyCode, modifiers = 0) => {
+      const event = {
+        code,
+        key: value,
+        windowsVirtualKeyCode,
+        modifiers,
+      }
+      await send('Input.dispatchKeyEvent', {
+        ...event,
+        type: 'keyDown',
+        ...(code === 'Enter'
+          ? { text: '\r', unmodifiedText: '\r' }
+          : {}),
+      })
+      await send('Input.dispatchKeyEvent', { ...event, type: 'keyUp' })
+    }
+    const click = async (selector) => {
+      const point = await evaluate(`(() => {
+        const node = document.querySelector(${JSON.stringify(selector)});
+        if (!node?.getClientRects().length) throw new Error('Missing/hidden click target: ' + ${JSON.stringify(selector)});
+        node.scrollIntoView({ block: 'center' });
+        const rect = node.getBoundingClientRect();
+        return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+      })()`)
+      await send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...point })
+      const button = { button: 'left', clickCount: 1, ...point }
+      await send('Input.dispatchMouseEvent', { type: 'mousePressed', ...button })
+      await send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...button })
+    }
     return {
       socket,
       send,
       evaluate,
       navigate,
       frames,
+      key,
+      click,
+      receivedPaths,
       errors,
       messages,
       close,

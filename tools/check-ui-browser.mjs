@@ -12,7 +12,8 @@ const started = performance.now()
 const errors = []
 const checks = []
 const browser = await openBrowser({ output, errors })
-const evaluate = browser.evaluate
+const { evaluate, click } = browser
+const press = (code, keyCode, modifiers = 0) => browser.key(code, code, keyCode, modifiers)
 function state() {
   return evaluate(`(() => {
   const api = globalThis.__RANGE_ROOM__, player = api.world.player;
@@ -35,52 +36,14 @@ function waitReady() {
   function check() {
     const api = globalThis.__RANGE_ROOM__;
     if (api?.ready && api.world.player?.weapons.snapshot().phase === 'Ready') return resolve(true);
-    if (performance.now() - start > 90000) return reject(new Error(document.querySelector('.unsupported')?.textContent || 'Application readiness timeout'));
+    const failure = document.querySelector('.unsupported:not([hidden])');
+    if (failure) return reject(new Error(failure.textContent));
+    if (performance.now() - start > 90000) return reject(new Error('Application readiness timeout: ' +
+      (api?.engine.state ?? document.querySelector('.loading')?.textContent ?? document.readyState)));
     setTimeout(check, 50);
   }
   check();
 })`)
-}
-async function press(code, keyCode, modifiers = 0) {
-  await browser.send('Input.dispatchKeyEvent', {
-    type: 'keyDown',
-    key: code,
-    code,
-    windowsVirtualKeyCode: keyCode,
-    modifiers,
-    ...(code === 'Enter'
-      ? { text: '\r', unmodifiedText: '\r' }
-      : {}),
-  })
-  await browser.send('Input.dispatchKeyEvent', {
-    type: 'keyUp',
-    key: code,
-    code,
-    windowsVirtualKeyCode: keyCode,
-    modifiers,
-  })
-}
-async function click(selector) {
-  const point = await evaluate(`(() => {
-    const node = document.querySelector(${JSON.stringify(selector)});
-    if (!node || node.hidden) throw new Error('Missing/hidden click target: ' + ${JSON.stringify(selector)});
-    node.scrollIntoView({ block: 'center' });
-    const rect = node.getBoundingClientRect();
-    return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-  })()`)
-  await browser.send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...point })
-  await browser.send('Input.dispatchMouseEvent', {
-    type: 'mousePressed',
-    button: 'left',
-    clickCount: 1,
-    ...point,
-  })
-  await browser.send('Input.dispatchMouseEvent', {
-    type: 'mouseReleased',
-    button: 'left',
-    clickCount: 1,
-    ...point,
-  })
 }
 async function screenshot(name) {
   const image = await browser.send('Page.captureScreenshot', { format: 'png' })

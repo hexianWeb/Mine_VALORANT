@@ -7,6 +7,7 @@ import { weaponAudioProfiles } from '../src/game/weapons/definitions/audio.js'
 import { judgeDefinition } from '../src/game/weapons/definitions/judge.js'
 import { odinDefinition } from '../src/game/weapons/definitions/odin.js'
 import { openBrowser } from './browser-session.mjs'
+import { createRangeWeaponDriver } from './range-weapon-driver.mjs'
 
 const output = path.resolve(process.env.JUDGE_ODIN_TEST_OUTPUT ?? 'D:/opencode-temp/opencode/judge-odin-gameplay-browser')
 const url = new URL(process.argv[2] ?? 'http://localhost:5173/')
@@ -25,7 +26,8 @@ const cueCount = Object.values(weaponAudioProfiles).reduce((sum, profile) => sum
 let session
 try {
   session = await openBrowser({ output, errors: report.errors, messages: report.messages })
-  const { send, evaluate, frames } = session
+  const { send, evaluate, frames, key } = session
+  const { waitFor: until, readyInstance: ready, buy, checkSlotKeys, cycleSkins, packageRequests } = createRangeWeaponDriver(session)
   await send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
     const probe = globalThis.__HEAVY_AUDIO__ = { analyser: null };
     const connect = AudioNode.prototype.connect;
@@ -44,36 +46,7 @@ try {
     deviceScaleFactor: 1,
     mobile: false,
   })
-  const until = condition => evaluate(`new Promise((resolve,reject) => {
-    const end=performance.now()+60000;
-    function check() {
-      if(${condition}) return resolve(true);
-      const error=document.querySelector('.unsupported');
-      if(error&&!error.hidden&&error.textContent.includes('加载失败')) return reject(new Error(error.textContent));
-      if(performance.now()>end) return reject(new Error('Timeout: '+${JSON.stringify(condition)}));
-      requestAnimationFrame(check);
-    }
-    check();
-  })`)
   const state = () => evaluate('__RANGE_ROOM__.inspection.player.snapshot().weapons')
-  const ready = id => until(`globalThis.__RANGE_ROOM__?.ready &&
-    __RANGE_ROOM__.inspection.player.snapshot().weapons.canAct &&
-    __RANGE_ROOM__.inspection.player.snapshot().weapons.view.renderActiveId === ${JSON.stringify(id)} &&
-    __RANGE_ROOM__.inspection.player.snapshot().weapons.view.action === 'idle'`)
-  const key = async (code, value, windowsVirtualKeyCode) => {
-    await send('Input.dispatchKeyEvent', {
-      type: 'keyDown',
-      code,
-      key: value,
-      windowsVirtualKeyCode,
-    })
-    await send('Input.dispatchKeyEvent', {
-      type: 'keyUp',
-      code,
-      key: value,
-      windowsVirtualKeyCode,
-    })
-  }
   const mouse = (type, button = 'left') => send('Input.dispatchMouseEvent', {
     type,
     x: 640,
@@ -88,7 +61,7 @@ try {
   const feed = () => evaluate(`(() => {
     const state=__RANGE_ROOM__.inspection.player.snapshot().weapons;
     const root=__RANGE_ROOM__.render.viewmodel.scene;
-    const names=state.activeId==='judge'
+    const names=state.view.weapon.definitionId==='judge'
       ? ['bullet4','bullet3','bullet2','bullet1','bullet0']
       : ['group_8','group_7','group_6','group_5','group_4','group_3','group_2','group_1'];
     const scales=names.map(name=>root.getObjectByName(name).scale.toArray());
@@ -100,50 +73,46 @@ try {
   await send('Emulation.setFocusEmulationEnabled', { enabled: true })
   await ready('pistol')
   await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.audio.bank.cues === ${cueCount}`)
-  const initialInventory = (await state()).inventory.weapons
+  const initialInventory = (await state()).inventory
   await evaluate(`globalThis.__COMMON_ARMS__=__RANGE_ROOM__.render.viewmodel.scene.getObjectByName('Arms_Left').material.map`)
   await mouse('mousePressed')
   await mouse('mouseReleased')
   await until('!!document.pointerLockElement && __RANGE_ROOM__.audio.snapshot().state === \'running\'')
   assert.equal((await state()).lastShot, null, 'initial capture click must not fire')
 
-  for (const [definition, code, digit, vk, window] of [
-    [judgeDefinition, 'Digit6', '6', 54, 5],
-    [odinDefinition, 'Digit7', '7', 55, 8],
+  for (const [definition, window, originalSize] of [
+    [judgeDefinition, 5, 256],
+    [odinDefinition, 8, 512],
   ]) {
     const id = definition.id
     const result = { id, skins: [] }
     report.weapons.push(result)
-    await key(code, digit, vk)
-    await ready(id)
+    const instanceId = await buy(id, 'primary')
     const initial = await state()
+    assert.deepEqual(initial.inventory.weapons.map(w => w.definitionId), [id, 'classic', 'karambit'])
+    assert.equal(initial.view.weapon.ammoPolicy, 'infinite-reserve')
     assert.equal(initial.view.weapon.magazine, definition.capacity)
     result.asset = await evaluate(`(() => {
       const root=__RANGE_ROOM__.render.viewmodel.scene;
       const body=root.getObjectByName('Weapon_Body'),left=root.getObjectByName('Arms_Left'),right=root.getObjectByName('Arms_Right');
       globalThis.__HEAVY_VISUAL__={body,material:body.material,skeleton:body.skeleton,arms:left.material.map};
       return {
-        loaded:performance.getEntriesByType('resource').some(entry=>entry.name.includes('/weapons/${id}/v1/model.glb')),
         image:[body.material.map.image.width,body.material.map.image.height],
         arms:[left.material.map.image.width,left.material.map.image.height],
         sharedArms:left.material.map===right.material.map && left.material.map===__COMMON_ARMS__,
-        temporaryLabel:document.querySelector('.weapon-readout strong').textContent.includes('临时参数'),
-        sounds:performance.getEntriesByType('resource').filter(entry=>entry.name.includes('/audio/${id}/')).length
+        hudName:document.querySelector('.weapon-readout strong').textContent
       };
     })()`)
-    assert.equal(result.asset.loaded, true)
+    Object.assign(result.asset, packageRequests(definition))
+    assert.equal(result.asset.loadedModel, true)
     assert.equal(result.asset.sharedArms, true)
-    assert.equal(result.asset.temporaryLabel, true)
+    assert.equal(result.asset.hudName, id.toUpperCase())
     assert.equal(result.asset.sounds, 4)
-    assert.deepEqual(result.asset.image, [2048, 2048])
+    assert.deepEqual(result.asset.image, [originalSize, originalSize])
     assert.deepEqual(result.asset.arms, [32, 32])
     result.initialFeed = await feed()
     assert.equal(result.initialFeed.visible, window)
-    for (const skinId of [...definition.assets.skinIds, 'smite']) {
-      if ((await state()).view.skinId !== skinId) {
-        await key('KeyK', 'k', 75)
-        await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.view.skinId === ${JSON.stringify(skinId)}`)
-      }
+    for await (const skinId of cycleSkins(definition)) {
       const identity = await evaluate(`(() => {
         const root=__RANGE_ROOM__.render.viewmodel.scene,body=root.getObjectByName('Weapon_Body'),proof=__HEAVY_VISUAL__;
         return {
@@ -187,7 +156,7 @@ try {
           trace.levels.push({magazine,visible});
         }
         for(const event of state.recentEvents) {
-          if(event.type!=='ShotFired' || event.instanceId!=='${id}' || seen.has(event.payload.shotSequence)) continue;
+          if(event.type!=='ShotFired' || event.instanceId!==${JSON.stringify(instanceId)} || seen.has(event.payload.shotSequence)) continue;
           seen.add(event.payload.shotSequence);
           trace.shots.push({at:event.at,sequence:event.payload.shotSequence,magazine:event.payload.weapon.magazine,
             pellets:event.payload.pellets?.length ?? 1,seed:event.payload.seed});
@@ -200,7 +169,7 @@ try {
       sample();
     })()`)
     await mouse('mousePressed')
-    await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.inventory.weapons.find(w=>w.instanceId==='${id}').magazine===0`)
+    await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.inventory.weapons.find(w=>w.instanceId===${JSON.stringify(instanceId)}).magazine===0`)
     await mouse('mouseReleased')
     await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.view.weapon.magazine===0')
     await frames(2)
@@ -239,22 +208,22 @@ try {
     await frames(12)
     assert.equal((await feed()).visible, 0, 'reload animation cannot replenish ammo indicators early')
     await screenshot(`${id}-reload-empty.png`)
-    await ready(id)
+    await ready(instanceId)
     result.emptyReload = await feed()
     assert.equal(result.emptyReload.magazine, definition.capacity)
     assert.equal(result.emptyReload.visible, window)
     await mouse('mousePressed')
-    await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.inventory.weapons.find(w=>w.instanceId==='${id}').magazine===${definition.capacity - 1}`)
+    await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.inventory.weapons.find(w=>w.instanceId===${JSON.stringify(instanceId)}).magazine===${definition.capacity - 1}`)
     await mouse('mouseReleased')
     await key('KeyR', 'r', 82)
     await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.view.action===\'reloadTactical\'')
     const beforeFeed = await feed()
     assert.equal(beforeFeed.magazine, definition.capacity - 1)
     assert.equal(beforeFeed.visible, Math.min(window, definition.capacity - 1))
-    await ready(id)
+    await ready(instanceId)
     result.tacticalReload = await state()
     assert.equal(result.tacticalReload.view.weapon.magazine, definition.capacity)
-    assert.equal(result.tacticalReload.view.weapon.reserve, definition.initialReserve - definition.capacity - 1)
+    assert.equal(result.tacticalReload.view.weapon.reserve, definition.initialReserve)
     await mouse('mousePressed', 'right')
     if (id === 'odin') {
       await until('__RANGE_ROOM__.inspection.player.snapshot().view.ads>.9999')
@@ -279,25 +248,13 @@ try {
     const sounds = await evaluate('__RANGE_ROOM__.audio.snapshot()')
     for (const role of ['draw', 'shoot', 'reload', 'inspect'])
       assert.ok(sounds.cues.some(cue => cue.id.endsWith(`${id}_${role}`)), `${id}: missing ${role}`)
-  }
-  for (const [code, digit, vk, id] of [
-    ['Digit1', '1', 49, 'rifle'],
-    ['Digit2', '2', 50, 'pistol'],
-    ['Digit3', '3', 51, 'ghost'],
-    ['Digit4', '4', 52, 'vandal'],
-    ['Digit5', '5', 53, 'sheriff'],
-    ['Digit6', '6', 54, 'judge'],
-    ['Digit7', '7', 55, 'odin'],
-  ]) {
-    await key(code, digit, vk)
-    await ready(id)
+    await checkSlotKeys('primary', instanceId)
   }
   report.returned = await state()
-  for (const before of initialInventory.slice(0, 5)) {
-    const after = report.returned.inventory.weapons.find(weapon => weapon.instanceId === before.instanceId)
-    assert.equal(after.magazine, before.magazine)
-    assert.equal(after.reserve, before.reserve)
-    assert.equal(after.skinId, before.skinId)
+  for (const slot of initialInventory.slots.filter(slot => slot.id !== 'primary')) {
+    const before = initialInventory.weapons.find(weapon => weapon.instanceId === slot.instanceId)
+    const after = report.returned.inventory.weapons.find(weapon => weapon.instanceId === slot.instanceId)
+    assert.deepEqual(after, before, `${slot.id}: other held weapon must survive both primary purchases`)
   }
   assert.equal(report.returned.view.visibleInstances, 1)
   assert.ok(report.returned.view.maximumInstances <= 2)

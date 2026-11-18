@@ -19,7 +19,9 @@ npm ci
 npm run dev
 ```
 
-使用支持 WebGPU 的最新版 Chrome / Edge。加载后默认进入**玩家模式**，站在碰撞层出生点：点击画面锁定鼠标，WASD 移动、Shift 静步、C 下蹲、空格跳跃，Home 回到出生点，Esc 释放鼠标。武器左键开火、右键 ADS（支持的枪型）、R 换弹、T 检视、K 换肤；**1 Phantom / 2 Classic / 3 Ghost / 4 Vandal / 5 Sheriff / 6 Judge / 7 Odin**，初始 Classic，3–7 为临时参数。V 在玩家与飞行（noclip）之间切换；飞行模式下 WASD 移动、Q/E 升降、右键拖动视角、Shift 加速、滚轮调速，R 复位。左下角可切换轨道模式、碰撞线框及动态阴影，右上角提供 AO 和 LUT 调试面板。`?player=0` 启动时保持 Blender 参考机位与飞行模式。碰撞层见 [练枪房碰撞层](docs/physics/collision-layer.md)，模块与操作见 [动态阴影与飞行观察](docs/lighting/room-inspection.md)。
+使用支持 WebGPU 的最新版 Chrome / Edge。加载后默认进入**玩家模式**：点击画面锁定鼠标，WASD 移动、Shift 静步、C 下蹲、空格跳跃，Home 回到出生点。**1 主武器、2 手枪、3 爪刀；按 B 打开商店，从七把枪中免费选购并替换同类槽位。** 初始主武器为 Phantom，手枪为 Classic，入场手持 Classic。左键使用当前武器，右键 ADS（支持的枪型），R 换弹、T 检视、K 换肤；主关卡备用弹药无限，弹匣打空仍要换弹。Esc 先关闭窗口，无窗口时暂停。详见[游戏入口与控件](docs/weapons/gameplay.md#游戏入口与控件)。
+
+V 在玩家与飞行（noclip）之间切换；飞行模式下 WASD 移动、Q/E 升降、右键拖动视角、Shift 加速、滚轮调速，R 复位。左下角可切换轨道模式、碰撞线框及动态阴影，右上角提供 AO 和 LUT 调试面板。`?player=0` 启动时保持 Blender 参考机位与飞行模式。碰撞层见[练枪房碰撞层](docs/physics/collision-layer.md)，模块与操作见[动态阴影与飞行观察](docs/lighting/room-inspection.md)。
 
 当前 `package-lock.json` 与 r187 依赖一致，已验证 `npm ci --dry-run --ignore-scripts`。保留现有 pnpm 锁文件，不删除或自动互相转换；安装时选择一种包管理器。部分 ESLint 开发依赖要求 Node 22.22.2+ 或 24.15+。
 
@@ -96,7 +98,7 @@ Phantom 当前使用 `phantom/v4`，默认 256×256 的 Original，保留 Tactip
 
 Ghost 使用 `ghost/v2`，默认 Original，保留 Freehand／Recon／Ego／Spitfire 和共享 32×32 手臂。使用明确标注的公开参考临时玩法，来源见 [Ghost 接入](docs/weapons/ghost-integration.md)。
 
-狂徒已接入 `vandal/v1`，默认 Original；**K** 循环 Original／Sakura／Wood & Metal／Smite／Royal Gold／EGO，共享同一 32×32 手臂。公开参考临时玩法为 25 发、全自动 9.75 发/秒、2.5 秒换弹；可 ADS，但独立 ADS 射速暂未实现，后坐力暂借 Phantom，见[狂徒接入](docs/weapons/vandal-integration.md)。
+狂徒已接入 `vandal/v1`，默认 Original；**K** 循环 Original／Sakura／Wood & Metal／Smite／Royal Gold／EGO，共享同一 32×32 手臂。公开参考临时玩法为 25 发、全自动、2.5 秒换弹，支持独立 ADS 射速；后坐力暂借 Phantom，见[狂徒接入](docs/weapons/vandal-integration.md)。
 
 正义使用 `sheriff/v2`，默认 Original，保留 Smite／Sakura／Convex、30 个动作、快速装填器和共享手臂。公开参考临时玩法见[正义接入](docs/weapons/sheriff-integration.md)。
 

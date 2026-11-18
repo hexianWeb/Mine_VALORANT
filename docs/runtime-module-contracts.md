@@ -43,7 +43,7 @@
 | [ShotTargets](../src/game/targets/shot-targets.js) | Level 本地目标／注册代次、活跃 source 的射击游标、当前整发查询身份 | postPhysics 准备姿态／查询；resolveShot 全发预校验后同步提交 | 不持有伤害表或挑战进度；注册失效与 source close 不允许旧命中复活；结果返回后才通知挑战 |
 | [TrainingBot](../src/game/targets/training-bot.js)／[TargetCombat](../src/game/targets/target-combat.js) | 出靶属性／资格、独立权威与可见骨架、命中盒及 P 反馈事实 | fixed 幂等采样权威姿态；整发提交 damage；motion 消费 P | 默认三只自由练习展示仍为非致死反馈；activateSpawn 才启用独立生命；模型实例归 Mesh，权威骨架归组件，共享模板归 Level |
 | [CombatAttributes](../src/game/combat/attributes.js) | 单个对象的生命／护甲与上限 | TargetCombat 在整发预校验后逐弹丸同步调用 | 无注册或时钟，不自做去重，见[模型契约](combat/attributes.md) |
-| [ChallengeSession](../src/game/range-room/challenges/challenge-session.js)／[RangeChallengeComponent](../src/game/range-room/challenges/range-challenge.js) | 纯会话规则；关卡适配的网格、保护与目标池借用句柄、P 历史 | 适配者 fixed 处理截止／释放；onShotResolved 批量计分／补位；motion 采样 | 阶段三仅逻辑／夹具接线，尚未装配到 RangeRoomLevel；目标 GO 不转移所有权，无全局 System，见[阶段三记录](superpowers/plans/2026-11-17-range-rules-phase-three.md) |
+| [ChallengeSession](../src/game/range-room/challenges/challenge-session.js)／[RangeChallengeComponent](../src/game/range-room/challenges/range-challenge.js) | 纯会话规则；关卡适配的网格、保护与目标池借用句柄、P 历史 | 适配者 fixed 处理截止／释放；onShotResolved 批量计分／补位；motion 采样 | RangeRoomLevel 在武器和训练机器人可用时装配；靶池 GO 仍归关卡，无全局 System |
 | [UI host](../src/app/ui-host.js) | 本关卡 HUD／调试／模态层、模态栈、焦点返回及 Tab 循环 | canvas、已有调试容器 | app `levelTools` 挂载／卸载；顶层窗口先处理关闭，释放后还原借用的调试容器 |
 | [UI input](../src/app/ui-input.js) | 输入归属、暂停原因、捕获请求状态 | Input、Player、Engine、UI host | 监听真实 Pointer Lock／焦点／可见性；不拥有独立帧循环或游戏时钟 |
 | [Weapon HUD](../src/app/weapon-hud.js) | 当前关卡的 DOM、监听与显示配置 | Engine frame 后读取 `PlayerComponent.readHud()`／`WeaponViewModel.readHud()` | app 挂载／卸载；不读完整诊断快照，按字段变化写入，不拿最新模拟弹药提前显示 |
@@ -95,13 +95,13 @@ Engine.step(nowMs)
 
 - `InputSystem.enabled` 仍表示玩法生命周期。`blocked` 是独立的输入归属门：app 仅在真实持有画布 Pointer Lock、窗口可交互、无模态且未暂停时放行，不能仅靠画布聚焦放行。
 - 菜单调用 `PlayerComponent.setInputBlocked()`，清除移动／跳跃／视角及未提交的物理输入，不调用 Editor 的 `setEnabled(false)`。`EquipmentController.clearInput()` 只移除标记为 `source: input` 的排队命令；已接受的换弹／装备事务、准备回复和 UI 命令保留，下一固定步归零持续开火。
-- F3 不暂停模拟。Esc 先关闭顶层模态，再次 Esc 才暂停；解锁失败保持隔离。窗口失焦／后台通过已有 `Engine.pause()` 冻结时钟，回焦不恢复，必须点「继续」且实际捕获成功。应用设置 `autoPauseOnHidden: false`，通用 RuntimeContext／Engine 的原默认行为不变。
+- 打开设置（反引号键）或 B 商店不暂停模拟。Esc 先关闭顶层模态，再次 Esc 才暂停；解锁失败保持隔离。窗口失焦／后台通过已有 `Engine.pause()` 冻结时钟，回焦不恢复，必须点「继续」且实际捕获成功。应用设置 `autoPauseOnHidden: false`，通用 RuntimeContext／Engine 的原默认行为不变。
 - 灵敏度默认 0.4，范围 `[0.01, 5]`，细／粗步长 0.01／0.1。UI 显示待提交与有效值，只有有效提交值保存至 `mc-valorant.mouse-sensitivity.v1`；无效数据／存储失败不阻塞玩法。
-- 模式／难度／数量／护甲仍是明确标注的下一局预选，不冒充挑战、伤害或无限备用弹药已经接入。B 已接入七槽位免费选择商店，选枪后保持打开；挑战运行中 F3 只读／取消仍待真实会话接入，见[阶段二实施记录](superpowers/plans/2026-11-17-range-armory-phase-two.md)。
-- 商店请求带 `scopeId / requestId / slotId`，进入 `PlayerWeapons` 固定步后再次校验访问条件。重复／旧 scope 被拒绝，新选择替代旧请求，准备失败保留原枪并可重试；重生、Editor、卸载使旧请求失效，关闭窗口不使已接受选择失效。
-- `setArmoryAccess(check)` 仍是游戏侧接入点。ChallengeSession／逻辑适配已实施，但尚未装配真实场景；运行中商店／F3 条件仍待关卡连接。开局门槛使用 `canStartChallenge()`，只依赖权威装备／准备／排队状态，**不依赖 P 或模态可见性**。权威完成而尚待 P 的选择不能被后续条件倒查为失败。
-- 核心 `ammoPolicy` 显式区分 `finite`（默认）与 `infinite-reserve`；后者仍消耗弹匣、等待手动换弹与唯一 feed 提交，库存不使用 Infinity。政策随武器事实进入 P 的 HUD 字段。当前关卡未启用后者，UI 不冒充已经启用。
-- `PlayerComponent.onLifecycle` 的注入回调先于实际重生／武器 reset 及停用／suspend；菜单输入隔离不触发该通知。真实挑战的重生／Editor／卸载取消仍由后续关卡装配连接。
+- 主关卡持有三个槽：主武器、手枪、近战。B 商店的七种枪型只替换主武器或手枪，近战槽固定。选购后窗口保持打开，挑战运行中禁止选购，设置窗口可查看或取消本局。
+- 主关卡商店按 `scopeId / requestId / definitionId` 提交请求，PracticeArmory 确定 `slotId / instanceId`，固定步再次校验访问条件。重复／旧 scope 被拒绝，新选择替代旧请求，准备失败保留原枪并可重试；重生、Editor、卸载使旧请求失效，关闭窗口不撤销已接受选择。
+- RangeRoomLevel 注入 `challenge.armoryRestriction()` 决定选购条件。开局门槛使用 `canStartChallenge()`，只依赖权威装备／准备／排队状态，**不依赖 P 或模态可见性**。权威完成而尚待 P 的选择不能被后续条件倒查为失败。
+- 核心 `ammoPolicy` 默认为 `finite`；主关卡显式选用 `infinite-reserve`。两者都消耗弹匣、等待手动换弹与唯一 feed 提交；主关卡换弹不扣备用数值，HUD 根据展示事实显示 `∞`，库存不写入 Infinity。
+- `PlayerComponent.onLifecycle` 的注入回调先于实际重生／武器 reset 及停用／suspend；关卡据此取消挑战，卸载也会取消。菜单输入隔离不触发该通知。
 
 ## 暂停、挂起、重置、销毁
 

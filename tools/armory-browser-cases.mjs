@@ -1,37 +1,12 @@
 import assert from 'node:assert/strict'
+import { createRangeWeaponDriver } from './range-weapon-driver.mjs'
 
 const weapons = 'globalThis.__RANGE_ROOM__.world.player.weapons'
 
 /** Real DOM, Pointer Lock and equipment/resource pipeline cases. No renderer/gameplay mirror. */
 export async function checkArmory({ browser, press, click, screenshot, record, quick = false }) {
   const evaluate = browser.evaluate
-  const read = () => evaluate(`${weapons}.readArmory()`)
-  const selector = slotId => `.shop-card[data-weapon="${slotId}"]`
-  const waitFor = (expression, label) => evaluate(`new Promise((resolve, reject) => {
-    const start = performance.now();
-    function check() {
-      if (${expression}) return resolve(true);
-      if (performance.now() - start > 45000) return reject(new Error(${JSON.stringify(label)}));
-      setTimeout(check, 25);
-    }
-    check();
-  })`)
-  const ready = slotId => waitFor(`${weapons}.readArmory().request?.status === 'ready' && ${weapons}.readArmory().presentedDefinitionId === ${JSON.stringify(slotId)}`, `Armory selection did not become presented-ready: ${slotId}`)
-  const open = async () => {
-    await press('KeyB', 66)
-    await browser.frames(2)
-    assert.equal(await evaluate('document.querySelector(".weapon-shop").open'), true)
-    assert.equal(await evaluate('globalThis.__RANGE_ROOM__.runtime.input.blocked'), true)
-  }
-  const select = async (slotId) => {
-    await click(selector(slotId))
-    await ready(slotId)
-    await browser.frames(2)
-    const state = await read()
-    const marked = await evaluate('[...document.querySelectorAll(".shop-equipped")].filter(node => !node.hidden && node.textContent === "已装备").map(node => node.closest("button").dataset.weapon)')
-    assert.deepEqual(marked, [state.presentedDefinitionId])
-    assert.equal(await evaluate('document.querySelector(".weapon-shop").open'), true)
-  }
+  const { read, selector, waitFor, ready, open, select } = createRangeWeaponDriver(browser)
   const ammunition = () => evaluate(`${weapons}.snapshot().inventory.weapons.map(({instanceId, magazine, reserve, shotSequence}) => ({instanceId, magazine, reserve, shotSequence}))`)
   const assertInventory = async () => {
     const held = await ammunition()

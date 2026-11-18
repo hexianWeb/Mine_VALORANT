@@ -4,10 +4,10 @@
 
 ## 使用
 
-- 1：Phantom；2：Classic；**3：Ghost**。原两枪及初始 Classic 不变，滚轮和 Q 也可切换。
-- Ghost 默认 Freehand；K 按 Freehand → Recon → Ego → Spitfire 循环。
+- 在 [B 商店](gameplay.md#游戏入口与控件)选购 Ghost，替换 **2 号手枪槽**；3 号为爪刀。
+- 当前 `ghost/v2` 默认 Original（256×256）；K 按 Original → Freehand → Recon → Ego → Spitfire 循环。
 - 左键半自动射击，R 换弹，T 检视；没有 ADS。
-- HUD 和资源预览选项标注「临时参数」。
+- 商店详情标注参数近似，HUD 显示已装备的枪名与弹药。
 - 模型、四款 2048×2048 RGBA 贴图、30 个动作、枪口与抛壳挂点均来自当前制作源。左右手共用标准 32×32 图，未改枪身、权重、骨架或动作。
 
 ## 参数来源与暂定项
@@ -31,6 +31,8 @@
 伤害、穿透、移动速度等参考字段仅作为来源记录；本次没有额外实现伤害或专用移动惩罚。
 
 ## 发布与可追溯性
+
+以下配方和验收数字记录 2026-11-14 的 v1 首发；当时的键位、默认皮肤和有限备用弹药不作为当前主关卡的回归预期。
 
 - 正式资源：`public/weapons/ghost/v1/`。
 - 游戏定义：`src/game/weapons/definitions/ghost.js`，另导出 `ghostGameplayProvenance`。
