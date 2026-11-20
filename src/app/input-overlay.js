@@ -1,6 +1,6 @@
 import { Disposer } from '../engine/runtime/core/disposer.js'
 
-export function mountInputOverlay({ ui, controls, onSettings }) {
+export function mountInputOverlay({ ui, controls, onSettings, onTouchAction }) {
   const owned = new Disposer()
   const root = ui.root.ownerDocument.createElement('section')
   root.className = 'input-overlay'
@@ -22,6 +22,22 @@ export function mountInputOverlay({ ui, controls, onSettings }) {
   const message = root.querySelector('.input-message')
   const actions = card.querySelector('.ui-actions')
   const help = card.querySelector('.pause-help')
+  if (controls.read().touch) {
+    help.textContent = '左手摇杆移动，右侧滑动转向。按住开火键也能转向，轻点开镜、下蹲或静步可切换状态。'
+    const shortcuts = root.ownerDocument.createElement('div')
+    shortcuts.className = 'pause-shortcuts'
+    shortcuts.innerHTML = `<p>快捷操作 · 执行后继续</p>
+      <button type="button" data-action="respawn">回出生点</button>`
+    actions.before(shortcuts)
+    owned.listen(shortcuts, 'click', (event) => {
+      const action = event.target.closest('button')?.dataset.action
+      if (!action)
+        return
+      controls.continue()
+      if (controls.read().mode === 'gameplay')
+        onTouchAction(action)
+    })
+  }
   const update = (state) => {
     const showPause = state.paused && !ui.topModal
     root.classList.toggle('is-paused', showPause)
@@ -30,7 +46,7 @@ export function mountInputOverlay({ ui, controls, onSettings }) {
       if (showPause)
         resume.focus({ preventScroll: true })
     }
-    capture.hidden = state.paused || state.mode !== 'unlocked' || !!ui.topModal
+    capture.hidden = state.touch || state.paused || state.mode !== 'unlocked' || !!ui.topModal
     resume.disabled = state.waiting
     const label = state.waiting
       ? '正在捕获鼠标…'

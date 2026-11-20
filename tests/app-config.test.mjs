@@ -8,6 +8,18 @@ test('application config supplies the game bindings from configs', () => {
   assert.equal(options.inputBindings, inputBindings)
 })
 
+test('primary touch pointers get the touch HUD by default; hybrid devices can override controls and editor independently', () => {
+  const mobile = readAppConfig('', true)
+  assert.equal(mobile.touchControls, true)
+  assert.equal(mobile.editor, false)
+  assert.equal(readAppConfig('', false).touchControls, false)
+  assert.equal(readAppConfig('', false).editor, true)
+  assert.equal(readAppConfig('?controls=mouse', true).touchControls, false)
+  const preview = readAppConfig('?controls=touch&editor=1', false)
+  assert.equal(preview.touchControls, true)
+  assert.equal(preview.editor, true)
+})
+
 test('the hall reflection preview is opt-in', () => {
   assert.equal(readAppConfig('').level.reflectionPreview, false)
   const preview = readAppConfig('?reflectionPreview=1')

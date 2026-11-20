@@ -6,8 +6,8 @@ import { EventEmitter } from '../src/engine/runtime/core/events.js'
 import { Engine } from '../src/engine/runtime/engine.js'
 import { setupInput } from './input-fixture.mjs'
 
-function setup(t) {
-  const f = setupInput({ bindings: inputBindings })
+function setup(t, { pointerLock = true } = {}) {
+  const f = setupInput({ bindings: inputBindings, pointerLock })
   const ui = {
     events: new EventEmitter(),
     stack: [],
@@ -56,6 +56,36 @@ function setup(t) {
   })
   return { ...f, ui, player, engine, controls }
 }
+
+test('touch gameplay survives modal and background handoffs without requesting pointer lock or replaying a gesture', (t) => {
+  const f = setup(t, { pointerLock: false })
+  const { input, controls, ui } = f
+  assert.equal(controls.read().mode, 'gameplay')
+  f.click()
+  input.setVirtualButton(1, 'fire', true)
+  input.setVirtualAxis('moveZ', 0.65)
+  input.addVirtualLook(30, 12)
+  ui.open('range-settings')
+  assert.equal(input.blocked, true)
+  input.setVirtualButton(2, 'jump', true)
+  input.addVirtualLook(55, 16)
+  ui.closeTop()
+  assert.equal(controls.read().mode, 'gameplay')
+  assert.equal(input.isDown('fire'), false)
+  assert.equal(input.axis('moveZ'), 0)
+  assert.deepEqual(input.consumeLook(), [0, 0])
+  assert.deepEqual(input.consumePressedEvents(), [])
+
+  f.window.dispatchEvent(new Event('blur'))
+  f.window.dispatchEvent(new Event('focus'))
+  assert.equal(f.engine.state, 'paused')
+  assert.equal(input.blocked, true)
+  controls.continue()
+  assert.equal(f.engine.state, 'running')
+  assert.equal(input.blocked, false)
+  assert.equal(input.locked, false)
+  assert.equal(f.element.lockOptions, null)
+})
 
 test('unlocked canvas focus cannot move/fire; acquiring capture click does not fire', (t) => {
   const f = setup(t)

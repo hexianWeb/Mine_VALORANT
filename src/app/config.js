@@ -1,10 +1,16 @@
 import { inputBindings } from '../configs/input-bindings.js'
 import { renderConfig } from '../engine/runtime/function/render/index.js'
 
-export function readAppConfig(search = globalThis.location.search) {
+export function readAppConfig(
+  search = globalThis.location.search,
+  coarsePointer = globalThis.matchMedia?.('(pointer: coarse)').matches ?? (globalThis.navigator?.maxTouchPoints > 0),
+) {
   const parameters = new URLSearchParams(search)
+  const controls = parameters.get('controls')
+  const touchControls = controls === 'touch' || (controls !== 'mouse' && coarsePointer)
   return {
     inputBindings,
+    touchControls,
     render: {
       ...renderConfig,
       trackTimestamp: parameters.get('profile') === '1',
@@ -22,7 +28,9 @@ export function readAppConfig(search = globalThis.location.search) {
         ? { manifestUrl: '/lighting/range-room/manifest.json' }
         : {}),
     },
-    editor: parameters.get('editor') !== '0',
+    editor: parameters.has('editor')
+      ? parameters.get('editor') !== '0'
+      : !touchControls,
     startMode: parameters.get('player') === '0'
       ? 'fly'
       : 'player',

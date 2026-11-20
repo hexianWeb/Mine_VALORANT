@@ -169,8 +169,8 @@ export class PlayerComponent extends Component {
       this.look(...look)
     const jump = this.input.consumePressed('jump')
     Object.assign(this.motor.command, {
-      moveX: Number(this.input.isDown('right')) - Number(this.input.isDown('left')),
-      moveZ: Number(this.input.isDown('forward')) - Number(this.input.isDown('back')),
+      moveX: Number(this.input.isDown('right')) - Number(this.input.isDown('left')) + (this.input.axis?.('moveX') ?? 0),
+      moveZ: Number(this.input.isDown('forward')) - Number(this.input.isDown('back')) + (this.input.axis?.('moveZ') ?? 0),
       walk: this.input.isDown('walk'),
       crouch: this.input.isDown('crouch'),
       jump: this.motor.command.jump || jump,

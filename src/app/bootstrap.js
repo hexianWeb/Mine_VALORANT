@@ -7,6 +7,7 @@ import { readAppConfig } from './config.js'
 import { installDiagnostics } from './diagnostics.js'
 import { mountInputOverlay } from './input-overlay.js'
 import { mountRangeSettings } from './range-settings.js'
+import { mountTouchControls } from './touch-controls.js'
 import { createUiHost } from './ui-host.js'
 import { createUiInput } from './ui-input.js'
 import { mountWeaponHud } from './weapon-hud.js'
@@ -101,6 +102,7 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
     canvas,
     renderConfig: options.render,
     inputBindings: options.inputBindings,
+    pointerLock: !options.touchControls,
     autoPauseOnHidden: false,
   })
   /** 跟随整个应用。登记的清理函数读取当前 `levelTools`，卸下的是最后一关的工具。 */
@@ -194,7 +196,15 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
           onNotice: message => inputUi.announce(message),
         }))
       }
-      levelTools.add(mountInputOverlay({ ui, controls: inputUi, onSettings: settings.toggle }))
+      levelTools.add(mountInputOverlay({
+        ui,
+        controls: inputUi,
+        onSettings: settings.toggle,
+        onTouchAction(action) {
+          runtime.input.setVirtualButton('shortcut', action, true)
+          runtime.input.setVirtualButton('shortcut', action, false)
+        },
+      }))
       weaponHud = levelTools.add(mountWeaponHud({
         canvas,
         player: level.player,
@@ -202,6 +212,18 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
         ui,
         controls: inputUi,
       }))
+      if (options.touchControls) {
+        levelTools.add(mountTouchControls({
+          ui,
+          controls: inputUi,
+          input: runtime.input,
+          weapons: level.player.weapons,
+          engine: runtime.engine,
+          unlockAudio: () => runtime.audio.unlock(),
+          onShop: () => weaponShop?.open(),
+          onSettings: settings.toggle,
+        }))
+      }
       const syncSettings = state => settings.setEnabled(state.mode !== 'editor')
       levelTools.add(inputUi.subscribe(syncSettings))
       syncSettings(inputUi.read())
@@ -237,8 +259,11 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
     async initialize() {
       try {
         const browser = /** @type {WebGpuNavigator} */ (navigator)
-        if (!browser.gpu)
-          throw new Error('当前浏览器不支持 WebGPU，请使用113+版 Chrome 或 Edge。')
+        if (!browser.gpu) {
+          throw new Error(globalThis.isSecureContext === false
+            ? 'WebGPU 需要安全连接，请通过 HTTPS 打开靶场。'
+            : '当前浏览器或设备不支持 WebGPU，请使用支持 WebGPU 的浏览器。')
+        }
         await runtime.initialize()
         owned.add(runtime.engine.events.on('error', ({ error }) => onError?.(error)))
         owned.add(runtime.world.events.on('load', mountLevelTools))

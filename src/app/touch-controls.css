@@ -1,0 +1,218 @@
+.touch-ui {
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --slot-width: clamp(46px, 12vmin, 68px);
+  --slot-height: clamp(44px, 10vmin, 54px);
+  --dock-bottom: calc(var(--safe-b) + 5px);
+  --tool-size: 44px;
+  --tool-gap: 3px;
+  --mint: #8af4dc;
+}
+
+.touch-controls {
+  --key: clamp(46px, 13.5vmin, 74px);
+  --fire: clamp(66px, 20vmin, 112px);
+  --stick: clamp(96px, 27vmin, 154px);
+  --gap: clamp(5px, 1.8vmin, 12px);
+  --stick-left: clamp(12px, 5vw, 76px);
+  --stick-bottom: clamp(47px, 12%, 96px);
+  --left-fire-offset: calc(0.96 * var(--stick) - var(--key));
+  position: absolute;
+  inset: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  color: white;
+  font: 600 11px/1.1 system-ui, sans-serif;
+}
+.touch-look { position: absolute; inset: 0 0 0 38%; }
+.touch-controls :is(button, [data-stick], [data-look]) { pointer-events: auto; touch-action: none; }
+.touch-look-hint {
+  position: absolute;
+  top: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 10px;
+  border-radius: 2px;
+  background: #10222580;
+  color: #f3fff9dc;
+  font-size: 10px;
+  letter-spacing: .1em;
+  white-space: nowrap;
+  transition: opacity .25s;
+}
+.has-looked .touch-look-hint { opacity: 0; }
+.touch-look-hint span { display: none; }
+.touch-key, .touch-stick {
+  position: relative;
+  border-radius: 50%;
+  border: 1.5px solid #f4fff5b3;
+  background: radial-gradient(circle at 50% 32%, #253b3c44, #11222676);
+  box-shadow: 0 1px 4px #07131545, inset 0 0 0 2px #202e2f24;
+  color: inherit;
+}
+.touch-key {
+  width: var(--key); height: var(--key);
+  display: grid; place-content: center; justify-items: center; gap: 1px;
+  padding: 0; cursor: pointer;
+  font: inherit; text-shadow: 0 1px 3px #07191a;
+}
+.touch-key svg { width: calc(var(--key) * .46); height: auto; filter: drop-shadow(0 1px 2px #09181870); }
+.touch-key span { font-size: clamp(9px, 2.4vmin, 12px); letter-spacing: .04em; }
+.touch-key[data-held], .touch-key[aria-pressed="true"], .touch-stick[data-held] {
+  background: #20584ea6;
+  border-color: var(--mint);
+  box-shadow: inset 0 0 0 2px #82f7d74d, 0 0 6px #081f2255;
+}
+.touch-key:disabled { opacity: .46; cursor: default; }
+.touch-tools {
+  position: absolute; top: 5px; right: 8px;
+  display: flex; gap: var(--tool-gap);
+}
+.touch-weapon-tools {
+  /* Arrow-tip centers in the reference play area. Stop short of the trigger and stick on compact screens. */
+  --inspect-x: min(8.4%, calc(var(--stick-left) + var(--left-fire-offset) - var(--tool-size) / 2 - 1px));
+  --inspect-y: min(54%, calc(100% - var(--stick-bottom) - var(--stick) - var(--gap) - var(--tool-size) / 2));
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+.touch-weapon-tools .touch-key { position: absolute; transform: translate(-50%, -50%); }
+.touch-weapon-tools [data-action="cycleSkin"] {
+  left: max(3.9%, calc(var(--tool-size) / 2 + 6px));
+  top: min(44%, calc(var(--inspect-y) - 42px));
+}
+.touch-weapon-tools [data-action="inspect"] { left: var(--inspect-x); top: var(--inspect-y); }
+.touch-tools .touch-key {
+  width: var(--tool-size); height: var(--tool-size);
+  border-color: #d7f7ef77;
+  background: #14282d70;
+}
+.touch-tools svg { width: 18px; }
+.touch-tools span { font-size: 9px; }
+
+.touch-left {
+  position: absolute;
+  left: var(--stick-left);
+  bottom: var(--stick-bottom);
+  width: var(--stick); height: var(--stick);
+}
+.touch-stick {
+  width: 100%; height: 100%;
+  display: grid; place-items: center;
+  background: radial-gradient(circle, #20323819 38%, #15282e58 70%);
+}
+.touch-stick::before {
+  content: ''; position: absolute; inset: 14%;
+  border: 1px dashed #eefff93d; border-radius: 50%;
+}
+.touch-stick i {
+  width: 31%; aspect-ratio: 1; border-radius: 50%;
+  border: 1.5px solid #f0fff4cc;
+  background: #cfede34d;
+  box-shadow: 0 1px 4px #1022226b;
+  transform: translate(var(--stick-x, 0px), var(--stick-y, 0px));
+}
+.touch-stick span { position: absolute; bottom: 8%; color: #f2fff3ca; font-size: 10px; text-shadow: 0 1px 2px #182a2a; }
+.touch-left .touch-key { position: absolute; }
+.touch-left [data-action="fire"] { left: var(--left-fire-offset); bottom: calc(100% + var(--gap)); }
+.touch-left [data-toggle="walk"] { left: calc(100% + var(--gap)); bottom: 0; }
+
+.touch-combat {
+  position: absolute;
+  right: clamp(6px, 2.2vw, 36px);
+  bottom: clamp(27px, 8%, 66px);
+  display: grid;
+  grid-template-columns: var(--fire) var(--key) var(--key);
+  grid-template-rows: repeat(3, var(--key));
+  gap: var(--gap);
+  align-items: center;
+}
+.touch-combat [data-action="fire"] {
+  grid-area: 1 / 1 / 3 / 2;
+  width: var(--fire); height: var(--fire);
+  border-color: #f3fff4d6;
+  background: radial-gradient(circle at 50% 35%, #30444955, #11242b8c);
+}
+.touch-combat [data-action="fire"] svg { width: 48%; min-width: calc(var(--fire) * .4); }
+.touch-combat [data-action="fire"][data-held] { background: #236d5fa6; border-color: var(--mint); }
+.touch-combat [data-toggle="aim"] { grid-area: 1 / 2; border-color: #a4f1dccc; }
+.touch-combat [data-action="reload"] { grid-area: 2 / 2; }
+.touch-combat [data-action="jump"] { grid-area: 2 / 3; }
+.touch-combat [data-toggle="crouch"] { grid-area: 3 / 3; }
+
+.touch-slots {
+  position: absolute; left: 50%; bottom: 5px; transform: translateX(-50%);
+  display: flex; gap: 2px;
+}
+.touch-slots button {
+  width: var(--slot-width); height: var(--slot-height); padding: 3px 4px;
+  display: grid; grid-template-rows: minmax(0, 1fr) auto; place-items: center;
+  border: 1px solid #f1fff680; border-bottom-width: 2px; border-radius: 2px;
+  background: #14252c70; color: #fff; font: inherit; font-size: 9px; cursor: pointer;
+}
+.touch-slots button[aria-pressed="true"] { color: #cefff2; border-color: var(--mint); background: #16473d9e; }
+.touch-slots :is(img, svg) { width: 100%; height: 100%; object-fit: contain; }
+.touch-slots img { transform: scaleX(-1); }
+
+/* Keep challenge progress, health and ammunition readable without occupying either thumb zone. */
+.touch-ui .range-status {
+  top: calc(var(--safe-t) + 7px);
+  left: calc(var(--safe-l) + 16px + 2 * var(--tool-size) + var(--tool-gap)); transform: none;
+  width: max-content; max-width: 36%; padding: 6px 9px;
+  border: 0; border-left: 2px solid var(--mint);
+  background: linear-gradient(105deg, #102628a6, #14292c48); backdrop-filter: none;
+  font-size: 10px;
+}
+.touch-ui .range-status::before { content: "训练场  /  RANGE"; font: 650 9px/1.4 system-ui; letter-spacing: .14em; color: #b9f4df; }
+.touch-ui .range-status dl { padding: 3px 0 0; gap: 2px; }
+.touch-ui .range-status dl > div { gap: 12px; }
+.touch-ui .range-status :is([data-open-settings], dl > div:nth-child(2), dl > div:nth-child(3)),
+.touch-ui :is(.crosshair-open, .hud-abilities, .pause-card kbd, .shop-keys) { display: none; }
+.touch-ui .weapon-readout {
+  inset: auto var(--safe-r) var(--dock-bottom) var(--safe-l); margin-inline: auto;
+  transform: none;
+  /* Equal outside columns keep the slot gap centered even for three-digit magazines. */
+  grid-template-columns: minmax(0, 1fr) calc(3 * var(--slot-width) + 4px) minmax(0, 1fr);
+  width: calc(3 * var(--slot-width) + 140px);
+  align-items: center; gap: 4px;
+}
+.touch-ui :is(.hud-health, .hud-ammo) { height: var(--slot-height); padding: 3px; border: 0; }
+.touch-ui .hud-health::after, .touch-ui .hud-ammo::before { display: none; }
+.touch-ui .hud-health { gap: 4px; }
+.touch-ui .hud-health i { width: 10px; height: 12px; }
+.touch-ui :is(.hud-health b, .hud-ammo-count b) { font-size: clamp(16px, 4.6vmin, 25px); }
+.touch-ui .hud-ammo { grid-column: 3; gap: 1px; }
+.touch-ui .hud-ammo-count { gap: 3px; }
+.touch-ui .hud-ammo-count span { font-size: 11px; }
+.touch-ui .hud-ammo strong { font-size: 8px; }
+.touch-ui .input-overlay.is-paused { z-index: 2; }
+.touch-ui :is(.settings-dialog, .crosshair-dialog) {
+  inset: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
+  max-width: calc(100vw - var(--safe-l) - var(--safe-r) - 16px);
+  max-height: calc(100dvh - var(--safe-t) - var(--safe-b) - 12px);
+}
+.touch-ui .pause-shortcuts { display: grid; gap: 6px; }
+.touch-ui .pause-shortcuts p { color: #c0d7ca; font-size: 11px; }
+.touch-ui .pause-shortcuts button { min-height: 44px; }
+.touch-ui .shop-close { top: calc(var(--safe-t) + 5px); right: calc(var(--safe-r) + 8px); width: 44px; height: 44px; }
+.touch-ui .weapon-shop { padding: calc(var(--safe-t) + 54px) calc(var(--safe-r) + 12px) calc(var(--safe-b) + 12px) calc(var(--safe-l) + 12px); }
+
+@media (orientation: portrait) {
+  .touch-controls { --stick-bottom: max(13%, 70px); }
+  .touch-weapon-tools {
+    --inspect-x: max(8.4%, calc(1.5 * var(--tool-size)));
+    --inspect-y: min(54%, calc(100% - var(--stick-bottom) - var(--stick) - var(--key) - 2 * var(--gap) - var(--tool-size) / 2));
+  }
+  .touch-ui .range-status { left: calc(var(--safe-l) + 8px); top: calc(var(--safe-t) + var(--tool-size) + 12px); }
+  .touch-look-hint { top: calc(var(--tool-size) + 12px); right: 8px; left: auto; transform: none; }
+  .touch-look-hint span { display: inline; }
+  .touch-left { left: 4%; }
+  .touch-left [data-action="fire"] { left: 0; }
+  .touch-combat { bottom: clamp(98px, 22%, 230px); right: 2%; }
+}

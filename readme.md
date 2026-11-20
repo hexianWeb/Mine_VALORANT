@@ -21,6 +21,8 @@ npm run dev
 
 使用支持 WebGPU 的最新版 Chrome / Edge。加载后默认进入**玩家模式**：点击画面锁定鼠标，WASD 移动、Shift 静步、C 下蹲、空格跳跃，Home 回到出生点。**1 主武器、2 手枪、3 爪刀；按 B 打开商店，从七把枪中免费选购并替换同类槽位。** 初始主武器为 Phantom，手枪为 Classic，入场手持 Classic。左键使用当前武器，右键 ADS（支持的枪型），R 换弹、T 检视、K 换肤；主关卡备用弹药无限，弹匣打空仍要换弹。Esc 先关闭窗口，无窗口时暂停。详见[游戏入口与控件](docs/weapons/gameplay.md#游戏入口与控件)。
 
+**手机／平板推荐横屏**：在支持 WebGPU 的浏览器中通过 HTTPS 打开，触屏默认直接进入游戏，不需要捕获鼠标。左下摇杆推得越远走得越快，右侧空白区滑动转向；左右两枚开火键均可按住，右侧开火键还能边拖边瞄。轻点开镜（支持的武器）、下蹲或静步可切换状态。换肤和检视键在左侧摇杆上方斜向排列，换弹键在右侧开镜键下方，底部三个装备槽直接切枪。右上角可打开商店、设置和暂停；暂停后可回出生点。混合设备可用 `?controls=touch` 或 `?controls=mouse` 指定模式。触控默认收起开发工具，需要时加 `&editor=1`。
+
 V 在玩家与飞行（noclip）之间切换；飞行模式下 WASD 移动、Q/E 升降、右键拖动视角、Shift 加速、滚轮调速，R 复位。左下角可切换轨道模式、碰撞线框及动态阴影，右上角提供 AO 和 LUT 调试面板。`?player=0` 启动时保持 Blender 参考机位与飞行模式。碰撞层见[练枪房碰撞层](docs/physics/collision-layer.md)，模块与操作见[动态阴影与飞行观察](docs/lighting/room-inspection.md)。
 
 当前 `package-lock.json` 与 r187 依赖一致，已验证 `npm ci --dry-run --ignore-scripts`。保留现有 pnpm 锁文件，不删除或自动互相转换；安装时选择一种包管理器。部分 ESLint 开发依赖要求 Node 22.22.2+ 或 24.15+。
@@ -44,6 +46,7 @@ node tools/check-probes-browser.mjs "http://localhost:5173/"
 node tools/check-ground-browser.mjs "http://localhost:5173/"
 node tools/check-player-browser.mjs "http://localhost:5173/"
 node tools/check-runtime-browser.mjs "http://localhost:5173/"
+node tools/check-touch-browser.mjs "http://localhost:5173/?probes=0&ao=0&aa=none"
 node tools/check-weapon-lighting-browser.mjs "http://localhost:5173/"
 ```
 

@@ -7,6 +7,7 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
   const window = document.defaultView
   const owned = new Disposer()
   const events = new EventEmitter()
+  const touch = input.pointerLockEnabled === false
   const reasons = new Set()
   let focused = document.hasFocus?.() ?? true
   let unlockPending = false
@@ -24,11 +25,14 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
     if (disposed)
       return
     const paused = engine.state === 'paused' || reasons.size > 0
+    const hasControl = touch
+      ? input.enabled && engine.state === 'running'
+      : input.locked && !unlockPending
     const mode = !player.enabled
       ? 'editor'
       : ui.topModal
         ? 'menu'
-        : input.locked && !unlockPending && !paused && interactive()
+        : hasControl && !paused && interactive()
           ? 'gameplay'
           : 'unlocked'
     const nextBlocked = mode !== 'gameplay'
@@ -48,6 +52,7 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
     }
     state = Object.freeze({
       mode,
+      touch,
       paused,
       waiting,
       pauseReasons,
@@ -57,7 +62,7 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
     events.emit('change', state)
   }
   const release = () => {
-    if (input.locked)
+    if (!touch && input.locked)
       unlockPending = true
     input.releaseLock()
   }
@@ -86,7 +91,7 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
     publish()
   }
   const lockChanged = () => {
-    if (disposed)
+    if (disposed || touch)
       return
     if (!input.locked) {
       const unexpected = state?.mode === 'gameplay' && !unlockPending && !ui.topModal && player.enabled
@@ -121,7 +126,7 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
   const requestCapture = (resume = false) => {
     if (disposed || waiting || ui.topModal || unlockPending || !interactive())
       return
-    if (!player.enabled) {
+    if (touch || !player.enabled) {
       if (resume && engine.state === 'paused') {
         reasons.clear()
         resuming = true

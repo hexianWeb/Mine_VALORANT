@@ -5,6 +5,25 @@ import { setupInput } from './input-fixture.mjs'
 
 const setup = (options = { bindings: inputBindings }) => setupInput(options)
 
+test('both fire buttons share one edge with a physical binding and only the last release stops firing', (t) => {
+  const { input, element, key } = setup({
+    bindings: { KeyF: 'fire' },
+  })
+  t.after(() => input.dispose())
+  input.setEnabled(true)
+  element.focus()
+  input.setVirtualButton(7, 'fire', true)
+  input.setVirtualButton(9, 'fire', true)
+  key('keydown', 'KeyF')
+  input.setVirtualButton(7, 'fire', false)
+  key('keyup', 'KeyF')
+  assert.equal(input.isDown('fire'), true)
+  assert.equal(input.consumeReleased('fire'), false)
+  input.setVirtualButton(9, 'fire', false)
+  assert.equal(input.consumeReleased('fire'), true)
+  assert.deepEqual(input.consumePressedEvents().map(edge => edge.action), ['fire'])
+})
+
 test('ignores keys while disabled, unfocused or modified by browser shortcuts', (t) => {
   const { input, element, key } = setup()
   t.after(() => input.dispose())

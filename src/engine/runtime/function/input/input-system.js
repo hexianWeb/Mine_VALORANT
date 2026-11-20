@@ -5,17 +5,19 @@ import { Disposer } from '../../core/disposer.js'
 /** @typedef {{ action: string, sequence: number }} PressedEvent */
 
 /**
- * 键盘 + Pointer Lock 的动作状态与输入边沿，由玩法在 input 阶段消费。
+ * 键鼠与虚拟控件共用动作状态、输入边沿和视角增量，由玩法在 input 阶段消费。
  * 仅在启用且元素聚焦或指针锁定时计入按键；鼠标输入仅在锁定时计入。
  * 绑定由调用方传入；缺省时不绑定任何动作。
- * @param {{ element: HTMLElement, bindings?: InputBindings }} options
+ * @param {{ element: HTMLElement, bindings?: InputBindings, pointerLock?: boolean }} options
  */
-export function createInputSystem({ element, bindings = {} }) {
+export function createInputSystem({ element, bindings = {}, pointerLock = true }) {
   const document = element.ownerDocument
   const window = document.defaultView
   const disposer = new Disposer()
-  /** @type {Set<string>} */
-  const held = new Set()
+  /** @type {Map<string, string>} Physical and on-screen buttons share action edges, not ownership. */
+  const held = new Map()
+  /** @type {Map<string, number>} */
+  const axes = new Map()
   /** @type {PressedEvent[]} */
   let pressed = []
   /** @type {Set<string>} */
@@ -33,16 +35,32 @@ export function createInputSystem({ element, bindings = {} }) {
   const active = () => accepts() && (locked() || document.activeElement === element)
   const controlBound = Object.hasOwn(bindings, 'ControlLeft') || Object.hasOwn(bindings, 'ControlRight')
   /** @param {string} action */
-  const isDown = action => [...held].some(code => bindings[code] === action)
+  const isDown = (action) => {
+    for (const value of held.values()) {
+      if (value === action)
+        return true
+    }
+    return false
+  }
   /** @param {string} action */
   const press = action => pressed.push({ action, sequence: ++sequence })
+  /** @param {string} code @param {string} action */
+  const hold = (code, action) => {
+    if (!held.has(code)) {
+      if (!isDown(action))
+        press(action)
+      held.set(code, action)
+    }
+  }
   /** @param {string} code */
   const release = (code) => {
-    if (held.delete(code) && !isDown(bindings[code]))
-      released.add(bindings[code])
+    const action = held.get(code)
+    if (action !== undefined && held.delete(code) && !isDown(action))
+      released.add(action)
   }
   const clear = () => {
     held.clear()
+    axes.clear()
     pressed = []
     released.clear()
     lookX = 0
@@ -50,7 +68,7 @@ export function createInputSystem({ element, bindings = {} }) {
   }
   // A fulfilled request is not proof of capture. Owners must observe pointerlockchange.
   const requestLock = () => {
-    if (!enabled || disposed)
+    if (!pointerLock || !enabled || disposed)
       return Promise.resolve(false)
     if (lockRequest)
       return lockRequest
@@ -95,10 +113,7 @@ export function createInputSystem({ element, bindings = {} }) {
     if (event.repeat && !held.has(event.code))
       return
     event.preventDefault()
-    const action = bindings[event.code]
-    if (!event.repeat && !isDown(action))
-      press(action)
-    held.add(event.code)
+    hold(event.code, bindings[event.code])
   })
   disposer.listen(window, 'keyup', (/** @type {KeyboardEvent} */ event) => {
     release(event.code)
@@ -108,10 +123,7 @@ export function createInputSystem({ element, bindings = {} }) {
     if (!accepts() || !locked() || !Object.hasOwn(bindings, code))
       return
     event.preventDefault()
-    const action = bindings[code]
-    if (!isDown(action))
-      press(action)
-    held.add(code)
+    hold(code, bindings[code])
   })
   disposer.listen(document, 'mouseup', (/** @type {MouseEvent} */ event) => {
     if (!accepts() || !locked())
@@ -145,7 +157,7 @@ export function createInputSystem({ element, bindings = {} }) {
   })
   disposer.listen(document, 'pointerlockchange', () => {
     if (locked()) {
-      if (!enabled || disposed)
+      if (!pointerLock || !enabled || disposed)
         document.exitPointerLock()
       return
     }
@@ -165,7 +177,30 @@ export function createInputSystem({ element, bindings = {} }) {
   disposer.listen(document, 'visibilitychange', clear)
   const api = {
     name: 'input',
+    pointerLockEnabled: pointerLock,
     isDown,
+    /** @param {string} name */
+    axis: name => axes.get(name) ?? 0,
+    /** @param {string} name @param {number} value Signed normalized axis, held until released. */
+    setVirtualAxis(name, value) {
+      if (accepts() && Number.isFinite(value))
+        axes.set(name, Math.max(-1, Math.min(1, value)))
+    },
+    /** @param {string | number} source @param {string} action @param {boolean} down */
+    setVirtualButton(source, action, down) {
+      const code = `Virtual:${source}`
+      if (!down)
+        release(code)
+      else if (accepts())
+        hold(code, action)
+    },
+    /** @param {number} dx @param {number} dy Relative counts, consumed by the normal look path. */
+    addVirtualLook(dx, dy) {
+      if (accepts() && Number.isFinite(dx) && Number.isFinite(dy)) {
+        lookX += dx
+        lookY += dy
+      }
+    },
     get locked() {
       return locked()
     },

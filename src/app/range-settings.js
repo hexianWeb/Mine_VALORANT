@@ -63,7 +63,7 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
       </section>
       <section><h3>无限备用弹药</h3><p class="settings-ammo"></p></section>
     </fieldset>
-    <fieldset class="range-sensitivity"><legend>鼠标视角灵敏度</legend>
+    <fieldset class="range-sensitivity"><legend>视角灵敏度</legend>
       <label for="range-sensitivity">倍率 <input id="range-sensitivity" name="sensitivity" type="number" min="0.01" max="5" step="0.01" inputmode="decimal"></label>
       <div class="sensitivity-steps">
         <button type="button" data-step="-0.1" aria-label="灵敏度减少 0.1">− 0.10</button>
