@@ -87,6 +87,31 @@ test('multi-pellet declarations are explicit, bounded and do not rewrite legacy 
     }), /fire.pellets/)
   }
 })
+test('salvo settings are immutable and only valid for non-ADS firearms with enough magazine capacity', () => {
+  assert.ok(Object.isFrozen(classicDefinition.fire.salvo))
+  for (const override of [
+    { rounds: 1 },
+    { rounds: 13 },
+    { interval: 0 },
+    { spreadAngle: 0 },
+    { spreadAngle: Number.NaN },
+    { spreadAngle: Math.PI / 2 },
+  ]) {
+    const salvo = {
+      ...classicDefinition.fire.salvo,
+      ...override,
+    }
+    assert.throws(() => createWeaponDefinition({
+      ...classicDefinition,
+      fire: { ...classicDefinition.fire, salvo },
+    }), /fire\.salvo/)
+  }
+  assert.throws(() => createWeaponDefinition({
+    ...phantomDefinition,
+    fire: { ...phantomDefinition.fire, salvo: classicDefinition.fire.salvo },
+  }), /fire\.salvo.*without ADS/)
+})
+
 test('definition validation rejects unsupported capabilities and invalid gameplay timing', () => {
   const cases = [
     [
@@ -182,7 +207,11 @@ test('definition validation rejects unsupported capabilities and invalid gamepla
 test('Classic and Phantom preserve source timings and explicit project loadout defaults', () => {
   assert.equal(classicDefinition.capacity, 12)
   assert.equal(classicDefinition.initialReserve, 36)
-  assert.deepEqual(classicDefinition.fire, { mode: 'semi', interval: 60 / 405 })
+  assert.deepEqual(classicDefinition.fire, {
+    mode: 'semi',
+    interval: 60 / 405,
+    salvo: { rounds: 3, interval: 1, spreadAngle: 4 * Math.PI / 180 },
+  })
   assert.deepEqual(classicDefinition.equip, { draw: 0.75, holster: 0 })
   assert.deepEqual(classicDefinition.reload.tactical, { feed: 1.75, duration: 1.75 })
   assert.deepEqual(classicDefinition.reload.empty, { feed: 1.75, duration: 1.75 })

@@ -139,17 +139,16 @@ function presetColor(preset, random, tint) {
   return tint.clone().multiplyScalar(shade).toArray()
 }
 
-function createImpactParticles({ at, payload }) {
-  const { impact, eyeOrigin, shotDirection, shotSequence } = payload
+function createImpactParticles({ at, payload }, { impact = payload.impact, direction = payload.shotDirection, index } = {}) {
+  const { eyeOrigin, shotSequence } = payload
   const tint = isImpactColor(impact.surfaceColor)
     ? new Color(impact.surfaceColor)
     : null
   const normal = new Vector3().fromArray(impact.normal)
   const point = new Vector3().fromArray(impact.position)
-  // For a multi-pellet shot, the impact belongs to the nearest hit pellet.
   const incident = impact.distance > 0
     ? point.clone().sub(new Vector3().fromArray(eyeOrigin)).normalize()
-    : new Vector3().fromArray(shotDirection)
+    : new Vector3().fromArray(direction)
   const axis = incident.reflect(normal).add(normal).normalize()
   const reference = Math.abs(axis.y) > 0.95
     ? new Vector3(1, 0, 0)
@@ -157,7 +156,9 @@ function createImpactParticles({ at, payload }) {
   const tangent = new Vector3().crossVectors(reference, axis).normalize()
   const bitangent = new Vector3().crossVectors(axis, tangent)
   const origin = point.addScaledVector(normal, 0.01).toArray()
-  const random = shotRandom(shotSequence)
+  const random = shotRandom(index === undefined
+    ? shotSequence
+    : shotSequence * 64 + index)
   const between = ([min, max]) => min + (max - min) * random()
   const particles = []
   for (const preset of presets[impact.surface]) {
@@ -232,8 +233,15 @@ export class ShotEffects {
       }
       if (event.type !== 'ShotFired')
         continue
-      if (event.payload.impact.hit)
+      if (event.payload.salvo && event.payload.pellets) {
+        for (const pellet of event.payload.pellets) {
+          if (pellet.impact.hit)
+            this.#particles?.emit(createImpactParticles(event, pellet))
+        }
+      }
+      else if (event.payload.impact.hit) {
         this.#particles?.emit(createImpactParticles(event))
+      }
       const impacts = event.payload.pellets?.map(pellet => pellet.impact) ?? [event.payload.impact]
       const random = shotRandom(event.payload.shotSequence)
       const decals = impacts.filter(impact => impact.hit && !impact.targetId).map(impact => ({

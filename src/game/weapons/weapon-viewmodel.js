@@ -6,6 +6,12 @@ import { scopeBlend } from './scope-view.js'
 
 const key = ticket => `${ticket.epoch}:${ticket.requestId}`
 const walkRoles = Object.freeze({ forward: 'walkForward', backward: 'walkBackward', side: 'walkSide' })
+const attackRoles = new Set([
+  'fire',
+  'fireAds',
+  'fireSalvo',
+  'attack',
+])
 const idleStance = Object.freeze({ aiming: false, direction: null })
 const stillMotion = Object.freeze({
   at: 0,
@@ -279,7 +285,7 @@ export class WeaponViewModel {
       endAt,
       resting: role === 'idle' || role === 'aim' || !!walkClip,
       // Attacks return to idle at their absolute clip boundary.
-      naturalEndAt: ['fire', 'fireAds', 'attack'].includes(role)
+      naturalEndAt: attackRoles.has(role)
         ? at + clip.duration / (rate || 1)
         : null,
     }
@@ -420,9 +426,14 @@ export class WeaponViewModel {
     if (event.type === 'ShotFired') {
       this.#presentedShot = event
       const exposesBolt = this.#definitions.get(this.#weapon?.definitionId)?.fire?.scopeRecovery
-      this.#play(payload.aiming && !exposesBolt && this.#active.handle.manifest.actions.fireAds
+      const actions = this.#active.handle.manifest.actions
+      const normalFire = payload.aiming && !exposesBolt && actions.fireAds
         ? 'fireAds'
-        : 'fire', event.at, { fade: 0.025 })
+        : 'fire'
+      const role = payload.salvo && actions.fireSalvo
+        ? 'fireSalvo'
+        : normalFire
+      this.#play(role, event.at, { fade: 0.025 })
       const socketName = this.#active.handle.manifest.sockets?.muzzle
       const socket = this.#active.visual.root.getObjectByName(socketName)
       this.#active.anchor.updateMatrixWorld(true)

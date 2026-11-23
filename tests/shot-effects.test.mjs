@@ -193,6 +193,29 @@ test('Judge marks every static pellet hit, skips targets and misses, and draws a
   assert.deepEqual(f.cleared, { particles: 1, decals: 1 })
 })
 
+test('a Classic salvo renders individual impact bursts, marks and tracers', (t) => {
+  const f = fixture(t)
+  const event = shot({ salvo: true })
+  const positions = [
+    [0, 0, -20],
+    [-1.2, 0.3, -20],
+    [0.8, 1, -20],
+  ]
+  event.payload.pellets = positions.map((position, index) => ({
+    index,
+    impact: { ...event.payload.impact, position },
+  }))
+  f.receive(event)
+  assert.equal(f.bursts.length, 3)
+  assert.deepEqual(f.bursts.map(burst => burst[0].origin.slice(0, 2)), positions.map(position => position.slice(0, 2)))
+  assert.deepEqual(f.marks[0].map(mark => mark.position), positions)
+  f.present(event, [0.1, -0.1, -0.7], 2.52)
+  const tracers = f.bursts.at(-1)
+  assert.equal(tracers.length, 3)
+  assert.ok(tracers.every(tracer => tracer.shape === 'tracer'))
+  assert.equal(new Set(tracers.map(tracer => tracer.velocity.join(','))).size, 3)
+})
+
 test('shot effects own their world decal resources and clear them on reset and disposal', () => {
   const scene = new Scene()
   const effects = new ShotEffects({ scene })

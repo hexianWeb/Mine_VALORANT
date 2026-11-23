@@ -19,6 +19,7 @@ PlayerWeapons 将同一装备事实批次分给 WeaponViewModel 与 WeaponAudio�
 | 来源 | 音频副作用 |
 | --- | --- |
 | ShotFired | 一个本地 shoot cue，每发新的 source，可受控重叠；Judge 每发 12 弹丸仍只播放一次，不同时播放 shoot_3p |
+| Classic 右键齐射 | 每次已接受的齐射只播一次 `classic_shoot_salvo`；不叠加普通枪声或动画起点的同名 marker |
 | DrawStarted(initial/switch/resume) | 唯一的 draw 来源；EquipCommitted 不再播放第二次 |
 | ReloadStarted | 使用已经选定的 tactical/empty 分支，当前七枪均指向各自同一 reload 文件 |
 | InspectStarted | 一个整段 inspect cue |

@@ -1,7 +1,12 @@
 import { WeaponInventory } from './inventory.js'
 import { canReloadWeapon, commitReload, durationTicks, fireWeapon, validateAmmoPolicy } from './weapon-logic.js'
 
-const actionCommands = new Set(['fire', 'reload', 'inspect'])
+const actionCommands = new Set([
+  'fire',
+  'fireSalvo',
+  'reload',
+  'inspect',
+])
 const commandTypes = new Set([
   ...actionCommands,
   'fireHeld',
@@ -102,11 +107,12 @@ export class EquipmentController {
     this.#ammoPolicy = validateAmmoPolicy(ammoPolicy)
     // This controller accepts at most one shot per fixed step; never silently cap a definition.
     for (const definition of definitions) {
-      const { interval, adsInterval, spinUp } = definition.fire
+      const { interval, adsInterval, spinUp, salvo } = definition.fire
       for (const [name, value] of [
         ['fire.interval', interval],
         ['fire.adsInterval', adsInterval],
         ['fire.spinUp.interval', spinUp?.interval],
+        ['fire.salvo.interval', salvo?.interval],
       ]) {
         if (value !== undefined && value < fixedDelta)
           throw new RangeError(`[Equipment] ${definition.id}: ${name} must be >= fixedDelta`)
@@ -288,7 +294,8 @@ export class EquipmentController {
     if (!reloadAccepted) {
       const definition = this.#inventory.definition(this.#activeId)
       const wantsFire = validAction('fire') || (this.#fireHeld && definition?.fire.mode === 'auto')
-      const fired = wantsFire && this.#fire(aimHeld)
+      const fired = (validAction('fireSalvo') && this.#fire(false, true))
+        || (wantsFire && this.#fire(aimHeld))
       if (!fired && validAction('inspect'))
         this.#startInspect()
     }
@@ -698,26 +705,36 @@ export class EquipmentController {
     })
   }
 
-  #fire(aimHeld) {
+  #fire(aimHeld, salvo = false) {
     const definition = this.#inventory.definition(this.#activeId)
+    if (salvo && !definition?.fire.salvo)
+      return false
     if (definition?.capabilities.melee)
       return this.#swing(definition)
     if (!this.#canFire())
       return false
     this.#cancelAction('fire')
-    const automatic = definition.fire.mode === 'auto' && this.#fireHeld
+    const automatic = !salvo && definition.fire.mode === 'auto' && this.#fireHeld
     const burstStartedAt = automatic ? this.#automaticStartedAt : null
     const aiming = Boolean(aimHeld && definition.capabilities.ads)
+    const previous = this.#inventory.get(this.#activeId)
     const weapon = this.#inventory.update(this.#activeId, fireWeapon(
-      this.#inventory.get(this.#activeId),
+      previous,
       definition,
       this.#now,
-      { aiming, burstStartedAt },
+      { aiming, burstStartedAt, salvo },
     ))
     this.#automaticStartedAt = automatic
       ? burstStartedAt ?? this.#now
       : null
-    this.#emit('ShotFired', this.#activeId, { shotSequence: weapon.shotSequence, magazine: weapon.magazine, aiming })
+    this.#emit('ShotFired', this.#activeId, {
+      shotSequence: weapon.shotSequence,
+      magazine: weapon.magazine,
+      aiming,
+      ...(salvo
+        ? { salvo, rounds: previous.magazine - weapon.magazine }
+        : {}),
+    })
     return true
   }
 

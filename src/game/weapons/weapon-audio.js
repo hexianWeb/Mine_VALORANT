@@ -145,6 +145,11 @@ export class WeaponAudio {
       this.#cue(event, profile.hit, { kind: 'transient' })
     if (event.type === 'ShotFired') {
       this.#cancel(event.instanceId, event.at)
+      if (event.payload.salvo) {
+        if (profile.salvo)
+          this.#cue(event, profile.salvo, { kind: 'transient' })
+        return // The accepted salvo owns its sound; neither the regular shot nor the clip marker plays.
+      }
       this.#cue(event, profile.fire, { kind: 'transient' })
       // Independent marker timeline, e.g. a future bolt cue; not a second zero-time shot.
       const definition = this.#definitions.get(event.payload.weapon.definitionId)

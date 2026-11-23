@@ -273,7 +273,8 @@ export class PlayerWeapons {
     }
     this.setPaused(paused)
     const aimHeld = !paused && input.isDown('aim')
-    const hasAlternateScope = this.#definitions.get(this.#equipment.activeDefinitionId)?.aim?.scopeAltZoom !== undefined
+    const definition = this.#definitions.get(this.#equipment.activeDefinitionId)
+    const hasAlternateScope = definition?.aim?.scopeAltZoom !== undefined
     const edges = input.consumePressedEvents?.() ?? [
       'primaryWeapon',
       'secondaryWeapon',
@@ -289,6 +290,7 @@ export class PlayerWeapons {
       'inspect',
       'cycleSkin',
       'fire',
+      'aim',
     ].filter(action => input.consumePressed(action)).map(action => ({ action }))
     for (const { action } of edges) {
       if (aimHeld && hasAlternateScope && (action === 'previousWeapon' || action === 'nextWeapon')) {
@@ -312,6 +314,9 @@ export class PlayerWeapons {
         inspect: { type: 'inspect' },
         cycleSkin: { type: 'cycleSkin', instanceId: this.#equipment.activeId },
         fire: { type: 'fire' },
+        aim: definition?.fire.salvo
+          ? { type: 'fireSalvo' }
+          : null,
       }[action]
       if (this.#meleeSlot && command?.type === 'selectSlot'
         && !['primary', 'secondary', this.#meleeSlot].includes(command.slotId)) {
@@ -414,7 +419,13 @@ export class PlayerWeapons {
         }
       }
       const shot = event.type === 'ShotFired'
-        ? this.#aim.fire({ instanceId: event.instanceId, shotSequence: event.payload.shotSequence, definition })
+        ? this.#aim.fire({
+            instanceId: event.instanceId,
+            shotSequence: event.payload.shotSequence,
+            definition,
+            pelletCount: event.payload.rounds,
+            salvo: event.payload.salvo,
+          })
         : null
       this.#shotTargets?.setSourceEpoch(this.#shotSource, equipment.epoch)
       this.#shotTargets?.beginShot(context)

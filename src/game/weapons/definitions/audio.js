@@ -2,6 +2,7 @@
 // Gains leave headroom for overlapping shots; source Ogg bytes are never altered.
 const hashes = {
   classic_shoot: '75a7ebca89e30b94772300df5ec823dd3ccb1de0ba446b331215b595b1ae4509',
+  classic_shoot_salvo: '818772c3ca67be92e4798aa745aed4a2a3ac152e77f40bcd9c1056fbc1df45e0',
   classic_draw: '7afdcfb88224d3992d6a9bbde82f715578307051a8933133383016826f63585c',
   classic_reload: '3c91f5ba63b5ad6c3ef64fd07eaf63282cfcd3baaecfcaead85fd2227ff1a990',
   classic_inspect: '676f2ac51a8783e02d124c94668f78b4f44c29176135b2854db8a754d37096f5',
@@ -44,7 +45,7 @@ const hashes = {
   karambit_hit: 'd3d63426576c61f17510ff10c6074db4658e368d2e1154dac989a88cbdec0add',
 }
 
-function profile(weaponId, { reloadTactical = 'reload', reloadEmpty = 'reload', markers = [] } = {}) {
+function profile(weaponId, { reloadTactical = 'reload', reloadEmpty = 'reload', markers = [], salvo = false } = {}) {
   const roles = new Set([
     'shoot',
     'draw',
@@ -53,6 +54,8 @@ function profile(weaponId, { reloadTactical = 'reload', reloadEmpty = 'reload', 
     'inspect',
     ...markers,
   ])
+  if (salvo)
+    roles.add('shoot_salvo')
   const cues = Object.fromEntries([...roles].map((role) => {
     const id = `${weaponId}_${role}`
     return [
@@ -61,7 +64,7 @@ function profile(weaponId, { reloadTactical = 'reload', reloadEmpty = 'reload', 
         id,
         url: `/audio/${weaponId}/${id}.ogg`,
         sha256: hashes[id],
-        gain: role === 'shoot'
+        gain: role === 'shoot' || role === 'shoot_salvo'
           ? 0.25
           : 0.22,
       }),
@@ -70,6 +73,9 @@ function profile(weaponId, { reloadTactical = 'reload', reloadEmpty = 'reload', 
   return Object.freeze({
     cues: Object.freeze(cues),
     fire: `${weaponId}_shoot`,
+    ...(salvo
+      ? { salvo: `${weaponId}_shoot_salvo` }
+      : {}),
     draw: `${weaponId}_draw`,
     reloadTactical: `${weaponId}_${reloadTactical}`,
     reloadEmpty: `${weaponId}_${reloadEmpty}`,
@@ -100,7 +106,7 @@ function meleeProfile(weaponId) {
 }
 
 export const weaponAudioProfiles = Object.freeze({
-  classic: profile('classic'),
+  classic: profile('classic', { salvo: true }),
   phantom: profile('phantom'),
   ghost: profile('ghost'),
   vandal: profile('vandal'),

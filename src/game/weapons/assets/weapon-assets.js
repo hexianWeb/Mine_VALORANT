@@ -103,8 +103,12 @@ function profileFrom(manifest) {
     const clip = metadata.get(name)
     return clip?.loop && clip.duration > 0 && !clip.markers?.length
   }))
+  // Existing Classic packages ship this clip without an action role. Keep their bytes immutable.
+  const actionClips = { ...manifest.actions }
+  if (!Object.hasOwn(actionClips, 'fireSalvo') && metadata.has('shoot_salvo'))
+    actionClips.fireSalvo = 'shoot_salvo'
   const actions = Object.fromEntries(Object.entries({
-    ...manifest.actions,
+    ...actionClips,
     ...locomotion,
   }).map(([role, name]) => {
     const clip = metadata.get(name)
@@ -126,7 +130,7 @@ function profileFrom(manifest) {
       },
     ]
   }))
-  return immutable({ actions, locomotion })
+  return immutable({ actions, actionClips, locomotion })
 }
 
 function validateSkin(manifest, skin, request) {
@@ -350,7 +354,7 @@ export class WeaponAssets {
         : null,
     ])
     validateSkin(manifest, skin, request)
-    const { actions, locomotion } = profileFrom(manifest)
+    const { actions, actionClips, locomotion } = profileFrom(manifest)
     const controls = manifest.runtimeControls
     // Validates all referenced clips and their actual template bindings without creating a mixer.
     const library = new ClipLibrary({
@@ -433,7 +437,8 @@ export class WeaponAssets {
       for (const name of names) bindings.set(name, binding)
     }))
     this.#assertOpen()
-    const handle = Object.freeze({ ...request, manifest, locomotion })
+    const runtimeManifest = Object.freeze({ ...manifest, actions: actionClips })
+    const handle = Object.freeze({ ...request, manifest: runtimeManifest, locomotion })
     this.#handles.set(handle, {
       modelKey,
       clips: gltf.animations,
@@ -445,7 +450,7 @@ export class WeaponAssets {
       armMaterialNames,
       appearanceMap,
     })
-    this.#manifests.set(`${request.weaponId}:${request.assetVersion}`, manifest)
+    this.#manifests.set(`${request.weaponId}:${request.assetVersion}`, runtimeManifest)
     return handle
   }
 

@@ -8,14 +8,19 @@ export const classicDefinition = createWeaponDefinition({
   id: 'classic',
   capacity: 12,
   initialReserve: 36, // Project practice-loadout default: three spare magazines.
-  fire: { mode: 'semi', interval: 60 / 405 },
+  fire: {
+    mode: 'semi',
+    interval: 60 / 405,
+    // Local tuning: match the authored salvo clip's one-second duration.
+    salvo: { rounds: 3, interval: 1, spreadAngle: 4 * Math.PI / 180 },
+  },
   equip: { draw: 0.75, holster: 0 }, // Source put_away_time is explicitly zero.
   reload: {
     tactical: { feed: 1.75, duration: 1.75 },
     empty: { feed: 1.75, duration: 1.75 },
   },
   inspectDuration: 3,
-  capabilities: { ads: false }, // Classic's secondary salvo is outside this first data/controller slice.
+  capabilities: { ads: false },
   assets: {
     modelId: 'classic',
     assetVersion: 'v4',

@@ -41,7 +41,14 @@ function fireInterval(fire, aiming, elapsed) {
 }
 
 /** Advance ammo and the next shot deadline on the fixed-step cadence clock. */
-export function fireWeapon(weapon, definition, now, { aiming, burstStartedAt }) {
+export function fireWeapon(weapon, definition, now, { aiming, burstStartedAt, salvo = false }) {
+  if (salvo) {
+    return {
+      magazine: weapon.magazine - Math.min(weapon.magazine, definition.fire.salvo.rounds),
+      shotSequence: weapon.shotSequence + 1,
+      nextFireAt: now + definition.fire.salvo.interval,
+    }
+  }
   const continuing = burstStartedAt !== null
   const elapsed = continuing
     ? weapon.nextFireAt - burstStartedAt

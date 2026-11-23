@@ -65,11 +65,14 @@ function fakeAssets() {
       const request = requests.findLast(entry => !entry.settled && entry.request.weaponId === weaponId)
       assert.ok(request, `expected an unresolved ${weaponId} load`)
       request.settled = true
+      const actionRoles = weaponId === 'classic'
+        ? [...roles, 'fireSalvo']
+        : roles
       const handle = {
         ...request.request,
         manifest: {
-          actions: Object.fromEntries(roles.map(role => [role, role])),
-          clips: roles.map(name => ({ name, duration: 1, loop: name === 'idle' })),
+          actions: Object.fromEntries(actionRoles.map(role => [role, role])),
+          clips: actionRoles.map(name => ({ name, duration: 1, loop: name === 'idle' })),
           view: {
             mountOffset: [0.1, -0.3, -0.5],
             verticalFov: 70,
@@ -96,13 +99,14 @@ function fakeAssets() {
       const muzzle = new Group()
       muzzle.name = 'muzzle'
       root.add(muzzle)
-      const clips = roles.map(role => new AnimationClip(role, 1, [
+      const actionRoles = Object.keys(handle.manifest.actions)
+      const clips = actionRoles.map(role => new AnimationClip(role, 1, [
         new NumberKeyframeTrack('muzzle.position[x]', [0, 1], [0, 0.05]),
       ]))
       const player = new AnimationPlayer({
         root,
         clips,
-        actions: Object.fromEntries(roles.map(role => [
+        actions: Object.fromEntries(actionRoles.map(role => [
           role,
           { clip: role, loop: role === 'idle' },
         ])),
@@ -137,6 +141,7 @@ function fakeAssets() {
 }
 
 function setup(t, {
+  classicMagazine = 12,
   thirdWeapon = false,
   ghost = false,
   vandal = false,
@@ -185,7 +190,7 @@ function setup(t, {
     },
     {
       id: 'secondary',
-      weapon: { instanceId: 'pistol', definitionId: 'classic' },
+      weapon: { instanceId: 'pistol', definitionId: 'classic', magazine: classicMagazine },
     },
   ]
   if (ghost) {
@@ -317,6 +322,55 @@ function setup(t, {
     },
   }
 }
+
+test('Classic right-click commits one salvo, shares cooldown with left-click, and does not repeat while held', async (t) => {
+  const f = setup(t, { classicMagazine: 5 })
+  await f.ready()
+  const shoot = () => {
+    f.weapons.collectInput(f.input)
+    return f.fixed().events.filter(event => event.type === 'ShotFired')
+  }
+  // Both pressed in the same fixed step: only the salvo is accepted.
+  f.click()
+  f.mouse('mousedown', 2)
+  const shots = shoot()
+  assert.equal(shots.length, 1)
+  const [salvo] = shots
+  assert.equal(salvo.payload.salvo, true)
+  assert.equal(salvo.payload.aiming, false)
+  assert.equal(salvo.payload.rounds, 3)
+  assert.equal(salvo.payload.magazine, 2)
+  assert.deepEqual(salvo.payload.pellets.map(pellet => pellet.index), [0, 1, 2])
+  assert.deepEqual(salvo.payload.pellets[0].direction, salvo.payload.aimDirection)
+  for (const [index, pellet] of salvo.payload.pellets.entries()) {
+    assert.equal(pellet.impact.hit, 'target')
+    for (const other of salvo.payload.pellets.slice(index + 1)) {
+      const delta = pellet.impact.position.map((value, axis) => value - other.impact.position[axis])
+      assert.ok(Math.hypot(...delta) > 0.6, 'the salvo makes three visibly separated marks at 10 m')
+    }
+  }
+  assert.equal(f.weapons.readHud().weapon.magazine, 5, 'presentation waits for the accepted fact')
+  f.motion(salvo.at)
+  assert.equal(f.weapons.readHud().weapon.magazine, 2)
+  assert.equal(f.weapons.readHud().action, 'fireSalvo')
+  f.click()
+  assert.equal(shoot().length, 0, 'primary fire is blocked by the same cooldown')
+  f.advance(12)
+  assert.equal(shoot().length, 0, 'holding right-click past cooldown does not shoot again')
+  assert.equal(f.weapons.readHud().action, 'idle')
+
+  f.mouse('mouseup', 2)
+  f.click(2)
+  const [last] = shoot()
+  assert.equal(last.payload.rounds, 2, 'a short magazine only fires its remaining rounds')
+  assert.equal(last.payload.pellets.length, 2)
+  assert.notDeepEqual(last.payload.pellets[0].direction, last.payload.pellets[1].direction)
+  assert.equal(last.payload.magazine, 0)
+  assert.equal(last.payload.shotSequence, salvo.payload.shotSequence + 1)
+  f.advance(12)
+  f.click(2)
+  assert.equal(shoot().length, 0, 'empty magazine cannot fire a salvo')
+})
 
 test('delayed HUD replays shot and reload ammo at their own boundaries without full equipment snapshots', async (t) => {
   const f = setup(t)

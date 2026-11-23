@@ -63,6 +63,7 @@ export function createWeaponDefinition(input) {
     'scopeRecovery',
     'spinUp',
     'pellets',
+    'salvo',
   ])
   record(input.equip, 'equip', ['draw', 'holster'])
   record(input.reload, 'reload', ['tactical', 'empty'])
@@ -129,11 +130,27 @@ export function createWeaponDefinition(input) {
     if (fire.pellets > 64)
       throw new RangeError('fire.pellets must not exceed 64')
   }
+  const capacity = integer(input.capacity, 'capacity', melee ? 0 : 1)
+  if (Object.hasOwn(input.fire, 'salvo')) {
+    if (melee || input.capabilities.ads)
+      throw new TypeError('fire.salvo requires a firearm without ADS')
+    const salvo = record(input.fire.salvo, 'fire.salvo', ['rounds', 'interval', 'spreadAngle'])
+    const rounds = integer(salvo.rounds, 'fire.salvo.rounds', 2)
+    if (rounds > Math.min(capacity, 64))
+      throw new RangeError('fire.salvo.rounds must fit the magazine and pellet limit')
+    if (!Number.isFinite(salvo.spreadAngle) || salvo.spreadAngle <= 0 || salvo.spreadAngle >= Math.PI / 2)
+      throw new RangeError('fire.salvo.spreadAngle must be between 0 and PI/2 radians')
+    fire.salvo = Object.freeze({
+      rounds,
+      interval: seconds(salvo.interval, 'fire.salvo.interval', true),
+      spreadAngle: salvo.spreadAngle,
+    })
+  }
 
   return Object.freeze({
     ...createAimProfile(input),
     id: identifier(input.id, 'id'),
-    capacity: integer(input.capacity, 'capacity', melee ? 0 : 1),
+    capacity,
     initialReserve: integer(input.initialReserve, 'initialReserve'),
     fire: Object.freeze(fire),
     ...(meleeAttack

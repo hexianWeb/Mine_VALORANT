@@ -330,14 +330,13 @@ export class AimState {
   }
 
   /** Call only for an accepted fixed-step ShotFired; this method never decides ammo or cooldown. */
-  fire({ instanceId, shotSequence, definition }) {
+  fire({ instanceId, shotSequence, definition, pelletCount = definition?.fire?.pellets ?? 1, salvo = false }) {
     if (!this.#step)
       throw new Error('[AimState] fire requires beginStep')
     if (typeof instanceId !== 'string' || !instanceId || !Number.isSafeInteger(shotSequence) || shotSequence < 1
       || shotSequence <= (this.#shots.get(instanceId) ?? 0)) {
       throw new Error('[AimState] Expected a new accepted shot identity')
     }
-    const pelletCount = definition?.fire?.pellets ?? 1
     if (!Number.isSafeInteger(pelletCount) || pelletCount < 1 || pelletCount > 64)
       throw new RangeError('[AimState] Invalid pellet count')
     const before = this.#step.current
@@ -345,15 +344,31 @@ export class AimState {
     const next = random(seed)
     const orientation = new Quaternion().fromArray(before.quaternion)
     const aimDirection = new Vector3(0, 0, -1).applyQuaternion(orientation).toArray()
-    const spread = before.spread
-    const shotDirection = spreadDirection(next, spread, orientation)
-    // A separate stream keeps the original first ray and ONE recoil impulse byte-for-byte stable.
+    const salvoPattern = salvo && pelletCount > 1
+      ? definition.fire.salvo
+      : null
+    const normalDirection = spreadDirection(next, before.spread, orientation)
+    const shotDirection = salvoPattern ? aimDirection : normalDirection
+    // A separate stream preserves the ordinary shot and the single recoil impulse.
     let pelletDirections
     if (pelletCount > 1) {
       const pelletRandom = random(hashSeed(this.#seed, `${instanceId}:pellets`, shotSequence))
+      const phase = salvoPattern
+        ? pelletRandom() * 2 * Math.PI
+        : 0
       pelletDirections = [
         shotDirection,
-        ...Array.from({ length: pelletCount - 1 }, () => spreadDirection(pelletRandom, spread, orientation)),
+        ...Array.from({ length: pelletCount - 1 }, (_, index) => {
+          if (!salvoPattern)
+            return spreadDirection(pelletRandom, before.spread, orientation)
+          // Seed the orientation, not the spacing: even a two-round salvo has separated rays.
+          const angle = phase + index * 2 * Math.PI / salvoPattern.rounds
+          const radius = Math.tan(salvoPattern.spreadAngle)
+          return new Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius, -1)
+            .normalize()
+            .applyQuaternion(orientation)
+            .toArray()
+        }),
       ]
     }
     const source = definition?.recoil ?? neutral.recoil
@@ -380,7 +395,7 @@ export class AimState {
       seed,
       shotId: `${instanceId}:${shotSequence}`,
       patternIndex: shotSequence - 1,
-      spread,
+      spread: salvoPattern?.spreadAngle ?? before.spread,
       impulse: {
         pitch: curveAt(segment.pitch, 0),
         yaw: curveAt(segment.yaw, 0),

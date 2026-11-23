@@ -63,10 +63,10 @@ test('AudioBank coalesces decoding and preserves successful siblings on failure;
     assets.preloadAudio(profile),
     assets.preloadAudio(profile),
   ])
-  assert.equal(calls.length, 4)
-  assert.equal(context.decoded.length, 4)
-  assert.equal(assets.audioSnapshot().cues, 4)
-  assert.equal(assets.audioSnapshot().decodedBytes, 4 * 48000 * 2 * 4)
+  assert.equal(calls.length, 5)
+  assert.equal(context.decoded.length, 5)
+  assert.equal(assets.audioSnapshot().cues, 5)
+  assert.equal(assets.audioSnapshot().decodedBytes, 5 * 48000 * 2 * 4)
   for (const entry of calls) assert.equal(resources.get(entry.name, 'binary').byteLength, 16)
   await audio.unlock()
   audio.flush(audioTime(0, 0))
@@ -160,6 +160,7 @@ function adapter(t) {
         actions: {
           fire: 'shoot',
           fireAds: 'shoot',
+          fireSalvo: 'shoot_salvo',
           draw: 'draw',
           reloadTactical: 'reload',
           reloadEmpty: 'reload',
@@ -179,6 +180,13 @@ function adapter(t) {
             duration: 1,
             markers: [
               { time: 0, cue: 'classic_draw' },
+            ],
+          },
+          {
+            name: 'shoot_salvo',
+            duration: 1,
+            markers: [
+              { time: 0, cue: profile.salvo },
             ],
           },
           { name: 'reload', duration: 2.25, markers: [] },
@@ -219,6 +227,18 @@ function adapter(t) {
     motion(at) { bridge.motion(audioTime(Math.round(at / h), at)) },
   }
 }
+
+test('a Classic salvo emits only its own transient, not ordinary fire or a duplicate clip cue', (t) => {
+  const f = adapter(t)
+  const shot = f.event('ShotFired', h, { salvo: true, rounds: 3 })
+  f.receive(shot, shot)
+  f.motion(h)
+  f.motion(h + 1)
+  assert.equal(f.enqueued.length, 1)
+  assert.match(f.enqueued[0].id, /classic_shoot_salvo$/)
+  assert.equal(f.enqueued[0].buffer, f.bank.get('classic_shoot_salvo').buffer)
+  assert.equal(f.enqueued[0].kind, 'transient')
+})
 
 test('a karambit swing plays one whoosh, and only a connecting contact plays the strike', (t) => {
   const enqueued = []
