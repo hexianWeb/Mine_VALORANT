@@ -22,6 +22,33 @@ async function setup(t, options = {}) {
   return { context, audio, warnings }
 }
 
+test('canvas unlocks audio only in the activation event for each input type', (t) => {
+  const element = new EventTarget()
+  const audio = new AudioSystem({ element })
+  t.after(() => audio.dispose())
+  const unlock = t.mock.method(audio, 'unlock', async () => true)
+  const dispatch = (type, pointerType, isTrusted = true) => {
+    const event = new Event(type)
+    Object.defineProperties(event, {
+      pointerType: { value: pointerType },
+      isTrusted: { value: isTrusted },
+    })
+    element.dispatchEvent(event)
+  }
+
+  for (const pointerType of ['touch', 'pen', 'mouse']) {
+    const before = unlock.mock.callCount()
+    dispatch('pointerdown', pointerType)
+    assert.equal(unlock.mock.callCount(), before + Number(pointerType === 'mouse'))
+    dispatch('pointerup', pointerType)
+    assert.equal(unlock.mock.callCount(), before + 1)
+  }
+  dispatch('keydown')
+  assert.equal(unlock.mock.callCount(), 4)
+  dispatch('pointerup', 'touch', false)
+  assert.equal(unlock.mock.callCount(), 4)
+})
+
 test('footsteps enqueue on distance crossings, rotate buffers, and invalidate on respawn', async (t) => {
   const { audio } = await setup(t)
   const binary = new Map()

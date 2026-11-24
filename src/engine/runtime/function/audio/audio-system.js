@@ -56,7 +56,15 @@ export class AudioSystem {
         if (event.isTrusted)
           void this.unlock()
       }
-      this.#owned.listen(element, 'pointerdown', unlock)
+      // Mouse presses activate immediately; touch and pen activate on release.
+      this.#owned.listen(element, 'pointerdown', (event) => {
+        if (event.pointerType === 'mouse')
+          unlock(event)
+      })
+      this.#owned.listen(element, 'pointerup', (event) => {
+        if (event.pointerType !== 'mouse')
+          unlock(event)
+      })
       this.#owned.listen(element, 'keydown', unlock)
     }
   }

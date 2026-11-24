@@ -1,5 +1,8 @@
 import { cameraProjectionMatrix, color, Fn, modelNormalMatrix, modelViewProjection, normalLocal, texture, vec4, viewportSize } from 'three/tsl'
-import { BackSide, MeshBasicNodeMaterial, SkinnedMesh, Vector3 } from 'three/webgpu'
+import { BackSide, LessDepth, MeshBasicNodeMaterial, SkinnedMesh, Vector3 } from 'three/webgpu'
+
+const maxOutlineWidth = 0.035 // World units, narrow enough for the rig's smallest parts.
+const maxOutlinePixels = 4
 
 // Weld only the outline normals, including skin weights in the key so joints
 // remain independent. The original cuboid shading, UVs and topology stay intact.
@@ -36,14 +39,11 @@ export function createTrainingBotOutline() {
   const materials = new Map()
   const vertexNode = Fn(() => {
     const clip = modelViewProjection.toVar()
-    const projectedNormal = cameraProjectionMatrix.mul(vec4(modelNormalMatrix.mul(normalLocal), 0))
-      .xy
-      .mul(viewportSize)
-      .toVar()
-    const direction = projectedNormal.div(projectedNormal.length().max(1e-6))
-    // Twice the pixel width maps to NDC, independent of distance and target scale.
-    clip.xy.addAssign(direction.mul(8).div(viewportSize).mul(clip.w))
-    return clip
+    const viewNormal = modelNormalMatrix.mul(normalLocal).normalize()
+    const projectionScale = cameraProjectionMatrix.element(1).y.mul(viewportSize.y).mul(0.5)
+    const width = clip.w.max(0).mul(maxOutlinePixels).div(projectionScale).min(maxOutlineWidth)
+    // Move the hull in 3D so its depth follows the expanded position.
+    return clip.add(cameraProjectionMatrix.mul(vec4(viewNormal.mul(width), 0)))
   })()
   const materialFor = (source, outlineColor) => {
     const key = `${source.uuid}:${outlineColor}`
@@ -52,6 +52,7 @@ export function createTrainingBotOutline() {
         name: 'Training bot outline',
         color: outlineColor,
         side: BackSide,
+        depthFunc: LessDepth,
         depthWrite: false,
         fog: false,
         alphaTest: source.alphaTest,

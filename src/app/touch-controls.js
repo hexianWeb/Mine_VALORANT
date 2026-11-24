@@ -14,6 +14,7 @@ const glyphs = {
   walk: '<path d="M12 3c3 0 4 5 3 10l-1 3-6-1c-1-5 0-12 4-12Zm-4 14 6 1-1 4-5-1Zm14-7c3 0 4 6 2 10l-2 3-5-2c0-4 2-11 5-11Zm-6 13 5 2-2 4-4-2Z" fill="currentColor" stroke="none"/>',
   shop: '<path d="M5 10h22l-2 17H7zM11 12V9a5 5 0 0 1 10 0v3"/><path d="m13 19 3 3 5-6"/>',
   settings: '<path d="m13 4 6 0 1 4 3 1 4-1 3 5-3 3v3l2 3-3 4-4-1-3 2-1 3h-5l-1-4-3-1-4 1-3-5 3-3v-3l-2-3 3-4 4 1 3-2z" transform="translate(2 1) scale(.88)"/><circle cx="16" cy="16" r="4"/>',
+  fullscreen: '<path d="M5 12V5h7m8 0h7v7m0 8v7h-7m-8 0H5v-7"/>',
   pause: '<path d="M8 5h5v22H8zm11 0h5v22h-5z" fill="currentColor" stroke="none"/>',
   knife: '<path d="M4 24C14 22 21 14 28 4c0 11-5 19-18 23l-3-2-2 3-2-2z" fill="currentColor" stroke="none"/>',
 }
@@ -28,17 +29,23 @@ const slots = [
 
 export function mountTouchControls({ ui, controls, input, weapons, engine, unlockAudio, onShop, onSettings }) {
   const owned = new Disposer()
-  const root = ui.root.ownerDocument.createElement('section')
+  const document = ui.root.ownerDocument
+  const window = document.defaultView
+  const page = document.documentElement
+  const root = document.createElement('section')
   root.className = 'touch-controls'
   root.setAttribute('aria-label', '触屏操控')
   root.innerHTML = `
     <div class="touch-look" data-look aria-hidden="true"></div>
-    <p class="touch-look-hint">右侧滑动转向<span> · 推荐横屏</span></p>
+    <p class="touch-look-hint">右侧滑动转向<span class="touch-landscape-hint"> · 推荐横屏</span>
+      <span class="touch-fullscreen-hint" hidden>点击右上角「全屏」以展开画面</span>
+    </p>
     <div class="touch-tools touch-weapon-tools" role="group" aria-label="武器操作">
       ${button('skin', '换肤', 'data-action="cycleSkin"')}
       ${button('inspect', '检视', 'data-action="inspect"')}
     </div>
     <div class="touch-tools" role="group" aria-label="靶场菜单">
+      ${button('fullscreen', '全屏', 'data-menu="fullscreen"')}
       ${button('shop', '商店', 'data-menu="shop"')}
       ${button('settings', '设置', 'data-menu="settings"')}
       ${button('pause', '暂停', 'data-menu="pause"')}
@@ -69,12 +76,56 @@ export function mountTouchControls({ ui, controls, input, weapons, engine, unloc
   const reload = root.querySelector('[data-action="reload"]')
   const skin = root.querySelector('[data-action="cycleSkin"]')
   const inspect = root.querySelector('[data-action="inspect"]')
+  const fullscreen = root.querySelector('[data-menu="fullscreen"]')
+  const fullscreenLabel = fullscreen.querySelector('span')
+  const lookHint = root.querySelector('.touch-look-hint')
+  const fullscreenHint = root.querySelector('.touch-fullscreen-hint')
   const slotButtons = root.querySelectorAll('[data-slot]')
   const setToggle = (node, down) => {
     input.setVirtualButton(node.dataset.toggle, node.dataset.toggle, down)
     node.setAttribute('aria-pressed', String(down))
   }
+  const canFullscreen = () => document.fullscreenEnabled && typeof page.requestFullscreen === 'function'
+  let noticeTimer
+  const announceFullscreen = (text) => {
+    if (owned.disposed)
+      return
+    window.clearTimeout(noticeTimer)
+    lookHint.hidden = true
+    controls.announce(text)
+    noticeTimer = window.setTimeout(() => {
+      lookHint.hidden = false
+      if (controls.read().message === text)
+        controls.announce('')
+    }, 3000)
+  }
+  owned.add(() => window.clearTimeout(noticeTimer))
+  let switchingFullscreen = false
+  const toggleFullscreen = async () => {
+    if (switchingFullscreen)
+      return
+    const active = document.fullscreenElement === page
+    if (!active && !canFullscreen()) {
+      announceFullscreen('当前浏览器不支持网页全屏')
+      return
+    }
+    switchingFullscreen = true
+    // Request the root directly from the tap so the HUD stays visible and user activation is retained.
+    try {
+      if (active)
+        await document.exitFullscreen()
+      else
+        await page.requestFullscreen({ navigationUI: 'hide' })
+    }
+    catch {
+      announceFullscreen('暂时无法切换全屏，请再试一次')
+    }
+    finally {
+      switchingFullscreen = false
+    }
+  }
   const menus = {
+    fullscreen: toggleFullscreen,
     shop: onShop,
     settings: onSettings,
     pause: () => controls.pause('touch'),
@@ -95,6 +146,23 @@ export function mountTouchControls({ ui, controls, input, weapons, engine, unloc
     for (const node of toggles) setToggle(node, false)
     input.clear()
   }
+  const syncFullscreen = () => {
+    const active = document.fullscreenElement === page
+    const label = active ? '退出全屏' : '全屏'
+    fullscreen.setAttribute('aria-label', label)
+    fullscreenLabel.textContent = label
+    fullscreenHint.hidden = active || !canFullscreen()
+    return active
+  }
+  owned.listen(document, 'fullscreenchange', () => {
+    if (!root.hidden)
+      reset()
+    if (syncFullscreen())
+      announceFullscreen('已进入全屏，点「退出全屏」可返回')
+    else
+      announceFullscreen('已退出全屏')
+  })
+  syncFullscreen()
   let lastWeapon
   const updateWeapon = () => {
     if (root.hidden)
@@ -127,7 +195,7 @@ export function mountTouchControls({ ui, controls, input, weapons, engine, unloc
     else
       updateWeapon()
   }
-  owned.listen(root.ownerDocument.defaultView, 'resize', () => {
+  owned.listen(window, 'resize', () => {
     if (!root.hidden)
       reset()
   })

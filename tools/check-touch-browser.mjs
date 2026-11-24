@@ -45,7 +45,18 @@ function until(condition, timeout = 10000) {
     check();
   })`)
 }
+function waitForCanvasFill() {
+  return until(`(() => {
+    const canvas = document.querySelector('.webgl');
+    const bounds = canvas.getBoundingClientRect();
+    const dpr = api.runtime.render.renderer.getPixelRatio();
+    return Math.abs(bounds.left) < 1 && Math.abs(bounds.top) < 1
+      && Math.abs(bounds.right - innerWidth) < 1 && Math.abs(bounds.bottom - innerHeight) < 1
+      && canvas.width === Math.floor(innerWidth * dpr) && canvas.height === Math.floor(innerHeight * dpr);
+  })()`)
+}
 async function checkLayout(name) {
+  await waitForCanvasFill()
   const obscured = await evaluate(`Array.from(document.querySelectorAll('.touch-controls button, [data-stick]')).filter(node => {
     const r = node.getBoundingClientRect();
     return r.left < 0 || r.top < 0 || r.right > innerWidth || r.bottom > innerHeight ||
@@ -69,6 +80,43 @@ try {
   await until(`!input.blocked && !document.querySelector('.touch-controls').hidden`)
   assert.equal(await evaluate('document.pointerLockElement === null && document.querySelector(".capture-hint").hidden'), true)
   await checkLayout('landscape')
+
+  const fullscreen = '[data-menu="fullscreen"]'
+  const fullscreenAction = () => evaluate(`(() => {
+    const button = document.querySelector('${fullscreen}');
+    return [button.getAttribute('aria-label'), button.querySelector('span').textContent];
+  })()`)
+  const nativeFullscreen = await evaluate('document.fullscreenEnabled === true')
+  assert.deepEqual(await fullscreenAction(), ['全屏', '全屏'])
+  if (nativeFullscreen) {
+    assert.equal(await evaluate(`(() => {
+      const hint = document.querySelector('.touch-fullscreen-hint');
+      return hint.textContent.includes('点击右上角「全屏」') && hint.getClientRects().length > 0;
+    })()`), true)
+    await tap(fullscreen)
+    await until(`document.fullscreenElement === document.documentElement
+      && document.querySelector('${fullscreen}').getAttribute('aria-label') === '退出全屏'`)
+    assert.deepEqual(await fullscreenAction(), ['退出全屏', '退出全屏'])
+    assert.match(await evaluate(`document.querySelector('.input-message').textContent`), /已进入全屏/)
+    await checkLayout('fullscreen-landscape')
+    await size(390, 844)
+    await until('innerWidth === 390 && innerHeight === 844 && document.fullscreenElement === document.documentElement')
+    await checkLayout('fullscreen-portrait')
+    await tap(fullscreen)
+    await until(`document.fullscreenElement === null
+      && document.querySelector('${fullscreen}').getAttribute('aria-label') === '全屏'`)
+    assert.deepEqual(await fullscreenAction(), ['全屏', '全屏'])
+    await waitForCanvasFill()
+    await size(844, 390)
+    await until('innerWidth === 844 && innerHeight === 390')
+    await waitForCanvasFill()
+  }
+
+  await evaluate(`void Object.defineProperty(document, 'fullscreenEnabled', { configurable: true, value: false })`)
+  await tap(fullscreen)
+  await until(`document.fullscreenElement === null
+    && document.querySelector('.input-message').textContent.includes('当前浏览器不支持网页全屏')`)
+  await evaluate(`delete document.fullscreenEnabled`)
 
   const stick = await point('[data-stick]')
   const fire = await point('.touch-combat [data-action="fire"]', 2)
@@ -173,6 +221,7 @@ try {
   console.log(JSON.stringify({
     url,
     output,
+    nativeFullscreen,
     elapsedMs: Math.round(performance.now() - start),
   }))
 }

@@ -44,10 +44,11 @@ export class Size extends EventEmitter {
     }
     else {
       this.#disposer.listen(window, 'resize', () => this.#update())
+      this.#disposer.listen(window.document, 'fullscreenchange', () => this.#update())
     }
   }
 
-  /** @returns {SizeState} */
+  /** @returns {SizeState} 当前测量到的视口尺寸。 */
   get state() {
     return {
       width: this.width,
@@ -66,8 +67,10 @@ export class Size extends EventEmitter {
   }
 
   #update() {
+    const { width, height, pixelRatio } = this
     this.#measure()
-    this.emit('resize', this.state)
+    if (this.width !== width || this.height !== height || this.pixelRatio !== pixelRatio)
+      this.emit('resize', this.state)
   }
 
   dispose() {

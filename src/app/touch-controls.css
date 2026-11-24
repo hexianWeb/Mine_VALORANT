@@ -34,7 +34,7 @@
 .touch-controls :is(button, [data-stick], [data-look]) { pointer-events: auto; touch-action: none; }
 .touch-look-hint {
   position: absolute;
-  top: 8%;
+  top: max(8%, calc(var(--tool-size) + 12px));
   left: 50%;
   transform: translateX(-50%);
   padding: 5px 10px;
@@ -47,7 +47,8 @@
   transition: opacity .25s;
 }
 .has-looked .touch-look-hint { opacity: 0; }
-.touch-look-hint span { display: none; }
+.touch-landscape-hint { display: none; }
+.touch-fullscreen-hint { display: block; margin-top: 4px; color: #c7f9ef; }
 .touch-key, .touch-stick {
   position: relative;
   border-radius: 50%;
@@ -211,7 +212,7 @@
   }
   .touch-ui .range-status { left: calc(var(--safe-l) + 8px); top: calc(var(--safe-t) + var(--tool-size) + 12px); }
   .touch-look-hint { top: calc(var(--tool-size) + 12px); right: 8px; left: auto; transform: none; }
-  .touch-look-hint span { display: inline; }
+  .touch-landscape-hint { display: inline; }
   .touch-left { left: 4%; }
   .touch-left [data-action="fire"] { left: 0; }
   .touch-combat { bottom: clamp(98px, 22%, 230px); right: 2%; }
