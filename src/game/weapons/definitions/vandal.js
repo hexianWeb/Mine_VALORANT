@@ -19,10 +19,34 @@ export const vandalGameplayProvenance = Object.freeze({
   unimplementedReferenceFields: 'Damage, penetration and weapon-specific movement are recorded only',
 })
 
+const radians = Math.PI / 180
 const adsFov = 2 * Math.atan(Math.tan(70 * Math.PI / 360) / 1.25) * 180 / Math.PI
 
 export const vandalDefinition = createWeaponDefinition({
   ...phantomAimProfile,
+  recoil: {
+    ...phantomAimProfile.recoil,
+    spray: {
+      // Local gameplay tuning: [shot number, pitch degrees up, yaw degrees left].
+      points: [
+        [1, 0, 0],
+        [2, 0.6, 0],
+        [4, 2, -0.1],
+        [7, 4.55, 0.45],
+        [10, 6.5, 1.7],
+        [13, 6.8, 2.05],
+        [17, 6.8, -2.1],
+        [21, 6.8, 1.9],
+        [25, 6.8, -1.4],
+      ].map(([shot, pitch, yaw]) => ({
+        index: shot - 1,
+        pitch: pitch * radians,
+        yaw: yaw * radians,
+      })),
+      recoveryDelay: 0.18,
+      recoveryDuration: 0.37,
+    },
+  },
   aim: { ...phantomAimProfile.aim, worldFov: adsFov, viewmodelFov: adsFov },
   id: 'vandal',
   capacity: 25,

@@ -142,6 +142,8 @@ function fakeAssets() {
 
 function setup(t, {
   classicMagazine = 12,
+  classicSpray = false,
+  phantomSpray = false,
   thirdWeapon = false,
   ghost = false,
   vandal = false,
@@ -172,17 +174,26 @@ function setup(t, {
     setEnabled(value) { this.enabled = value },
     setFov(value) { this.camera.fov = value },
   }
-  const definitions = [classicTestDefinition, phantomDefinition].map(definition => createWeaponDefinition({
-    ...definition,
-    ...createAimProfile(),
-    fire: { ...definition.fire, interval: 0.2 },
-    equip: {
-      holster: 0.1,
-      draw: definition.id === 'classic'
-        ? 0.2
-        : 0.3,
-    },
-  }))
+  const definitions = [classicTestDefinition, phantomDefinition].map((definition) => {
+    const usePhantomSpray = phantomSpray && definition === phantomDefinition
+    const aimOverrides = usePhantomSpray || (classicSpray && definition === classicTestDefinition)
+      ? {}
+      : createAimProfile()
+    return createWeaponDefinition({
+      ...definition,
+      ...aimOverrides,
+      fire: {
+        ...definition.fire,
+        interval: usePhantomSpray ? h : 0.2,
+      },
+      equip: {
+        holster: 0.1,
+        draw: definition.id === 'classic'
+          ? 0.2
+          : 0.3,
+      },
+    })
+  })
   const loadout = [
     {
       id: 'primary',
@@ -324,7 +335,7 @@ function setup(t, {
 }
 
 test('Classic right-click commits one salvo, shares cooldown with left-click, and does not repeat while held', async (t) => {
-  const f = setup(t, { classicMagazine: 5 })
+  const f = setup(t, { classicMagazine: 5, classicSpray: true })
   await f.ready()
   const shoot = () => {
     f.weapons.collectInput(f.input)
@@ -340,6 +351,8 @@ test('Classic right-click commits one salvo, shares cooldown with left-click, an
   assert.equal(salvo.payload.aiming, false)
   assert.equal(salvo.payload.rounds, 3)
   assert.equal(salvo.payload.magazine, 2)
+  assert.equal(salvo.payload.impulse.pitch, classicDefinition.recoil.pitch[0].min)
+  assert.equal(f.aim.sample(salvo.at).recoilPitch, salvo.payload.impulse.pitch)
   assert.deepEqual(salvo.payload.pellets.map(pellet => pellet.index), [0, 1, 2])
   assert.deepEqual(salvo.payload.pellets[0].direction, salvo.payload.aimDirection)
   for (const [index, pellet] of salvo.payload.pellets.entries()) {
@@ -519,6 +532,33 @@ test('menu handoff drops pre-fixed input but lets async equipment preparation an
   f.advance(30)
   assert.equal(f.weapons.snapshot().action, null)
   assert.equal(f.weapons.readHud().weapon.magazine, 30)
+})
+
+test('held Phantom fire raises the actual impact and a recovered shot aims at center again', async (t) => {
+  const f = setup(t, { phantomSpray: true })
+  await f.ready()
+  f.fixed({ type: 'select', instanceId: 'rifle' })
+  await f.assets.resolve('phantom')
+  f.motion()
+  f.advance(8)
+  assert.equal(f.weapons.snapshot().activeId, 'rifle')
+  assert.equal(f.weapons.snapshot().phase, 'Ready')
+  f.fixed({ type: 'fireHeld', held: true })
+  const first = f.weapons.snapshot().lastShot.payload
+  assert.deepEqual(first.aimDirection, [0, 0, -1])
+  f.advance(7)
+  const eighth = f.weapons.snapshot().lastShot.payload
+  assert.equal(eighth.shotSequence, 8)
+  assert.equal(eighth.impact.hit, 'target')
+  assert.ok(eighth.impact.position[1] > first.impact.position[1] + 0.4)
+  assert.ok(eighth.spread > first.spread)
+  f.fixed({ type: 'fireHeld', held: false })
+  f.advance(5)
+  f.fixed({ type: 'fire' })
+  const recovered = f.weapons.snapshot().lastShot.payload
+  assert.equal(recovered.shotSequence, 9)
+  assert.deepEqual(recovered.aimDirection, first.aimDirection)
+  assert.equal(recovered.spread, first.spread)
 })
 
 test('complete shot resolution notifies only after all queries and uses the committed fixed timestamp', async (t) => {
@@ -711,16 +751,22 @@ test('real Digit3 selects Ghost and its semi-auto, reload and skin inputs preser
   assert.equal(f.weapons.snapshot().view.renderActiveId, 'ghost')
   const visual = f.assets.instances.find(instance => instance.weaponId === 'ghost')
   const ghost = () => f.weapons.snapshot().inventory.weapons.find(weapon => weapon.instanceId === 'ghost')
-  f.mouse('mousedown', 0)
-  f.weapons.collectInput(f.input)
-  f.fixed()
+  const tap = () => {
+    f.mouse('mouseup', 0)
+    f.mouse('mousedown', 0)
+    f.weapons.collectInput(f.input)
+    return f.fixed().events.find(event => event.type === 'ShotFired')
+  }
+  const first = tap()
+  assert.deepEqual(first.payload.aimDirection, [0, 0, -1])
+  assert.equal(tap(), undefined, 'a cooldown click must not produce a shot')
+  assert.equal(ghost().magazine, 12)
+  const second = tap()
+  assert.equal(second.payload.shotSequence, 2)
+  assert.ok(second.payload.aimDirection[1] > 0, 'the next accepted tap carries residual recoil')
   f.advance(5)
-  assert.equal(ghost().magazine, 12, 'held input cannot turn Ghost into an automatic weapon')
-  f.mouse('mouseup', 0)
-  f.mouse('mousedown', 0)
-  f.weapons.collectInput(f.input)
-  f.fixed()
-  assert.equal(ghost().magazine, 11)
+  assert.equal(f.aim.sample(f.tick * h).recoilPitch, 0)
+  assert.equal(ghost().magazine, 11, 'holding the last tap cannot turn Ghost into an automatic weapon')
   f.key('keydown', 'KeyR')
   f.key('keyup', 'KeyR')
   f.weapons.collectInput(f.input)
@@ -767,7 +813,13 @@ test('real Digit4 selects Vandal; held fire, ADS, reload deadlines and six skins
   assert.equal(f.weapons.snapshot().view.skinId, 'original')
   f.mouse('mousedown', 0)
   f.weapons.collectInput(f.input)
-  f.advance(7)
+  f.fixed()
+  const first = f.weapons.snapshot().lastShot.payload
+  assert.deepEqual(first.aimDirection, [0, 0, -1])
+  f.advance(6)
+  const burst = f.weapons.snapshot().lastShot.payload
+  assert.equal(burst.impact.hit, 'target')
+  assert.ok(burst.impact.position[1] > first.impact.position[1] + 0.25)
   assert.ok(weapon().magazine < 24, 'held input fires repeatedly')
   f.mouse('mouseup', 0)
   f.mouse('mousedown', 2)
@@ -838,18 +890,20 @@ test('real Digit5 selects Sheriff; semi-auto cooldown, no ADS, reload branches a
     f.mouse('mouseup', 0)
     f.mouse('mousedown', 0)
     f.weapons.collectInput(f.input)
-    f.fixed()
+    return f.fixed().events.find(event => event.type === 'ShotFired')
   }
-  press()
+  const first = press()
+  assert.deepEqual(first.payload.aimDirection, [0, 0, -1])
+  assert.ok(first.payload.impulse.pitch > Math.PI / 180)
   f.advance(5)
   assert.equal(weapon().magazine, 5, 'held fire remains semi-automatic')
-  press()
+  assert.deepEqual(press().payload.aimDirection, first.payload.aimDirection)
   assert.equal(weapon().magazine, 4)
-  press()
+  assert.equal(press(), undefined)
   assert.equal(weapon().magazine, 4, 'a new click before 0.25 seconds cannot fire')
   f.advance(2)
   assert.equal(weapon().magazine, 4, 'an early click is not queued into a later automatic shot')
-  press()
+  assert.ok(press().payload.aimDirection[1] > 0, 'the next quick tap still carries vertical recoil')
   assert.equal(weapon().magazine, 3)
   f.mouse('mouseup', 0)
   f.mouse('mousedown', 2)

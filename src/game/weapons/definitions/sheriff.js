@@ -16,8 +16,28 @@ export const sheriffGameplayProvenance = Object.freeze({
   unimplementedReferenceFields: 'Damage, penetration and weapon-specific movement are recorded only',
 })
 
+const radians = Math.PI / 180
+
 export const sheriffDefinition = createWeaponDefinition({
   ...classicAimProfile,
+  recoil: {
+    ...classicAimProfile.recoil,
+    spray: {
+      // [Shot number, pitch degrees up, yaw degrees left]. Recovery starts before the next legal tap.
+      points: [
+        [1, 0, 0],
+        [2, 2.2, 0],
+        [3, 3.75, 0.1],
+        [4, 4.2, 0.15],
+      ].map(([shot, pitch, yaw]) => ({
+        index: shot - 1,
+        pitch: pitch * radians,
+        yaw: yaw * radians,
+      })),
+      recoveryDelay: 0.2,
+      recoveryDuration: 0.3,
+    },
+  },
   id: 'sheriff',
   capacity: 6,
   initialReserve: 18,

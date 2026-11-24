@@ -11,10 +11,13 @@ import { readPinnedAuthoring } from '../tools/weapons/publish-authored.mjs'
 
 const readJSON = async file => JSON.parse(await readFile(file, 'utf8'))
 
-test('Sheriff uses pinned public-reference timing and labels the missing original gameplay', async () => {
+test('Sheriff keeps pinned public-reference timing separate from local spray tuning', async () => {
   const profile = await readJSON('tools/weapons/authored-releases/sheriff-temporary-runtime.json')
+  const { spray, ...releaseRecoil } = sheriffDefinition.recoil
+  assert.ok(spray.points.length > 1)
   assert.deepEqual(profile.definition, {
     ...sheriffDefinition,
+    recoil: releaseRecoil,
     assets: {
       modelId: 'sheriff',
       assetVersion: 'v1',
@@ -34,7 +37,7 @@ test('Sheriff uses pinned public-reference timing and labels the missing origina
   assert.equal(stats.adsStats, null)
   assert.equal(sheriffDefinition.capabilities.ads, false)
   assert.equal(sheriffDefinition.initialReserve, sheriffDefinition.capacity * 3)
-  assert.deepEqual(sheriffDefinition.recoil, classicAimProfile.recoil)
+  assert.deepEqual(releaseRecoil, classicAimProfile.recoil)
   assert.deepEqual(sheriffDefinition.spread, classicAimProfile.spread)
   for (const branch of Object.values(sheriffDefinition.reload)) {
     assert.equal(branch.duration, stats.reloadTimeSeconds)

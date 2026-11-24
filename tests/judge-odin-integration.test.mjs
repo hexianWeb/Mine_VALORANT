@@ -74,6 +74,8 @@ for (const [id, definition, provenance, window] of entries) {
     const releaseFire = id === 'odin'
       ? { mode: definition.fire.mode, interval: definition.fire.interval }
       : definition.fire
+    const { bloom, ...releaseSpread } = definition.spread
+    assert.ok(bloom.perShot > 0)
     const releaseSkins = id === 'odin'
       ? ['smite', 'prime', 'blastx']
       : ['smite', 'rush']
@@ -81,6 +83,7 @@ for (const [id, definition, provenance, window] of entries) {
       ...definition,
       aim: releaseAim,
       fire: releaseFire,
+      spread: releaseSpread,
       assets: {
         modelId: id,
         assetVersion: 'v1',

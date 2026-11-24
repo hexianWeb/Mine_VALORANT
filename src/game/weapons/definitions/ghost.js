@@ -16,8 +16,29 @@ export const ghostGameplayProvenance = Object.freeze({
   inspect: 'Three-second authoring clip used as a project deadline',
 })
 
+const radians = Math.PI / 180
+
 export const ghostDefinition = createWeaponDefinition({
   ...classicAimProfile,
+  recoil: {
+    ...classicAimProfile.recoil,
+    spray: {
+      // Local tuning for rapid taps: [shot number, pitch degrees up, yaw degrees left].
+      points: [
+        [1, 0, 0],
+        [2, 0.35, 0],
+        [3, 0.95, 0],
+        [4, 1.6, 0.1],
+        [5, 2.25, 0.24],
+      ].map(([shot, pitch, yaw]) => ({
+        index: shot - 1,
+        pitch: pitch * radians,
+        yaw: yaw * radians,
+      })),
+      recoveryDelay: 0.16,
+      recoveryDuration: 0.22,
+    },
+  },
   id: 'ghost',
   capacity: 13,
   initialReserve: 39,

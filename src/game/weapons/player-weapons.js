@@ -407,6 +407,7 @@ export class PlayerWeapons {
       aim: aiming,
       alternateScope: this.#alternateScopeId !== null,
       definition,
+      instanceId: equipment.activeId,
     })
     if (!aimHeld && aimPose.ads === 0)
       this.#alternateScopeId = null

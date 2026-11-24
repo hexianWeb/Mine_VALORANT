@@ -34,10 +34,65 @@ function curve(source, axis) {
   return Object.freeze(result)
 }
 
+function sprayProfile(source) {
+  record(source, 'recoil.spray', ['points', 'recoveryDelay', 'recoveryDuration'])
+  const { points, recoveryDelay, recoveryDuration } = source
+  if (!Array.isArray(points) || points.length < 2)
+    throw new TypeError('[AimProfile] Spray needs at least two points')
+  let previous = -1
+  const result = Array.from(points, (point, index) => {
+    record(point, 'recoil.spray point', ['index', 'pitch', 'yaw'])
+    if (!Number.isSafeInteger(point.index) || point.index <= previous
+      || !Number.isFinite(point.pitch) || !Number.isFinite(point.yaw)
+      || (index === 0 && (point.index !== 0 || point.pitch !== 0 || point.yaw !== 0))) {
+      throw new RangeError('[AimProfile] Spray points must start at zero and have increasing shot indices')
+    }
+    previous = point.index
+    return Object.freeze({ index: point.index, pitch: point.pitch, yaw: point.yaw })
+  })
+  if (!Number.isFinite(recoveryDelay) || recoveryDelay <= 0
+    || !Number.isFinite(recoveryDuration) || recoveryDuration <= 0
+    || !Number.isFinite(recoveryDelay + recoveryDuration)) {
+    throw new RangeError('[AimProfile] Spray recovery delay and duration must be positive finite seconds')
+  }
+  return Object.freeze({
+    points: Object.freeze(result),
+    recoveryDelay,
+    recoveryDuration,
+  })
+}
+
+function bloomProfile(source) {
+  record(source, 'spread.bloom', [
+    'perShot',
+    'max',
+    'recoveryDelay',
+    'recoveryDuration',
+  ])
+  const perShot = finite(source.perShot, 'spread.bloom.perShot')
+  const max = finite(source.max, 'spread.bloom.max', perShot)
+  const recoveryDelay = finite(source.recoveryDelay, 'spread.bloom.recoveryDelay')
+  const recoveryDuration = finite(source.recoveryDuration, 'spread.bloom.recoveryDuration')
+  if (perShot === 0 || recoveryDuration === 0)
+    throw new RangeError('[AimProfile] Bloom perShot and recoveryDuration must be positive')
+  return Object.freeze({
+    perShot,
+    max,
+    recoveryDelay,
+    recoveryDuration,
+  })
+}
+
 /** All runtime angles are radians, FOVs are degrees, and time is retained simulation seconds. */
 export function createAimProfile({ recoil = { pitch: [], yaw: [] }, spread = {}, aim = {} } = {}) {
-  record(recoil, 'recoil', ['pitch', 'yaw'])
-  record(spread, 'spread', ['stand', 'move', 'crouch', 'ads'])
+  record(recoil, 'recoil', ['pitch', 'yaw', 'spray'])
+  record(spread, 'spread', [
+    'stand',
+    'move',
+    'crouch',
+    'ads',
+    'bloom',
+  ])
   record(aim, 'aim', [
     'duration',
     'releaseDuration',
@@ -56,16 +111,22 @@ export function createAimProfile({ recoil = { pitch: [], yaw: [] }, spread = {},
   const scopeAltZoom = aim.scopeAltZoom
   if (scopeAltZoom !== undefined && (scopeZoom === undefined || !Number.isFinite(scopeAltZoom) || scopeAltZoom <= scopeZoom))
     throw new RangeError('[AimProfile] Alternate scope magnification must exceed the primary magnification')
+  const spreadValues = Object.fromEntries(['stand', 'move', 'crouch', 'ads']
+    .map(key => [
+      key,
+      finite(spread[key] ?? 0, `spread.${key}`),
+    ]))
+  if (spread.bloom !== undefined)
+    spreadValues.bloom = bloomProfile(spread.bloom)
+  const recoilValues = {
+    pitch: curve(recoil.pitch, 'pitch'),
+    yaw: curve(recoil.yaw, 'yaw'),
+  }
+  if (recoil.spray !== undefined)
+    recoilValues.spray = sprayProfile(recoil.spray)
   return Object.freeze({
-    recoil: Object.freeze({
-      pitch: curve(recoil.pitch, 'pitch'),
-      yaw: curve(recoil.yaw, 'yaw'),
-    }),
-    spread: Object.freeze(Object.fromEntries(['stand', 'move', 'crouch', 'ads']
-      .map(key => [
-        key,
-        finite(spread[key] ?? 0, `spread.${key}`),
-      ]))),
+    recoil: Object.freeze(recoilValues),
+    spread: Object.freeze(spreadValues),
     aim: Object.freeze({
       duration: finite(aim.duration ?? 0, 'aim.duration'),
       ...(aim.releaseDuration === undefined
@@ -112,7 +173,7 @@ function recoilCurve(points) {
 // Source inaccuracy is a dimensionless Projectile input, NOT degrees. This project's explicit
 // calibration uses independent triangular direction noise at source * 0.0172275, then normalizes.
 // The coefficient/distribution is project policy, not a claim of exact TACZ/Minecraft parity.
-// There is no source per-shot bloom, so none is invented here; stance/ADS determines spread.
+// Optional automatic-fire bloom is local gameplay tuning, not source inaccuracy data.
 const spreadScale = 0.0172275
 const phantomAimDuration = 0.12
 function spreadProfile(stand, move, crouch, ads) {
@@ -203,7 +264,16 @@ export const phantomAimProfile = createAimProfile({
       [0.45, 0, 0],
     ]),
   },
-  spread: spreadProfile(0.2, 6.8, 0.17, 0.11),
+  spread: {
+    ...spreadProfile(0.2, 6.8, 0.17, 0.11),
+    // Shared by Phantom, Vandal, Bulldog and Odin. At full bloom, recovery takes 0.52 s.
+    bloom: {
+      perShot: 0.0035,
+      max: 0.0175,
+      recoveryDelay: 0.18,
+      recoveryDuration: 0.34,
+    },
+  },
   // Practice range transition shared with Vandal and Odin.
   aim: { duration: phantomAimDuration, worldFov: 45, viewmodelFov: 45 },
 })

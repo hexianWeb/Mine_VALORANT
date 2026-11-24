@@ -10,10 +10,13 @@ import { readPinnedAuthoring } from '../tools/weapons/publish-authored.mjs'
 
 const readJSON = async file => JSON.parse(await readFile(file, 'utf8'))
 
-test('Ghost uses an explicit temporary public reference without pretending to recover original gameplay', async () => {
+test('Ghost keeps the pinned public reference separate from local spray tuning', async () => {
   const profile = await readJSON('tools/weapons/authored-releases/ghost-temporary-runtime.json')
+  const { spray, ...releaseRecoil } = ghostDefinition.recoil
+  assert.ok(spray.points.length > 1)
   assert.deepEqual(profile.definition, {
     ...ghostDefinition,
+    recoil: releaseRecoil,
     assets: {
       modelId: 'ghost',
       assetVersion: 'v1',
@@ -28,7 +31,7 @@ test('Ghost uses an explicit temporary public reference without pretending to re
   assert.equal(ghostDefinition.fire.mode, 'semi')
   assert.equal(ghostDefinition.capabilities.ads, false)
   assert.equal(ghostDefinition.initialReserve, ghostDefinition.capacity * 3)
-  assert.deepEqual(ghostDefinition.recoil, classicAimProfile.recoil)
+  assert.deepEqual(releaseRecoil, classicAimProfile.recoil)
   assert.deepEqual(ghostDefinition.spread, classicAimProfile.spread)
   for (const branch of Object.values(ghostDefinition.reload)) {
     assert.equal(branch.duration, profile.reference.weaponStats.reloadTimeSeconds)

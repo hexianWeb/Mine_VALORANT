@@ -78,6 +78,21 @@ function recoilAt(segments, at) {
   return { yaw, pitch }
 }
 
+function sprayPointAt(points, progress) {
+  for (let index = 1; index < points.length; index++) {
+    const next = points[index]
+    if (progress <= next.index) {
+      const previous = points[index - 1]
+      const t = (progress - previous.index) / (next.index - previous.index)
+      return {
+        pitch: MathUtils.lerp(previous.pitch, next.pitch, t),
+        yaw: MathUtils.lerp(previous.yaw, next.yaw, t),
+      }
+    }
+  }
+  return points.at(-1)
+}
+
 function quaternion(yaw, pitch) {
   return new Quaternion().setFromEuler(new Euler(pitch, yaw, 0, 'YXZ')).toArray()
 }
@@ -111,10 +126,13 @@ export class AimState {
   #spread = 0
   #profile = neutral
   #segments = []
+  #activeInstance = null
+  #sprays = new Map()
   #history = []
   #step = null
   #lastStepAt = null
   #shots = new Map()
+  #bloom = new Map()
 
   constructor({ maxPitch = MathUtils.degToRad(89), verticalOffset = 1.62, offsetSmoothing = 12, stepSmoothingTime = 0.1, worldFov = 75, viewmodelFov = 70, limitStepOffset = null, seed = 1 } = {}) {
     if (!Number.isFinite(maxPitch) || maxPitch < 0 || maxPitch > Math.PI / 2
@@ -165,11 +183,14 @@ export class AimState {
     if (this.#step || at < this.#at)
       throw new RangeError('[AimState] Cannot rebase an active step or move time backwards')
     const offset = at - this.#at
-    this.#segments = this.#segments.map(segment => freeze({
+    const shift = segment => freeze({
       ...segment,
       at: segment.at + offset,
       endAt: segment.endAt + offset,
-    }))
+    })
+    this.#segments = this.#segments.map(shift)
+    for (const state of this.#sprays.values()) state.segment = shift(state.segment)
+    for (const state of this.#bloom.values()) state.clearAt += offset
     const pose = freeze({
       ...this.#history.at(-1).after,
       at,
@@ -181,7 +202,7 @@ export class AimState {
         at,
         before: pose,
         after: pose,
-        segments: [...this.#segments],
+        segments: this.#recoilSegments(),
       },
     ]
   }
@@ -211,9 +232,12 @@ export class AimState {
     this.#spread = 0
     this.#profile = neutral
     this.#segments = []
+    this.#activeInstance = null
+    this.#sprays.clear()
     this.#step = null
     this.#lastStepAt = null
     this.#shots.clear()
+    this.#bloom.clear()
     this.clearInput()
     const pose = this.#pose()
     this.#history = [
@@ -226,7 +250,7 @@ export class AimState {
     ]
   }
 
-  beginStep({ at, delta, feet, verticalOffset = this.#verticalOffset, stepDeltaY = this.#stepDeltaY, aim = false, alternateScope = false, definition = null, moving = false, crouched = false }) {
+  beginStep({ at, delta, feet, verticalOffset = this.#verticalOffset, stepDeltaY = this.#stepDeltaY, aim = false, alternateScope = false, definition = null, instanceId = null, moving = false, crouched = false }) {
     const position = point(feet)
     for (const [name, value] of Object.entries({
       at,
@@ -243,6 +267,7 @@ export class AimState {
     this.#yaw = this.headingYaw
     this.#pitch = MathUtils.clamp(this.#pitch + this.#pendingPitch, -this.#maxPitch, this.#maxPitch)
     this.clearInput()
+    this.#activeInstance = instanceId
     const previousScope = this.#profile.aim.scopeZoom
     this.#profile = definition
       ? {
@@ -282,13 +307,32 @@ export class AimState {
     if (Math.abs(this.#stepOffset) < 1e-6)
       this.#stepOffset = 0
     this.#segments = this.#segments.filter(segment => segment.endAt >= at)
+    for (const [instanceId, state] of this.#sprays) {
+      if (state.segment.endAt <= at)
+        this.#sprays.delete(instanceId)
+    }
+    for (const [instanceId, state] of this.#bloom) {
+      if (state.clearAt <= at)
+        this.#bloom.delete(instanceId)
+    }
     const before = this.#pose()
     this.#step = { at, before, current: before }
     return this.#step.before
   }
 
+  #recoilSegments() {
+    const patterned = !!this.#profile.recoil.spray
+    // A patterned weapon only admits its own standalone kicks, not unscoped legacy curves.
+    const instanceId = patterned ? this.#activeInstance : undefined
+    const segments = this.#segments.filter(segment => segment.instanceId === instanceId)
+    const state = patterned && this.#sprays.get(instanceId)
+    if (state)
+      segments.push(state.segment)
+    return segments
+  }
+
   #pose() {
-    const recoil = recoilAt(this.#segments, this.#at)
+    const recoil = recoilAt(this.#recoilSegments(), this.#at)
     const yaw = wrap(this.#yaw + recoil.yaw)
     const pitch = MathUtils.clamp(this.#pitch + recoil.pitch, -this.#maxPitch, this.#maxPitch)
     const rotation = quaternion(yaw, pitch)
@@ -329,6 +373,64 @@ export class AimState {
     })
   }
 
+  #advanceBloom(instanceId, profile) {
+    if (!profile)
+      return 0
+    const previous = this.#bloom.get(instanceId)
+    const extra = previous
+      ? MathUtils.clamp((previous.clearAt - this.#at) / profile.recoveryDuration * profile.max, 0, previous.amount)
+      : 0
+    // Only earlier shots affect this direction. This shot holds the new amount, then it decays
+    // linearly at a rate of max / recoveryDuration, even while another weapon is equipped.
+    const amount = Math.min(profile.max, extra + profile.perShot)
+    const clearAt = this.#at + profile.recoveryDelay + (amount / profile.max) * profile.recoveryDuration
+    this.#bloom.set(instanceId, { amount, clearAt })
+    return extra
+  }
+
+  #advanceSpray(instanceId, profile) {
+    const previous = this.#sprays.get(instanceId)
+    const retained = previous
+      ? MathUtils.clamp((previous.segment.endAt - this.#at) / profile.recoveryDuration, 0, 1)
+      : 0
+    const progress = Math.min((previous?.progress ?? 0) * retained + 1, profile.points.at(-1).index)
+    const { pitch, yaw } = sprayPointAt(profile.points, progress)
+    const end = profile.recoveryDelay + profile.recoveryDuration
+    const holdAndRecover = value => [
+      { time: 0, value },
+      { time: profile.recoveryDelay, value },
+      { time: end, value: 0 },
+    ]
+    // Replace the absolute offset, not add it to the preceding shot's offset. During recovery the
+    // current offset decays straight to zero; resuming fire advances the remaining burst progress.
+    const segment = freeze({
+      at: this.#at,
+      pitch: holdAndRecover(pitch),
+      yaw: holdAndRecover(yaw),
+      endAt: this.#at + end,
+    })
+    this.#sprays.set(instanceId, { progress, segment })
+  }
+
+  #addCurveRecoil(source, next, instanceId) {
+    const sampleCurve = curve => curve.map(frame => ({
+      time: frame.time,
+      value: MathUtils.lerp(frame.min, frame.max, next()),
+    }))
+    const segment = {
+      instanceId,
+      at: this.#at,
+      pitch: sampleCurve(source.pitch),
+      yaw: sampleCurve(source.yaw),
+      endAt: this.#at + Math.max(source.pitch.at(-1)?.time ?? 0, source.yaw.at(-1)?.time ?? 0),
+    }
+    this.#segments.push(freeze(segment))
+    return {
+      pitch: curveAt(segment.pitch, 0),
+      yaw: curveAt(segment.yaw, 0),
+    }
+  }
+
   /** Call only for an accepted fixed-step ShotFired; this method never decides ammo or cooldown. */
   fire({ instanceId, shotSequence, definition, pelletCount = definition?.fire?.pellets ?? 1, salvo = false }) {
     if (!this.#step)
@@ -339,6 +441,9 @@ export class AimState {
     }
     if (!Number.isSafeInteger(pelletCount) || pelletCount < 1 || pelletCount > 64)
       throw new RangeError('[AimState] Invalid pellet count')
+    const spray = this.#profile.recoil.spray
+    if (spray && instanceId !== this.#activeInstance)
+      throw new Error('[AimState] Spray shot must match the active weapon instance')
     const before = this.#step.current
     const seed = hashSeed(this.#seed, instanceId, shotSequence)
     const next = random(seed)
@@ -347,7 +452,11 @@ export class AimState {
     const salvoPattern = salvo && pelletCount > 1
       ? definition.fire.salvo
       : null
-    const normalDirection = spreadDirection(next, before.spread, orientation)
+    const extraSpread = salvoPattern
+      ? 0
+      : this.#advanceBloom(instanceId, definition?.spread?.bloom)
+    const spread = before.spread + extraSpread
+    const normalDirection = spreadDirection(next, spread, orientation)
     const shotDirection = salvoPattern ? aimDirection : normalDirection
     // A separate stream preserves the ordinary shot and the single recoil impulse.
     let pelletDirections
@@ -360,7 +469,7 @@ export class AimState {
         shotDirection,
         ...Array.from({ length: pelletCount - 1 }, (_, index) => {
           if (!salvoPattern)
-            return spreadDirection(pelletRandom, before.spread, orientation)
+            return spreadDirection(pelletRandom, spread, orientation)
           // Seed the orientation, not the spacing: even a two-round salvo has separated rays.
           const angle = phase + index * 2 * Math.PI / salvoPattern.rounds
           const radius = Math.tan(salvoPattern.spreadAngle)
@@ -371,20 +480,21 @@ export class AimState {
         }),
       ]
     }
-    const source = definition?.recoil ?? neutral.recoil
-    const sampleCurve = curve => curve.map(frame => ({
-      time: frame.time,
-      value: MathUtils.lerp(frame.min, frame.max, next()),
-    }))
-    const segment = {
-      at: this.#at,
-      pitch: sampleCurve(source.pitch),
-      yaw: sampleCurve(source.yaw),
-      endAt: this.#at + Math.max(source.pitch.at(-1)?.time ?? 0, source.yaw.at(-1)?.time ?? 0),
+    let impulse
+    if (spray && !salvo) {
+      this.#advanceSpray(instanceId, spray)
     }
-    this.#segments.push(freeze(segment))
+    else {
+      // A right-click salvo is one independent kick, even with only one remaining round.
+      impulse = this.#addCurveRecoil(definition?.recoil ?? neutral.recoil, next, spray ? instanceId : undefined)
+    }
     this.#shots.set(instanceId, shotSequence)
-    this.#step.current = this.#pose()
+    const after = this.#pose()
+    this.#step.current = after
+    impulse ??= {
+      pitch: after.recoilPitch - before.recoilPitch,
+      yaw: after.recoilYaw - before.recoilYaw,
+    }
     return freeze({
       eyeOrigin: before.position,
       aimDirection,
@@ -395,11 +505,8 @@ export class AimState {
       seed,
       shotId: `${instanceId}:${shotSequence}`,
       patternIndex: shotSequence - 1,
-      spread: salvoPattern?.spreadAngle ?? before.spread,
-      impulse: {
-        pitch: curveAt(segment.pitch, 0),
-        yaw: curveAt(segment.yaw, 0),
-      },
+      spread: salvoPattern?.spreadAngle ?? spread,
+      impulse,
     })
   }
 
@@ -412,7 +519,7 @@ export class AimState {
       at: this.#step.at,
       before: this.#step.before,
       after,
-      segments: [...this.#segments],
+      segments: this.#recoilSegments(),
     }
     if (this.#history.at(-1).at === record.at)
       this.#history.pop()

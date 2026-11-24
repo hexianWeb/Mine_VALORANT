@@ -24,6 +24,13 @@ export const judgeDefinition = createWeaponDefinition({
     move: 0.08,
     crouch: 0.04,
     ads: 0.045,
+    // A shot adds bloom once for the whole pellet cloud; allow for the slower cadence.
+    bloom: {
+      perShot: 0.006,
+      max: 0.024,
+      recoveryDelay: 0.32,
+      recoveryDuration: 0.3,
+    },
   },
   id: 'judge',
   capacity: 5,

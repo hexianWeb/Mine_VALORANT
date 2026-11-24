@@ -5,6 +5,7 @@ import { Time } from '../src/engine/runtime/core/time.js'
 import { AimState } from '../src/game/player/aim-state.js'
 import { classicAimProfile, createAimProfile, phantomAimProfile } from '../src/game/weapons/aim-profile.js'
 import { classicDefinition } from '../src/game/weapons/definitions/classic.js'
+import { judgeDefinition } from '../src/game/weapons/definitions/judge.js'
 import { operatorDefinition } from '../src/game/weapons/definitions/operator.js'
 import { outlawDefinition } from '../src/game/weapons/definitions/outlaw.js'
 import { phantomDefinition } from '../src/game/weapons/definitions/phantom.js'
@@ -113,6 +114,129 @@ function step(aim, at, options = {}) {
     ...options,
   })
 }
+
+const testBloom = {
+  perShot: 0.01,
+  max: 0.03,
+  recoveryDelay: 0.2,
+  recoveryDuration: 0.3,
+}
+
+test('bloom is optional, validated and copied into the weapon definition', () => {
+  const bloom = { ...testBloom }
+  const gun = createWeaponDefinition({
+    ...phantomDefinition,
+    spread: { ...phantomDefinition.spread, bloom },
+  })
+  assert.notEqual(gun.spread.bloom, bloom)
+  assert.ok(Object.isFrozen(gun.spread.bloom))
+  assert.equal(classicDefinition.spread.bloom, undefined)
+  for (const invalid of [
+    { perShot: 0 },
+    { max: 0.005 },
+    { recoveryDelay: -1 },
+    { recoveryDuration: 0 },
+  ]) {
+    const invalidBloom = {
+      ...bloom,
+      ...invalid,
+    }
+    assert.throws(() => createAimProfile({
+      spread: { bloom: invalidBloom },
+    }), RangeError)
+  }
+})
+
+test('rapid shots widen the actual rays up to a cap and idle time restores first-shot spread', () => {
+  function run(bloom) {
+    const gun = definition({
+      spread: { stand: 0.02, bloom },
+    })
+    const aim = new AimState({ seed: 123 })
+    const shots = []
+    for (let tick = 1; tick <= 14; tick++) {
+      step(aim, tick / 10, { definition: gun })
+      if (tick <= 5 || tick === 8 || tick === 14)
+        shots.push(aim.fire({ instanceId: 'rifle', shotSequence: shots.length + 1, definition: gun }))
+      aim.endStep()
+    }
+    return shots
+  }
+  const shots = run(testBloom)
+  const baseline = run()
+  const expected = [
+    0.02,
+    0.03,
+    0.04,
+    0.05,
+    0.05,
+    0.04,
+    0.02,
+  ]
+  for (const [index, shot] of shots.entries()) {
+    close(shot.spread, expected[index])
+    assert.deepEqual(shot.impulse, baseline[index].impulse)
+    assert.deepEqual(shot.aimDirection, baseline[index].aimDirection)
+  }
+  assert.deepEqual(shots[0], baseline[0])
+  assert.notDeepEqual(shots[3].shotDirection, baseline[3].shotDirection)
+  assert.deepEqual(shots.at(-1), baseline.at(-1))
+})
+
+test('bloom follows the weapon instance and its clock, independently of stance changes', () => {
+  const aim = new AimState()
+  const gun = definition({
+    spread: {
+      stand: 0.02,
+      move: 0.08,
+      crouch: 0.015,
+      ads: 0.01,
+      bloom: testBloom,
+    },
+  })
+  const fire = (at, instanceId, shotSequence, stance) => {
+    step(aim, at, { definition: gun, ...stance })
+    const shot = aim.fire({ instanceId, shotSequence, definition: gun })
+    aim.endStep()
+    return shot.spread
+  }
+  close(fire(0.1, 'first', 1), 0.02)
+  close(fire(0.2, 'second', 1, { aim: true }), 0.01)
+  close(fire(0.3, 'first', 2, { moving: true }), 0.09)
+  aim.rebase(20)
+  close(fire(20.1, 'first', 3, { crouched: true }), 0.035)
+  aim.reset({
+    feet: [0, 0, 0],
+    at: 20.1,
+  })
+  close(fire(20.2, 'first', 1, { crouched: true }), 0.015)
+})
+
+test('Judge blooms once per shot and widens the whole pellet cloud', () => {
+  function run(gun) {
+    const aim = new AimState({ seed: 123 })
+    const shots = []
+    for (let tick = 1; tick <= 4; tick++) {
+      step(aim, tick / 10, { definition: gun })
+      if (tick === 1 || tick === 4)
+        shots.push(aim.fire({ instanceId: 'judge', shotSequence: shots.length + 1, definition: gun }))
+      aim.endStep()
+    }
+    return shots
+  }
+  const [first, second] = run(judgeDefinition)
+  const [firstBaseline, secondBaseline] = run({
+    ...judgeDefinition,
+    spread: { ...judgeDefinition.spread, bloom: undefined },
+  })
+  assert.deepEqual(first, firstBaseline)
+  close(second.spread, judgeDefinition.spread.stand + judgeDefinition.spread.bloom.perShot)
+  const center = new Vector3().fromArray(second.aimDirection)
+  const deviation = direction => new Vector3().fromArray(direction).distanceToSquared(center)
+  assert.equal(second.pelletDirections.length, 12)
+  for (const [index, direction] of second.pelletDirections.entries())
+    assert.ok(deviation(direction) > deviation(secondBaseline.pelletDirections[index]))
+})
 
 test('look is pending until fixed commit, heading is available to movement, and look is consumed only once', () => {
   const aim = new AimState({ maxPitch: 0.8 })
@@ -369,6 +493,7 @@ test('fixed shots, seeds, recovery and smoothing are identical at 30/60/144 FPS'
           verticalOffset: 1.2,
           aim: context.fixedTick > 60,
           definition: phantomDefinition,
+          instanceId: 'rifle',
         })
         if (context.fixedTick % 10 === 0)
           shots.push(aim.fire({ instanceId: 'rifle', shotSequence: ++sequence, definition: phantomDefinition }))
@@ -420,7 +545,7 @@ test('pose and shot data are immutable and no sample advances pending input or r
   assert.throws(() => {
     aim.sample(0).position[0] = 2
   }, TypeError)
-  step(aim, 0.1, { definition: phantomDefinition })
+  step(aim, 0.1, { definition: phantomDefinition, instanceId: 'A' })
   const shot = aim.fire({ instanceId: 'A', shotSequence: 1, definition: phantomDefinition })
   const pose = aim.endStep()
   const direction = new Vector3(0, 0, -1).applyQuaternion(new Quaternion().setFromEuler(new Euler(0.2, 0.4, 0, 'YXZ')))
