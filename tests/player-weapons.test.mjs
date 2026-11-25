@@ -409,6 +409,10 @@ test('delayed HUD replays shot and reload ammo at their own boundaries without f
   }
   assert.equal(present(shot.at).weapon.magazine, initial.magazine - 1)
   assert.equal(present(reload.at).action, 'reloadTactical')
+  assert.equal(reload.payload.endTick - reload.fixedTick, 15)
+  present(reload.at + 0.75)
+  const { localTime } = f.assets.instances[0].player.snapshot().current
+  assert.ok(Math.abs(localTime - 0.875) < 1e-10, 'shorter reload still reaches half of the original clip endpoint at its midpoint')
   assert.equal(present(feed.at - h / 2).weapon.magazine, initial.magazine - 1)
   const refilled = present(feed.at).weapon
   assert.equal(refilled.magazine, initial.magazine)
@@ -532,6 +536,28 @@ test('menu handoff drops pre-fixed input but lets async equipment preparation an
   f.advance(30)
   assert.equal(f.weapons.snapshot().action, null)
   assert.equal(f.weapons.readHud().weapon.magazine, 30)
+})
+
+test('Phantom tactical reload refills early but permits fire only at the shorter ready deadline', async (t) => {
+  const f = setup(t)
+  await f.ready()
+  f.fixed({ type: 'select', instanceId: 'rifle' })
+  await f.assets.resolve('phantom')
+  f.motion()
+  f.advance(8)
+  f.fixed({ type: 'fire' })
+  const reload = f.fixed({ type: 'reload' }).events.find(event => event.type === 'ReloadStarted')
+  assert.equal(reload.payload.branch, 'tactical')
+  assert.equal(reload.payload.feedTick - reload.fixedTick, 11)
+  assert.equal(reload.payload.endTick - reload.fixedTick, 22)
+  f.advance(10)
+  const atFeed = f.fixed({ type: 'fire' }).events
+  assert.equal(atFeed.find(event => event.type === 'AmmoCommitted').payload.weapon.magazine, 30)
+  assert.ok(atFeed.every(event => event.type !== 'ShotFired'))
+  f.advance(9)
+  assert.ok(f.fixed({ type: 'fire' }).events.every(event => event.type !== 'ShotFired'))
+  const atReady = f.fixed({ type: 'fire' }).events
+  assert.deepEqual(atReady.map(event => event.type), ['ReloadFinished', 'ShotFired'])
 })
 
 test('held Phantom fire raises the actual impact and a recovered shot aims at center again', async (t) => {
@@ -771,8 +797,8 @@ test('real Digit3 selects Ghost and its semi-auto, reload and skin inputs preser
   f.key('keyup', 'KeyR')
   f.weapons.collectInput(f.input)
   f.fixed()
-  f.advance(14)
-  assert.equal(ghost().magazine, 11, 'temporary reload commits only at its 1.5-second endpoint')
+  f.advance(12)
+  assert.equal(ghost().magazine, 11, 'tactical reload commits only at its 1.3-second endpoint')
   f.advance(1)
   assert.equal(ghost().magazine, 13)
   assert.equal(ghost().reserve, 37)
@@ -834,7 +860,7 @@ test('real Digit4 selects Vandal; held fire, ADS, reload deadlines and six skins
   f.key('keyup', 'KeyR')
   f.weapons.collectInput(f.input)
   f.fixed()
-  f.advance(24)
+  f.advance(21)
   assert.equal(weapon().magazine, magazine, 'no early feed from the shorter authoring clip')
   f.advance(1)
   assert.equal(weapon().magazine, 25)
@@ -915,8 +941,8 @@ test('real Digit5 selects Sheriff; semi-auto cooldown, no ADS, reload branches a
   f.key('keyup', 'KeyR')
   f.weapons.collectInput(f.input)
   f.fixed()
-  f.advance(22)
-  assert.equal(weapon().magazine, 3, 'no feed before the 2.25-second reload deadline')
+  f.advance(19)
+  assert.equal(weapon().magazine, 3, 'no feed before the tactical reload deadline')
   f.advance(1)
   assert.equal(weapon().magazine, 6)
   assert.equal(weapon().reserve, 15)

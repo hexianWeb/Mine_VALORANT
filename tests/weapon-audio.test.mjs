@@ -354,6 +354,29 @@ test('an independent zero-time marker is retained, while the same start sound is
   assert.equal(f.enqueued.filter(cue => cue.id.endsWith('marker:0')).length, 1)
 })
 
+test('retimed tactical reload accelerates the cue and marker while empty reload stays at source rate', (t) => {
+  const f = adapter(t)
+  const manifest = f.assets.manifest
+  f.assets.manifest = () => {
+    const data = manifest()
+    data.clips.find(clip => clip.name === 'reload').markers.push({ time: 0.875, cue: 'bolt' })
+    return data
+  }
+  f.receive(f.event('ReloadStarted', 0, { branch: 'tactical', actionId: 1, endTick: 90 }))
+  f.motion(0.7)
+  assert.equal(f.enqueued.length, 1)
+  assert.equal(f.enqueued[0].rate, 1.75 / 1.5)
+  assert.equal(f.enqueued[0].endAt, 1.5)
+  f.motion(0.75)
+  assert.equal(f.enqueued.length, 2)
+  assert.ok(Math.abs(f.enqueued[1].at - 0.75) < 1e-10)
+  assert.equal(f.enqueued[1].rate, f.enqueued[0].rate)
+  f.receive(f.event('ReloadStarted', 2, { branch: 'empty', actionId: 2, endTick: 225 }))
+  f.motion(2)
+  assert.equal(f.enqueued.at(-1).rate, 1)
+  assert.equal(f.enqueued.at(-1).endAt, 3.75)
+})
+
 test('epoch invalidation is immediate even without motion, and reload branches select one explicit alias', (t) => {
   const f = adapter(t)
   f.receive(f.event('ReloadStarted', 0.1, { branch: 'tactical', actionId: 1, endTick: 120 }))

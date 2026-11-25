@@ -75,9 +75,10 @@ test('Bulldog moves closer at constant FOV; its draw overlaps the lift with one 
     ['empty', 'reloadEmpty'],
   ]) {
     const plan = bulldogDefinition.reload[branch]
-    assert.equal(plan.duration, duration(role))
+    assert.equal(plan.clipEnd ?? plan.duration, duration(role))
     assert.equal(plan.feed, plan.duration)
   }
+  assert.equal(bulldogDefinition.reload.tactical.duration, 2)
   const draw = glb.doc.animations.find(a => a.name === manifest.actions.draw)
   const keys = (joint) => {
     const channel = draw.channels.find(c => c.target.path === 'translation' && glb.doc.nodes[c.target.node].name === joint)

@@ -31,12 +31,25 @@ function seconds(value, name, positive = false) {
 }
 
 function reloadPlan(value, name) {
-  record(value, name, ['feed', 'duration'])
+  record(value, name, ['feed', 'duration', 'clipEnd'])
   const feed = seconds(value.feed, `${name}.feed`)
-  const duration = seconds(value.duration, `${name}.duration`)
+  const retimed = Object.hasOwn(value, 'clipEnd')
+  const duration = seconds(value.duration, `${name}.duration`, retimed)
   if (feed > duration)
     throw new RangeError(`${name}.feed must not exceed duration`)
-  return Object.freeze({ feed, duration })
+  const plan = { feed, duration }
+  if (retimed)
+    plan.clipEnd = seconds(value.clipEnd, `${name}.clipEnd`, true)
+  return Object.freeze(plan)
+}
+
+/** Keep the old local clip endpoint and feed pose when changing the gameplay duration. */
+export function retimeReload(source, duration) {
+  return {
+    feed: source.feed / source.duration * duration,
+    duration,
+    clipEnd: source.duration,
+  }
 }
 
 /** Copy validated gameplay data; no source configuration object is retained or frozen. */

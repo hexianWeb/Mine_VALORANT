@@ -1,5 +1,5 @@
 import { phantomAimProfile } from '../aim-profile.js'
-import { createWeaponDefinition } from '../weapon-definition.js'
+import { createWeaponDefinition, retimeReload } from '../weapon-definition.js'
 
 const adsFov = 2 * Math.atan(Math.tan(70 * Math.PI / 360) / 1.25) * 180 / Math.PI
 
@@ -20,7 +20,7 @@ export const bulldogDefinition = createWeaponDefinition({
   fire: { mode: 'auto', interval: 1 / 10, adsInterval: 1 / 6.315715 },
   equip: { draw: 45 / 60, holster: 0 },
   reload: {
-    tactical: { feed: 2.3, duration: 2.3 },
+    tactical: retimeReload({ feed: 2.3, duration: 2.3 }, 2),
     empty: { feed: 2.3, duration: 2.3 },
   },
   inspectDuration: 3,

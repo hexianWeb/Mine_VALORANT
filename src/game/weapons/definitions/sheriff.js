@@ -1,5 +1,5 @@
 import { classicAimProfile } from '../aim-profile.js'
-import { createWeaponDefinition } from '../weapon-definition.js'
+import { createWeaponDefinition, retimeReload } from '../weapon-definition.js'
 
 // Public-reference trial data, NOT recovered valorant-first-person-pack metadata.
 export const sheriffGameplayProvenance = Object.freeze({
@@ -44,7 +44,7 @@ export const sheriffDefinition = createWeaponDefinition({
   fire: { mode: 'semi', interval: 1 / 4 },
   equip: { draw: 1, holster: 0 },
   reload: {
-    tactical: { feed: 2.25, duration: 2.25 },
+    tactical: retimeReload({ feed: 2.25, duration: 2.25 }, 1.95),
     empty: { feed: 2.25, duration: 2.25 },
   },
   inspectDuration: 3,

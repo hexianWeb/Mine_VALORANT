@@ -17,6 +17,7 @@ test('Ghost keeps the pinned public reference separate from local spray tuning',
   assert.deepEqual(profile.definition, {
     ...ghostDefinition,
     recoil: releaseRecoil,
+    reload: { tactical: ghostDefinition.reload.empty, empty: ghostDefinition.reload.empty },
     assets: {
       modelId: 'ghost',
       assetVersion: 'v1',
@@ -33,10 +34,10 @@ test('Ghost keeps the pinned public reference separate from local spray tuning',
   assert.equal(ghostDefinition.initialReserve, ghostDefinition.capacity * 3)
   assert.deepEqual(releaseRecoil, classicAimProfile.recoil)
   assert.deepEqual(ghostDefinition.spread, classicAimProfile.spread)
-  for (const branch of Object.values(ghostDefinition.reload)) {
-    assert.equal(branch.duration, profile.reference.weaponStats.reloadTimeSeconds)
-    assert.equal(branch.feed, branch.duration)
-  }
+  const { tactical, empty } = ghostDefinition.reload
+  assert.equal(empty.duration, profile.reference.weaponStats.reloadTimeSeconds)
+  assert.equal(empty.feed, empty.duration)
+  assert.deepEqual(tactical, { feed: 1.3, duration: 1.3, clipEnd: empty.duration })
   assert.deepEqual(practiceLoadout.slice(0, 3).map(slot => slot.weapon.definitionId), ['phantom', 'classic', 'ghost'])
   assert.equal(practiceLoadout[2].id, 'tertiary')
 })

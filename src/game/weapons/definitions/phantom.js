@@ -1,5 +1,5 @@
 import { phantomAimProfile } from '../aim-profile.js'
-import { createWeaponDefinition } from '../weapon-definition.js'
+import { createWeaponDefinition, retimeReload } from '../weapon-definition.js'
 
 const radians = Math.PI / 180
 
@@ -35,7 +35,7 @@ export const phantomDefinition = createWeaponDefinition({
   fire: { mode: 'auto', interval: 60 / 660 },
   equip: { draw: 1, holster: 0 }, // Source put_away_time is explicitly zero.
   reload: {
-    tactical: { feed: 1.2, duration: 2.5 },
+    tactical: retimeReload({ feed: 1.2, duration: 2.5 }, 2.15),
     empty: { feed: 2.25, duration: 2.5 },
   },
   inspectDuration: 4,

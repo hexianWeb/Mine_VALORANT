@@ -106,10 +106,12 @@ export class WeaponAudio {
     const definition = this.#definitions.get(event.payload.weapon?.definitionId)
     const manifest = definition && this.#assets.manifest(definition.assets.modelId, definition.assets.assetVersion)
     const clip = manifest?.clips.find(clip => clip.name === manifest.actions[role])
-    // Match the explicit viewmodel profile: draw/inspect scale to gameplay deadlines;
-    // reload retains source seconds and clips its recovery tail, firing retains its source rate.
-    const rate = clip && ['draw', 'inspect'].includes(role) && endAt > event.at
-      ? clip.duration / (endAt - event.at)
+    // Match the viewmodel's scale for draw/inspect and explicitly retimed reloads.
+    const clipEnd = ['draw', 'inspect'].includes(role)
+      ? clip?.duration
+      : definition?.reload?.[event.payload.branch]?.clipEnd
+    const rate = clipEnd && endAt > event.at
+      ? clipEnd / (endAt - event.at)
       : 1
     const key = this.#cue(event, cueId, {
       kind: 'action',

@@ -410,13 +410,13 @@ export class WeaponViewModel {
     }
     if (event.type === 'ReloadStarted') {
       const definition = this.#definitions.get(this.#weapon.definitionId)
-      // Source reload feed uses the same seconds as the gameplay plan. A Classic tail beyond
-      // its ready deadline is explicitly cut; it cannot keep the weapon unavailable longer.
+      const plan = definition.reload[payload.branch]
+      // A retimed reload keeps the same authored endpoint, including any previously trimmed tail.
       this.#play(payload.branch === 'empty'
         ? 'reloadEmpty'
         : 'reloadTactical', event.at, {
         endAt: payload.endTick * fixedDelta,
-        clipEnd: definition.reload[payload.branch].duration,
+        clipEnd: plan.clipEnd ?? plan.duration,
       })
     }
     if (event.type === 'InspectStarted')

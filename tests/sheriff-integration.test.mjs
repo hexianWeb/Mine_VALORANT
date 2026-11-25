@@ -18,6 +18,7 @@ test('Sheriff keeps pinned public-reference timing separate from local spray tun
   assert.deepEqual(profile.definition, {
     ...sheriffDefinition,
     recoil: releaseRecoil,
+    reload: { tactical: sheriffDefinition.reload.empty, empty: sheriffDefinition.reload.empty },
     assets: {
       modelId: 'sheriff',
       assetVersion: 'v1',
@@ -39,10 +40,10 @@ test('Sheriff keeps pinned public-reference timing separate from local spray tun
   assert.equal(sheriffDefinition.initialReserve, sheriffDefinition.capacity * 3)
   assert.deepEqual(releaseRecoil, classicAimProfile.recoil)
   assert.deepEqual(sheriffDefinition.spread, classicAimProfile.spread)
-  for (const branch of Object.values(sheriffDefinition.reload)) {
-    assert.equal(branch.duration, stats.reloadTimeSeconds)
-    assert.equal(branch.feed, branch.duration)
-  }
+  const { tactical, empty } = sheriffDefinition.reload
+  assert.equal(empty.duration, stats.reloadTimeSeconds)
+  assert.equal(empty.feed, empty.duration)
+  assert.deepEqual(tactical, { feed: 1.95, duration: 1.95, clipEnd: empty.duration })
   assert.deepEqual(practiceLoadout.slice(0, 5).map(slot => slot.weapon.definitionId), [
     'phantom',
     'classic',

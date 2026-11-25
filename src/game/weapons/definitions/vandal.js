@@ -1,5 +1,5 @@
 import { phantomAimProfile } from '../aim-profile.js'
-import { createWeaponDefinition } from '../weapon-definition.js'
+import { createWeaponDefinition, retimeReload } from '../weapon-definition.js'
 
 // Provenance for the original authored release.
 export const vandalGameplayProvenance = Object.freeze({
@@ -54,7 +54,7 @@ export const vandalDefinition = createWeaponDefinition({
   fire: { mode: 'auto', interval: 1 / 9.75, adsInterval: 1 / 8.775 },
   equip: { draw: 1, holster: 0 },
   reload: {
-    tactical: { feed: 2.5, duration: 2.5 },
+    tactical: retimeReload({ feed: 2.5, duration: 2.5 }, 2.15),
     empty: { feed: 2.5, duration: 2.5 },
   },
   inspectDuration: 4.5833,

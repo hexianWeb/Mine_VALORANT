@@ -1,5 +1,5 @@
 import { phantomAimProfile } from '../aim-profile.js'
-import { createWeaponDefinition } from '../weapon-definition.js'
+import { createWeaponDefinition, retimeReload } from '../weapon-definition.js'
 
 // Provenance for the original authored release.
 export const odinGameplayProvenance = Object.freeze({
@@ -37,7 +37,7 @@ export const odinDefinition = createWeaponDefinition({
   },
   equip: { draw: 1.25, holster: 0 },
   reload: {
-    tactical: { feed: 5, duration: 5 },
+    tactical: retimeReload({ feed: 5, duration: 5 }, 4.3),
     empty: { feed: 5, duration: 5 },
   },
   inspectDuration: 6.5417,

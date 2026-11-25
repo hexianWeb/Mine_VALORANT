@@ -25,6 +25,7 @@ test('Vandal keeps its pinned release evidence alongside runtime ADS, bloom and 
     fire: releaseFire,
     recoil: releaseRecoil,
     spread: releaseSpread,
+    reload: { tactical: vandalDefinition.reload.empty, empty: vandalDefinition.reload.empty },
     assets: { ...vandalDefinition.assets, defaultSkinId: 'sakura' },
   })
   assert.deepEqual(profile.provenance, vandalGameplayProvenance)
@@ -40,10 +41,10 @@ test('Vandal keeps its pinned release evidence alongside runtime ADS, bloom and 
   assert.deepEqual(releaseRecoil, phantomAimProfile.recoil)
   assert.deepEqual(vandalDefinition.spread, phantomAimProfile.spread)
   assert.equal(adsInterval, 1 / stats.adsStats.fireRate)
-  for (const branch of Object.values(vandalDefinition.reload)) {
-    assert.equal(branch.duration, stats.reloadTimeSeconds)
-    assert.equal(branch.feed, branch.duration)
-  }
+  const { tactical, empty } = vandalDefinition.reload
+  assert.equal(empty.duration, stats.reloadTimeSeconds)
+  assert.equal(empty.feed, empty.duration)
+  assert.deepEqual(tactical, { feed: 2.15, duration: 2.15, clipEnd: empty.duration })
   assert.deepEqual(practiceLoadout.slice(0, 4).map(slot => slot.weapon.definitionId), [
     'phantom',
     'classic',

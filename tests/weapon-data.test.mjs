@@ -213,7 +213,7 @@ test('Classic and Phantom preserve source timings and explicit project loadout d
     salvo: { rounds: 3, interval: 1, spreadAngle: 4 * Math.PI / 180 },
   })
   assert.deepEqual(classicDefinition.equip, { draw: 0.75, holster: 0 })
-  assert.deepEqual(classicDefinition.reload.tactical, { feed: 1.75, duration: 1.75 })
+  assert.deepEqual(classicDefinition.reload.tactical, { feed: 1.5, duration: 1.5, clipEnd: 1.75 })
   assert.deepEqual(classicDefinition.reload.empty, { feed: 1.75, duration: 1.75 })
   assert.equal(classicDefinition.capabilities.ads, false)
   assert.equal(classicDefinition.assets.assetVersion, 'v4')
@@ -223,7 +223,10 @@ test('Classic and Phantom preserve source timings and explicit project loadout d
   assert.equal(phantomDefinition.initialReserve, 90)
   assert.deepEqual(phantomDefinition.fire, { mode: 'auto', interval: 60 / 660 })
   assert.deepEqual(phantomDefinition.equip, { draw: 1, holster: 0 })
-  assert.deepEqual(phantomDefinition.reload.tactical, { feed: 1.2, duration: 2.5 })
+  const tactical = phantomDefinition.reload.tactical
+  assert.equal(tactical.duration, 2.15)
+  assert.equal(tactical.clipEnd, 2.5)
+  assert.ok(Math.abs(tactical.feed - 1.032) < 1e-10)
   assert.deepEqual(phantomDefinition.reload.empty, { feed: 2.25, duration: 2.5 })
   assert.equal(phantomDefinition.capabilities.ads, true)
   assert.equal(phantomDefinition.assets.assetVersion, 'v4')
@@ -275,7 +278,7 @@ test('inventory owns its input and keeps same-gun instances and inventory copies
   source.slots[1].id = 'changed'
   source.slots.length = 0
   assert.equal(inventory.definition('pistol').capacity, 12)
-  assert.equal(inventory.definition('pistol').reload.tactical.feed, 1.75)
+  assert.equal(inventory.definition('pistol').reload.tactical.feed, 1.5)
   assert.equal(inventory.instanceAt('secondary'), 'pistol')
   assert.equal(inventory.get('pistol').magazine, 12)
   const before = inventory.snapshot()

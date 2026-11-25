@@ -76,6 +76,9 @@ for (const [id, definition, provenance, window] of entries) {
       : definition.fire
     const { bloom, ...releaseSpread } = definition.spread
     assert.ok(bloom.perShot > 0)
+    const { tactical, empty } = definition.reload
+    assert.equal(tactical.clipEnd, empty.duration)
+    assert.ok(tactical.duration < empty.duration)
     const releaseSkins = id === 'odin'
       ? ['smite', 'prime', 'blastx']
       : ['smite', 'rush']
@@ -84,6 +87,7 @@ for (const [id, definition, provenance, window] of entries) {
       aim: releaseAim,
       fire: releaseFire,
       spread: releaseSpread,
+      reload: { tactical: empty, empty },
       assets: {
         modelId: id,
         assetVersion: 'v1',

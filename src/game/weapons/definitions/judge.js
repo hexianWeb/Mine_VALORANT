@@ -1,5 +1,5 @@
 import { classicAimProfile } from '../aim-profile.js'
-import { createWeaponDefinition } from '../weapon-definition.js'
+import { createWeaponDefinition, retimeReload } from '../weapon-definition.js'
 
 export const judgeGameplayProvenance = Object.freeze({
   status: 'temporary-public-reference',
@@ -38,7 +38,7 @@ export const judgeDefinition = createWeaponDefinition({
   fire: { mode: 'auto', interval: 1 / 3.5, pellets: 12 },
   equip: { draw: 1, holster: 0 },
   reload: {
-    tactical: { feed: 2.2, duration: 2.2 },
+    tactical: retimeReload({ feed: 2.2, duration: 2.2 }, 1.9),
     empty: { feed: 2.2, duration: 2.2 },
   },
   inspectDuration: 4,

@@ -1,5 +1,5 @@
 import { classicAimProfile } from '../aim-profile.js'
-import { createWeaponDefinition } from '../weapon-definition.js'
+import { createWeaponDefinition, retimeReload } from '../weapon-definition.js'
 
 const radians = Math.PI / 180
 
@@ -36,7 +36,7 @@ export const classicDefinition = createWeaponDefinition({
   },
   equip: { draw: 0.75, holster: 0 }, // Source put_away_time is explicitly zero.
   reload: {
-    tactical: { feed: 1.75, duration: 1.75 },
+    tactical: retimeReload({ feed: 1.75, duration: 1.75 }, 1.5),
     empty: { feed: 1.75, duration: 1.75 },
   },
   inspectDuration: 3,

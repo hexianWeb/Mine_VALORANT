@@ -1,5 +1,5 @@
 import { classicAimProfile } from '../aim-profile.js'
-import { createWeaponDefinition } from '../weapon-definition.js'
+import { createWeaponDefinition, retimeReload } from '../weapon-definition.js'
 
 // Public-reference trial data, NOT recovered valorant-first-person-pack metadata.
 // The observed 2026-11-14 API snapshot reports 13 rounds, not the older 15-round value.
@@ -45,7 +45,7 @@ export const ghostDefinition = createWeaponDefinition({
   fire: { mode: 'semi', interval: 1 / 6.75 },
   equip: { draw: 0.75, holster: 0 },
   reload: {
-    tactical: { feed: 1.5, duration: 1.5 },
+    tactical: retimeReload({ feed: 1.5, duration: 1.5 }, 1.3),
     empty: { feed: 1.5, duration: 1.5 },
   },
   inspectDuration: 3,
