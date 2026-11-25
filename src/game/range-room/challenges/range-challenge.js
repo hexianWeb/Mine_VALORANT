@@ -2,6 +2,7 @@ import { Component } from '../../../engine/runtime/function/framework/index.js'
 import { fixedTime, immutableFact } from '../../combat/facts.js'
 import { ChallengeSession } from './challenge-session.js'
 import { lockChallengeConfig } from './config.js'
+import { PlaytestLog } from './playtest-log.js'
 import { SpawnGrid } from './spawn-grid.js'
 
 let nextOwner = 0
@@ -15,6 +16,8 @@ export class RangeChallengeComponent extends Component {
   static phases = ['fixed', 'motion']
   #owner = `range-challenge:${++nextOwner}`
   #session = new ChallengeSession()
+  #playtests = new PlaytestLog()
+  #inView
   #grid
   #pool
   #random
@@ -52,6 +55,7 @@ export class RangeChallengeComponent extends Component {
     onPracticeRequested = null,
     onSensitivityRequested = null,
     clearEffects = () => {},
+    inView = null,
   }) {
     super()
     if (typeof random !== 'function' || !Number.isFinite(bodyHideDelay) || bodyHideDelay <= 0
@@ -70,6 +74,7 @@ export class RangeChallengeComponent extends Component {
     this.#onPracticeRequested = onPracticeRequested
     this.#onSensitivityRequested = onSensitivityRequested
     this.#clearEffects = clearEffects
+    this.#inView = inView
   }
 
   prepare(selection) {
@@ -115,6 +120,7 @@ export class RangeChallengeComponent extends Component {
   }
 
   get running() { return this.#session.running }
+  get playtests() { return this.#playtests }
   get selection() { return this.#selection }
   get cancelPending() { return this.#cancelQueued }
   readPresentedSession() { return this.#presented }
@@ -160,6 +166,8 @@ export class RangeChallengeComponent extends Component {
   cancel(reason = 'cancelled', at = this.#at) {
     if (this.disposed)
       return
+    if (this.running)
+      this.#playtests.end(at, reason, this.#session.snapshot().kills)
     this.#session.cancel(reason)
     this.#cleanupTargets(reason, at)
     this.#grid.reset(`${this.#owner}:invalid:${++this.#revision}`)
@@ -202,13 +210,16 @@ export class RangeChallengeComponent extends Component {
       scale: this.#scale,
       bodyHideTicks: this.#hideTicks,
     })), time)
-    for (const spawn of transition.spawned)
+    for (const spawn of transition.spawned) {
       this.#active.get(spawn.targetId).bot.activateSpawn(spawn, state.config, time)
+      this.#playtests.spawn(spawn)
+    }
     this.#record(transition.events, time.fixedElapsed)
   }
 
   #apply(transition, time) {
     for (const { spawn, reason } of transition.removed) {
+      this.#playtests.remove(spawn, reason, time.fixedElapsed)
       const handle = this.#active.get(spawn.targetId)
       if (!handle)
         continue
@@ -223,6 +234,10 @@ export class RangeChallengeComponent extends Component {
         handle.bot.removeSpawn(time.fixedElapsed, reason)
         this.#pool.release(handle, reason)
       }
+    }
+    for (const event of transition.events) {
+      if (event.type === 'ChallengeCompleted')
+        this.#playtests.end(time.fixedElapsed, 'completed', event.result.kills)
     }
     if (transition.events.length)
       this.#record(transition.events, time.fixedElapsed)
@@ -268,11 +283,14 @@ export class RangeChallengeComponent extends Component {
       this.#pending = []
       this.#practice(false, time.fixedElapsed)
       const transition = this.#session.start(start.selection, time, this.#owner)
+      this.#playtests.start(transition.sessionId, this.#config, time.fixedElapsed, result)
       this.#grid.reset(transition.sessionId)
       this.#record(transition.events, time.fixedElapsed)
     }
     try {
-      this.#apply(this.#session.resolveDeaths(result.deaths, time), time)
+      const transition = this.#session.resolveDeaths(result.deaths, time)
+      this.#playtests.attack(result, transition.removed)
+      this.#apply(transition, time)
     }
     catch (error) {
       this.#abort(error, time)
@@ -309,6 +327,7 @@ export class RangeChallengeComponent extends Component {
         throw new RangeError('[RangeChallenge] Invalid presentation cursor')
       while (this.#pending.length && this.#pending[0].at <= at)
         this.#presented = this.#pending.shift().simulation
+      this.#playtests.observeView(this.#presented, at, this.#inView)
       this.#presentationAt = at
     }
   }

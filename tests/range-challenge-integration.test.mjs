@@ -60,7 +60,7 @@ test('elimination display publishes whole presentation seconds and freezes at th
   assert.equal(session.result.elapsed, 2.95)
 })
 
-function fixture(t, { cells = null, count = 40, random = () => 0.31, mode = 'elimination' } = {}) {
+function fixture(t, { cells = null, count = 40, random = () => 0.31, mode = 'elimination', inView = null } = {}) {
   const targets = new ShotTargets()
   const sourceId = targets.openSource(1)
   const handles = []
@@ -128,6 +128,7 @@ function fixture(t, { cells = null, count = 40, random = () => 0.31, mode = 'eli
     random,
     fixedDelta: h,
     bodyHideDelay: 0.05,
+    inView,
     setPracticeEnabled: value => practice.push(value),
   })
   t.after(() => challenge.dispose())
@@ -180,7 +181,19 @@ function fixture(t, { cells = null, count = 40, random = () => 0.31, mode = 'eli
       at: tick * h,
       payload: {
         weapon: { definitionId },
-        pellets,
+        pellets: pellets.length
+          ? pellets
+          : [
+              {
+                index: 0,
+                direction: [0, 0, -1],
+                impact: {
+                  distance: 200,
+                  position: [0, 0, -200],
+                  normal: null,
+                },
+              },
+            ],
       },
     }, time(tick))
     assert.equal(activations, beforeShotActivations)
@@ -199,6 +212,72 @@ function fixture(t, { cells = null, count = 40, random = () => 0.31, mode = 'eli
     get tick() { return tick },
   }
 }
+
+test('playtest export reconciles whole shots, partial damage, confirmed deaths, exposure and pauses across restarts', (t) => {
+  let now = 10
+  t.mock.method(performance, 'now', () => now)
+  const f = fixture(t, {
+    inView: spawn => spawn.spawnId.endsWith(':1'),
+  })
+  const log = f.challenge.playtests
+  f.start()
+  const motion = () => f.challenge.tick({
+    phase: 'motion',
+    time: { presentationTime: f.tick * h },
+  })
+  motion()
+  motion()
+  f.fixed()
+  f.shoot(0) // wall/air: one accepted shot, no damage
+  f.shoot(1, 'classic', 'chest') // non-lethal hit
+  const batch = f.shoot(2)
+  f.challenge.onShotResolved(batch, time(f.tick)) // duplicate delivery after refilling must not count
+  now += 700
+  log.pause(true, f.tick * h)
+  now += 5000
+  log.pause(false, f.tick * h)
+  now += 300
+  f.challenge.cancel()
+  const first = log.choices[0].id
+  f.start()
+  f.challenge.cancel()
+  assert.equal(log.choices.length, 2)
+  assert.notEqual(first, log.choices[0].id)
+  const { csv, filename } = log.exportCsv(first, 'P01')
+  assert.match(filename, /^range-P01-.*\.csv$/u)
+  assert.equal(csv.charCodeAt(0), 0xFEFF)
+  const [keys, ...values] = csv.trim().split('\r\n').map(line => line.split(','))
+  const rows = values.map(fields => Object.fromEntries(keys.map((key, i) => [key, fields[i]])))
+  const select = type => rows.filter(row => row.event === type)
+  assert.deepEqual(select('shot').map(r => [r.weapon, r.hit]), [
+    ['phantom', '0'],
+    ['classic', '1'],
+    ['phantom', '1'],
+  ])
+  assert.deepEqual(select('damage').map(r => r.region), ['chest', 'head', 'head'])
+  const multiKillShot = select('shot')[2].shot_id
+  assert.deepEqual(select('kill').map(r => r.shot_id), [multiKillShot, multiKillShot])
+  assert.equal(select('spawn').length, 12)
+  assert.deepEqual(select('first_in_view').map(r => r.spawn_id), [select('spawn')[0].spawn_id])
+  assert.equal(rows[0].event, 'run_start')
+  const end = rows.at(-1)
+  assert.equal(end.event, 'run_end')
+  assert.equal(end.reason, 'cancelled')
+  assert.deepEqual([
+    end.shots,
+    end.misses,
+    end.kills,
+    end.head_kills,
+    end.score_kills,
+  ], ['3', '1', '2', '2', '2'])
+  assert.deepEqual([end.wall_ms, end.active_ms], ['6000', '1000'])
+  assert.deepEqual([
+    Number(end.kpm),
+    Number(end.head_kill_rate),
+    end.miss_rate,
+  ], [120, 1, '0.333333'])
+  assert.ok(rows.every(r => r.player_id === 'P01' && r.run_id === first && r.mode === 'elimination'))
+})
 
 test('logic adapter starts ten synchronously, consumes a whole shot then refills only its deaths; P does not mutate rules', (t) => {
   const f = fixture(t)
@@ -266,6 +345,8 @@ test('actual damage/death batches reach fifty then stop refill, preserve real re
   const state = f.challenge.snapshot()
   assert.equal(state.simulation.kills, 50)
   assert.equal(state.simulation.result.completedAt, f.tick * h)
+  assert.equal(f.challenge.playtests.choices[0].reason, 'completed')
+  assert.equal(f.challenge.playtests.choices[0].kills, 50)
   assert.equal(state.simulation.active.length, 0)
   assert.equal(state.grid.owners.length, 10, 'natural completion retains visible-death protection')
   assert.equal(f.challenge.armoryRestriction(), null)

@@ -256,6 +256,7 @@ export class RangeRoomLevel extends Level {
           this.setPlayerEnabled(true)
           if (weapons && botAssets) {
             this.#challenges = mountRoomChallenges({
+              camera,
               addObject: object => this.addObject(object),
               scene,
               document: this.render.renderer.domElement.ownerDocument,

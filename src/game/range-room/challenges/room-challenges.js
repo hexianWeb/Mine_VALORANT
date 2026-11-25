@@ -1,5 +1,7 @@
+import { Vector3, WebGPUCoordinateSystem } from 'three/webgpu'
 import { Disposer } from '../../../engine/runtime/core/disposer.js'
 import { GameObject, MeshComponent } from '../../../engine/runtime/function/framework/index.js'
+import { intersectRayBox } from '../../../engine/runtime/function/physics/ray-box.js'
 import { stepSensitivity } from '../../player/look-settings.js'
 import { TrainingBotComponent } from '../../targets/training-bot.js'
 import { challengeRules, defaultChallengeSelection } from './config.js'
@@ -30,10 +32,36 @@ function createTargetPool(handles) {
   }
 }
 
+// Sample only until first exposure. This is a head/chest sightline proxy, not GPU pixel visibility.
+function createViewCheck(camera, offsets, boxes) {
+  const point = new Vector3()
+  const eye = new Vector3()
+  const projected = new Vector3()
+  const origin = []
+  const direction = []
+  return (spawn) => {
+    camera.getWorldPosition(eye).toArray(origin)
+    return offsets.some(([x, y, z]) => {
+      point.set(spawn.position[0] + x, spawn.position[1] + y, spawn.position[2] + z)
+      projected.copy(point).project(camera)
+      if (Math.abs(projected.x) > 1 || Math.abs(projected.y) > 1 || projected.z > 1
+        || projected.z < (camera.coordinateSystem === WebGPUCoordinateSystem
+          ? 0
+          : -1)) {
+        return false
+      }
+      const distance = point.sub(eye).length()
+      point.normalize().toArray(direction)
+      return !boxes.some(box => intersectRayBox(origin, direction, box, distance))
+    })
+  }
+}
+
 /** Mount one room's challenge objects into the normal Level tick. Practice bots and templates are borrowed. */
 export function mountRoomChallenges({
   addObject,
   scene,
+  camera,
   document,
   roomRoot,
   collision,
@@ -107,6 +135,7 @@ export function mountRoomChallenges({
       onPracticeRequested: (_command, time) => setPracticeEnabled(!practiceEnabled, time.fixedElapsed),
       onSensitivityRequested: command => stepSensitivity(player.lookSettings, command.delta),
       clearEffects: effects.clear,
+      inView: createViewCheck(camera, diagnostics.aimPoints, collision.world.boxes),
     }))
     challenge.prepare(defaultChallengeSelection)
     const display = object.addComponent(new RangeDisplay({

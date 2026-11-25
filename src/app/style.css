@@ -316,7 +316,9 @@ kbd { font: inherit; color: #e0ffef; }
 .range-selection h3 { padding: 9px 6px; background: #629c8bc0; border-bottom: 1px solid #a9decaad; color: #fff1ab; text-align: center; font-size: clamp(14px, 2vw, 21px); font-weight: 500; }
 .settings-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .settings-ammo { padding: 8px; text-align: center; background: #ffffe21c; color: #fffde6; font-size: 14px; }
-.settings-dialog .range-sensitivity { margin-top: 16px; padding: 10px; }
+.settings-dialog :is(.range-sensitivity, .range-export) { margin-top: 16px; padding: 10px; }
+.range-export select { max-width: 65%; }
+.range-export small { overflow-wrap: anywhere; }
 .settings-dialog legend { padding: 0 8px; color: #a8ccbd; font-size: 12px; }
 .settings-dialog label { display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 13px; }
 .settings-dialog :is(select, input, button), .input-overlay button {
