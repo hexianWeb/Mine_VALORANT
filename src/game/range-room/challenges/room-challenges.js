@@ -33,27 +33,33 @@ function createTargetPool(handles) {
 }
 
 // Sample only until first exposure. This is a head/chest sightline proxy, not GPU pixel visibility.
-function createViewCheck(camera, offsets, boxes) {
+function createProjector(camera, boxes) {
   const point = new Vector3()
   const eye = new Vector3()
   const projected = new Vector3()
   const origin = []
   const direction = []
-  return (spawn) => {
+  return (spawn, [x, y, z]) => {
     camera.getWorldPosition(eye).toArray(origin)
-    return offsets.some(([x, y, z]) => {
-      point.set(spawn.position[0] + x, spawn.position[1] + y, spawn.position[2] + z)
-      projected.copy(point).project(camera)
-      if (Math.abs(projected.x) > 1 || Math.abs(projected.y) > 1 || projected.z > 1
-        || projected.z < (camera.coordinateSystem === WebGPUCoordinateSystem
-          ? 0
-          : -1)) {
-        return false
-      }
-      const distance = point.sub(eye).length()
-      point.normalize().toArray(direction)
-      return !boxes.some(box => intersectRayBox(origin, direction, box, distance))
-    })
+    point.set(spawn.position[0] + x, spawn.position[1] + y, spawn.position[2] + z)
+    projected.copy(point).project(camera)
+    if (Math.abs(projected.x) > 1 || Math.abs(projected.y) > 1 || projected.z > 1
+      || projected.z < (camera.coordinateSystem === WebGPUCoordinateSystem
+        ? 0
+        : -1)) {
+      return null
+    }
+    const distance = point.sub(eye).length()
+    point.normalize().toArray(direction)
+    if (boxes.some(box => intersectRayBox(origin, direction, box, distance)))
+      return null
+    return {
+      id: spawn.spawnId,
+      point: [spawn.position[0] + x, spawn.position[1] + y, spawn.position[2] + z],
+      x: (projected.x + 1) / 2,
+      y: (1 - projected.y) / 2,
+      distance: projected.x ** 2 + projected.y ** 2,
+    }
   }
 }
 
@@ -97,6 +103,7 @@ export function mountRoomChallenges({
       player: player.settings,
     })
     const { concurrency } = challengeRules
+    const project = createProjector(camera, collision.world.boxes)
     const effects = owned.add(createRangeKillEffects({ scene, document, capacity: concurrency * 4 }))
     // One full replacement batch can coexist with the retiring bodies.
     const handles = Array.from({ length: concurrency * 2 }, () => {
@@ -106,7 +113,7 @@ export function mountRoomChallenges({
         position: collision.spawn.position,
         scale,
         practice: false,
-        onKillPresented: effects.start,
+        onKillPresented: (fact, at) => effects.start(fact, at, challenge?.trial?.inFlow ? 0.5 : 1),
       }))
       addObject(object)
       return {
@@ -135,7 +142,9 @@ export function mountRoomChallenges({
       onPracticeRequested: (_command, time) => setPracticeEnabled(!practiceEnabled, time.fixedElapsed),
       onSensitivityRequested: command => stepSensitivity(player.lookSettings, command.delta),
       clearEffects: effects.clear,
-      inView: createViewCheck(camera, diagnostics.aimPoints, collision.world.boxes),
+      inView: spawn => diagnostics.aimPoints.some(offset => project(spawn, offset)),
+      projectHead: spawn => project(spawn, diagnostics.aimPoints[0]),
+      activeWeapon: () => player.weapons.activeDefinitionId,
     }))
     challenge.prepare(defaultChallengeSelection)
     const display = object.addComponent(new RangeDisplay({

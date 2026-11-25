@@ -2,6 +2,7 @@ import { Component } from '../../../engine/runtime/function/framework/index.js'
 import { fixedTime, immutableFact } from '../../combat/facts.js'
 import { ChallengeSession } from './challenge-session.js'
 import { lockChallengeConfig } from './config.js'
+import { haoqiRules, HaoqiTrial } from './haoqi-trial.js'
 import { PlaytestLog } from './playtest-log.js'
 import { SpawnGrid } from './spawn-grid.js'
 
@@ -18,6 +19,11 @@ export class RangeChallengeComponent extends Component {
   #session = new ChallengeSession()
   #playtests = new PlaytestLog()
   #inView
+  #projectHead
+  #activeWeapon
+  #clock
+  #trial = null
+  #trialResult = null
   #grid
   #pool
   #random
@@ -56,6 +62,9 @@ export class RangeChallengeComponent extends Component {
     onSensitivityRequested = null,
     clearEffects = () => {},
     inView = null,
+    projectHead = () => null,
+    activeWeapon = () => null,
+    trialClock,
   }) {
     super()
     if (typeof random !== 'function' || !Number.isFinite(bodyHideDelay) || bodyHideDelay <= 0
@@ -75,12 +84,18 @@ export class RangeChallengeComponent extends Component {
     this.#onSensitivityRequested = onSensitivityRequested
     this.#clearEffects = clearEffects
     this.#inView = inView
+    this.#projectHead = projectHead
+    this.#activeWeapon = activeWeapon
+    this.#clock = trialClock
   }
 
   prepare(selection) {
     if (this.#session.running || this.disposed)
       return false
     this.#config = lockChallengeConfig(selection, this.#fixedDelta)
+    this.#presented = null
+    this.#pending = []
+    this.#trialResult = null
     this.#selection = immutableFact(selection)
     this.#revision++
     try {
@@ -107,6 +122,8 @@ export class RangeChallengeComponent extends Component {
         reason = 'Challenge running'
       else if (!this.#canStart())
         reason = 'Equipment selection is not ready'
+      else if (this.#config.mode === 'haoqi' && this.#activeWeapon() !== 'vandal')
+        reason = '请按 B 装备狂徒（Vandal），再用主武器射击开始'
       else if (this.#pool.available() + this.#retiring.size < required)
         reason = 'Pool needs initial targets plus retirement buffer'
     }
@@ -121,6 +138,22 @@ export class RangeChallengeComponent extends Component {
 
   get running() { return this.#session.running }
   get playtests() { return this.#playtests }
+  get trial() { return this.#trial }
+  get trialResult() { return this.#trialResult }
+  pausePlaytest(paused, at) {
+    this.#trial?.pause(paused)
+    this.#playtests.pause(paused, at)
+  }
+
+  #finishTrial(at, reason, kills) {
+    if (this.#trial) {
+      this.#trial.exit(reason)
+      this.#trialResult = this.#trial.summary()
+    }
+    this.#playtests.end(at, reason, kills, this.#trial ? this.#trialResult : undefined)
+    this.#trial = null
+  }
+
   get selection() { return this.#selection }
   get cancelPending() { return this.#cancelQueued }
   readPresentedSession() { return this.#presented }
@@ -167,7 +200,7 @@ export class RangeChallengeComponent extends Component {
     if (this.disposed)
       return
     if (this.running)
-      this.#playtests.end(at, reason, this.#session.snapshot().kills)
+      this.#finishTrial(at, reason, this.#session.snapshot().kills)
     this.#session.cancel(reason)
     this.#cleanupTargets(reason, at)
     this.#grid.reset(`${this.#owner}:invalid:${++this.#revision}`)
@@ -237,7 +270,7 @@ export class RangeChallengeComponent extends Component {
     }
     for (const event of transition.events) {
       if (event.type === 'ChallengeCompleted')
-        this.#playtests.end(time.fixedElapsed, 'completed', event.result.kills)
+        this.#finishTrial(time.fixedElapsed, 'completed', event.result.kills)
     }
     if (transition.events.length)
       this.#record(transition.events, time.fixedElapsed)
@@ -284,12 +317,19 @@ export class RangeChallengeComponent extends Component {
       this.#practice(false, time.fixedElapsed)
       const transition = this.#session.start(start.selection, time, this.#owner)
       this.#playtests.start(transition.sessionId, this.#config, time.fixedElapsed, result)
+      this.#trialResult = null
+      if (this.#config.mode === 'haoqi') {
+        this.#trial = new HaoqiTrial((type, reason) => {
+          this.#playtests.flowEvent(type, this.#at, reason)
+        }, this.#clock)
+      }
       this.#grid.reset(transition.sessionId)
       this.#record(transition.events, time.fixedElapsed)
     }
     try {
       const transition = this.#session.resolveDeaths(result.deaths, time)
-      this.#playtests.attack(result, transition.removed)
+      this.#playtests.attack(result, transition.removed, this.#trial?.inFlow)
+      this.#trial?.settle(result, transition.removed.filter(entry => entry.reason === 'killed'))
       this.#apply(transition, time)
     }
     catch (error) {
@@ -315,7 +355,17 @@ export class RangeChallengeComponent extends Component {
         }
       }
       try {
-        this.#apply(this.#session.fixed(time), time)
+        if (this.#trial && this.#activeWeapon() !== 'vandal') {
+          this.cancel('weapon-changed', time.fixedElapsed)
+          return
+        }
+        this.#apply(this.#session.fixed(time, this.#trial?.elapsed >= haoqiRules.seconds), time)
+        this.#trial?.update(() => {
+          const state = this.#presented
+          if (!state || state.status !== 'running')
+            return []
+          return state.active.filter(spawn => this.#session.isActiveSpawn(spawn.spawnId)).map(this.#projectHead).filter(Boolean).sort((a, b) => a.distance - b.distance || a.id.localeCompare(b.id)).slice(0, 5)
+        })
       }
       catch (error) {
         this.#abort(error, time)

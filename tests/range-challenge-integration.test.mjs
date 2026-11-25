@@ -60,7 +60,7 @@ test('elimination display publishes whole presentation seconds and freezes at th
   assert.equal(session.result.elapsed, 2.95)
 })
 
-function fixture(t, { cells = null, count = 40, random = () => 0.31, mode = 'elimination', inView = null } = {}) {
+function fixture(t, { cells = null, count = 40, random = () => 0.31, mode = 'elimination', inView = null, ...trialOptions } = {}) {
   const targets = new ShotTargets()
   const sourceId = targets.openSource(1)
   const handles = []
@@ -129,6 +129,7 @@ function fixture(t, { cells = null, count = 40, random = () => 0.31, mode = 'eli
     fixedDelta: h,
     bodyHideDelay: 0.05,
     inView,
+    ...trialOptions,
     setPracticeEnabled: value => practice.push(value),
   })
   t.after(() => challenge.dispose())
@@ -212,6 +213,93 @@ function fixture(t, { cells = null, count = 40, random = () => 0.31, mode = 'eli
     get tick() { return tick },
   }
 }
+
+test('haoqi: manual charge, new trigger per visible batch, paused flow, timed completion and CSV attribution', (t) => {
+  let now = 0
+  let weapon = 'classic'
+  t.mock.method(performance, 'now', () => now * 1000)
+  const f = fixture(t, {
+    mode: 'haoqi',
+    activeWeapon: () => weapon,
+    projectHead: spawn => ({
+      id: spawn.spawnId,
+      x: 0.5,
+      y: 0.5,
+      distance: 0,
+      point: [0, 1, -5],
+    }),
+  })
+  assert.equal(f.challenge.readControlState().ready, false)
+  weapon = 'vandal'
+  f.start()
+  const trial = f.challenge.trial
+  assert.equal(trial.charge, 108)
+  const tick = () => {
+    f.fixed()
+    f.challenge.tick({
+      phase: 'motion',
+      time: { presentationTime: f.tick * h },
+    })
+  }
+  f.shoot(0, 'vandal')
+  for (let i = 0; i < 6; i++) {
+    now += 0.5
+    tick()
+    f.shoot(1, 'vandal')
+  }
+  assert.equal(trial.inFlow, true)
+  assert.equal(trial.outsideKills, 6)
+  assert.equal(trial.firstFlow, 3)
+  now = 3.2
+  tick()
+  tick()
+  assert.ok(trial.locks.length)
+  assert.equal(trial.allowFire(false, 'vandal'), false, 'held trigger from charge phase is not a confirmation')
+  assert.equal(trial.allowFire(true, 'vandal'), true)
+  assert.ok(trial.guide([0, 0, 0]))
+  f.shoot(1, 'vandal')
+  const remaining = trial.remaining
+  assert.equal(trial.flowKills, 1)
+  f.challenge.pausePlaytest(true, f.tick * h)
+  now += 60
+  assert.equal(trial.remaining, remaining)
+  f.challenge.pausePlaytest(false, f.tick * h)
+  now = 68.6
+  tick()
+  assert.equal(trial.inFlow, false)
+  assert.equal(trial.charge, 0)
+  f.shoot(0, 'vandal')
+  now = 90
+  tick()
+  assert.equal(f.challenge.trial, null)
+  assert.equal(f.challenge.running, false)
+  const log = f.challenge.playtests
+  const file = log.exportCsv(log.choices[0].id)
+  const [head, ...rows] = file.csv.trim().split('\r\n').map(line => line.split(','))
+  const events = rows.filter(r => r[head.indexOf('event')] === 'kill')
+  assert.deepEqual(events.map(r => r[head.indexOf('shot_phase')]), [
+    ...Array.from({ length: 6 }).fill('outside'),
+    'flow',
+  ])
+  const end = Object.fromEntries(head.map((k, i) => [k, rows.at(-1)[i]]))
+  assert.deepEqual([
+    end.reason,
+    end.active_ms,
+    end.outside_kills,
+    end.flow_kills,
+    end.first_flow_ms,
+    end.first_confirm_ms,
+    end.first_post_flow_shot_ms,
+  ], [
+    'completed',
+    '30000',
+    '6',
+    '1',
+    '3000',
+    '3200',
+    '8600',
+  ])
+})
 
 test('playtest export reconciles whole shots, partial damage, confirmed deaths, exposure and pauses across restarts', (t) => {
   let now = 10

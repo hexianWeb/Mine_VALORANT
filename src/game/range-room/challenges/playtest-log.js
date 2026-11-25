@@ -49,6 +49,17 @@ function csvCell(value) {
     : text
 }
 
+const trialColumns = [
+  ...columns,
+  'shot_phase',
+  'outside_kills',
+  'flow_kills',
+  'flow_count',
+  'first_flow_ms',
+  'first_confirm_ms',
+  'first_post_flow_shot_ms',
+]
+
 export class PlaytestLog {
   #run = null
   #history = []
@@ -65,7 +76,9 @@ export class PlaytestLog {
       pausedAt: null,
       pausedMs: 0,
       meta: {
-        schema: 'range-playtest-v1',
+        schema: config.mode === 'haoqi'
+          ? 'range-playtest-v2'
+          : 'range-playtest-v1',
         run_id: crypto.randomUUID(),
         started_utc: new Date().toISOString(),
         rules_version: config.rules.version,
@@ -143,11 +156,17 @@ export class PlaytestLog {
     }
   }
 
-  attack(result, removed) {
+  flowEvent(event, at, reason) {
+    this.#row(event, at, { reason })
+  }
+
+  attack(result, removed, inFlow) {
     const r = this.#run
     if (!r || result.disposition === 'interaction' || !result.attackType)
       return
     const shot = { shot_id: `${result.sourceId}/${result.epoch}/${result.sequence}`, weapon: result.definitionId }
+    if (inFlow !== undefined)
+      shot.shot_phase = inFlow ? 'flow' : 'outside'
     const damage = result.damage.filter(d => d.sessionId === r.sessionId)
     const gun = result.attackType === 'ShotFired'
     if (gun) {
@@ -185,7 +204,7 @@ export class PlaytestLog {
       this.#row('expire', at, { spawn_id: spawn.spawnId })
   }
 
-  end(at, reason, scoreKills) {
+  end(at, reason, scoreKills, trialSummary) {
     const r = this.#run
     if (!r)
       return
@@ -197,6 +216,7 @@ export class PlaytestLog {
       head_kills: r.heads,
       score_kills: scoreKills,
       dropped_rows: r.dropped,
+      ...trialSummary,
     })
     end.kpm = end.active_ms
       ? (60000 * r.kills / end.active_ms).toFixed(3)
@@ -226,6 +246,9 @@ export class PlaytestLog {
       return null
     if (playerId && !/^[a-z0-9][\w-]{0,31}$/iu.test(playerId))
       throw new RangeError('玩家编号限 1–32 位字母、数字、下划线或短横线，须以字母或数字开头')
+    const fields = r.meta.mode === 'haoqi'
+      ? trialColumns
+      : columns
     const lines = r.rows.map((row) => {
       const record = {
         ...r.meta,
@@ -233,13 +256,13 @@ export class PlaytestLog {
         input_layout: inputLayout,
         ...row,
       }
-      return columns.map(key => csvCell(record[key])).join(',')
+      return fields.map(key => csvCell(record[key])).join(',')
     })
     return {
       filename: `range-${playerId
         ? `${playerId}-`
         : ''}${r.meta.started_utc.replace(/[:.]/gu, '-')}-${id}.csv`,
-      csv: `\uFEFF${columns.join(',')}\r\n${lines.join('\r\n')}\r\n`,
+      csv: `\uFEFF${fields.join(',')}\r\n${lines.join('\r\n')}\r\n`,
     }
   }
 }

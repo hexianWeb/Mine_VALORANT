@@ -1,6 +1,7 @@
 import { Disposer } from '../engine/runtime/core/disposer.js'
 import { stepSensitivity } from '../game/player/look-settings.js'
 import { defaultChallengeSelection } from '../game/range-room/challenges/config.js'
+import { mountHaoqiHud } from './haoqi-hud.js'
 import { bindSensitivityStorage } from './sensitivity-storage.js'
 
 const difficultyLabels = { easy: '简单', medium: '中等', hard: '困难' }
@@ -26,6 +27,7 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
       <div data-time-row hidden><dt>用时</dt><dd data-time></dd></div>
     </dl>`
   ui.hud.append(card)
+  const trialHud = owned.add(mountHaoqiHud(ui.hud))
   const statusText = card.querySelector('[data-range-status]')
   const statusRow = card.querySelector('[data-status-row]')
   const modeText = card.querySelector('[data-mode]')
@@ -54,6 +56,10 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
       <section><h3>连续击败</h3>
         <button type="button" data-count="50">消灭 50</button>
         <button type="button" data-count="100">消灭 100</button>
+      </section>
+      <section><h3>豪气试炼</h3>
+        <button type="button" data-haoqi>豪气试炼 · 30 秒</button>
+        <small>狂徒 / 无甲。满豪气后，重新按住开火确认锁定。</small>
       </section>
       <section><h3>机器人护甲</h3>
         <div class="settings-options">
@@ -144,9 +150,8 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
       for (const run of choices ?? []) {
         const option = document.createElement('option')
         option.value = run.id
-        option.textContent = `${new Date(run.started).toLocaleTimeString()} · ${run.mode === 'elimination'
-          ? '消灭'
-          : '速度'} · ${run.kills} 杀 · ${run.reason === 'completed'
+        const modeLabel = { 'elimination': '消灭', 'shooting-test': '速度', 'haoqi': '豪气试炼' }[run.mode]
+        option.textContent = `${new Date(run.started).toLocaleTimeString()} · ${modeLabel} · ${run.kills} 杀 · ${run.reason === 'completed'
           ? '完成'
           : '中断'}`
         runSelect.append(option)
@@ -161,13 +166,17 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
     }
     for (const button of choiceButtons) {
       const { difficulty, count, armorChoice } = button.dataset
-      const selected = difficulty
-        ? shooting && difficulty === settings.difficulty
-        : count
-          ? !shooting && Number(count) === settings.targetKills
-          : Number(armorChoice) === settings.armor
+      const timed = settings.mode === 'haoqi'
+      const selected = button.hasAttribute('data-haoqi')
+        ? timed
+        : difficulty
+          ? shooting && difficulty === settings.difficulty
+          : count
+            ? settings.mode === 'elimination' && Number(count) === settings.targetKills
+            : Number(armorChoice) === settings.armor
       if (button.getAttribute('aria-pressed') !== String(selected))
         button.setAttribute('aria-pressed', String(selected))
+      setDisabled(button, timed && armorChoice !== undefined)
     }
     setDisabled(selectionFields, running || !challenge)
     setDisabled(sensitivityFields, running)
@@ -176,6 +185,8 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
     setDisabled(cancel, cancelling)
     setText(ammoSetting, ammoText.textContent)
     let instruction = '射击场景控制面板上的「开始」方框开启挑战。'
+    if (settings.mode === 'haoqi')
+      instruction = '按 B 装备狂徒（Vandal），用狂徒射击「开始」。本局限时 30 秒，切换武器会中断本局。'
     if (cancelling) {
       instruction = engine.state === 'paused'
         ? '继续游戏后取消本局。'
@@ -198,6 +209,8 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
   let lastModel
   const update = () => {
     const model = readChallengeHud()
+    const timed = model?.mode === 'haoqi'
+    trialHud.update(!card.hidden && challenge?.trial, !card.hidden && timed && model?.status === 'completed' && challenge?.trialResult, player.weapons?.readHud()?.weapon?.magazine === 0)
     if (lastModel !== model || !model) {
       lastModel = model
       const settings = model ?? selection()
@@ -216,23 +229,29 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
         phase = '自由练习'
       else if (!model?.startReady)
         phase = '准备中'
-      setText(statusText, phase)
-      setHidden(statusRow, !capacityError && !running && !completed)
+      const weaponHint = timed && !model.startReady && !running && !completed && model.reason?.startsWith('请按 B')
+      setText(statusText, weaponHint ? model.reason : phase)
+      setHidden(statusRow, !capacityError && !running && !completed && !weaponHint)
       setHidden(progressRow, !running && !completed)
       setText(modeText, shooting
         ? difficultyLabels[settings.difficulty]
-        : `消灭 ${model?.goal ?? settings.targetKills} 个`)
+        : timed
+          ? '豪气试炼 · 30 秒'
+          : `消灭 ${model?.goal ?? settings.targetKills} 个`)
       setText(progressLabel, running && shooting
         ? '当前靶 / 得分'
         : '击杀')
       const progress = model
-        ? `${model.kills}/${model.goal}`
+        ? timed
+          ? String(model.kills)
+          : `${model.kills}/${model.goal}`
         : '—'
       setText(progressText, running && shooting
         ? `${model.settled + 1}/${model.goal} · ${model.kills}`
         : progress)
       setHidden(timeRow, shooting || (!running && !completed))
       setText(timeText, `${model?.timeLabel ?? '0'} 秒`)
+      setText(timeRow.querySelector('dt'), timed ? '剩余' : '用时')
       setText(armorText, settings.armor ? '已启用' : '已停用')
       const policy = model?.ammoPolicy ?? player.weapons?.readHud()?.weapon?.ammoPolicy
       setText(ammoText, policy === 'infinite-reserve'
@@ -286,16 +305,18 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
       if (!challenge || challenge.running)
         return
       const { difficulty, count, armorChoice } = button.dataset
-      const patch = difficulty
-        ? { mode: 'shooting-test', difficulty }
-        : count
-          ? {
-              mode: 'elimination',
-              targetKills: Number(count),
-            }
-          : {
-              armor: Number(armorChoice),
-            }
+      const patch = button.hasAttribute('data-haoqi')
+        ? { mode: 'haoqi', armor: 0 }
+        : difficulty
+          ? { mode: 'shooting-test', difficulty }
+          : count
+            ? {
+                mode: 'elimination',
+                targetKills: Number(count),
+              }
+            : {
+                armor: Number(armorChoice),
+              }
       challenge.prepare({
         ...selection(),
         ...patch,

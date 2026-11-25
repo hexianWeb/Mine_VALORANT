@@ -165,7 +165,7 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
     if (level.player) {
       for (const event of ['pause', 'resume']) {
         levelTools.add(runtime.engine.events.on(event, () => {
-          level.challenge?.playtests.pause(event === 'pause', runtime.engine.time.fixedElapsed)
+          level.challenge?.pausePlaytest(event === 'pause', runtime.engine.time.fixedElapsed)
         }))
       }
       const settings = levelTools.add(mountRangeSettings({

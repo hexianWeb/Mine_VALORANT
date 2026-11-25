@@ -224,6 +224,7 @@ export class RangeRoomLevel extends Level {
               skinPreferences,
               armoryAccess: () => this.challenge?.armoryRestriction(),
               onShotResolved: (result, context) => this.challenge?.onShotResolved(result, context),
+              readTrial: () => this.challenge?.trial,
             }
             // Prewarm shared data only. VisualPrepared requires motion ticks after load completes.
             const initial = classicDefinition.assets

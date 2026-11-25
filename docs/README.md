@@ -12,6 +12,7 @@
 | [模块所有权与时序契约](runtime-module-contracts.md) | 已有模块的拥有／借用关系、更新阶段、暂停／重置／销毁及相机控制权 |
 | [最小战斗属性模型](combat/attributes.md) | 独立的生命、护甲与 2/3 分担伤害模型；挑战出靶通过 TargetCombat 使用 |
 | [本地试玩 CSV](combat/playtest-csv.md) | 逐局下载、逐枪与目标事件、KPM / 爆头率 / 打空率口径 |
+| [豪气试炼 · 30 秒白盒](combat/playtest-csv.md#豪气试炼--30-秒白盒) | 进入模式、神经枪锁定操作及手射 / 心流分段数据 |
 | [阶段优先组件 Tick](superpowers/specs/2026-11-11-phase-first-component-tick.md) | 当前更新契约：Engine 编排阶段，Level 扫描对象，组件承载行为 |
 | [function 层结构](superpowers/specs/2026-11-11-function-layer-layout.md) | `component / level / object / world` 与 `function/global` 的目录迁移 |
 | [CameraComponent](superpowers/specs/2026-11-11-camera-component.md) | 相机组件提取时的记录；当前玩家固定 AimState 历史接线以运行时架构为准 |
