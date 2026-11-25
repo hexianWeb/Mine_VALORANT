@@ -24,12 +24,13 @@ export function mountHaoqiHud(layer) {
   }
   return {
     dispose: () => root.remove(),
-    update(trial, result, empty) {
+    update(trial, result, empty, weapon) {
       root.hidden = !trial && !result
       if (root.hidden)
         return
       const flow = !!trial?.inFlow
-      const locks = flow
+      const canGuide = weapon === haoqiRules.weapon
+      const locks = flow && canGuide
         ? trial.locks
         : []
       root.classList.toggle('is-flow', flow)
@@ -41,16 +42,18 @@ export function mountHaoqiHud(layer) {
       bar.hidden = !trial
       if (trial)
         bar.value = trial.charge
-      const prompt = empty
-        ? '按换弹键补弹'
-        : trial?.confirmed
-          ? '保持开火 · 按序锁定'
-          : locks.length ? '重新按住开火 · 确认锁定' : '转向视野内的目标'
+      const prompt = !canGuide
+        ? '切回狂徒可重新确认锁定'
+        : empty
+          ? '按换弹键补弹'
+          : trial?.confirmed
+            ? '保持开火 · 按序锁定'
+            : locks.length ? '重新按住开火 · 确认锁定' : '转向视野内的目标'
       text(detail, trial
         ? flow
           ? prompt
           : `${Math.floor(trial.charge)} / ${haoqiRules.cap} 豪气 ×${(trial.multiplier / 100).toFixed(2)}${empty ? ' · 请换弹' : ''}`
-        : `手射 ${result.outside_kills} 杀 / 心流 ${result.flow_kills} 杀 · ~ 导出 CSV`)
+        : `手动 ${result.outside_kills} 杀 / 心流 ${result.flow_kills} 杀 · ~ 导出 CSV`)
       for (const [i, marker] of markers.entries()) {
         const lock = locks[i]
         marker.hidden = !lock

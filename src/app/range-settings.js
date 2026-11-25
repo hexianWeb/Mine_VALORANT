@@ -59,7 +59,7 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
       </section>
       <section><h3>豪气试炼</h3>
         <button type="button" data-haoqi>豪气试炼 · 30 秒</button>
-        <small>狂徒 / 无甲。满豪气后，重新按住开火确认锁定。</small>
+        <small>狂徒开局 / 无甲。满豪气后，用狂徒重新按住开火确认锁定。</small>
       </section>
       <section><h3>机器人护甲</h3>
         <div class="settings-options">
@@ -186,7 +186,7 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
     setText(ammoSetting, ammoText.textContent)
     let instruction = '射击场景控制面板上的「开始」方框开启挑战。'
     if (settings.mode === 'haoqi')
-      instruction = '按 B 装备狂徒（Vandal），用狂徒射击「开始」。本局限时 30 秒，切换武器会中断本局。'
+      instruction = '按 B 装备狂徒（Vandal），用狂徒射击「开始」。本局限时 30 秒，切枪只撤销当前锁定。'
     if (cancelling) {
       instruction = engine.state === 'paused'
         ? '继续游戏后取消本局。'
@@ -210,7 +210,12 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
   const update = () => {
     const model = readChallengeHud()
     const timed = model?.mode === 'haoqi'
-    trialHud.update(!card.hidden && challenge?.trial, !card.hidden && timed && model?.status === 'completed' && challenge?.trialResult, player.weapons?.readHud()?.weapon?.magazine === 0)
+    trialHud.update(
+      !card.hidden && challenge?.trial,
+      !card.hidden && timed && model?.status === 'completed' && challenge?.trialResult,
+      player.weapons?.readHud()?.weapon?.magazine === 0,
+      player.weapons?.activeDefinitionId,
+    )
     if (lastModel !== model || !model) {
       lastModel = model
       const settings = model ?? selection()

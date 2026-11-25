@@ -62,19 +62,45 @@ try {
   await waitReady()
   await browser.frames(12)
   let current = await state()
+  assert.deepEqual(current.dialogs, ['credits-dialog'])
+  assert.equal(current.locked, false)
+  assert.equal(current.blocked, true)
+  assert.equal(await evaluate(`document.querySelector('.credits-dialog h2').textContent`), '鸣谢')
+  const links = await evaluate(`Array.from(document.querySelectorAll('.credits-dialog a[href]'), link => {
+    const label = link.cloneNode(true);
+    label.querySelectorAll('[aria-hidden="true"]').forEach(node => node.remove());
+    return { label: label.innerText.trim(), href: link.href, target: link.target, openerBlocked: link.relList.contains('noopener') };
+  })`)
+  assert.deepEqual(links, [
+    ['无畏契约原皮枪包CurseForge', 'https://www.curseforge.com/minecraft/customization/tacz-valorant-gun-pack-for-tacz'],
+    ['何以解忧1294', 'https://space.bilibili.com/3546554459753351'],
+    ['-幻梦星璇-', 'https://space.bilibili.com/526060723'],
+    ['阡雪星跃F', 'https://space.bilibili.com/488799058'],
+    ['Alumite', 'https://space.bilibili.com/298015072'],
+  ].map(([label, href]) => ({
+    label,
+    href,
+    target: '_blank',
+    openerBlocked: true,
+  })))
+  await press('Tab', 9)
+  assert.equal(await evaluate(`document.querySelector('.credits-dialog').contains(document.activeElement)`), true)
+  await press('KeyB', 66)
+  assert.deepEqual((await state()).dialogs, ['credits-dialog'])
+  await screenshot('credits.png')
+  record('startup credits shows all five attribution links and isolates gameplay input')
+
   const initialShots = await evaluate('globalThis.__RANGE_ROOM__.world.player.weapons.snapshot().lastShot')
   assert.equal(initialShots, null)
   assert.equal(current.settings.sensitivity, 0.4)
-  if (current.engine === 'paused')
-    await click('[data-continue]')
-  else
-    await click('.capture-hint')
+  await click('[data-enter-range]')
   await browser.frames(4)
   current = await state()
+  assert.deepEqual(current.dialogs, [])
   assert.equal(current.locked, true, JSON.stringify(current))
   assert.equal(current.blocked, false)
   assert.equal(current.hud.weapon.magazine, 12)
-  record('trusted capture click does not fire', { actualPointerLock: true })
+  record('entering from credits captures the pointer without firing', { actualPointerLock: true })
 
   await press('Backquote', 192)
   await browser.frames(12)
@@ -260,7 +286,15 @@ try {
   await browser.frames(6)
   assert.equal((await state()).settings.sensitivity, 0.51)
   assert.equal(await evaluate('document.querySelectorAll(".app-ui").length'), 1)
-  record('reload restores sensitivity with exactly one UI host')
+  assert.deepEqual((await state()).dialogs, ['credits-dialog'])
+  await press('Escape', 27)
+  await browser.frames(3)
+  current = await state()
+  assert.deepEqual(current.dialogs, [])
+  assert.equal(current.locked, false)
+  assert.equal(current.blocked, true)
+  assert.doesNotMatch(current.inputMessage, /未能捕获/u)
+  record('reload restores sensitivity and shows credits, and Escape dismisses credits without capturing')
   await screenshot('hud.png')
 
   await evaluate(`(async () => {
@@ -268,7 +302,7 @@ try {
     globalThis.__uiReload = { runtime, config: level.settings, Level: level.constructor };
     await runtime.world.unloadLevel();
   })()`)
-  assert.equal(await evaluate('document.querySelectorAll(".app-ui, .settings-dialog, .crosshair-dialog").length'), 0)
+  assert.equal(await evaluate('document.querySelectorAll(".app-ui, .settings-dialog, .crosshair-dialog, .credits-dialog").length'), 0)
   await press('Backquote', 192)
   assert.equal(await evaluate('document.querySelectorAll("dialog[open]").length'), 0)
   await evaluate(`(async () => {

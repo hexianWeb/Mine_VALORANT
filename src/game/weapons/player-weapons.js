@@ -449,7 +449,7 @@ export class PlayerWeapons {
           direction,
           impact: trace(direction),
         }))
-        const guidedDirection = trial?.guide(shot.eyeOrigin)
+        const guidedDirection = trial?.guide(shot.eyeOrigin, weapon.definitionId)
         const impact = pellets
           ? pellets.filter(pellet => pellet.impact.hit).sort((a, b) => a.impact.distance - b.impact.distance)[0]?.impact ?? pellets[0].impact
           : trace(guidedDirection ?? shot.shotDirection)

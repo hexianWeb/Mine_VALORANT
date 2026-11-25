@@ -24,7 +24,12 @@ export function createUiHost({ canvas, debugContainer = null }) {
       ? next
       : null))
   }
-  const changed = (kind, reason) => events.emit('modal', { kind, reason, top: stack.at(-1)?.id ?? null })
+  const changed = (kind, reason, recapture = true) => events.emit('modal', {
+    kind,
+    reason,
+    recapture,
+    top: stack.at(-1)?.id ?? null,
+  })
   const focus = entry => (entry.dialog.querySelector('[autofocus], button, input, select, textarea') ?? entry.dialog).focus({ preventScroll: true })
   // Native dialogs make the rest of the page inert, but Tab may still leave for browser chrome.
   owned.listen(document, 'keydown', (event) => {
@@ -57,7 +62,7 @@ export function createUiHost({ canvas, debugContainer = null }) {
       entry.returnFocus.focus({ preventScroll: true })
     else if (previous)
       focus(previous)
-    changed('close', reason)
+    changed('close', reason, entry.recaptureOnClose)
   }
   const api = {
     root,
@@ -66,7 +71,7 @@ export function createUiHost({ canvas, debugContainer = null }) {
     modals,
     events,
     get topModal() { return stack.at(-1)?.id ?? null },
-    registerModal(id, dialog, { onOpen, onClose } = {}) {
+    registerModal(id, dialog, { onOpen, onClose, recaptureOnClose = true } = {}) {
       if (entries.has(id))
         throw new Error(`[UI] Duplicate modal: ${id}`)
       modals.append(dialog)
@@ -75,6 +80,7 @@ export function createUiHost({ canvas, debugContainer = null }) {
         dialog,
         onOpen,
         onClose,
+        recaptureOnClose,
         returnFocus: null,
       }
       entries.set(id, entry)

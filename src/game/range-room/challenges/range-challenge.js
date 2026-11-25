@@ -122,7 +122,7 @@ export class RangeChallengeComponent extends Component {
         reason = 'Challenge running'
       else if (!this.#canStart())
         reason = 'Equipment selection is not ready'
-      else if (this.#config.mode === 'haoqi' && this.#activeWeapon() !== 'vandal')
+      else if (this.#config.mode === 'haoqi' && this.#activeWeapon() !== haoqiRules.weapon)
         reason = '请按 B 装备狂徒（Vandal），再用主武器射击开始'
       else if (this.#pool.available() + this.#retiring.size < required)
         reason = 'Pool needs initial targets plus retirement buffer'
@@ -328,8 +328,9 @@ export class RangeChallengeComponent extends Component {
     }
     try {
       const transition = this.#session.resolveDeaths(result.deaths, time)
-      this.#playtests.attack(result, transition.removed, this.#trial?.inFlow)
-      this.#trial?.settle(result, transition.removed.filter(entry => entry.reason === 'killed'))
+      const guided = this.#trial?.isGuidedShot(result)
+      this.#playtests.attack(result, transition.removed, guided)
+      this.#trial?.settle(result, transition.removed.filter(entry => entry.reason === 'killed'), guided)
       this.#apply(transition, time)
     }
     catch (error) {
@@ -355,17 +356,13 @@ export class RangeChallengeComponent extends Component {
         }
       }
       try {
-        if (this.#trial && this.#activeWeapon() !== 'vandal') {
-          this.cancel('weapon-changed', time.fixedElapsed)
-          return
-        }
         this.#apply(this.#session.fixed(time, this.#trial?.elapsed >= haoqiRules.seconds), time)
         this.#trial?.update(() => {
           const state = this.#presented
           if (!state || state.status !== 'running')
             return []
           return state.active.filter(spawn => this.#session.isActiveSpawn(spawn.spawnId)).map(this.#projectHead).filter(Boolean).sort((a, b) => a.distance - b.distance || a.id.localeCompare(b.id)).slice(0, 5)
-        })
+        }, this.#activeWeapon())
       }
       catch (error) {
         this.#abort(error, time)

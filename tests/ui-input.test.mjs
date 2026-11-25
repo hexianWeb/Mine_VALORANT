@@ -16,9 +16,9 @@ function setup(t, { pointerLock = true } = {}) {
       this.stack.push(id)
       this.events.emit('modal', { kind: 'open', reason: 'action' })
     },
-    closeTop(reason = 'action') {
+    closeTop(reason = 'action', recapture = true) {
       this.stack.pop()
-      this.events.emit('modal', { kind: 'close', reason })
+      this.events.emit('modal', { kind: 'close', reason, recapture })
     },
     closeAll(reason) { while (this.topModal) this.closeTop(reason) },
   }
@@ -102,6 +102,20 @@ test('unlocked canvas focus cannot move/fire; acquiring capture click does not f
   f.key('keyup', 'KeyW')
   f.key('keydown', 'KeyW')
   assert.equal(f.input.isDown('forward'), true)
+})
+
+test('closing a modal with recapture disabled leaves pointer lock to the next explicit action', (t) => {
+  const f = setup(t)
+  f.ui.open('credits')
+  assert.equal(f.controls.read().mode, 'menu')
+  f.ui.closeTop('escape', false)
+  assert.equal(f.controls.read().mode, 'unlocked')
+  assert.equal(f.input.locked, false)
+  assert.equal(f.element.lockOptions, null)
+
+  f.controls.continue()
+  assert.equal(f.controls.read().mode, 'gameplay')
+  assert.equal(f.input.locked, true)
 })
 
 test('Backquote isolates all input without pausing, disabling player, or replaying held fire', (t) => {

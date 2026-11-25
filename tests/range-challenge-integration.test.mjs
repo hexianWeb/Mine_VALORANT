@@ -256,7 +256,7 @@ test('haoqi: manual charge, new trigger per visible batch, paused flow, timed co
   assert.ok(trial.locks.length)
   assert.equal(trial.allowFire(false, 'vandal'), false, 'held trigger from charge phase is not a confirmation')
   assert.equal(trial.allowFire(true, 'vandal'), true)
-  assert.ok(trial.guide([0, 0, 0]))
+  assert.ok(trial.guide([0, 0, 0], weapon))
   f.shoot(1, 'vandal')
   const remaining = trial.remaining
   assert.equal(trial.flowKills, 1)
@@ -299,6 +299,92 @@ test('haoqi: manual charge, new trigger per visible batch, paused flow, timed co
     '3200',
     '8600',
   ])
+})
+
+test('haoqi: switching weapons preserves the run and clears only the current lock batch', (t) => {
+  let now = 0
+  let weapon = 'vandal'
+  t.mock.method(performance, 'now', () => now * 1000)
+  const f = fixture(t, {
+    mode: 'haoqi',
+    activeWeapon: () => weapon,
+    projectHead: spawn => ({
+      id: spawn.spawnId,
+      distance: 1,
+      point: [0, 0, -5],
+    }),
+  })
+  f.start()
+  const trial = f.challenge.trial
+  const sessionId = f.challenge.snapshot().simulation.sessionId
+  const tick = () => {
+    f.fixed()
+    f.challenge.tick({
+      phase: 'motion',
+      time: { presentationTime: f.tick * h },
+    })
+  }
+
+  weapon = 'sheriff'
+  tick()
+  assert.equal(trial.allowFire(true, weapon), true)
+  f.shoot(1, weapon)
+  assert.equal(trial.charge, 108)
+  assert.equal(trial.outsideKills, 1)
+
+  weapon = 'vandal'
+  for (let i = 0; i < 6; i++) {
+    now += 0.5
+    tick()
+    f.shoot(1, weapon)
+  }
+  now = 3.2
+  tick()
+  assert.equal(trial.allowFire(true, weapon), true)
+  assert.ok(trial.guide([0, 0, 0], weapon))
+  const remaining = trial.remaining
+
+  weapon = 'sheriff'
+  now = 3.7
+  tick()
+  assert.equal(trial.confirmed, false)
+  assert.deepEqual(trial.locks, [])
+  assert.equal(trial.guide([0, 0, 0], weapon), null)
+  assert.equal(trial.allowFire(true, weapon), true)
+  f.shoot(1, weapon)
+  assert.equal(trial.remaining, remaining - 0.5)
+  assert.equal(trial.outsideKills, 8)
+  assert.equal(trial.flowKills, 0)
+
+  weapon = 'vandal'
+  tick()
+  assert.equal(trial.allowFire(false, weapon), false)
+  assert.equal(trial.allowFire(true, weapon), true)
+  f.shoot(1, weapon)
+  const playing = f.challenge.snapshot().simulation
+  assert.equal(playing.sessionId, sessionId)
+  assert.equal(playing.active.length, 4)
+
+  weapon = 'sheriff'
+  now = 9
+  tick()
+  assert.equal(trial.inFlow, false)
+  f.shoot(0, weapon)
+  now = 30
+  tick()
+  const log = f.challenge.playtests
+  const { csv } = log.exportCsv(log.choices[0].id)
+  const [columns, ...lines] = csv.trim().split('\r\n').map(line => line.split(','))
+  const rows = lines.map(values => Object.fromEntries(columns.map((key, i) => [key, values[i]])))
+  const sidearmKills = rows.filter(row => row.event === 'kill' && row.weapon === 'sheriff')
+  assert.deepEqual(sidearmKills.map(row => row.shot_phase), ['outside', 'outside'])
+  const end = rows.at(-1)
+  assert.equal(end.reason, 'completed')
+  assert.equal(end.active_ms, '30000')
+  assert.equal(end.kills, '9')
+  assert.equal(end.outside_kills, '8')
+  assert.equal(end.flow_kills, '1')
+  assert.equal(end.first_post_flow_shot_ms, '9000')
 })
 
 test('playtest export reconciles whole shots, partial damage, confirmed deaths, exposure and pauses across restarts', (t) => {

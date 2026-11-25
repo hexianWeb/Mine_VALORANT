@@ -96,7 +96,7 @@ try {
   assert.equal(await evaluate('__AUDIO_PROBE__.sources.length'), 0, 'locked initial draw never produces a source')
   assert.equal(report.initial.decoded.length, audioCueCount)
   assert.ok(report.initial.decoded.every(buffer => buffer.duration > 0 && buffer.channels > 0))
-  await click()
+  await session.click('[data-enter-range]')
   await until('!!document.pointerLockElement && __RANGE_ROOM__.audio.snapshot().state===\'running\' && __RANGE_ROOM__.audio.snapshot().unlocked')
   assert.equal((await weapons()).lastShot, null, 'unlock click cannot shoot')
   await click()

@@ -160,13 +160,13 @@ export class PlaytestLog {
     this.#row(event, at, { reason })
   }
 
-  attack(result, removed, inFlow) {
+  attack(result, removed, guided) {
     const r = this.#run
     if (!r || result.disposition === 'interaction' || !result.attackType)
       return
     const shot = { shot_id: `${result.sourceId}/${result.epoch}/${result.sequence}`, weapon: result.definitionId }
-    if (inFlow !== undefined)
-      shot.shot_phase = inFlow ? 'flow' : 'outside'
+    if (guided !== undefined)
+      shot.shot_phase = guided ? 'flow' : 'outside'
     const damage = result.damage.filter(d => d.sessionId === r.sessionId)
     const gun = result.attackType === 'ShotFired'
     if (gun) {

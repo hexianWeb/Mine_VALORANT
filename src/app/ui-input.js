@@ -162,7 +162,7 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
       ui.closeAll('editor')
     publish()
   }
-  owned.add(ui.events.on('modal', ({ kind, reason }) => {
+  owned.add(ui.events.on('modal', ({ kind, reason, recapture = true }) => {
     if (kind === 'open') {
       invalidateCapture()
       publish()
@@ -170,7 +170,7 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
     }
     else {
       publish()
-      if (!ui.topModal && ['action', 'escape'].includes(reason) && engine.state === 'running' && !reasons.size)
+      if (recapture && !ui.topModal && ['action', 'escape'].includes(reason) && engine.state === 'running' && !reasons.size)
         requestCapture()
     }
   }))

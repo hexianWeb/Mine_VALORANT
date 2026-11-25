@@ -1,5 +1,6 @@
 // All durations use foreground, unpaused real seconds. The world/weapon clocks stay untouched.
 export const haoqiRules = Object.freeze({
+  weapon: 'vandal',
   seconds: 30,
   targets: 4,
   cap: 180,
@@ -55,22 +56,24 @@ export class HaoqiTrial {
     }
   }
 
-  update(readTargets) {
+  update(readTargets, weapon) {
     if (!this.inFlow)
       return
     if (this.elapsed >= this.#until) {
       this.exit('elapsed')
       return
     }
-    this.#visible = readTargets()
+    this.#visible = weapon === haoqiRules.weapon
+      ? readTargets()
+      : []
     this.#batch = this.#batch.filter(id => this.#visible.some(target => target.id === id))
   }
 
   // The equipment controller still owns cadence, ammo, reload and accepted shots.
   allowFire(pressed, weapon) {
-    if (weapon !== 'vandal' || this.elapsed >= haoqiRules.seconds)
+    if (this.elapsed >= haoqiRules.seconds)
       return false
-    if (!this.inFlow)
+    if (!this.inFlow || weapon !== haoqiRules.weapon)
       return true
     if (pressed && !this.confirmed && this.#visible.length) {
       this.#batch = this.#visible.map(target => target.id)
@@ -80,8 +83,8 @@ export class HaoqiTrial {
     return this.confirmed && this.elapsed >= this.#entered + haoqiRules.acquire
   }
 
-  guide(origin) {
-    if (!this.inFlow || !this.confirmed)
+  guide(origin, weapon) {
+    if (!this.inFlow || weapon !== haoqiRules.weapon || !this.confirmed)
       return null
     const lock = this.locks[0]
     if (!lock)
@@ -93,10 +96,14 @@ export class HaoqiTrial {
       : null
   }
 
-  settle(result, killed) {
-    if (result.attackType !== 'ShotFired' || result.disposition === 'interaction' || result.definitionId !== 'vandal')
+  isGuidedShot(result) {
+    return this.inFlow && result.attackType === 'ShotFired' && result.definitionId === haoqiRules.weapon
+  }
+
+  settle(result, killed, guided) {
+    if (!result.attackType || result.disposition === 'interaction')
       return
-    if (this.inFlow) {
+    if (guided) {
       for (const { spawn } of killed) {
         this.#until += 0.5 * 0.8 ** this.#chain++
         this.#batch = this.#batch.filter(id => id !== spawn.spawnId)
@@ -106,16 +113,20 @@ export class HaoqiTrial {
       }
       return
     }
-    if (this.#waitingReturn) {
+    this.outsideKills += killed.length
+    if (result.attackType !== 'ShotFired')
+      return
+    if (!this.inFlow && this.#waitingReturn) {
       this.#waitingReturn = false
       this.firstReturnShot ??= this.elapsed
       this.#emit('post_flow_shot')
     }
+    if (result.definitionId !== haoqiRules.weapon)
+      return
     this.multiplier = result.damage.length
       ? Math.min(300, this.multiplier + 10)
       : Math.max(100, Math.floor(this.multiplier / 2))
     for (const { death } of killed) {
-      this.outsideKills++
       this.#chargeCents = Math.min(haoqiRules.cap * 100, this.#chargeCents + (death.region === 'head'
         ? 10
         : 6) * this.multiplier)
