@@ -272,6 +272,8 @@ export class RangeRoomLevel extends Level {
               fixedDelta: this.fixedDelta,
               audio: this.audio,
               resources,
+              render: this.render,
+              particles: this.particles,
               signal: token,
             })
           }

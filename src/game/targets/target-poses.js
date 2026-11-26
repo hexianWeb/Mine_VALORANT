@@ -91,14 +91,17 @@ export class TargetPoses {
     }
   }
 
-  present(at) {
+  present(at, timeScale = 1) {
     if (!Number.isFinite(at) || at < this.#presentationAt)
       throw new RangeError('[TargetPoses] Presentation time cannot go backwards')
+    const rate = Number.isFinite(timeScale) && timeScale >= 0
+      ? timeScale
+      : 1
     const due = []
     while (this.#pending.length && this.#pending[0].at <= at) {
       const fact = this.#pending.shift()
       this.#hideBody(fact.at)
-      advance(this.#visible, Math.max(0, fact.at - this.#presentationAt))
+      advance(this.#visible, Math.max(0, fact.at - this.#presentationAt) * rate)
       this.#presentationAt = Math.max(this.#presentationAt, fact.at)
       if (fact.type === 'TargetReacted')
         this.#visible.play(fact.region, { restart: true })
@@ -130,7 +133,7 @@ export class TargetPoses {
       }
       due.push(fact)
     }
-    advance(this.#visible, at - this.#presentationAt)
+    advance(this.#visible, (at - this.#presentationAt) * rate)
     this.#presentationAt = at
     this.#hideBody(at)
     return due

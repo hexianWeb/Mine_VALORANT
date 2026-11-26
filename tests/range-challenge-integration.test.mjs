@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { KillFeedback } from '../src/game/range-room/challenges/kill-feedback.js'
 import { RangeChallengeComponent } from '../src/game/range-room/challenges/range-challenge.js'
 import { RangeDisplay } from '../src/game/range-room/challenges/range-display.js'
 import { sectorCells, validateSectorCells } from '../src/game/range-room/challenges/spawn-grid.js'
@@ -213,6 +214,39 @@ function fixture(t, { cells = null, count = 40, random = () => 0.31, mode = 'eli
     get tick() { return tick },
   }
 }
+
+test('haoqi feedback keeps the settled kill multiplier and clears on a failed refill', (t) => {
+  const feedback = new KillFeedback()
+  const f = fixture(t, {
+    mode: 'haoqi',
+    count: 8,
+    activeWeapon: () => 'vandal',
+    trialClock: () => 0,
+    onKillsSettled: (result, multiplier) => feedback.receive(result, multiplier),
+    clearEffects: () => feedback.clear(),
+  })
+  const present = presentationTime => feedback.tick({
+    time: { presentationTime },
+  })
+  f.start()
+  const kill = f.shoot(1, 'vandal')
+  assert.equal(f.challenge.trial.charge, 119)
+  present(kill.at - h)
+  assert.equal(feedback.read().panel, null)
+
+  f.fixed()
+  f.shoot(0, 'vandal')
+  assert.equal(f.challenge.trial.multiplier, 100)
+  present(kill.at)
+  assert.equal(feedback.read().panel.haoqiMultiplier, 110)
+  assert.equal(feedback.read().panel.points, 30)
+
+  // The first body is still retiring, so the remaining pool cannot replace four targets.
+  const finalShot = f.shoot(4, 'vandal')
+  assert.match(f.challenge.snapshot().reason, /replacement capacity exhausted/)
+  present(finalShot.at)
+  assert.deepEqual(feedback.read(), { at: finalShot.at, panel: null, feed: [] })
+})
 
 test('haoqi: manual charge, new trigger per visible batch, paused flow, timed completion and CSV attribution', (t) => {
   let now = 0

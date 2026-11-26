@@ -41,12 +41,13 @@ export class TrainingBotComponent extends Component {
 
   #transform
   #onKillPresented
+  #readWorldTimeScale
   #lastRegion = null
   #hitCount = 0
   #initialSound
   #immediateExitSequence = 0
 
-  constructor({ root, clips, profile, targets, hitAudio = null, skin = 'purple', applySkin, registerMovementObstacle, practice = true, onKillPresented = null }) {
+  constructor({ root, clips, profile, targets, hitAudio = null, skin = 'purple', applySkin, registerMovementObstacle, practice = true, onKillPresented = null, readWorldTimeScale = () => 1 }) {
     super()
     this.#targets = targets
     this.#hitAudio = hitAudio
@@ -58,6 +59,7 @@ export class TrainingBotComponent extends Component {
     this.#practiceEnabled = practice
     this.#initialSound = practice
     this.#onKillPresented = onKillPresented
+    this.#readWorldTimeScale = readWorldTimeScale
     root.visible = practice
     validateDamageProfile(profile)
     this.#poses = new TargetPoses(root, clips, profile.regions)
@@ -261,6 +263,7 @@ export class TrainingBotComponent extends Component {
       this.preparePose(time)
     }
     else if (phase === 'motion') {
+      const worldTimeScale = this.#readWorldTimeScale?.() ?? 1
       if (this.#initialSound && this.#hitAudio?.canPlayInitial) {
         this.#initialSound = false
         this.#hitAudio.playLifecycle({
@@ -268,9 +271,10 @@ export class TrainingBotComponent extends Component {
           entered: true,
           sequence: 0,
           at: time.presentationTime,
+          timeScale: worldTimeScale,
         })
       }
-      for (const fact of this.#poses.present(time.presentationTime)) {
+      for (const fact of this.#poses.present(time.presentationTime, worldTimeScale)) {
         if (fact.type === 'TargetSpawned' && fact.skin !== this.#skin) {
           this.#applySkin(fact.skin)
           this.#skin = fact.skin
@@ -284,6 +288,7 @@ export class TrainingBotComponent extends Component {
             region: fact.region,
             sequence: fact.presentationSequence,
             at: fact.at,
+            timeScale: worldTimeScale,
           })
         }
         else if (['TargetSpawned', 'TargetRemoved', 'PracticeVisibilityChanged'].includes(fact.type)) {
@@ -292,6 +297,7 @@ export class TrainingBotComponent extends Component {
             entered: fact.type === 'TargetSpawned' || fact.enabled === true,
             sequence: fact.presentationSequence,
             at: fact.at,
+            timeScale: worldTimeScale,
           })
         }
       }
@@ -370,7 +376,10 @@ export async function loadTrainingBotAssets({ resources, audio = null, registerM
       dispose,
       audioReady: hitAudio?.ready ?? Promise.resolve(),
       spawnGeometry: { bounds: profile.broadphase, aimPoints },
-      instantiate({ scene, targets, position, yaw = 0, scale = 1, skin = 'purple', practice = true, onKillPresented = null }) {
+      setFlowGlow(value) {
+        outline.setFlowGlow(value)
+      },
+      instantiate({ scene, targets, position, yaw = 0, scale = 1, skin = 'purple', practice = true, onKillPresented = null, readWorldTimeScale = () => 1 }) {
         if (!Object.hasOwn(trainingBotSkins, skin))
           throw new Error(`[Training bot] Unknown skin: ${skin}`)
         const root = resources.instantiate(modelName)
@@ -420,6 +429,7 @@ export async function loadTrainingBotAssets({ resources, audio = null, registerM
             },
             practice,
             onKillPresented,
+            readWorldTimeScale,
           }))
         }
         catch (error) {

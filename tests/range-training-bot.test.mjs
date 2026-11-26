@@ -274,6 +274,7 @@ test('three skins bind to the existing UVs with difficulty metadata and independ
   const { level, assets, targets, resources } = await fixture(t)
   const template = resources.get('range-room:training-bot:model', 'gltf').scene.getObjectByProperty('isSkinnedMesh', true)
   const originalMap = template.material.map
+  assets.setFlowGlow(1)
   const entries = [
     ['blue', 'easy', '简单', 0x4F9ED9],
     ['yellow', 'medium', '中等', 0xD6B64A],
@@ -292,6 +293,9 @@ test('three skins bind to the existing UVs with difficulty metadata and independ
     assert.equal(bot.snapshot().difficultyLabel, label)
     assert.equal(mesh.geometry, template.geometry, 'skins do not duplicate or change UV geometry')
     assert.notEqual(mesh.material, template.material)
+    assert.ok(mesh.material.isNodeMaterial)
+    assert.equal(mesh.material.mrtNode.get('keepColor').value, 1)
+    assert.equal(mesh.material.emissive.getHex(), template.material.emissive.getHex(), 'Flow keeps the skin emission unchanged')
     assert.equal(mesh.material.map.name, `Training bot:${skin}`)
     assert.equal(mesh.material.map.colorSpace, SRGBColorSpace)
     assert.equal(mesh.material.map.flipY, false)
@@ -302,6 +306,7 @@ test('three skins bind to the existing UVs with difficulty metadata and independ
     assert.equal(mesh.material.alphaTest, template.material.alphaTest)
     const shell = mesh.children.find(node => node.isSkinnedMesh)
     assert.equal(shell.material.color.getHex(), outlineColor)
+    assert.equal(shell.material.mrtNode, mesh.material.mrtNode, 'the outline shares the body mask')
     assert.equal(shell.material.side, BackSide)
     assert.equal(shell.material.depthTest, true)
     assert.equal(shell.material.depthWrite, false)

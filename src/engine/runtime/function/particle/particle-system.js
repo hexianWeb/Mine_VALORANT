@@ -115,16 +115,16 @@ function createBatch(owned, scene, clock, capacity, soft) {
   }
 }
 
-function writeParticle(batch, particle, capacity) {
+function writeParticle(batch, particle, capacity, born = particle.born) {
   const { particleOrigin, particleVelocity, particleParams, particleColor, particleStretch } = batch.attributes
   const slot = batch.written % capacity
   particleOrigin.setXYZ(slot, ...particle.origin)
   particleVelocity.setXYZ(slot, ...particle.velocity)
-  particleParams.setXYZW(slot, particle.born, particle.life, particle.size, particle.gravity)
+  particleParams.setXYZW(slot, born, particle.life, particle.size, particle.gravity)
   particleColor.setXYZW(slot, ...particle.color, shapeIds[particle.shape])
   particleStretch.setX(slot, particle.stretch ?? 1)
   batch.written++
-  batch.visibleUntil = Math.max(batch.visibleUntil, particle.born + particle.life)
+  batch.visibleUntil = Math.max(batch.visibleUntil, born + particle.life)
 }
 
 function publishWrites(batch, previous, capacity) {
@@ -164,7 +164,20 @@ export function createParticleSystem({ scene, capacity = 1024 }) {
     throw error
   }
   const [solid, soft] = batches
+  let timeScale = 1
+  let clockOffset = 0
+  let lastPresentation = null
+  const mapBorn = (born) => {
+    if (clockOffset === 0 && timeScale === 1)
+      return born
+    if (lastPresentation === null)
+      return born
+    const worldClock = lastPresentation - clockOffset
+    return worldClock + (born - lastPresentation) * timeScale
+  }
   const clear = () => {
+    clockOffset = 0
+    lastPresentation = null
     for (const batch of batches) {
       batch.written = 0
       batch.visibleUntil = -Infinity
@@ -174,6 +187,11 @@ export function createParticleSystem({ scene, capacity = 1024 }) {
     }
   }
   return {
+    setTimeScale(next) {
+      if (!Number.isFinite(next) || next < 0)
+        throw new RangeError('[Particles] timeScale must be finite and nonnegative')
+      timeScale = next
+    },
     emit(particles) {
       if (owned.disposed)
         return
@@ -184,15 +202,19 @@ export function createParticleSystem({ scene, capacity = 1024 }) {
       for (const particle of particles) {
         writeParticle(particle.shape === 'puff'
           ? soft
-          : solid, particle, capacity)
+          : solid, particle, capacity, mapBorn(particle.born))
       }
       publishWrites(solid, solidStart, capacity)
       publishWrites(soft, softStart, capacity)
     },
     flush({ presentationTime }) {
-      clock.value = presentationTime
+      if (lastPresentation !== null && presentationTime > lastPresentation)
+        clockOffset += (presentationTime - lastPresentation) * (1 - timeScale)
+      lastPresentation = presentationTime
+      const worldTime = presentationTime - clockOffset
+      clock.value = worldTime
       for (const batch of batches)
-        batch.mesh.visible = batch.mesh.count > 0 && presentationTime < batch.visibleUntil
+        batch.mesh.visible = batch.mesh.count > 0 && worldTime < batch.visibleUntil
     },
     clear,
     snapshot() {

@@ -5,6 +5,7 @@ import { intersectRayBox } from '../../../engine/runtime/function/physics/ray-bo
 import { stepSensitivity } from '../../player/look-settings.js'
 import { TrainingBotComponent } from '../../targets/training-bot.js'
 import { challengeRules, defaultChallengeSelection } from './config.js'
+import { FlowEffectComponent } from './flow-controller.js'
 import { createRangeKillEffects } from './kill-effects.js'
 import { KillFeedback } from './kill-feedback.js'
 import { RangeChallengeComponent } from './range-challenge.js'
@@ -81,11 +82,15 @@ export function mountRoomChallenges({
   fixedDelta,
   audio,
   resources,
+  render = null,
+  particles = null,
   signal,
 }) {
   const owned = new Disposer()
   try {
     let challenge
+    let flow = null
+    const readWorldTimeScale = () => flow?.worldTimeScale ?? 1
     const panels = owned.add(createRangeWorldPanels({
       document,
       scene,
@@ -117,7 +122,8 @@ export function mountRoomChallenges({
         position: collision.spawn.position,
         scale,
         practice: false,
-        onKillPresented: (fact, at) => effects.start(fact, at, challenge?.trial?.inFlow ? 0.5 : 1),
+        readWorldTimeScale,
+        onKillPresented: (fact, at) => effects.start(fact, at),
       }))
       addObject(object)
       return {
@@ -146,37 +152,49 @@ export function mountRoomChallenges({
       setPracticeEnabled,
       onPracticeRequested: (_command, time) => setPracticeEnabled(!practiceEnabled, time.fixedElapsed),
       onSensitivityRequested: command => stepSensitivity(player.lookSettings, command.delta),
+      onKillsSettled: (result, haoqiMultiplier) => feedback.receive(result, haoqiMultiplier),
+      onFlowEvent: (type, reason) => flow?.onFlowEvent(type, reason),
       clearEffects() {
         effects.clear()
         feedback.clear()
+        flow?.reset()
       },
       inView: spawn => diagnostics.aimPoints.some(offset => project(spawn, offset)),
       projectHead: spawn => project(spawn, diagnostics.aimPoints[0]),
       activeWeapon: () => player.weapons.activeDefinitionId,
     }))
     challenge.prepare(defaultChallengeSelection)
+    flow = object.addComponent(new FlowEffectComponent({
+      challenge,
+      player,
+      render,
+      particles,
+      botAssets,
+      audio,
+      resources,
+      signal,
+    }))
     const display = object.addComponent(new RangeDisplay({
       challenge,
       panels,
       effects,
       player,
       practiceVisible: () => practiceBots.some(bot => bot.requireComponent(MeshComponent).root.visible),
+      readWorldTimeScale,
     }))
     addObject(object)
     display.update(0)
 
     return {
       challenge,
-      onShotResolved(result, context) {
-        feedback.receive(result)
-        challenge.onShotResolved(result, context)
-      },
+      onShotResolved: (result, context) => challenge.onShotResolved(result, context),
       readHud: () => display.read(),
       readKillFeedback: () => feedback.read(),
       readDiagnostics() {
         const bots = handles.map(({ bot }) => bot.snapshot())
         return {
           ...challenge.snapshot(),
+          flow: flow.snapshot(),
           layout: diagnostics,
           panel: panels.snapshot(),
           display: display.read(),

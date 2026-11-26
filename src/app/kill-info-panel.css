@@ -111,6 +111,22 @@
   clip-path: polygon(0 0, 100% 50%, 0 100%);
   transform-origin: left center;
 }
+.kill-info-multiplier {
+  position: absolute;
+  right: calc(50% + var(--kill-medal-size) * .58 + var(--kill-wing-size) + 5px);
+  top: 50%;
+  translate: 0 -50%;
+  padding: 4px 13px;
+  border-block: 1px solid #b8924d80;
+  background: linear-gradient(105deg, #151410f5, #29251ce8);
+  color: #fff3d6;
+  clip-path: polygon(9px 0, 100% 0, calc(100% - 9px) 100%, 0 100%);
+  font-size: clamp(14px, 1.45vw, 22px);
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  white-space: nowrap;
+}
 
 .kill-info-bonuses {
   display: flex;
@@ -182,6 +198,13 @@
 .touch-ui .kill-feed { top: calc(var(--safe-t) + var(--tool-size) + 14px); }
 .touch-ui .kill-feed li { min-height: 21px; }
 
+@media (orientation: portrait) {
+  .touch-ui .kill-info-panel:has(.kill-info-multiplier:not([hidden])) {
+    --kill-medal-size: clamp(54px, 12vh, 70px);
+    bottom: calc(50% + 20px);
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .kill-info-medal { animation: kill-medal-in 390ms ease-out; }
   .kill-info-sweep { animation: kill-ring-sweep 470ms ease-out; }
@@ -210,6 +233,10 @@
     --kill-start: 22ms;
     animation: kill-points-in 310ms ease-out;
   }
+  .kill-info-multiplier {
+    --kill-start: 55ms;
+    animation: kill-text-in 240ms ease-out;
+  }
   .kill-info-title {
     --kill-start: 72ms;
     animation: kill-text-in 230ms ease-out;
@@ -223,7 +250,7 @@
 
   /* These tracks are sampled by the HUD from presentation time, including on pause or replay. */
   .kill-info-panel :is(.kill-info-medal, .kill-info-sweep, .kill-info-wave, .kill-info-rays,
-    .kill-info-markers [data-latest], .kill-info-points, .kill-info-title, .kill-info-bonuses > span),
+    .kill-info-markers [data-latest], .kill-info-points, .kill-info-title, .kill-info-multiplier, .kill-info-bonuses > span),
   .kill-info-header::before, .kill-info-readout::after {
     animation-delay: calc(var(--kill-start, 0ms) - var(--kill-age, 0s));
     animation-fill-mode: both;

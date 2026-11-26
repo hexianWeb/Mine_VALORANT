@@ -16,6 +16,7 @@ export class CameraComponent extends Component {
   #stepSmoothingRate
   #smoothedStepDeltaY = 0
   #sampleViewPose
+  #fovOffset = 0
   #euler = new Euler(0, 0, 0, 'YXZ')
 
   constructor({
@@ -64,6 +65,14 @@ export class CameraComponent extends Component {
   get yaw() { return 2 * Math.atan2(this.transform.quaternion.y, this.transform.quaternion.w) }
   get pitch() { return this.#pitch }
   get currentVerticalOffset() { return this.#currentVerticalOffset }
+  get fovOffset() { return this.#fovOffset }
+
+  /** Presentation-only FOV delta (degrees), scaled down while using magnified scopes. */
+  setFovOffset(degrees) {
+    if (!Number.isFinite(degrees))
+      throw new RangeError('[CameraComponent] fovOffset must be finite')
+    this.#fovOffset = degrees
+  }
 
   /** Radian commands are applied before fixed motion; pitch never tilts the character body. */
   setAngles(yaw, pitch) {
@@ -106,8 +115,10 @@ export class CameraComponent extends Component {
       this.camera.quaternion.fromArray(pose.quaternion)
       this.#pitch = pose.pitch
       this.#currentVerticalOffset = pose.verticalOffset
-      if (this.camera.isPerspectiveCamera && this.camera.fov !== pose.worldFov) {
-        this.camera.fov = pose.worldFov
+      const scopeScale = 1 - MathUtils.clamp(pose.scopeProgress ?? 0, 0, 1) * 0.85
+      const targetFov = MathUtils.clamp(pose.worldFov + this.#fovOffset * scopeScale, 10, 175)
+      if (this.camera.isPerspectiveCamera && this.camera.fov !== targetFov) {
+        this.camera.fov = targetFov
         this.camera.updateProjectionMatrix()
       }
       return

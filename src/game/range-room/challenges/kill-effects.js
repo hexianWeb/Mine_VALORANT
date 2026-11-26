@@ -100,7 +100,12 @@ export function createRangeKillEffects({ scene, document, capacity }) {
     sprite.visible = false
     sprite.raycast = () => {}
     root.add(sprite)
-    return { sprite, fact: null, arcs: null }
+    return {
+      sprite,
+      fact: null,
+      arcs: null,
+      born: 0,
+    }
   })
   const vertices = capacity * arcCount * segmentsPerArc * 2
   const arcGeometry = owned.add(new BufferGeometry())
@@ -121,22 +126,30 @@ export function createRangeKillEffects({ scene, document, capacity }) {
   root.add(arcs)
   let displayed = 0
   let overflow = 0
+  let lastAt = null
+  let clockOffset = 0
+  let currentScale = 1
   const origin = new Vector3()
   const normal = new Vector3()
 
   function release(slot) {
     slot.fact = null
     slot.arcs = null
+    slot.born = 0
     slot.sprite.visible = false
   }
 
   scene.add(root)
   return {
     start(fact, presentationTime, motionRate = 1) {
-      if (presentationTime >= fact.at + fragmentLifetime)
+      const worldNow = lastAt === null
+        ? presentationTime
+        : presentationTime - clockOffset
+      const born = worldNow - Math.max(0, presentationTime - fact.at) * currentScale
+      if (worldNow >= born + fragmentLifetime)
         return
       for (const slot of slots) {
-        if (slot.fact && presentationTime >= slot.fact.at + fragmentLifetime)
+        if (slot.fact && worldNow >= slot.born + fragmentLifetime)
           release(slot)
       }
       const slot = slots.find(slot => !slot.fact)
@@ -148,6 +161,7 @@ export function createRangeKillEffects({ scene, document, capacity }) {
       const random = shotRandom(fact.presentationSeed)
       origin.fromArray(fact.impact.position).addScaledVector(normal.fromArray(fact.impact.normal), 0.045)
       slot.fact = fact
+      slot.born = born
       slot.sprite.position.copy(origin)
       slot.sprite.material.rotation = random() * Math.PI
       slot.arcs = Array.from({ length: arcCount }, (_, index) => {
@@ -168,13 +182,21 @@ export function createRangeKillEffects({ scene, document, capacity }) {
         motionRate,
       }))
     },
-    present(at) {
+    present(at, worldTimeScale = 1) {
+      const scale = Number.isFinite(worldTimeScale) && worldTimeScale >= 0
+        ? worldTimeScale
+        : 1
+      if (lastAt !== null && at > lastAt)
+        clockOffset += (at - lastAt) * (1 - scale)
+      lastAt = at
+      currentScale = scale
+      const worldAt = at - clockOffset
       let count = 0
       for (const slot of slots) {
-        const { fact, sprite, arcs } = slot
+        const { fact, sprite, arcs, born } = slot
         if (!fact)
           continue
-        const age = at - fact.at
+        const age = worldAt - born
         if (age >= fragmentLifetime) {
           release(slot)
           continue
@@ -207,9 +229,13 @@ export function createRangeKillEffects({ scene, document, capacity }) {
         arcGeometry.setDrawRange(0, count)
         positions.needsUpdate = colors.needsUpdate = true
       }
+      particles.setTimeScale(scale)
       particles.flush({ presentationTime: at })
     },
     clear() {
+      lastAt = null
+      clockOffset = 0
+      currentScale = 1
       for (const slot of slots) release(slot)
       arcs.visible = false
       particles.clear()

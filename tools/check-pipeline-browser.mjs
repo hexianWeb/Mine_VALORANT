@@ -37,6 +37,7 @@ try {
   await evaluate(`import(${JSON.stringify(modulePath)}).then(module=>{globalThis.__PIPELINE_CASES__=module;return true})`)
   report.standalone = await evaluate('__PIPELINE_CASES__.checkStandaloneRenderSystem()')
   report.viewmodel = await evaluate('__PIPELINE_CASES__.checkViewModelComposition()')
+  report.flow = await evaluate('__PIPELINE_CASES__.checkFlowBackgroundGrade()')
   report.normals = await evaluate('__PIPELINE_CASES__.checkNormalPrepass()')
   const decalModule = `/@fs/${path.resolve('tests/decal-browser-cases.js').replaceAll('\\', '/')}`
   report.decals = await evaluate(`import(${JSON.stringify(decalModule)}).then(module=>module.checkDecalPlacement())`)

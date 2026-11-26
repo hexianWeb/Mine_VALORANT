@@ -48,30 +48,32 @@ export class TrainingBotAudio {
     }))
   }
 
-  play({ owner, region, sequence, at }) {
+  play({ owner, region, sequence, at, timeScale = 1 }) {
     const kind = region === 'head'
       ? 'head'
       : 'body'
+    const pitchScale = 0.52 + 0.48 * Math.max(0.25, Math.min(1, timeScale))
     return this.#play({
       owner,
       sequence,
       at,
       sample: kind,
       group: `bot-hit:${kind}`,
-      rate: 0.85,
+      rate: 0.85 * pitchScale,
       gain: 0.28,
     })
   }
 
-  playLifecycle({ owner, entered, sequence, at }) {
+  playLifecycle({ owner, entered, sequence, at, timeScale = 1 }) {
     const sample = entered ? 'in' : 'out'
+    const pitchScale = 0.52 + 0.48 * Math.max(0.25, Math.min(1, timeScale))
     return this.#play({
       owner,
       sequence,
       at,
       sample,
       group: `bot:${sample}`,
-      rate: 1,
+      rate: pitchScale,
       gain: 0.65,
     })
   }

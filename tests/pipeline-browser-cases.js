@@ -2,6 +2,7 @@ import { positionLocal, vec3 } from 'three/tsl'
 import * as THREE from 'three/webgpu'
 import { EventEmitter } from '../src/engine/runtime/core/events.js'
 import { createRenderSystem } from '../src/engine/runtime/function/render/index.js'
+import { flowForegroundMRT } from '../src/engine/runtime/function/render/passes/flow-effect.js'
 import { NormalPrepass } from '../src/engine/runtime/function/render/passes/normal-prepass.js'
 
 function check(condition, message) {
@@ -223,6 +224,95 @@ export async function checkViewModelComposition() {
       backRed,
     ])
       material.dispose()
+  }
+}
+
+/** Identical purple pixels let only geometry and viewmodel coverage distinguish the bot from the wall. */
+export async function checkFlowBackgroundGrade() {
+  const size = Object.assign(new EventEmitter(), {
+    width: 64,
+    height: 64,
+    aspect: 1,
+    pixelRatio: 1,
+  })
+  const canvas = document.createElement('canvas')
+  const scene = new THREE.Scene()
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.05, 10)
+  const render = await createRenderSystem({
+    size,
+    canvas,
+    scene,
+    camera,
+    config: { ao: false, aa: 'none', lutEnabled: false },
+  })
+  const plane = new THREE.PlaneGeometry()
+  const purple = new THREE.MeshBasicNodeMaterial({ color: 0x9659C8 })
+  const skin = purple.clone()
+  skin.mrtNode = flowForegroundMRT
+  const wall = new THREE.Mesh(plane, purple)
+  wall.scale.setScalar(2)
+  wall.position.z = -2
+  const bot = new THREE.Mesh(plane, skin)
+  bot.scale.setScalar(0.4)
+  bot.position.set(-0.5, 0.4, -1)
+  scene.add(wall, bot)
+  const view = new THREE.Mesh(plane, purple)
+  view.scale.setScalar(0.3)
+  view.position.set(0.35, -0.3, -1)
+  render.viewmodel.scene.add(view)
+  render.viewmodel.setEnabled(true)
+  const copy = document.createElement('canvas')
+  copy.width = copy.height = 64
+  const ctx = copy.getContext('2d', { willReadFrequently: true })
+  const pixel = (x, y) => Array.from(ctx.getImageData(x, y, 1, 1).data)
+  const frame = async () => {
+    await new Promise(requestAnimationFrame)
+    render.update()
+    ctx.drawImage(canvas, 0, 0)
+    return {
+      bot: pixel(16, 19),
+      view: pixel(48, 46),
+      wall: pixel(16, 46),
+    }
+  }
+  const same = (a, b) => a.every((value, i) => Math.abs(value - b[i]) <= 1)
+  try {
+    const idle = await frame()
+    check(same(idle.bot, idle.wall) && same(idle.view, idle.wall) && idle.wall[2] > idle.wall[0], 'Expected an evenly purple scene')
+    render.setFlowEffect({
+      active: 1,
+      sweepStart: -0.1,
+      sweepEnd: 1.1,
+      tintStrength: 1,
+    })
+    const active = await frame()
+    check(active.wall[0] > active.wall[2] + 40, `Amber LUT did not grade the purple wall: ${active.wall}`)
+    check(same(active.bot, idle.bot) && same(active.view, idle.view), 'Flow graded the bot or viewmodel')
+    render.viewmodel.setOpacity(0.5)
+    const faded = await frame()
+    check(same(faded.view, idle.view.map((v, i) => (v + active.wall[i]) / 2)), 'Viewmodel fade did not attenuate the background grade')
+    render.viewmodel.setOpacity(1)
+    render.setEffects({ aa: 'smaa' })
+    render.setFlowEffect({
+      edgeX: 16.5 / 64,
+      edgeIntensity: 1,
+      vignette: 0.7,
+      blurPx: 3.4,
+    })
+    const sweep = await frame()
+    check(same(sweep.bot, idle.bot) && same(sweep.view, idle.view), 'Flow edge, vignette or blur changed the foreground')
+    bot.position.z = -3
+    render.setFlowEffect({ edgeIntensity: 0, vignette: 0, blurPx: 0 })
+    check(same((await frame()).bot, active.wall), 'An occluded bot masked the wall in front of it')
+    render.resetFlowEffect()
+    check(same((await frame()).wall, idle.wall), 'Reset did not restore the original wall')
+    return { idle, active }
+  }
+  finally {
+    render.dispose()
+    plane.dispose()
+    purple.dispose()
+    skin.dispose()
   }
 }
 

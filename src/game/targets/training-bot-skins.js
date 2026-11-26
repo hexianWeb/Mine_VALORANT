@@ -1,4 +1,5 @@
-import { ClampToEdgeWrapping, NearestFilter, NearestMipmapNearestFilter, SRGBColorSpace } from 'three/webgpu'
+import { ClampToEdgeWrapping, MeshStandardNodeMaterial, NearestFilter, NearestMipmapNearestFilter, SRGBColorSpace } from 'three/webgpu'
+import { flowForegroundMRT } from '../../engine/runtime/function/render/passes/flow-effect.js'
 
 export const trainingBotSkins = Object.freeze({
   blue: Object.freeze({
@@ -66,10 +67,10 @@ export async function loadTrainingBotSkins({ resources, signal }) {
           throw new Error(`[Training bot] Unknown skin: ${skin}`)
         const materialFor = (source) => {
           if (!variants.has(source)) {
-            const material = source.clone()
+            const material = new MeshStandardNodeMaterial().copy(source)
             material.name = `${source.name}:${skin}`
             material.map = textures.get(skin)
-            material.needsUpdate = true
+            material.mrtNode = flowForegroundMRT
             variants.set(source, material)
           }
           return variants.get(source)

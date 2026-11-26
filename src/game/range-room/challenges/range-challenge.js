@@ -47,6 +47,8 @@ export class RangeChallengeComponent extends Component {
   #seenResults = new WeakSet()
   #onPracticeRequested
   #onSensitivityRequested
+  #onKillsSettled
+  #onFlowEvent
   #clearEffects
 
   constructor({
@@ -60,6 +62,8 @@ export class RangeChallengeComponent extends Component {
     setPracticeEnabled = () => {},
     onPracticeRequested = null,
     onSensitivityRequested = null,
+    onKillsSettled = null,
+    onFlowEvent = null,
     clearEffects = () => {},
     inView = null,
     projectHead = () => null,
@@ -82,6 +86,8 @@ export class RangeChallengeComponent extends Component {
     this.#practice = setPracticeEnabled
     this.#onPracticeRequested = onPracticeRequested
     this.#onSensitivityRequested = onSensitivityRequested
+    this.#onKillsSettled = onKillsSettled
+    this.#onFlowEvent = onFlowEvent
     this.#clearEffects = clearEffects
     this.#inView = inView
     this.#projectHead = projectHead
@@ -321,6 +327,7 @@ export class RangeChallengeComponent extends Component {
       if (this.#config.mode === 'haoqi') {
         this.#trial = new HaoqiTrial((type, reason) => {
           this.#playtests.flowEvent(type, this.#at, reason)
+          this.#onFlowEvent?.(type, reason)
         }, this.#clock)
       }
       this.#grid.reset(transition.sessionId)
@@ -331,6 +338,9 @@ export class RangeChallengeComponent extends Component {
       const guided = this.#trial?.isGuidedShot(result)
       this.#playtests.attack(result, transition.removed, guided)
       this.#trial?.settle(result, transition.removed.filter(entry => entry.reason === 'killed'), guided)
+      // Queue before #apply: completion can reset the multiplier, and an abort must clear this kill.
+      if (result.deaths.length)
+        this.#onKillsSettled?.(result, this.#trial?.multiplier)
       this.#apply(transition, time)
     }
     catch (error) {

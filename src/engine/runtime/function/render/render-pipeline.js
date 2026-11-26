@@ -2,14 +2,15 @@ import { denoise } from 'three/addons/tsl/display/DenoiseNode.js'
 import { ao } from 'three/addons/tsl/display/GTAONode.js'
 import { lut3D } from 'three/addons/tsl/display/Lut3DNode.js'
 import { smaa } from 'three/addons/tsl/display/SMAANode.js'
-import { builtinAOContext, convertToTexture, Fn, If, pass, renderOutput, texture3D, uniform, vec4 } from 'three/tsl'
+import { builtinAOContext, convertToTexture, Fn, If, mrt, output, pass, renderOutput, texture3D, uniform, vec4 } from 'three/tsl'
 import * as THREE from 'three/webgpu'
 import { upsampleAO } from './passes/ao-upsample.js'
+import { applyFlowEffect } from './passes/flow-effect.js'
 import { NormalPrepass } from './passes/normal-prepass.js'
 import { compositeViewModel, ViewModelPass } from './passes/viewmodel-pass.js'
 
 /** AO 调制材质的间接光（含 lightMap），从不调制最终图像。 */
-export function buildPipeline(renderer, scene, camera, config, grading = null, viewmodel = null) {
+export function buildPipeline(renderer, scene, camera, config, grading = null, viewmodel = null, flowEffect = null) {
   if (!['smaa', 'none'].includes(config.aa))
     throw new Error(`[Render pipeline] Unsupported AA mode: ${config.aa}`)
   const owned = new Set()
@@ -104,6 +105,27 @@ export function buildPipeline(renderer, scene, camera, config, grading = null, v
     outputNode = aoNode
       ? vec4(aoNode, aoNode, aoNode, 1)
       : vec4(1)
+  }
+  else if (flowEffect) {
+    // Transparent world geometry covers the bot mask by the same alpha as its color.
+    const sceneMRT = mrt({
+      output,
+      keepColor: vec4(0, 0, 0, output.a),
+    })
+    sceneMRT.setBlendMode('keepColor', sceneMRT.getBlendMode('output'))
+    scenePass.setMRT(sceneMRT)
+    const keepColor = scenePass.getTextureNode('keepColor')
+    keepColor.value.type = THREE.UnsignedByteType
+    const viewColor = viewmodelPass?.getTextureNode()
+    const backgroundAt = (uv) => {
+      const background = keepColor.sample(uv).r.oneMinus()
+      return viewColor
+        ? background.mul(viewColor.sample(uv).a.mul(viewmodel.opacity).oneMinus())
+        : background
+    }
+    const flowStage = applyFlowEffect(outputNode, flowEffect, backgroundAt)
+    own(flowStage.source)
+    outputNode = flowStage.node
   }
   pipeline.outputColorTransform = false
   pipeline.outputNode = outputNode

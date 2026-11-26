@@ -26,8 +26,11 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
       <div data-progress-row hidden><dt data-progress-label>进度</dt><dd data-progress></dd></div>
       <div data-time-row hidden><dt>用时</dt><dd data-time></dd></div>
     </dl>`
-  ui.hud.append(card)
-  const trialHud = owned.add(mountHaoqiHud(ui.hud))
+  const rangeHud = document.createElement('div')
+  rangeHud.className = 'range-hud'
+  const trialHud = owned.add(mountHaoqiHud(rangeHud))
+  rangeHud.append(card)
+  ui.hud.append(rangeHud)
   const statusText = card.querySelector('[data-range-status]')
   const statusRow = card.querySelector('[data-status-row]')
   const modeText = card.querySelector('[data-mode]')
@@ -359,7 +362,7 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
     },
     dispose() {
       owned.dispose()
-      card.remove()
+      rangeHud.remove()
     },
   }
 }

@@ -28,6 +28,9 @@ export class AudioSystem {
   #history = []
   #master
   #sfx
+  #worldFilter = null
+  #worldLowpass = 20000
+  #channels = new Set()
   #onWarning
   #contextOperation = Promise.resolve()
   #stats = {
@@ -87,7 +90,17 @@ export class AudioSystem {
         this.#master.gain.value = this.masterGain
         this.#master.connect(this.#context.destination)
         this.#sfx = this.#context.createGain()
-        this.#sfx.connect(this.#master)
+        if (typeof this.#context.createBiquadFilter === 'function') {
+          this.#worldFilter = this.#context.createBiquadFilter()
+          this.#worldFilter.type = 'lowpass'
+          this.#worldFilter.frequency.value = this.#worldLowpass
+          this.#worldFilter.Q.value = 0.7
+          this.#sfx.connect(this.#worldFilter)
+          this.#worldFilter.connect(this.#master)
+        }
+        else {
+          this.#sfx.connect(this.#master)
+        }
         if (this.#context.addEventListener) {
           this.#owned.listen(this.#context, 'statechange', () => {
             if (!this.#paused && !this.#scalePaused) {
@@ -119,6 +132,46 @@ export class AudioSystem {
   }
 
   get unlocked() { return this.#unlocked && this.#context?.state === 'running' }
+
+  /** Smoothly muffle or open the world SFX bus without altering Flow/UI direct channels. */
+  setWorldLowpass(frequency, timeConstant = 0.06) {
+    if (!Number.isFinite(frequency) || frequency <= 0)
+      return
+    const clamped = Math.min(20000, Math.max(80, frequency))
+    this.#worldLowpass = clamped
+    if (!this.#worldFilter || !this.#context || this.#closed)
+      return
+    const now = this.#context.currentTime
+    if (typeof this.#worldFilter.frequency.setTargetAtTime === 'function')
+      this.#worldFilter.frequency.setTargetAtTime(clamped, now, timeConstant)
+    else
+      this.#worldFilter.frequency.setValueAtTime(clamped, now)
+  }
+
+  /** Create a level-owned sub-bus connected directly to master (respects pause & masterGain). */
+  createChannel() {
+    const context = this.#ensureContext()
+    if (!context || !this.#master)
+      return null
+    const input = context.createGain()
+    input.connect(this.#master)
+    let released = false
+    const isOpen = () => !this.#closed
+    const channel = {
+      context,
+      input,
+      get active() { return !released && isOpen() },
+      dispose: () => {
+        if (released)
+          return
+        released = true
+        this.#channels.delete(channel)
+        input.disconnect()
+      },
+    }
+    this.#channels.add(channel)
+    return channel
+  }
 
   unlock() {
     if (this.#unlocked && (this.#paused || this.#scalePaused))
@@ -588,8 +641,12 @@ export class AudioSystem {
       return
     this.invalidate()
     this.#closed = true
+    for (const channel of [...this.#channels])
+      channel.dispose()
+    this.#channels.clear()
     this.#owned.dispose()
     this.#sfx?.disconnect()
+    this.#worldFilter?.disconnect()
     this.#master?.disconnect()
     if (this.#context && this.#context.state !== 'closed')
       void Promise.resolve(this.#context.close()).catch(error => this.#onWarning(`[Audio] ${error.message}`))

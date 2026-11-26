@@ -252,12 +252,15 @@ export class PlayerComponent extends Component {
   /** Narrow presentation-only read model. Diagnostics remain available through snapshot(). */
   readHud() {
     const pose = this.#presentedPose ?? this.aim.sample(this.#presentationAt)
+    const fovOffset = this.cameraComponent?.fovOffset ?? 0
+    const scopeScale = 1 - THREE.MathUtils.clamp(pose.scopeProgress ?? 0, 0, 1) * 0.85
+    const worldFov = THREE.MathUtils.clamp(pose.worldFov + fovOffset * scopeScale, 10, 175)
     return {
       enabled: this.enabled,
       weapon: this.weapons?.readHud() ?? null,
       aiming: pose.aiming,
       scopeProgress: pose.scopeProgress,
-      worldFov: pose.worldFov,
+      worldFov,
       spread: pose.spread,
       recoilPitch: pose.recoilPitch,
       recoilYaw: pose.recoilYaw,

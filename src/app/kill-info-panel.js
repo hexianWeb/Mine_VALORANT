@@ -44,6 +44,7 @@ export function mountKillInfoPanel({ ui, engine, controls, readFeedback }) {
   panel.hidden = true
   panel.innerHTML = `
     <div class="kill-info-header" role="status">
+      <span class="kill-info-multiplier" title="豪气倍率" hidden></span>
       <div class="kill-info-medal" aria-hidden="true">
         <svg class="kill-info-burst" viewBox="0 0 100 100">
           <circle class="kill-info-wave" cx="50" cy="51" r="39"/>
@@ -67,6 +68,7 @@ export function mountKillInfoPanel({ ui, engine, controls, readFeedback }) {
     </div>
     <div class="kill-info-bonuses"></div>`
   const markers = panel.querySelector('.kill-info-markers')
+  const multiplier = panel.querySelector('.kill-info-multiplier')
   const title = panel.querySelector('.kill-info-title')
   const points = panel.querySelector('.kill-info-points')
   const bonuses = panel.querySelector('.kill-info-bonuses')
@@ -108,6 +110,9 @@ export function mountKillInfoPanel({ ui, engine, controls, readFeedback }) {
       }).join('')
       title.textContent = titles[current.count - 1] ?? `${current.count} 连杀`
       points.textContent = `+${current.points}`
+      multiplier.hidden = current.haoqiMultiplier === null
+      if (!multiplier.hidden)
+        multiplier.textContent = `×${(current.haoqiMultiplier / 100).toFixed(2)}`
       bonuses.replaceChildren(...current.bonuses.map(({ kind, points }) => {
         const chip = document.createElement('span')
         chip.textContent = `${bonusLabels[kind]} +${points}`

@@ -1,5 +1,7 @@
+import { LUTCubeLoader } from 'three/addons/loaders/LUTCubeLoader.js'
 import * as THREE from 'three/webgpu'
 import { createColorGrading } from './color-grading.js'
+import { createFlowEffectState } from './passes/flow-effect.js'
 import { createViewModelLayer } from './passes/viewmodel-pass.js'
 import { renderConfig, validateEffects } from './render-config.js'
 import { buildPipeline } from './render-pipeline.js'
@@ -38,6 +40,11 @@ export async function createRenderSystem({ size, canvas, scene, camera, config =
   let pipeline = null
   let pipelineGeneration = 0
   const grading = createColorGrading()
+  const flowLut = await new LUTCubeLoader().loadAsync('/lut/Flow_Amber_sRGB_33.cube').catch((error) => {
+    console.warn('[Flow] Background LUT unavailable; skipping the Flow color grade.', error)
+    return null
+  })
+  const flowEffect = createFlowEffectState(flowLut?.texture3D)
   const viewmodel = createViewModelLayer({ aspect: size.aspect, lightIntensity: settings.viewmodelLightIntensity })
   let disposed = false
   const resize = ({ width, height, pixelRatio, aspect }) => {
@@ -69,7 +76,7 @@ export async function createRenderSystem({ size, canvas, scene, camera, config =
         'aoView',
       ]
       if (structural.some(key => next[key] !== settings[key])) {
-        const replacement = buildPipeline(renderer, scene, camera, next, grading, viewmodel)
+        const replacement = buildPipeline(renderer, scene, camera, next, grading, viewmodel, flowEffect)
         pipeline.dispose()
         pipeline = replacement
         pipelineGeneration++
@@ -101,6 +108,13 @@ export async function createRenderSystem({ size, canvas, scene, camera, config =
     resetColorGrading() {
       grading.reset()
       pipeline?.updateLut(grading)
+    },
+    setFlowEffect(changes) {
+      if (!disposed)
+        flowEffect.set(changes)
+    },
+    resetFlowEffect() {
+      flowEffect.reset()
     },
     readLinearPixel(x, y) {
       if (!pipeline || disposed)
@@ -172,7 +186,9 @@ export async function createRenderSystem({ size, canvas, scene, camera, config =
         return
       disposed = true
       offResize()
+      flowEffect.reset()
       pipeline?.dispose()
+      flowEffect.lutTexture?.dispose()
       viewmodel.dispose()
       grading.dispose()
       renderer.dispose()
@@ -180,7 +196,7 @@ export async function createRenderSystem({ size, canvas, scene, camera, config =
   }
   try {
     resize(size)
-    pipeline = buildPipeline(renderer, scene, camera, settings, grading, viewmodel)
+    pipeline = buildPipeline(renderer, scene, camera, settings, grading, viewmodel, flowEffect)
     pipelineGeneration++
     return system
   }

@@ -175,6 +175,12 @@
 .touch-ui .range-status dl > div { gap: 12px; }
 .touch-ui .range-status :is([data-open-settings], dl > div:nth-child(2), dl > div:nth-child(3)),
 .touch-ui :is(.crosshair-open, .hud-abilities, .pause-card kbd, .shop-keys) { display: none; }
+.touch-ui .range-hud { padding: calc(var(--safe-t) + 7px) calc(var(--safe-r) + 8px) 0 calc(var(--safe-l) + 8px); }
+.touch-ui .range-hud:has(> .haoqi-hud:not([hidden])) > .range-status { position: static; max-width: 180px; }
+.touch-ui .haoqi-status { width: clamp(148px, 24vw, 200px); }
+.touch-ui .haoqi-meter { padding: 5px 14px 6px 7px; column-gap: 6px; }
+.touch-ui .haoqi-charge { height: 6px; }
+.touch-ui .haoqi-notice { font-size: 11px; }
 .touch-ui .weapon-readout {
   inset: auto var(--safe-r) var(--dock-bottom) var(--safe-l); margin-inline: auto;
   transform: none;
@@ -204,16 +210,30 @@
 .touch-ui .shop-close { top: calc(var(--safe-t) + 5px); right: calc(var(--safe-r) + 8px); width: 44px; height: 44px; }
 .touch-ui .weapon-shop { padding: calc(var(--safe-t) + 54px) calc(var(--safe-r) + 12px) calc(var(--safe-b) + 12px) calc(var(--safe-l) + 12px); }
 
+@media (orientation: landscape) {
+  .touch-ui .ui-hud-layer:has(.haoqi-hud:not([hidden])) .touch-look-hint { top: calc(var(--tool-size) + 50px); }
+}
 @media (orientation: portrait) {
   .touch-controls { --stick-bottom: max(13%, 70px); }
   .touch-weapon-tools {
     --inspect-x: max(8.4%, calc(1.5 * var(--tool-size)));
     --inspect-y: min(54%, calc(100% - var(--stick-bottom) - var(--stick) - var(--key) - 2 * var(--gap) - var(--tool-size) / 2));
   }
+  .touch-ui .range-hud { grid-auto-flow: row; }
   .touch-ui .range-status { left: calc(var(--safe-l) + 8px); top: calc(var(--safe-t) + var(--tool-size) + 12px); }
   .touch-look-hint { top: calc(var(--tool-size) + 12px); right: 8px; left: auto; transform: none; }
+  .touch-ui .ui-hud-layer:has(.haoqi-hud:not([hidden])) .touch-look-hint {
+    top: calc(var(--tool-size) + 86px);
+    max-width: calc(100% - 160px);
+    white-space: normal;
+  }
   .touch-landscape-hint { display: inline; }
   .touch-left { left: 4%; }
   .touch-left [data-action="fire"] { left: 0; }
   .touch-combat { bottom: clamp(98px, 22%, 230px); right: 2%; }
+}
+
+@media (orientation: portrait) and (max-width: 360px) {
+  .touch-ui .range-hud { padding-top: calc(var(--safe-t) + var(--tool-size) + 12px); }
+  .touch-ui .range-hud:has(> .haoqi-hud:not([hidden])) .range-status :is(dl > div:first-child, [data-status-row]) { display: none; }
 }

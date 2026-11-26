@@ -1,5 +1,6 @@
-import { cameraProjectionMatrix, color, Fn, modelNormalMatrix, modelViewProjection, normalLocal, texture, vec4, viewportSize } from 'three/tsl'
+import { cameraProjectionMatrix, color, float, Fn, mix, modelNormalMatrix, modelViewProjection, normalLocal, texture, uniform, vec3, vec4, viewportSize } from 'three/tsl'
 import { BackSide, LessDepth, MeshBasicNodeMaterial, SkinnedMesh, Vector3 } from 'three/webgpu'
+import { flowForegroundMRT } from '../../engine/runtime/function/render/passes/flow-effect.js'
 
 const maxOutlineWidth = 0.035 // World units, narrow enough for the rig's smallest parts.
 const maxOutlinePixels = 4
@@ -37,13 +38,23 @@ function outlineGeometry(source) {
 export function createTrainingBotOutline() {
   const geometries = new Map()
   const materials = new Map()
+  const flowGlow = uniform(0)
   const vertexNode = Fn(() => {
     const clip = modelViewProjection.toVar()
     const viewNormal = modelNormalMatrix.mul(normalLocal).normalize()
     const projectionScale = cameraProjectionMatrix.element(1).y.mul(viewportSize.y).mul(0.5)
-    const width = clip.w.max(0).mul(maxOutlinePixels).div(projectionScale).min(maxOutlineWidth)
-    // Move the hull in 3D so its depth follows the expanded position.
-    return clip.add(cameraProjectionMatrix.mul(vec4(viewNormal.mul(width), 0)))
+    const glow = flowGlow.clamp(0, 1)
+    const pixels = float(maxOutlinePixels).add(flowGlow.mul(3.5))
+    const maxWorld = float(maxOutlineWidth).add(flowGlow.mul(0.032))
+    const width = clip.w.max(0).mul(pixels).div(projectionScale).min(maxWorld)
+    // During Flow glow, keep XY silhouette expansion slightly behind the bot body (-Z in view space)
+    // so wider outlines form a clean unbroken halo without poking through cuboid limb seams.
+    const viewOffset = vec3(
+      viewNormal.x.mul(width),
+      viewNormal.y.mul(width),
+      mix(viewNormal.z.mul(width), float(-0.035), glow),
+    )
+    return clip.add(cameraProjectionMatrix.mul(vec4(viewOffset, 0)))
   })()
   const materialFor = (source, outlineColor) => {
     const key = `${source.uuid}:${outlineColor}`
@@ -60,10 +71,12 @@ export function createTrainingBotOutline() {
         opacity: source.opacity,
       })
       material.vertexNode = vertexNode
+      material.mrtNode = flowForegroundMRT
       // Preserve texture cutouts without tinting the outline with the albedo.
+      const baseColor = color(outlineColor)
       material.colorNode = source.map
-        ? vec4(color(outlineColor), texture(source.map).a)
-        : color(outlineColor)
+        ? vec4(baseColor, texture(source.map).a)
+        : baseColor
       materials.set(key, material)
     }
     return materials.get(key)
@@ -72,6 +85,11 @@ export function createTrainingBotOutline() {
     ? source.map(material => materialFor(material, outlineColor))
     : materialFor(source, outlineColor)
   return {
+    setFlowGlow(value) {
+      flowGlow.value = Number.isFinite(value)
+        ? Math.max(0, Math.min(1.5, value))
+        : 0
+    },
     attach(mesh, outlineColor = 0x7A56A0) {
       if (!geometries.has(mesh.geometry))
         geometries.set(mesh.geometry, outlineGeometry(mesh.geometry))

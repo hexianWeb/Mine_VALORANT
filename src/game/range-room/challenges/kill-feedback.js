@@ -63,11 +63,12 @@ export class KillFeedback extends Component {
     }
   }
 
-  receive(result) {
+  receive(result, haoqiMultiplier = null) {
     if (this.disposed || !result.deaths.length)
       return
     this.#pending.push({
       at: result.at,
+      haoqiMultiplier,
       kills: result.deaths.map(({ definitionId, region }) => ({
         definitionId,
         headshot: region === 'head',
@@ -75,7 +76,7 @@ export class KillFeedback extends Component {
     })
   }
 
-  #record(kill, at) {
+  #record(kill, at, haoqiMultiplier) {
     const previous = this.#latest
     const continues = previous && at <= previous.at + comboWindow
     const count = continues
@@ -102,6 +103,7 @@ export class KillFeedback extends Component {
       at,
       expiresAt: at + panelDuration,
       count,
+      haoqiMultiplier,
       markers: Object.freeze(markers.slice(-defeatPoints.length)),
       points: bonuses.reduce((sum, bonus) => sum + bonus.points, 0),
       bonuses: Object.freeze(bonuses.map(Object.freeze)),
@@ -136,9 +138,9 @@ export class KillFeedback extends Component {
   tick({ time }) {
     this.#at = time.presentationTime
     while (this.#pending[0]?.at <= this.#at) {
-      const { at, kills } = this.#pending.shift()
+      const { at, kills, haoqiMultiplier } = this.#pending.shift()
       for (const kill of kills)
-        this.#record(kill, at)
+        this.#record(kill, at, haoqiMultiplier)
       // A headshot replaces the regular cue, even when one shot kills several targets.
       const sound = this.#buffers.has(headshotSound.file) && kills.some(kill => kill.headshot)
         ? headshotSound

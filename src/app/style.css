@@ -284,11 +284,74 @@ body {
   --panel-action-hover: #eff2cc;
 }
 .ui-hud-layer { z-index: 1; }
-.haoqi-hud { position: absolute; inset: 0; pointer-events: none; font-variant-numeric: tabular-nums; }
-.haoqi-strip { position: absolute; top: 5%; left: 50%; transform: translateX(-50%); display: grid; gap: 4px; min-width: 220px; padding: 8px 14px; border-left: 3px solid #56d5e8; background: #101820ee; color: #f3f6f7; text-align: center; }
-.haoqi-strip progress { width: 100%; height: 6px; accent-color: #56d5e8; }
-.haoqi-strip span { font-size: 13px; }
-.haoqi-hud.is-flow .haoqi-strip { border-color: #ffc857; }
+.range-hud {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-auto-flow: column;
+  place-content: start;
+  align-items: start;
+  gap: 8px;
+  padding: calc(env(safe-area-inset-top, 0px) + clamp(12px, 2.8vh, 26px)) 10px
+    0 calc(env(safe-area-inset-left, 0px) + clamp(10px, 1.5vw, 22px));
+}
+.haoqi-hud { display: contents; }
+.haoqi-status {
+  display: grid;
+  gap: 6px;
+  width: clamp(212px, 18.5vw, 268px);
+  color: #fffdf6;
+  font-family: system-ui, "Microsoft YaHei UI", sans-serif;
+}
+.haoqi-meter {
+  --haoqi-fill: linear-gradient(90deg, #dca734, #ffd467);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 5px 9px;
+  padding: 8px 20px 9px 9px;
+  background: linear-gradient(100deg, #9371408c, #c5a66dba);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 17px) 100%, 0 100%);
+}
+.haoqi-meter::before {
+  content: "";
+  position: absolute;
+  inset: 1px 2px 1px 1px;
+  z-index: -1;
+  background: linear-gradient(105deg, #101211f7, #212019f3);
+  clip-path: inherit;
+}
+.haoqi-flame { grid-row: span 2; width: clamp(22px, 2.1vw, 30px); color: #fff; }
+.haoqi-label { font-size: clamp(13px, 1.2vw, 17px); white-space: nowrap; }
+.haoqi-value { color: #ded3b8; font-size: clamp(11px, .95vw, 14px); font-weight: 600; line-height: 1; white-space: nowrap; }
+.haoqi-value b { color: #fffdf6; font-size: clamp(17px, 1.5vw, 22px); font-weight: 800; }
+.haoqi-charge {
+  grid-column: 2 / -1;
+  appearance: none;
+  width: 100%;
+  height: 7px;
+  border: 0;
+  background: #484844;
+  mask-image: repeating-linear-gradient(90deg, #000 0 calc(100% / 12 - 2px), transparent 0 calc(100% / 12));
+  transform: skewX(-18deg);
+}
+.haoqi-charge::-webkit-progress-bar { background: #484844; }
+.haoqi-charge::-webkit-progress-value { background: var(--haoqi-fill); }
+.haoqi-charge::-moz-progress-bar { background: var(--haoqi-fill); }
+.haoqi-hud.is-flow .haoqi-meter { --haoqi-fill: linear-gradient(90deg, #f1b72c, #ffe496); background: #e6b856; }
+.haoqi-notice {
+  display: grid;
+  gap: 3px;
+  padding: 5px 8px;
+  border-left: 2px solid #d2ab58;
+  background: linear-gradient(105deg, #101211ed, #212019d9);
+  color: #f5ead2;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.haoqi-notice strong:empty { display: none; }
 .haoqi-lock { position: absolute; transform: translate(-50%, -50%); border: 2px solid #56d5e8; border-radius: 4px; box-shadow: 0 0 0 1px #101820; width: 22px; height: 22px; color: #fff; text-indent: 25px; text-shadow: 0 1px 3px black; font-size: 13px; }
 .ui-debug-layer { z-index: 2; }
 .ui-modal-layer { z-index: 3; }
@@ -439,6 +502,7 @@ kbd { font: inherit; color: #e0ffef; }
   .sensitivity-steps button { padding: 8px 3px; font-size: 11px; }
 }
 @media (max-width: 480px) {
+  .range-hud { grid-auto-flow: row; }
   .weapon-readout { grid-template-columns: minmax(67px, 1fr) minmax(0, 3fr) minmax(67px, 1fr); }
   .hud-health { padding-inline: 3px 6px; gap: 4px; }
   .hud-health i { width: 12px; height: 14px; }
@@ -450,6 +514,7 @@ kbd { font: inherit; color: #e0ffef; }
 }
 @media (max-height: 520px) {
   .range-status { top: 64px; transform: none; }
+  .range-hud:has(> .haoqi-hud:not([hidden])) > .range-status { position: static; }
 }
 
 .weapon-shop {

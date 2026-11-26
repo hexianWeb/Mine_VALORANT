@@ -14,20 +14,22 @@ export class RangeDisplay extends Component {
   #effects
   #player
   #practiceVisible
+  #readWorldTimeScale
 
-  constructor({ challenge, panels, effects, player, practiceVisible }) {
+  constructor({ challenge, panels, effects, player, practiceVisible, readWorldTimeScale = () => 1 }) {
     super()
     this.#challenge = challenge
     this.#panels = panels
     this.#effects = effects
     this.#player = player
     this.#practiceVisible = practiceVisible
+    this.#readWorldTimeScale = readWorldTimeScale
   }
 
   read() { return this.#model }
 
   tick({ time }) {
-    this.#effects.present(time.presentationTime)
+    this.#effects.present(time.presentationTime, this.#readWorldTimeScale())
     this.update(time.presentationTime)
   }
 
