@@ -1,6 +1,7 @@
 import { createApplication } from './app/bootstrap.js'
 import './app/style.css'
 import './app/touch-controls.css'
+import './app/kill-info-panel.css'
 
 const status = document.querySelector('.loading')
 const unsupported = document.querySelector('.unsupported')

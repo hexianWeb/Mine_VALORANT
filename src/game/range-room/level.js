@@ -223,7 +223,7 @@ export class RangeRoomLevel extends Level {
               meleeSlot: 'tertiary',
               skinPreferences,
               armoryAccess: () => this.challenge?.armoryRestriction(),
-              onShotResolved: (result, context) => this.challenge?.onShotResolved(result, context),
+              onShotResolved: (result, context) => this.#challenges?.onShotResolved(result, context),
             }
             // Prewarm shared data only. VisualPrepared requires motion ticks after load completes.
             const initial = classicDefinition.assets
@@ -268,6 +268,9 @@ export class RangeRoomLevel extends Level {
               scale: settings.trainingBot.scale ?? 1,
               anisotropy: settings.textureAnisotropy,
               fixedDelta: this.fixedDelta,
+              audio: this.audio,
+              resources,
+              signal: token,
             })
           }
         }
@@ -294,6 +297,8 @@ export class RangeRoomLevel extends Level {
   }
 
   readChallengeHud() { return this.#challenges?.readHud() ?? null }
+
+  readKillFeedback() { return this.#challenges?.readKillFeedback() ?? null }
 
   readChallengeDiagnostics() { return this.#challenges?.readDiagnostics() ?? null }
 

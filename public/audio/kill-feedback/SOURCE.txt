@@ -1,0 +1,6 @@
+Delta Force WAVs supplied with the project.
+
+audio_KillSounds_DeltaForce_k_deltaforce_normal.wav — regular kill confirmation
+audio_KillSounds_DeltaForce_k_deltaforce_headshot.wav — headshot kill confirmation
+
+Both WAV files are used as supplied.

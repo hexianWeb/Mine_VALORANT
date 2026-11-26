@@ -4,6 +4,7 @@ import { stepSensitivity } from '../../player/look-settings.js'
 import { TrainingBotComponent } from '../../targets/training-bot.js'
 import { challengeRules, defaultChallengeSelection } from './config.js'
 import { createRangeKillEffects } from './kill-effects.js'
+import { KillFeedback } from './kill-feedback.js'
 import { RangeChallengeComponent } from './range-challenge.js'
 import { RangeDisplay } from './range-display.js'
 import { prepareRoomSpawnLayout } from './room-spawn-layout.js'
@@ -44,6 +45,9 @@ export function mountRoomChallenges({
   scale,
   anisotropy,
   fixedDelta,
+  audio,
+  resources,
+  signal,
 }) {
   const owned = new Disposer()
   try {
@@ -95,6 +99,7 @@ export function mountRoomChallenges({
 
     // Last in, first out: disposing this GO cancels the session while its bots and effects are live.
     const object = owned.add(new GameObject({ name: 'Range challenges', mobility: 'static' }))
+    const feedback = object.addComponent(new KillFeedback({ audio, resources, signal }))
     challenge = object.addComponent(new RangeChallengeComponent({
       cells,
       pool: createTargetPool(handles),
@@ -106,7 +111,10 @@ export function mountRoomChallenges({
       setPracticeEnabled,
       onPracticeRequested: (_command, time) => setPracticeEnabled(!practiceEnabled, time.fixedElapsed),
       onSensitivityRequested: command => stepSensitivity(player.lookSettings, command.delta),
-      clearEffects: effects.clear,
+      clearEffects() {
+        effects.clear()
+        feedback.clear()
+      },
     }))
     challenge.prepare(defaultChallengeSelection)
     const display = object.addComponent(new RangeDisplay({
@@ -121,7 +129,12 @@ export function mountRoomChallenges({
 
     return {
       challenge,
+      onShotResolved(result, context) {
+        feedback.receive(result)
+        challenge.onShotResolved(result, context)
+      },
       readHud: () => display.read(),
+      readKillFeedback: () => feedback.read(),
       readDiagnostics() {
         const bots = handles.map(({ bot }) => bot.snapshot())
         return {

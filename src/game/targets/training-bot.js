@@ -213,6 +213,7 @@ export class TrainingBotComponent extends Component {
         sourceId: shot.sourceId,
         epoch: shot.epoch,
         sequence: shot.sequence,
+        definitionId: shot.definitionId,
         pelletIndex: plan.lethal.pelletIndex,
         region: plan.lethal.region,
         fixedTick: time.fixedTick,

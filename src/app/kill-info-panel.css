@@ -1,0 +1,276 @@
+.kill-info-panel, .kill-feed {
+  --kill-gold: #ffd52c;
+  position: absolute;
+  color: #fffdf8;
+  font-family: system-ui, "Microsoft YaHei UI", sans-serif;
+  text-shadow: 0 1px 3px #050709, 0 0 8px #06090bbd;
+}
+
+.kill-info-panel {
+  --kill-medal-size: clamp(66px, 6vw, 86px);
+  --kill-wing-size: clamp(16px, 2.45vw, 36px);
+  --kill-accent: #f7ebc8;
+  left: 50%;
+  bottom: clamp(92px, 17vh, 148px);
+  transform: translate(-50%, calc(-6px * (1 - var(--kill-fade, 1))));
+  opacity: var(--kill-fade, 1);
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  width: max-content;
+  max-width: calc(100% - 24px);
+}
+.kill-info-panel[data-headshot] { --kill-accent: var(--kill-gold); }
+
+.kill-info-header {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+}
+
+.kill-info-medal {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--kill-medal-size);
+  aspect-ratio: 1;
+}
+.kill-info-ring, .kill-info-burst {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.kill-info-ring { filter: drop-shadow(0 2px 5px #080605bf); }
+.kill-info-burst { overflow: visible; }
+.kill-info-wave, .kill-info-rays {
+  fill: none;
+  stroke: var(--kill-accent);
+  opacity: 0;
+  transform-box: view-box;
+  transform-origin: 50% 51%;
+}
+.kill-info-wave { stroke-width: 1.55; }
+.kill-info-wave-echo { stroke-width: 1; }
+.kill-info-rays {
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 3px var(--kill-accent));
+}
+.kill-info-disc { fill: #151510f0; stroke: #f7ebc8; stroke-width: 2.8; }
+.kill-info-trim { fill: none; stroke: #b59d6c80; stroke-width: 1; }
+.kill-info-sweep {
+  fill: none;
+  stroke: var(--kill-accent);
+  stroke-width: 3.6;
+  stroke-linecap: round;
+  stroke-dasharray: 32 68;
+  opacity: 0;
+  filter: drop-shadow(0 0 2px var(--kill-accent));
+}
+.kill-info-markers path { fill: currentColor; }
+.kill-info-markers [data-headshot] { color: var(--kill-gold); }
+.kill-info-medal .kill-skull {
+  position: relative;
+  width: 43%;
+  transform: translateY(2%);
+}
+.kill-info-panel[data-headshot] .kill-info-medal .kill-skull {
+  color: var(--kill-gold);
+  filter: drop-shadow(0 0 7px #ffc81c6b);
+}
+
+.kill-info-readout {
+  position: absolute;
+  left: calc(50% + var(--kill-medal-size) * .65);
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  white-space: nowrap;
+}
+.kill-info-header::before, .kill-info-readout::after {
+  content: "";
+  position: absolute;
+  width: var(--kill-wing-size);
+  height: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.kill-info-header::before {
+  right: calc(50% + var(--kill-medal-size) * .58);
+  background: linear-gradient(90deg, transparent, var(--kill-accent));
+  clip-path: polygon(0 50%, 100% 0, 100% 100%);
+  transform-origin: right center;
+}
+.kill-info-readout::after {
+  left: calc(100% + 9px);
+  background: linear-gradient(90deg, var(--kill-accent), transparent);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  transform-origin: left center;
+}
+
+.kill-info-bonuses {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 3px clamp(5px, .7vw, 10px);
+  font-size: clamp(11px, 1.05vw, 15px);
+  line-height: 1.2;
+}
+.kill-info-bonuses > span { white-space: nowrap; }
+.kill-info-bonuses > span + span::before {
+  content: "·";
+  margin-inline-end: clamp(5px, .7vw, 10px);
+  color: #fffd;
+}
+.kill-info-bonuses [data-headshot] { color: var(--kill-gold); font-weight: 650; }
+
+.kill-skull {
+  display: block;
+  width: clamp(17px, 1.65vw, 24px);
+  height: auto;
+  filter: drop-shadow(0 1px 2px #050709d4);
+}
+.kill-info-title { font-size: clamp(14px, 1.35vw, 20px); font-weight: 650; }
+.kill-info-points {
+  font-size: clamp(22px, 2.3vw, 34px);
+  font-weight: 800;
+  line-height: 1;
+  transform-origin: left center;
+}
+
+.kill-feed {
+  top: calc(48px + env(safe-area-inset-top, 0px));
+  right: calc(14px + env(safe-area-inset-right, 0px));
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: clamp(11px, 1.05vw, 15px);
+}
+.kill-feed li {
+  display: flex;
+  align-items: center;
+  gap: clamp(4px, .6vw, 9px);
+  min-height: 26px;
+  padding: 2px 2px 2px 18px;
+  background: linear-gradient(90deg, transparent, #1015178f 60%, #101517a3);
+  white-space: nowrap;
+}
+.kill-feed li:not(:first-child) { color: #fffd; }
+.kill-feed li[data-headshot] :is(.kill-skull, strong) { color: var(--kill-gold); }
+.kill-feed .kill-skull { width: clamp(15px, 1.45vw, 20px); }
+.kill-feed-weapon img {
+  display: block;
+  width: clamp(30px, 2.7vw, 42px);
+  height: 17px;
+  object-fit: contain;
+  transform: scaleX(-1);
+  filter: brightness(0) invert(1) drop-shadow(0 1px 1px #0009);
+}
+
+.touch-ui .kill-info-panel {
+  --kill-medal-size: clamp(58px, 17vh, 76px);
+  bottom: calc(var(--dock-bottom) + var(--slot-height) + 14px);
+}
+.touch-ui .kill-feed { top: calc(var(--safe-t) + var(--tool-size) + 14px); }
+.touch-ui .kill-feed li { min-height: 21px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .kill-info-medal { animation: kill-medal-in 390ms ease-out; }
+  .kill-info-sweep { animation: kill-ring-sweep 470ms ease-out; }
+  .kill-info-wave:not(.kill-info-wave-echo) { animation: kill-wave-out 420ms ease-out; }
+  .kill-info-rays:not(.kill-info-rays-extra) { animation: kill-rays-out 380ms ease-out; }
+  .kill-info-panel:is([data-headshot], [data-streak="3"], [data-streak="4"], [data-streak="5"]) .kill-info-rays-extra {
+    --kill-start: 38ms;
+    animation: kill-rays-out 490ms ease-out;
+  }
+  .kill-info-panel[data-streak="5"] .kill-info-wave-echo {
+    --kill-start: 75ms;
+    --kill-wave-scale: 1.84;
+    animation: kill-wave-out 510ms ease-out;
+  }
+  .kill-info-markers [data-latest] {
+    --kill-start: 36ms;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: kill-marker-in 300ms ease-out;
+  }
+  .kill-info-header::before, .kill-info-readout::after {
+    --kill-start: 30ms;
+    animation: kill-wing-out 260ms ease-out;
+  }
+  .kill-info-points {
+    --kill-start: 22ms;
+    animation: kill-points-in 310ms ease-out;
+  }
+  .kill-info-title {
+    --kill-start: 72ms;
+    animation: kill-text-in 230ms ease-out;
+  }
+  .kill-info-bonuses > span {
+    --kill-start: 110ms;
+    animation: kill-text-in 255ms ease-out;
+  }
+  .kill-info-bonuses > span:nth-child(2) { --kill-start: 155ms; }
+  .kill-info-bonuses > span:nth-child(3) { --kill-start: 200ms; }
+
+  /* These tracks are sampled by the HUD from presentation time, including on pause or replay. */
+  .kill-info-panel :is(.kill-info-medal, .kill-info-sweep, .kill-info-wave, .kill-info-rays,
+    .kill-info-markers [data-latest], .kill-info-points, .kill-info-title, .kill-info-bonuses > span),
+  .kill-info-header::before, .kill-info-readout::after {
+    animation-delay: calc(var(--kill-start, 0ms) - var(--kill-age, 0s));
+    animation-fill-mode: both;
+    animation-play-state: paused;
+  }
+}
+
+@keyframes kill-medal-in {
+  from { transform: translateY(6px) rotate(-6deg) scale(.77); }
+  36% { transform: translateY(-3px) rotate(2deg) scale(1.13); }
+  68% { transform: translateY(1px) rotate(-.6deg) scale(.98); }
+  to { transform: none; }
+}
+@keyframes kill-ring-sweep {
+  from { stroke-dashoffset: 14; opacity: 1; }
+  58% { opacity: .85; }
+  to { stroke-dashoffset: -106; opacity: 0; }
+}
+@keyframes kill-wave-out {
+  from { opacity: .68; transform: scale(.92); }
+  to { opacity: 0; transform: scale(var(--kill-wave-scale, 1.6)); }
+}
+@keyframes kill-rays-out {
+  from { opacity: 0; transform: rotate(-8deg) scale(.88); }
+  22% { opacity: .9; }
+  to { opacity: 0; transform: rotate(8deg) scale(1.71); }
+}
+@keyframes kill-marker-in {
+  from { opacity: 0; transform: translateY(-8px) scale(1.6); }
+  55% { opacity: 1; transform: translateY(1px) scale(.88); }
+  to { transform: none; }
+}
+@keyframes kill-wing-out {
+  from { opacity: 0; scale: .18 1; }
+  64% { opacity: 1; scale: 1.18 1; }
+  to { scale: 1 1; }
+}
+@keyframes kill-points-in {
+  from { opacity: 0; transform: translate(-5px, 4px) scale(.76); }
+  55% { opacity: 1; transform: translateY(-2px) scale(1.12); }
+  to { transform: none; }
+}
+@keyframes kill-text-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kill-info-panel { transform: translateX(-50%); }
+}

@@ -6,6 +6,7 @@ import { RangeRoomLevel } from '../game/range-room/level.js'
 import { readAppConfig } from './config.js'
 import { installDiagnostics } from './diagnostics.js'
 import { mountInputOverlay } from './input-overlay.js'
+import { mountKillInfoPanel } from './kill-info-panel.js'
 import { mountRangeSettings } from './range-settings.js'
 import { mountTouchControls } from './touch-controls.js'
 import { createUiHost } from './ui-host.js'
@@ -150,6 +151,14 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
         ui,
         controls: inputUi,
       }))
+      if (level.challenge) {
+        levelTools.add(mountKillInfoPanel({
+          ui,
+          engine: runtime.engine,
+          controls: inputUi,
+          readFeedback: () => level.readKillFeedback(),
+        }))
+      }
       if (options.touchControls) {
         levelTools.add(mountTouchControls({
           ui,
