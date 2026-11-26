@@ -224,6 +224,7 @@ export class RangeRoomLevel extends Level {
               skinPreferences,
               armoryAccess: () => this.challenge?.armoryRestriction(),
               onShotResolved: (result, context) => this.#challenges?.onShotResolved(result, context),
+              readTrial: () => this.challenge?.trial,
             }
             // Prewarm shared data only. VisualPrepared requires motion ticks after load completes.
             const initial = classicDefinition.assets
@@ -256,6 +257,7 @@ export class RangeRoomLevel extends Level {
           this.setPlayerEnabled(true)
           if (weapons && botAssets) {
             this.#challenges = mountRoomChallenges({
+              camera,
               addObject: object => this.addObject(object),
               scene,
               document: this.render.renderer.domElement.ownerDocument,

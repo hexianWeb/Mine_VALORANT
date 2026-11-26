@@ -60,7 +60,7 @@ test('elimination display publishes whole presentation seconds and freezes at th
   assert.equal(session.result.elapsed, 2.95)
 })
 
-function fixture(t, { cells = null, count = 40, random = () => 0.31, mode = 'elimination' } = {}) {
+function fixture(t, { cells = null, count = 40, random = () => 0.31, mode = 'elimination', inView = null, ...trialOptions } = {}) {
   const targets = new ShotTargets()
   const sourceId = targets.openSource(1)
   const handles = []
@@ -128,6 +128,8 @@ function fixture(t, { cells = null, count = 40, random = () => 0.31, mode = 'eli
     random,
     fixedDelta: h,
     bodyHideDelay: 0.05,
+    inView,
+    ...trialOptions,
     setPracticeEnabled: value => practice.push(value),
   })
   t.after(() => challenge.dispose())
@@ -180,7 +182,19 @@ function fixture(t, { cells = null, count = 40, random = () => 0.31, mode = 'eli
       at: tick * h,
       payload: {
         weapon: { definitionId },
-        pellets,
+        pellets: pellets.length
+          ? pellets
+          : [
+              {
+                index: 0,
+                direction: [0, 0, -1],
+                impact: {
+                  distance: 200,
+                  position: [0, 0, -200],
+                  normal: null,
+                },
+              },
+            ],
       },
     }, time(tick))
     assert.equal(activations, beforeShotActivations)
@@ -199,6 +213,245 @@ function fixture(t, { cells = null, count = 40, random = () => 0.31, mode = 'eli
     get tick() { return tick },
   }
 }
+
+test('haoqi: manual charge, new trigger per visible batch, paused flow, timed completion and CSV attribution', (t) => {
+  let now = 0
+  let weapon = 'classic'
+  t.mock.method(performance, 'now', () => now * 1000)
+  const f = fixture(t, {
+    mode: 'haoqi',
+    activeWeapon: () => weapon,
+    projectHead: spawn => ({
+      id: spawn.spawnId,
+      x: 0.5,
+      y: 0.5,
+      distance: 0,
+      point: [0, 1, -5],
+    }),
+  })
+  assert.equal(f.challenge.readControlState().ready, false)
+  weapon = 'vandal'
+  f.start()
+  const trial = f.challenge.trial
+  assert.equal(trial.charge, 108)
+  const tick = () => {
+    f.fixed()
+    f.challenge.tick({
+      phase: 'motion',
+      time: { presentationTime: f.tick * h },
+    })
+  }
+  f.shoot(0, 'vandal')
+  for (let i = 0; i < 6; i++) {
+    now += 0.5
+    tick()
+    f.shoot(1, 'vandal')
+  }
+  assert.equal(trial.inFlow, true)
+  assert.equal(trial.outsideKills, 6)
+  assert.equal(trial.firstFlow, 3)
+  now = 3.2
+  tick()
+  tick()
+  assert.ok(trial.locks.length)
+  assert.equal(trial.allowFire(false, 'vandal'), false, 'held trigger from charge phase is not a confirmation')
+  assert.equal(trial.allowFire(true, 'vandal'), true)
+  assert.ok(trial.guide([0, 0, 0], weapon))
+  f.shoot(1, 'vandal')
+  const remaining = trial.remaining
+  assert.equal(trial.flowKills, 1)
+  f.challenge.pausePlaytest(true, f.tick * h)
+  now += 60
+  assert.equal(trial.remaining, remaining)
+  f.challenge.pausePlaytest(false, f.tick * h)
+  now = 68.6
+  tick()
+  assert.equal(trial.inFlow, false)
+  assert.equal(trial.charge, 0)
+  f.shoot(0, 'vandal')
+  now = 90
+  tick()
+  assert.equal(f.challenge.trial, null)
+  assert.equal(f.challenge.running, false)
+  const log = f.challenge.playtests
+  const file = log.exportCsv(log.choices[0].id)
+  const [head, ...rows] = file.csv.trim().split('\r\n').map(line => line.split(','))
+  const events = rows.filter(r => r[head.indexOf('event')] === 'kill')
+  assert.deepEqual(events.map(r => r[head.indexOf('shot_phase')]), [
+    ...Array.from({ length: 6 }).fill('outside'),
+    'flow',
+  ])
+  const end = Object.fromEntries(head.map((k, i) => [k, rows.at(-1)[i]]))
+  assert.deepEqual([
+    end.reason,
+    end.active_ms,
+    end.outside_kills,
+    end.flow_kills,
+    end.first_flow_ms,
+    end.first_confirm_ms,
+    end.first_post_flow_shot_ms,
+  ], [
+    'completed',
+    '30000',
+    '6',
+    '1',
+    '3000',
+    '3200',
+    '8600',
+  ])
+})
+
+test('haoqi: switching weapons preserves the run and clears only the current lock batch', (t) => {
+  let now = 0
+  let weapon = 'vandal'
+  t.mock.method(performance, 'now', () => now * 1000)
+  const f = fixture(t, {
+    mode: 'haoqi',
+    activeWeapon: () => weapon,
+    projectHead: spawn => ({
+      id: spawn.spawnId,
+      distance: 1,
+      point: [0, 0, -5],
+    }),
+  })
+  f.start()
+  const trial = f.challenge.trial
+  const sessionId = f.challenge.snapshot().simulation.sessionId
+  const tick = () => {
+    f.fixed()
+    f.challenge.tick({
+      phase: 'motion',
+      time: { presentationTime: f.tick * h },
+    })
+  }
+
+  weapon = 'sheriff'
+  tick()
+  assert.equal(trial.allowFire(true, weapon), true)
+  f.shoot(1, weapon)
+  assert.equal(trial.charge, 108)
+  assert.equal(trial.outsideKills, 1)
+
+  weapon = 'vandal'
+  for (let i = 0; i < 6; i++) {
+    now += 0.5
+    tick()
+    f.shoot(1, weapon)
+  }
+  now = 3.2
+  tick()
+  assert.equal(trial.allowFire(true, weapon), true)
+  assert.ok(trial.guide([0, 0, 0], weapon))
+  const remaining = trial.remaining
+
+  weapon = 'sheriff'
+  now = 3.7
+  tick()
+  assert.equal(trial.confirmed, false)
+  assert.deepEqual(trial.locks, [])
+  assert.equal(trial.guide([0, 0, 0], weapon), null)
+  assert.equal(trial.allowFire(true, weapon), true)
+  f.shoot(1, weapon)
+  assert.equal(trial.remaining, remaining - 0.5)
+  assert.equal(trial.outsideKills, 8)
+  assert.equal(trial.flowKills, 0)
+
+  weapon = 'vandal'
+  tick()
+  assert.equal(trial.allowFire(false, weapon), false)
+  assert.equal(trial.allowFire(true, weapon), true)
+  f.shoot(1, weapon)
+  const playing = f.challenge.snapshot().simulation
+  assert.equal(playing.sessionId, sessionId)
+  assert.equal(playing.active.length, 4)
+
+  weapon = 'sheriff'
+  now = 9
+  tick()
+  assert.equal(trial.inFlow, false)
+  f.shoot(0, weapon)
+  now = 30
+  tick()
+  const log = f.challenge.playtests
+  const { csv } = log.exportCsv(log.choices[0].id)
+  const [columns, ...lines] = csv.trim().split('\r\n').map(line => line.split(','))
+  const rows = lines.map(values => Object.fromEntries(columns.map((key, i) => [key, values[i]])))
+  const sidearmKills = rows.filter(row => row.event === 'kill' && row.weapon === 'sheriff')
+  assert.deepEqual(sidearmKills.map(row => row.shot_phase), ['outside', 'outside'])
+  const end = rows.at(-1)
+  assert.equal(end.reason, 'completed')
+  assert.equal(end.active_ms, '30000')
+  assert.equal(end.kills, '9')
+  assert.equal(end.outside_kills, '8')
+  assert.equal(end.flow_kills, '1')
+  assert.equal(end.first_post_flow_shot_ms, '9000')
+})
+
+test('playtest export reconciles whole shots, partial damage, confirmed deaths, exposure and pauses across restarts', (t) => {
+  let now = 10
+  t.mock.method(performance, 'now', () => now)
+  const f = fixture(t, {
+    inView: spawn => spawn.spawnId.endsWith(':1'),
+  })
+  const log = f.challenge.playtests
+  f.start()
+  const motion = () => f.challenge.tick({
+    phase: 'motion',
+    time: { presentationTime: f.tick * h },
+  })
+  motion()
+  motion()
+  f.fixed()
+  f.shoot(0) // wall/air: one accepted shot, no damage
+  f.shoot(1, 'classic', 'chest') // non-lethal hit
+  const batch = f.shoot(2)
+  f.challenge.onShotResolved(batch, time(f.tick)) // duplicate delivery after refilling must not count
+  now += 700
+  log.pause(true, f.tick * h)
+  now += 5000
+  log.pause(false, f.tick * h)
+  now += 300
+  f.challenge.cancel()
+  const first = log.choices[0].id
+  f.start()
+  f.challenge.cancel()
+  assert.equal(log.choices.length, 2)
+  assert.notEqual(first, log.choices[0].id)
+  const { csv, filename } = log.exportCsv(first, 'P01')
+  assert.match(filename, /^range-P01-.*\.csv$/u)
+  assert.equal(csv.charCodeAt(0), 0xFEFF)
+  const [keys, ...values] = csv.trim().split('\r\n').map(line => line.split(','))
+  const rows = values.map(fields => Object.fromEntries(keys.map((key, i) => [key, fields[i]])))
+  const select = type => rows.filter(row => row.event === type)
+  assert.deepEqual(select('shot').map(r => [r.weapon, r.hit]), [
+    ['phantom', '0'],
+    ['classic', '1'],
+    ['phantom', '1'],
+  ])
+  assert.deepEqual(select('damage').map(r => r.region), ['chest', 'head', 'head'])
+  const multiKillShot = select('shot')[2].shot_id
+  assert.deepEqual(select('kill').map(r => r.shot_id), [multiKillShot, multiKillShot])
+  assert.equal(select('spawn').length, 12)
+  assert.deepEqual(select('first_in_view').map(r => r.spawn_id), [select('spawn')[0].spawn_id])
+  assert.equal(rows[0].event, 'run_start')
+  const end = rows.at(-1)
+  assert.equal(end.event, 'run_end')
+  assert.equal(end.reason, 'cancelled')
+  assert.deepEqual([
+    end.shots,
+    end.misses,
+    end.kills,
+    end.head_kills,
+    end.score_kills,
+  ], ['3', '1', '2', '2', '2'])
+  assert.deepEqual([end.wall_ms, end.active_ms], ['6000', '1000'])
+  assert.deepEqual([
+    Number(end.kpm),
+    Number(end.head_kill_rate),
+    end.miss_rate,
+  ], [120, 1, '0.333333'])
+  assert.ok(rows.every(r => r.player_id === 'P01' && r.run_id === first && r.mode === 'elimination'))
+})
 
 test('logic adapter starts ten synchronously, consumes a whole shot then refills only its deaths; P does not mutate rules', (t) => {
   const f = fixture(t)
@@ -266,6 +519,8 @@ test('actual damage/death batches reach fifty then stop refill, preserve real re
   const state = f.challenge.snapshot()
   assert.equal(state.simulation.kills, 50)
   assert.equal(state.simulation.result.completedAt, f.tick * h)
+  assert.equal(f.challenge.playtests.choices[0].reason, 'completed')
+  assert.equal(f.challenge.playtests.choices[0].kills, 50)
   assert.equal(state.simulation.active.length, 0)
   assert.equal(state.grid.owners.length, 10, 'natural completion retains visible-death protection')
   assert.equal(f.challenge.armoryRestriction(), null)

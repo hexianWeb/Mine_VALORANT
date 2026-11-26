@@ -1,6 +1,7 @@
 import { immutableFact } from '../../combat/facts.js'
 import { rangeDamageVersion } from '../../combat/fixed-damage.js'
 import { durationTicks } from '../../weapons/weapon-logic.js'
+import { haoqiRules } from './haoqi-trial.js'
 
 export const defaultChallengeSelection = Object.freeze({
   mode: 'shooting-test',
@@ -33,7 +34,8 @@ export function lockChallengeConfig(selection, fixedDelta) {
   ].includes(key))) {
     throw new TypeError('[Challenge] Unsupported selection')
   }
-  if (!['shooting-test', 'elimination'].includes(selection.mode)
+  if (!['shooting-test', 'elimination', 'haoqi'].includes(selection.mode)
+    || (selection.mode === 'haoqi' && selection.armor !== 0)
     || !Object.hasOwn(challengeRules.windows, selection.difficulty)
     || ![50, 100].includes(selection.targetKills) || ![0, 50].includes(selection.armor)) {
     throw new RangeError('[Challenge] Invalid mode, difficulty, target count or armor')
@@ -48,8 +50,16 @@ export function lockChallengeConfig(selection, fixedDelta) {
     ...selection,
     rules: challengeRules,
     fixedDelta,
-    concurrency: shooting ? 1 : challengeRules.concurrency,
-    goal: shooting ? challengeRules.opportunities : selection.targetKills,
+    concurrency: shooting
+      ? 1
+      : selection.mode === 'haoqi'
+        ? haoqiRules.targets
+        : challengeRules.concurrency,
+    goal: shooting
+      ? challengeRules.opportunities
+      : selection.mode === 'haoqi'
+        ? null
+        : selection.targetKills,
     windowTicks: shooting
       ? durationTicks(challengeRules.windows[selection.difficulty], fixedDelta)
       : null,

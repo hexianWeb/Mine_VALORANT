@@ -25,6 +25,7 @@ export class ChallengeSession {
   }
 
   get running() { return this.#status === 'running' }
+  isActiveSpawn(id) { return this.#active.has(id) }
   get deficit() {
     return this.running
       ? this.#config.concurrency - this.#active.size
@@ -92,8 +93,10 @@ export class ChallengeSession {
     return this.#transition([], spawned, spawned.map(spawn => ({ type: 'TargetSpawned', ...spawn })))
   }
 
-  fixed(context) {
+  fixed(context, timedOut = false) {
     const time = this.#time(context)
+    if (this.running && this.#config.mode === 'haoqi' && timedOut)
+      return this.#finish(time, [], [], true)
     if (!this.running || this.#config.mode !== 'shooting-test')
       return this.#transition()
     const expired = [
@@ -143,7 +146,9 @@ export class ChallengeSession {
       death,
     }))
     for (const { spawn } of removed) this.#remove(spawn)
-    this.#kills += Math.min(ordered.length, this.#config.goal - this.#kills)
+    this.#kills += this.#config.goal === null
+      ? ordered.length
+      : Math.min(ordered.length, this.#config.goal - this.#kills)
     if (this.#config.mode === 'shooting-test')
       this.#settled += ordered.length
     return ordered.length
@@ -156,7 +161,7 @@ export class ChallengeSession {
     this.#lastCellId = spawn.cellId
   }
 
-  #finish(time, removed, events) {
+  #finish(time, removed, events, timedOut = false) {
     events.push({
       type: 'ChallengeProgress',
       at: time.fixedElapsed,
@@ -166,7 +171,7 @@ export class ChallengeSession {
     const done = this.#config.mode === 'shooting-test'
       ? this.#settled === this.#config.goal
       : this.#kills === this.#config.goal
-    if (done) {
+    if (timedOut || done) {
       this.#status = 'completed'
       this.#result = immutableFact({
         sessionId: this.#sessionId,

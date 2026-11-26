@@ -5,6 +5,7 @@ import { Disposer, RuntimeContext } from '../engine/runtime/index.js'
 import { RangeRoomLevel } from '../game/range-room/level.js'
 import { readAppConfig } from './config.js'
 import { installDiagnostics } from './diagnostics.js'
+import { showEntryCredits } from './entry-credits.js'
 import { mountInputOverlay } from './input-overlay.js'
 import { mountKillInfoPanel } from './kill-info-panel.js'
 import { mountRangeSettings } from './range-settings.js'
@@ -69,6 +70,7 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
   const owned = new Disposer()
   /** 只跟随当前关卡。每次 `load` 替换，`unload` 时释放。 */
   let levelTools = new Disposer()
+  let showedEntryCredits = false
   owned.add(() => levelTools.dispose())
   runtime.events.on('dispose', () => owned.dispose())
   if (panelContainer)
@@ -102,11 +104,17 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
     if (level.player) {
       let weaponHud = null
       let weaponShop = null
+      for (const event of ['pause', 'resume']) {
+        levelTools.add(runtime.engine.events.on(event, () => {
+          level.challenge?.pausePlaytest(event === 'pause', runtime.engine.time.fixedElapsed)
+        }))
+      }
       const settings = levelTools.add(mountRangeSettings({
         ui,
         player: level.player,
         engine: runtime.engine,
         challenge: level.challenge,
+        inputLayout: options.touchControls ? 'touch' : 'keyboard-mouse',
         readChallengeHud: () => level.readChallengeHud(),
         onCrosshair: () => weaponHud?.openCrosshair(),
       }))
@@ -174,6 +182,17 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
       const syncSettings = state => settings.setEnabled(state.mode !== 'editor')
       levelTools.add(inputUi.subscribe(syncSettings))
       syncSettings(inputUi.read())
+      if (level.player.enabled && !showedEntryCredits) {
+        showEntryCredits({
+          ui,
+          onEnter(event) {
+            if (event.isTrusted)
+              void runtime.audio.unlock()
+            inputUi.continue()
+          },
+        })
+        showedEntryCredits = true
+      }
     }
     levelTools.add(installDiagnostics({
       runtime,

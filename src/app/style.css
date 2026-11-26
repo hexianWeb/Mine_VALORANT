@@ -284,6 +284,12 @@ body {
   --panel-action-hover: #eff2cc;
 }
 .ui-hud-layer { z-index: 1; }
+.haoqi-hud { position: absolute; inset: 0; pointer-events: none; font-variant-numeric: tabular-nums; }
+.haoqi-strip { position: absolute; top: 5%; left: 50%; transform: translateX(-50%); display: grid; gap: 4px; min-width: 220px; padding: 8px 14px; border-left: 3px solid #56d5e8; background: #101820ee; color: #f3f6f7; text-align: center; }
+.haoqi-strip progress { width: 100%; height: 6px; accent-color: #56d5e8; }
+.haoqi-strip span { font-size: 13px; }
+.haoqi-hud.is-flow .haoqi-strip { border-color: #ffc857; }
+.haoqi-lock { position: absolute; transform: translate(-50%, -50%); border: 2px solid #56d5e8; border-radius: 4px; box-shadow: 0 0 0 1px #101820; width: 22px; height: 22px; color: #fff; text-indent: 25px; text-shadow: 0 1px 3px black; font-size: 13px; }
 .ui-debug-layer { z-index: 2; }
 .ui-modal-layer { z-index: 3; }
 .ui-debug-layer > * { pointer-events: auto; }
@@ -309,7 +315,7 @@ body {
 .range-status > button:hover { background: #ffffff20; }
 .range-status kbd { display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid #fffc; background: #ffffff15; color: inherit; font-size: 17px; }
 kbd { font: inherit; color: #e0ffef; }
-.settings-dialog {
+.settings-dialog, .credits-dialog {
   position: fixed;
   inset: 0;
   margin: auto;
@@ -318,7 +324,7 @@ kbd { font: inherit; color: #e0ffef; }
   overflow: auto;
   pointer-events: auto;
 }
-.settings-dialog, .pause-card {
+.settings-dialog, .pause-card, .credits-dialog {
   padding: 0;
   border: 0;
   border-top: 1px solid #fffc;
@@ -327,9 +333,9 @@ kbd { font: inherit; color: #e0ffef; }
   color: #fff;
 }
 .settings-dialog::backdrop { background: #0b101320; }
-:is(.settings-dialog, .pause-card) header { position: relative; display: grid; place-items: center; min-height: 64px; background: var(--panel-header); }
+:is(.settings-dialog, .pause-card, .credits-dialog) header { position: relative; display: grid; place-items: center; min-height: 64px; background: var(--panel-header); }
 .settings-dialog header button { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); }
-:is(.settings-dialog, .pause-card) h2 { font-size: 25px; font-weight: 650; letter-spacing: 2px; }
+:is(.settings-dialog, .pause-card, .credits-dialog) h2 { font-size: 25px; font-weight: 650; letter-spacing: 2px; }
 .settings-body { padding: clamp(14px, 2.2vh, 26px) clamp(16px, 3.2vw, 42px); }
 .ui-eyebrow { color: #82bca8; font-size: 10px; font-weight: 600; letter-spacing: 2px; }
 .settings-note { margin-top: 12px; color: #fffcd1e8; font-size: 12px; line-height: 1.6; }
@@ -339,7 +345,9 @@ kbd { font: inherit; color: #e0ffef; }
 .range-selection h3 { padding: 9px 6px; background: #629c8bc0; border-bottom: 1px solid #a9decaad; color: #fff1ab; text-align: center; font-size: clamp(14px, 2vw, 21px); font-weight: 500; }
 .settings-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .settings-ammo { padding: 8px; text-align: center; background: #ffffe21c; color: #fffde6; font-size: 14px; }
-.settings-dialog .range-sensitivity { margin-top: 16px; padding: 10px; }
+.settings-dialog :is(.range-sensitivity, .range-export) { margin-top: 16px; padding: 10px; }
+.range-export select { max-width: 65%; }
+.range-export small { overflow-wrap: anywhere; }
 .settings-dialog legend { padding: 0 8px; color: #a8ccbd; font-size: 12px; }
 .settings-dialog label { display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 13px; }
 .settings-dialog :is(select, input, button), .input-overlay button {
@@ -366,6 +374,50 @@ kbd { font: inherit; color: #e0ffef; }
 .settings-dialog .settings-done, .pause-card [data-continue] { flex: 1; background: var(--panel-action); color: #252b25; font-size: 17px; font-weight: 700; }
 .settings-dialog .settings-done:hover, .pause-card [data-continue]:hover { background: var(--panel-action-hover); }
 .app-ui :is(button, input, textarea, select):focus-visible { outline: 2px solid #a2e4c4; outline-offset: 3px; }
+.credits-dialog { width: min(460px, calc(100vw - 32px)); box-shadow: 0 14px 44px #0008; }
+.credits-dialog::backdrop { background: #050a0887; }
+.credits-body { display: grid; gap: 16px; padding: clamp(16px, 5vw, 28px); }
+.credits-body p { color: #e4e8de; font-size: 14px; line-height: 1.6; }
+.credits-body h3 { margin-bottom: 8px; color: #d4e5db; font-size: 13px; font-weight: 600; }
+.credits-creators { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; list-style: none; }
+.credits-body a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #a6cbb96b;
+  border-radius: 4px;
+  background: #203334;
+  color: #e3f0ed;
+  font: 600 14px/1.4 system-ui, sans-serif;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+.credits-body a:hover { background: #304b48; }
+.credits-body a:focus-visible { outline: 2px solid #a2e4c4; outline-offset: 3px; }
+.credits-body a span[aria-hidden] { color: #bcd9c7; }
+.credits-body .credits-pack { border-color: #a6cbb9a5; font-size: 16px; }
+.credits-pack small { color: #c4dacd; font-size: 12px; white-space: nowrap; }
+.credits-body button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--panel-action);
+  color: #252b25;
+  font: 700 16px/1.4 var(--game-font);
+  cursor: pointer;
+}
+.credits-body button:hover { background: var(--panel-action-hover); }
+@media (min-width: 560px) and (max-height: 420px) {
+  .credits-dialog { width: min(620px, calc(100vw - 32px)); }
+  .credits-dialog header { min-height: 42px; }
+  .credits-body { gap: 10px; padding: 10px 16px; }
+  .credits-body h3 { margin-bottom: 5px; }
+  .credits-creators { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .credits-creators a { padding-inline: 8px; }
+}
 .input-overlay { position: absolute; inset: 0; display: grid; place-content: center; }
 .input-overlay.is-paused { background: #050a0887; pointer-events: auto; }
 .pause-card { width: min(520px, calc(100vw - 32px)); max-height: calc(100dvh - 24px); overflow: auto; box-shadow: 0 14px 44px #0006; text-align: center; }

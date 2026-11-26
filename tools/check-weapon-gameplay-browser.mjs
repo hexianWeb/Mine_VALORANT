@@ -109,12 +109,12 @@ try {
     };
     return { focused: document.hasFocus(), visibility: document.visibilityState };
   })()`)
-  await screenshot('classic-ready.png')
-  await click()
+  await session.click('[data-enter-range]')
   await until('!!document.pointerLockElement')
   await frames(4)
   report.lock = await state()
   assert.equal(report.lock.inventory.weapons.find(w => w.instanceId === 'pistol').magazine, 12, 'first click only locks')
+  await screenshot('classic-ready.png')
   const armTestModule = `/@fs/${path.resolve('tests/viewmodel-culling-browser-cases.js').replaceAll('\\', '/')}`
   await evaluate(`import(${JSON.stringify(armTestModule)}).then(module => { globalThis.__ARM_CULLING_CHECK__ = module; })`)
   await idleReady('pistol')
@@ -335,7 +335,7 @@ try {
   await send('Page.bringToFront')
   await ready('pistol')
   assert.equal(await evaluate('document.querySelectorAll(".debug-panel details").length'), 0)
-  await click()
+  await session.click('[data-enter-range]')
   await until('!!document.pointerLockElement')
   await click()
   await until('__RANGE_ROOM__.inspection.player.snapshot().weapons.view.weapon?.magazine === 11')

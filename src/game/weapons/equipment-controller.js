@@ -231,7 +231,7 @@ export class EquipmentController {
   }
 
   /** Accept one completed-simulation candidate; a paused caller must not advance the clock. */
-  step(context, { aimHeld = false } = {}) {
+  step(context, { aimHeld = false, allowFire = null } = {}) {
     if (this.#disposed)
       throw new Error('[Equipment] step after dispose')
     if (this.#paused)
@@ -293,9 +293,11 @@ export class EquipmentController {
     const reloadAccepted = validAction('reload') && this.#startReload()
     if (!reloadAccepted) {
       const definition = this.#inventory.definition(this.#activeId)
-      const wantsFire = validAction('fire') || (this.#fireHeld && definition?.fire.mode === 'auto')
-      const fired = (validAction('fireSalvo') && this.#fire(false, true))
-        || (wantsFire && this.#fire(aimHeld))
+      const pressed = validAction('fire')
+      const wantsFire = pressed || (this.#fireHeld && definition?.fire.mode === 'auto')
+      const salvo = validAction('fireSalvo')
+      const allowed = (salvo || wantsFire) && (!allowFire || allowFire(pressed, definition?.id))
+      const fired = allowed && ((salvo && this.#fire(false, true)) || (wantsFire && this.#fire(aimHeld)))
       if (!fired && validAction('inspect'))
         this.#startInspect()
     }

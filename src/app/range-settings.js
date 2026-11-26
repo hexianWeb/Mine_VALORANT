@@ -1,11 +1,12 @@
 import { Disposer } from '../engine/runtime/core/disposer.js'
 import { stepSensitivity } from '../game/player/look-settings.js'
 import { defaultChallengeSelection } from '../game/range-room/challenges/config.js'
+import { mountHaoqiHud } from './haoqi-hud.js'
 import { bindSensitivityStorage } from './sensitivity-storage.js'
 
 const difficultyLabels = { easy: '简单', medium: '中等', hard: '困难' }
 
-export function mountRangeSettings({ ui, player, engine, challenge, readChallengeHud, onCrosshair }) {
+export function mountRangeSettings({ ui, player, engine, challenge, readChallengeHud, onCrosshair, inputLayout }) {
   const owned = new Disposer()
   const document = ui.root.ownerDocument
   const storage = owned.add(bindSensitivityStorage({
@@ -26,6 +27,7 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
       <div data-time-row hidden><dt>用时</dt><dd data-time></dd></div>
     </dl>`
   ui.hud.append(card)
+  const trialHud = owned.add(mountHaoqiHud(ui.hud))
   const statusText = card.querySelector('[data-range-status]')
   const statusRow = card.querySelector('[data-status-row]')
   const modeText = card.querySelector('[data-mode]')
@@ -55,6 +57,10 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
         <button type="button" data-count="50">消灭 50</button>
         <button type="button" data-count="100">消灭 100</button>
       </section>
+      <section><h3>豪气试炼</h3>
+        <button type="button" data-haoqi>豪气试炼 · 30 秒</button>
+        <small>狂徒开局 / 无甲。满豪气后，用狂徒重新按住开火确认锁定。</small>
+      </section>
       <section><h3>机器人护甲</h3>
         <div class="settings-options">
           <button type="button" data-armor-choice="50">开</button>
@@ -73,6 +79,12 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
       </div>
       <p class="sensitivity-status" role="status"></p>
     </fieldset>
+    <fieldset class="range-export"><legend>本地试玩数据</legend>
+      <label>已结束的挑战 <select data-playtest-run></select></label>
+      <label>玩家编号（选填） <input data-playtest-player placeholder="例如 P01" maxlength="32" autocomplete="off"></label>
+      <button type="button" data-export-csv disabled>导出所选局 CSV</button>
+      <small data-export-status role="status">保留本次打开靶场的最近 10 局（含中途取消）；刷新前请下载。</small>
+    </fieldset>
     <p class="settings-note"></p>
     <footer class="ui-actions"><button type="button" data-cancel-challenge hidden>取消本局</button><button type="button" data-crosshair-settings>准星设置</button><button class="settings-done" type="button" data-close>完成</button></footer>
     </div>`
@@ -87,6 +99,11 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
   const note = dialog.querySelector('.settings-note')
   const crosshair = dialog.querySelector('[data-crosshair-settings]')
   const cancel = dialog.querySelector('[data-cancel-challenge]')
+  const runSelect = dialog.querySelector('[data-playtest-run]')
+  const playerId = dialog.querySelector('[data-playtest-player]')
+  const exportButton = dialog.querySelector('[data-export-csv]')
+  const exportStatus = dialog.querySelector('[data-export-status]')
+  let lastChoices = null
   const setText = (node, value) => {
     if (node.textContent !== value)
       node.textContent = value
@@ -126,15 +143,40 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
     const shooting = settings.mode === 'shooting-test'
     const running = !!challenge?.running
     const cancelling = !!challenge?.cancelPending
+    const choices = challenge?.playtests?.choices
+    if (lastChoices !== choices) {
+      lastChoices = choices
+      runSelect.replaceChildren()
+      for (const run of choices ?? []) {
+        const option = document.createElement('option')
+        option.value = run.id
+        const modeLabel = { 'elimination': '消灭', 'shooting-test': '速度', 'haoqi': '豪气试炼' }[run.mode]
+        option.textContent = `${new Date(run.started).toLocaleTimeString()} · ${modeLabel} · ${run.kills} 杀 · ${run.reason === 'completed'
+          ? '完成'
+          : '中断'}`
+        runSelect.append(option)
+      }
+      if (!choices?.length) {
+        const option = document.createElement('option')
+        option.textContent = '暂无已结束的挑战'
+        runSelect.append(option)
+      }
+      setDisabled(runSelect, !choices?.length)
+      setDisabled(exportButton, !choices?.length)
+    }
     for (const button of choiceButtons) {
       const { difficulty, count, armorChoice } = button.dataset
-      const selected = difficulty
-        ? shooting && difficulty === settings.difficulty
-        : count
-          ? !shooting && Number(count) === settings.targetKills
-          : Number(armorChoice) === settings.armor
+      const timed = settings.mode === 'haoqi'
+      const selected = button.hasAttribute('data-haoqi')
+        ? timed
+        : difficulty
+          ? shooting && difficulty === settings.difficulty
+          : count
+            ? settings.mode === 'elimination' && Number(count) === settings.targetKills
+            : Number(armorChoice) === settings.armor
       if (button.getAttribute('aria-pressed') !== String(selected))
         button.setAttribute('aria-pressed', String(selected))
+      setDisabled(button, timed && armorChoice !== undefined)
     }
     setDisabled(selectionFields, running || !challenge)
     setDisabled(sensitivityFields, running)
@@ -143,6 +185,8 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
     setDisabled(cancel, cancelling)
     setText(ammoSetting, ammoText.textContent)
     let instruction = '射击场景控制面板上的「开始」方框开启挑战。'
+    if (settings.mode === 'haoqi')
+      instruction = '按 B 装备狂徒（Vandal），用狂徒射击「开始」。本局限时 30 秒，切枪只撤销当前锁定。'
     if (cancelling) {
       instruction = engine.state === 'paused'
         ? '继续游戏后取消本局。'
@@ -165,6 +209,13 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
   let lastModel
   const update = () => {
     const model = readChallengeHud()
+    const timed = model?.mode === 'haoqi'
+    trialHud.update(
+      !card.hidden && challenge?.trial,
+      !card.hidden && timed && model?.status === 'completed' && challenge?.trialResult,
+      player.weapons?.readHud()?.weapon?.magazine === 0,
+      player.weapons?.activeDefinitionId,
+    )
     if (lastModel !== model || !model) {
       lastModel = model
       const settings = model ?? selection()
@@ -183,23 +234,29 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
         phase = '自由练习'
       else if (!model?.startReady)
         phase = '准备中'
-      setText(statusText, phase)
-      setHidden(statusRow, !capacityError && !running && !completed)
+      const weaponHint = timed && !model.startReady && !running && !completed && model.reason?.startsWith('请按 B')
+      setText(statusText, weaponHint ? model.reason : phase)
+      setHidden(statusRow, !capacityError && !running && !completed && !weaponHint)
       setHidden(progressRow, !running && !completed)
       setText(modeText, shooting
         ? difficultyLabels[settings.difficulty]
-        : `消灭 ${model?.goal ?? settings.targetKills} 个`)
+        : timed
+          ? '豪气试炼 · 30 秒'
+          : `消灭 ${model?.goal ?? settings.targetKills} 个`)
       setText(progressLabel, running && shooting
         ? '当前靶 / 得分'
         : '击杀')
       const progress = model
-        ? `${model.kills}/${model.goal}`
+        ? timed
+          ? String(model.kills)
+          : `${model.kills}/${model.goal}`
         : '—'
       setText(progressText, running && shooting
         ? `${model.settled + 1}/${model.goal} · ${model.kills}`
         : progress)
       setHidden(timeRow, shooting || (!running && !completed))
       setText(timeText, `${model?.timeLabel ?? '0'} 秒`)
+      setText(timeRow.querySelector('dt'), timed ? '剩余' : '用时')
       setText(armorText, settings.armor ? '已启用' : '已停用')
       const policy = model?.ammoPolicy ?? player.weapons?.readHud()?.weapon?.ammoPolicy
       setText(ammoText, policy === 'infinite-reserve'
@@ -213,6 +270,31 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
       updateModal()
   }
   owned.listen(settingsButton, 'click', modal.open)
+  owned.listen(exportButton, 'click', () => {
+    try {
+      const file = challenge.playtests.exportCsv(runSelect.value, playerId.value.trim(), inputLayout)
+      if (!file)
+        return
+      const view = document.defaultView
+      const href = view.URL.createObjectURL(new Blob([file.csv], { type: 'text/csv;charset=utf-8' }))
+      const link = document.createElement('a')
+      link.href = href
+      link.download = file.filename
+      // Keep the download activation inside the open modal; the rest of the page is inert.
+      dialog.append(link)
+      try {
+        link.click()
+        setText(exportStatus, `已请求下载：${file.filename}`)
+      }
+      finally {
+        link.remove()
+        view.setTimeout(() => view.URL.revokeObjectURL(href), 1000)
+      }
+    }
+    catch (error) {
+      setText(exportStatus, `未能导出：${error.message}`)
+    }
+  })
   for (const close of dialog.querySelectorAll('[data-close]'))
     owned.listen(close, 'click', () => modal.close())
   owned.listen(crosshair, 'click', () => {
@@ -228,16 +310,18 @@ export function mountRangeSettings({ ui, player, engine, challenge, readChalleng
       if (!challenge || challenge.running)
         return
       const { difficulty, count, armorChoice } = button.dataset
-      const patch = difficulty
-        ? { mode: 'shooting-test', difficulty }
-        : count
-          ? {
-              mode: 'elimination',
-              targetKills: Number(count),
-            }
-          : {
-              armor: Number(armorChoice),
-            }
+      const patch = button.hasAttribute('data-haoqi')
+        ? { mode: 'haoqi', armor: 0 }
+        : difficulty
+          ? { mode: 'shooting-test', difficulty }
+          : count
+            ? {
+                mode: 'elimination',
+                targetKills: Number(count),
+              }
+            : {
+                armor: Number(armorChoice),
+              }
       challenge.prepare({
         ...selection(),
         ...patch,

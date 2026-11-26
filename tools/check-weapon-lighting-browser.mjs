@@ -73,6 +73,7 @@ try {
   }
   await session.navigate(url.href)
   await ready('pistol', 'ag')
+  await session.key('Escape', 'Escape', 27)
   await evaluate('__RANGE_ROOM__.engine.pause()')
   report.reflection = await evaluate('__RANGE_ROOM__.snapshot().reflection')
   assert.equal(report.reflection?.ready, true)

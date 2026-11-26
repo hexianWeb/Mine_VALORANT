@@ -54,7 +54,7 @@ function flashTexture(document) {
   return texture
 }
 
-function burstParticles({ at, origin, random }) {
+function burstParticles({ at, origin, random, motionRate }) {
   return Array.from({ length: 18 }, (_, index) => {
     const debris = index >= 13
     const azimuth = random() * Math.PI * 2
@@ -65,18 +65,18 @@ function burstParticles({ at, origin, random }) {
       shape: debris ? 'cube' : 'streak',
       origin,
       velocity: [
-        Math.cos(azimuth) * speed,
-        (random() - 0.24) * speed,
-        Math.sin(azimuth) * speed,
+        Math.cos(azimuth) * speed * motionRate,
+        (random() - 0.24) * speed * motionRate,
+        Math.sin(azimuth) * speed * motionRate,
       ],
       born: at,
-      life: debris
+      life: (debris
         ? fragmentLifetime
-        : 0.14 + random() * 0.05,
+        : 0.14 + random() * 0.05) / motionRate,
       size: debris ? 0.075 : 0.023,
       stretch: debris ? 1.5 : 1,
       color: debris ? chip : spark,
-      gravity: 9,
+      gravity: 9 * motionRate ** 2,
     }
   })
 }
@@ -132,7 +132,7 @@ export function createRangeKillEffects({ scene, document, capacity }) {
 
   scene.add(root)
   return {
-    start(fact, presentationTime) {
+    start(fact, presentationTime, motionRate = 1) {
       if (presentationTime >= fact.at + fragmentLifetime)
         return
       for (const slot of slots) {
@@ -165,6 +165,7 @@ export function createRangeKillEffects({ scene, document, capacity }) {
         at: fact.at,
         origin: origin.toArray(),
         random,
+        motionRate,
       }))
     },
     present(at) {

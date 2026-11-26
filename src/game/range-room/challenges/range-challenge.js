@@ -2,6 +2,8 @@ import { Component } from '../../../engine/runtime/function/framework/index.js'
 import { fixedTime, immutableFact } from '../../combat/facts.js'
 import { ChallengeSession } from './challenge-session.js'
 import { lockChallengeConfig } from './config.js'
+import { haoqiRules, HaoqiTrial } from './haoqi-trial.js'
+import { PlaytestLog } from './playtest-log.js'
 import { SpawnGrid } from './spawn-grid.js'
 
 let nextOwner = 0
@@ -15,6 +17,13 @@ export class RangeChallengeComponent extends Component {
   static phases = ['fixed', 'motion']
   #owner = `range-challenge:${++nextOwner}`
   #session = new ChallengeSession()
+  #playtests = new PlaytestLog()
+  #inView
+  #projectHead
+  #activeWeapon
+  #clock
+  #trial = null
+  #trialResult = null
   #grid
   #pool
   #random
@@ -52,6 +61,10 @@ export class RangeChallengeComponent extends Component {
     onPracticeRequested = null,
     onSensitivityRequested = null,
     clearEffects = () => {},
+    inView = null,
+    projectHead = () => null,
+    activeWeapon = () => null,
+    trialClock,
   }) {
     super()
     if (typeof random !== 'function' || !Number.isFinite(bodyHideDelay) || bodyHideDelay <= 0
@@ -70,12 +83,19 @@ export class RangeChallengeComponent extends Component {
     this.#onPracticeRequested = onPracticeRequested
     this.#onSensitivityRequested = onSensitivityRequested
     this.#clearEffects = clearEffects
+    this.#inView = inView
+    this.#projectHead = projectHead
+    this.#activeWeapon = activeWeapon
+    this.#clock = trialClock
   }
 
   prepare(selection) {
     if (this.#session.running || this.disposed)
       return false
     this.#config = lockChallengeConfig(selection, this.#fixedDelta)
+    this.#presented = null
+    this.#pending = []
+    this.#trialResult = null
     this.#selection = immutableFact(selection)
     this.#revision++
     try {
@@ -102,6 +122,8 @@ export class RangeChallengeComponent extends Component {
         reason = 'Challenge running'
       else if (!this.#canStart())
         reason = 'Equipment selection is not ready'
+      else if (this.#config.mode === 'haoqi' && this.#activeWeapon() !== haoqiRules.weapon)
+        reason = '请按 B 装备狂徒（Vandal），再用主武器射击开始'
       else if (this.#pool.available() + this.#retiring.size < required)
         reason = 'Pool needs initial targets plus retirement buffer'
     }
@@ -115,6 +137,23 @@ export class RangeChallengeComponent extends Component {
   }
 
   get running() { return this.#session.running }
+  get playtests() { return this.#playtests }
+  get trial() { return this.#trial }
+  get trialResult() { return this.#trialResult }
+  pausePlaytest(paused, at) {
+    this.#trial?.pause(paused)
+    this.#playtests.pause(paused, at)
+  }
+
+  #finishTrial(at, reason, kills) {
+    if (this.#trial) {
+      this.#trial.exit(reason)
+      this.#trialResult = this.#trial.summary()
+    }
+    this.#playtests.end(at, reason, kills, this.#trial ? this.#trialResult : undefined)
+    this.#trial = null
+  }
+
   get selection() { return this.#selection }
   get cancelPending() { return this.#cancelQueued }
   readPresentedSession() { return this.#presented }
@@ -160,6 +199,8 @@ export class RangeChallengeComponent extends Component {
   cancel(reason = 'cancelled', at = this.#at) {
     if (this.disposed)
       return
+    if (this.running)
+      this.#finishTrial(at, reason, this.#session.snapshot().kills)
     this.#session.cancel(reason)
     this.#cleanupTargets(reason, at)
     this.#grid.reset(`${this.#owner}:invalid:${++this.#revision}`)
@@ -202,13 +243,16 @@ export class RangeChallengeComponent extends Component {
       scale: this.#scale,
       bodyHideTicks: this.#hideTicks,
     })), time)
-    for (const spawn of transition.spawned)
+    for (const spawn of transition.spawned) {
       this.#active.get(spawn.targetId).bot.activateSpawn(spawn, state.config, time)
+      this.#playtests.spawn(spawn)
+    }
     this.#record(transition.events, time.fixedElapsed)
   }
 
   #apply(transition, time) {
     for (const { spawn, reason } of transition.removed) {
+      this.#playtests.remove(spawn, reason, time.fixedElapsed)
       const handle = this.#active.get(spawn.targetId)
       if (!handle)
         continue
@@ -223,6 +267,10 @@ export class RangeChallengeComponent extends Component {
         handle.bot.removeSpawn(time.fixedElapsed, reason)
         this.#pool.release(handle, reason)
       }
+    }
+    for (const event of transition.events) {
+      if (event.type === 'ChallengeCompleted')
+        this.#finishTrial(time.fixedElapsed, 'completed', event.result.kills)
     }
     if (transition.events.length)
       this.#record(transition.events, time.fixedElapsed)
@@ -268,11 +316,22 @@ export class RangeChallengeComponent extends Component {
       this.#pending = []
       this.#practice(false, time.fixedElapsed)
       const transition = this.#session.start(start.selection, time, this.#owner)
+      this.#playtests.start(transition.sessionId, this.#config, time.fixedElapsed, result)
+      this.#trialResult = null
+      if (this.#config.mode === 'haoqi') {
+        this.#trial = new HaoqiTrial((type, reason) => {
+          this.#playtests.flowEvent(type, this.#at, reason)
+        }, this.#clock)
+      }
       this.#grid.reset(transition.sessionId)
       this.#record(transition.events, time.fixedElapsed)
     }
     try {
-      this.#apply(this.#session.resolveDeaths(result.deaths, time), time)
+      const transition = this.#session.resolveDeaths(result.deaths, time)
+      const guided = this.#trial?.isGuidedShot(result)
+      this.#playtests.attack(result, transition.removed, guided)
+      this.#trial?.settle(result, transition.removed.filter(entry => entry.reason === 'killed'), guided)
+      this.#apply(transition, time)
     }
     catch (error) {
       this.#abort(error, time)
@@ -297,7 +356,13 @@ export class RangeChallengeComponent extends Component {
         }
       }
       try {
-        this.#apply(this.#session.fixed(time), time)
+        this.#apply(this.#session.fixed(time, this.#trial?.elapsed >= haoqiRules.seconds), time)
+        this.#trial?.update(() => {
+          const state = this.#presented
+          if (!state || state.status !== 'running')
+            return []
+          return state.active.filter(spawn => this.#session.isActiveSpawn(spawn.spawnId)).map(this.#projectHead).filter(Boolean).sort((a, b) => a.distance - b.distance || a.id.localeCompare(b.id)).slice(0, 5)
+        }, this.#activeWeapon())
       }
       catch (error) {
         this.#abort(error, time)
@@ -309,6 +374,7 @@ export class RangeChallengeComponent extends Component {
         throw new RangeError('[RangeChallenge] Invalid presentation cursor')
       while (this.#pending.length && this.#pending[0].at <= at)
         this.#presented = this.#pending.shift().simulation
+      this.#playtests.observeView(this.#presented, at, this.#inView)
       this.#presentationAt = at
     }
   }

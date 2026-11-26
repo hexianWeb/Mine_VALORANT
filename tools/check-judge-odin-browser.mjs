@@ -76,8 +76,7 @@ try {
   await until(`__RANGE_ROOM__.inspection.player.snapshot().weapons.audio.bank.cues === ${cueCount}`)
   const initialInventory = (await state()).inventory
   await evaluate(`globalThis.__COMMON_ARMS__=__RANGE_ROOM__.render.viewmodel.scene.getObjectByName('Arms_Left').material.map`)
-  await mouse('mousePressed')
-  await mouse('mouseReleased')
+  await session.click('[data-enter-range]')
   await until('!!document.pointerLockElement && __RANGE_ROOM__.audio.snapshot().state === \'running\'')
   assert.equal((await state()).lastShot, null, 'initial capture click must not fire')
 

@@ -102,6 +102,10 @@ export class ShotTargets {
     }
     const result = (disposition, damage = [], deaths = [], reactions = [], interactions = []) => immutableFact({
       ...base,
+      attackType: event.type,
+      definitionId: event.payload?.weapon?.definitionId,
+      magazineAfter: event.payload?.magazine,
+      ammoPolicy: event.payload?.weapon?.ammoPolicy,
       disposition,
       damage,
       deaths,

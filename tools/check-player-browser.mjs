@@ -35,6 +35,7 @@ try {
       requestAnimationFrame(check);
     })();
   })`)
+  await session.click('[data-enter-range]')
   await frames(60)
 
   report.spawn = await evaluate('__RANGE_ROOM__.snapshot().player')

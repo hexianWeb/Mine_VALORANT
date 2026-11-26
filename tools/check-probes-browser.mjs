@@ -29,6 +29,8 @@ try {
       requestAnimationFrame(check);
     }check();
   })`)
+  if (await evaluate(`document.querySelector('.credits-dialog')?.open === true`))
+    await session.key('Escape', 'Escape', 27)
   await frames(30)
   report.initial = await evaluate('__RANGE_ROOM__.snapshot()')
   assert.equal(report.initial.probes.source, 'precomputed')

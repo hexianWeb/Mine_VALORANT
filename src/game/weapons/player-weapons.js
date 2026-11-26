@@ -172,6 +172,7 @@ export class PlayerWeapons {
   #armory
   #shotSource = null
   #onShotResolved
+  #readTrial
   #skinPreferences
 
   constructor({
@@ -205,6 +206,7 @@ export class PlayerWeapons {
     purchaseSlots,
     meleeSlot = null,
     onShotResolved = null,
+    readTrial = null,
     ammoPolicy = 'finite',
     skinPreferences = null,
   }) {
@@ -236,6 +238,7 @@ export class PlayerWeapons {
     this.#shotTargets = shotTargets
     this.#shotSource = shotTargets?.openSource(this.#equipment.epoch) ?? null
     this.#onShotResolved = onShotResolved
+    this.#readTrial = readTrial
     this.#effects = particles || scene
       ? new ShotEffects({
           particles,
@@ -380,6 +383,7 @@ export class PlayerWeapons {
   }
 
   readArmory() { return this.#armory.read() }
+  get activeDefinitionId() { return this.#equipment.activeDefinitionId }
   requestArmorySelection(command) { return this.#armory.request(command) }
   setArmoryAccess(check) { this.#armory.setAccess(check) }
   canStartChallenge() { return this.#armory.canStartChallenge() }
@@ -388,7 +392,8 @@ export class PlayerWeapons {
     const time = context.time ?? context
     const aimHeld = pose.aimHeld ?? this.#aimHeld
     this.#armory.beforeFixed(command => this.#controller.queue(command))
-    const batch = this.#controller.step(context, { aimHeld })
+    const trial = this.#readTrial?.()
+    const batch = this.#controller.step(context, { aimHeld, allowFire: trial && ((pressed, id) => trial.allowFire(pressed, id)) })
     for (const event of batch.events) {
       if (event.type === 'SkinChanged')
         this.#skinPreferences?.set(event.payload.definitionId, event.payload.skinId)
@@ -444,11 +449,15 @@ export class PlayerWeapons {
           direction,
           impact: trace(direction),
         }))
+        const guidedDirection = trial?.guide(shot.eyeOrigin, weapon.definitionId)
         const impact = pellets
           ? pellets.filter(pellet => pellet.impact.hit).sort((a, b) => a.impact.distance - b.impact.distance)[0]?.impact ?? pellets[0].impact
-          : trace(shot.shotDirection)
+          : trace(guidedDirection ?? shot.shotDirection)
         attack = {
           ...shot,
+          ...(guidedDirection
+            ? { shotDirection: guidedDirection }
+            : {}),
           impact,
           ...(pellets
             ? { pellets }
