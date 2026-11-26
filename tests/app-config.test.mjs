@@ -3,9 +3,11 @@ import test from 'node:test'
 import { readAppConfig } from '../src/app/config.js'
 import { inputBindings } from '../src/configs/input-bindings.js'
 
-test('application config supplies the game bindings from configs', () => {
+test('application config supplies gameplay bindings and opts into the fixed reference camera', () => {
   const options = readAppConfig('')
   assert.equal(options.inputBindings, inputBindings)
+  assert.equal(options.referenceCamera, false)
+  assert.equal(readAppConfig('?player=0&editor=0').referenceCamera, true)
 })
 
 test('primary touch pointers get the touch HUD by default; hybrid devices can override controls and editor independently', () => {

@@ -30,7 +30,7 @@ try {
       requestAnimationFrame(check);
     }check();
   })`)
-  await evaluate(`document.querySelector('.debug-panel').hidden=true;document.querySelector('.room-inspection').hidden=true`)
+  await evaluate('document.querySelector(".debug-panel").hidden=true')
   await frames(16)
   report.initial = await evaluate('__RANGE_ROOM__.snapshot()')
   const { ground, bounds, probes } = report.initial
@@ -49,8 +49,10 @@ try {
   }
   const pose = async (position, target) => {
     await evaluate(`(()=>{
-      const a=__RANGE_ROOM__;a.inspection.fly.cancel();a.camera.position.fromArray(${JSON.stringify(position)});
-      a.controls.target.fromArray(${JSON.stringify(target)});a.controls.update();a.camera.updateMatrixWorld();
+      const {camera}=__RANGE_ROOM__;
+      camera.position.fromArray(${JSON.stringify(position)});
+      camera.lookAt(...${JSON.stringify(target)});
+      camera.updateMatrixWorld();
     })()`)
     await frames(16)
   }

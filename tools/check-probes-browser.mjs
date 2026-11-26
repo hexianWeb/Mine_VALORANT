@@ -37,6 +37,7 @@ try {
     const image = await send('Page.captureScreenshot', { format: 'png' })
     fs.writeFileSync(path.join(output, name), Buffer.from(image.data, 'base64'))
   }
+  await evaluate('document.querySelector(".debug-panel details").open=true')
   await screenshot('panel.png')
   // Change actual Tweakpane DOM controls, rather than only exercising the public API.
   await evaluate(`globalThis.__LPV_UI__=(label,value)=>{
@@ -53,7 +54,7 @@ try {
   assert.ok(Math.abs(report.ui.skySpecular - 0.6) < 1e-6)
   assert.ok(Math.abs(report.ui.direct - 0.8) < 1e-6)
   assert.equal(report.ui.dirty, false)
-  await evaluate(`__RANGE_ROOM__.world.probes.reset();document.querySelector('.debug-panel').hidden=true;document.querySelector('.room-inspection').hidden=true`)
+  await evaluate('__RANGE_ROOM__.world.probes.reset();document.querySelector(".debug-panel").hidden=true')
   await frames(8)
   await screenshot('probes-on.png')
   await evaluate(`(async()=>{

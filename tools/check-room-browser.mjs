@@ -37,8 +37,6 @@ try {
     check();
   })`)
   const frames = count => evaluate(`new Promise(resolve => { let n=${count}; function tick(){ if(--n<=0) resolve(true); else requestAnimationFrame(tick); } requestAnimationFrame(tick); })`)
-  // Renderer-only image comparisons exclude colored HUD pixels.
-  await evaluate('document.querySelector(".room-inspection").hidden=true')
   await frames(35)
   report.baseline = await evaluate('globalThis.__RANGE_ROOM__.snapshot()')
   report.lightingMode = report.baseline.lightingMode
@@ -73,7 +71,7 @@ try {
   const positionDelta = Math.max(...report.camera.position.map((v, i) => Math.abs(v - report.camera.reference.position[i])))
   const rotationDot = Math.abs(report.camera.quaternion.reduce((sum, v, i) => sum + v * report.camera.reference.quaternion[i], 0))
   if (positionDelta > 1e-5 || Math.abs(rotationDot - 1) > 1e-5)
-    throw new Error('Inspection controls changed the reference camera pose')
+    throw new Error('The fixed reference camera did not match the manifest pose')
   report.adapter = await evaluate('(async()=>{const a=await navigator.gpu.requestAdapter();return a?{vendor:a.info.vendor,architecture:a.info.architecture,device:a.info.device,description:a.info.description}:null})()')
   const screenshot = async (name) => {
     const image = await send('Page.captureScreenshot', { format: 'png' })
@@ -197,6 +195,7 @@ try {
   })()`)
   await screenshot('room-fullhd-gtao-smaa.png')
   await evaluate(`(()=>{
+    document.querySelector('.debug-panel details').open=true;
     globalThis.__ROOM_UI_CHANGE__=(label,value)=>{
       const row=[...document.querySelectorAll('.tp-lblv')].find(row=>row.querySelector('.tp-lblv_l')?.textContent===label);
       if(!row)throw new Error('Missing panel row: '+label);
@@ -285,9 +284,9 @@ try {
     throw new Error('LUT panel preset, toggle, exposure, import or reset failed')
 
   await evaluate(`(()=>{
-    const app=__RANGE_ROOM__;
-    globalThis.__ROOM_POSE__={position:app.camera.position.toArray(),target:app.controls.target.toArray()};
-    app.camera.position.set(0,10.8,-10.5);app.controls.target.set(16,10.8,-10.5);app.controls.update();
+    const {camera}=__RANGE_ROOM__;
+    globalThis.__ROOM_POSE__={position:camera.position.toArray(),quaternion:camera.quaternion.toArray()};
+    camera.position.set(0,10.8,-10.5);camera.lookAt(16,10.8,-10.5);camera.updateMatrixWorld();
     document.querySelector('.debug-panel').hidden=true;
   })()`)
   await frames(10)
@@ -304,24 +303,23 @@ try {
   if (report.corridor.fills.length || report.corridor.pointLights.length || report.corridor.helpers.length)
     throw new Error('Corridor lights and their helpers must be removed from the scene')
   await evaluate(`(()=>{
-    const app=__RANGE_ROOM__;app.camera.position.fromArray(__ROOM_POSE__.position);app.controls.target.fromArray(__ROOM_POSE__.target);app.controls.update();
+    const {camera}=__RANGE_ROOM__;
+    camera.position.fromArray(__ROOM_POSE__.position);camera.quaternion.fromArray(__ROOM_POSE__.quaternion);camera.updateMatrixWorld();
     document.querySelector('.debug-panel').hidden=false;delete globalThis.__ROOM_POSE__;delete globalThis.__ROOM_UI_CHANGE__;delete globalThis.__ROOM_UI_BUTTON__;
   })()`)
   await evaluate(`(()=>{
-    const app=__RANGE_ROOM__;
-    globalThis.__ROOM_POSE__={position:app.camera.position.toArray(),target:app.controls.target.toArray()};
-    app.camera.position.x+=0.75; app.controls.target.x+=0.75;
-    app.camera.position.y-=0.4; app.controls.target.y-=0.4;
-    app.camera.position.z+=0.75; app.controls.target.z+=0.75;
-    app.controls.update();
+    const {camera}=__RANGE_ROOM__, {position}=camera;
+    globalThis.__ROOM_POSE__=position.toArray();
+    position.set(position.x+0.75,position.y-0.4,position.z+0.75);
+    camera.updateMatrixWorld();
   })()`)
   await frames(12)
   report.motion = await evaluate('({ready:__RANGE_ROOM__.snapshot().ready,position:__RANGE_ROOM__.camera.position.toArray(),state:__RANGE_ROOM__.engine.state})')
   await screenshot('room-motion-inspection.png')
-  await evaluate('__RANGE_ROOM__.camera.position.fromArray(__ROOM_POSE__.position);__RANGE_ROOM__.controls.target.fromArray(__ROOM_POSE__.target);__RANGE_ROOM__.controls.update();delete globalThis.__ROOM_POSE__')
+  await evaluate('__RANGE_ROOM__.camera.position.fromArray(__ROOM_POSE__);__RANGE_ROOM__.camera.updateMatrixWorld();delete globalThis.__ROOM_POSE__')
   await frames(4)
   await evaluate('globalThis.__RANGE_ROOM__.engine.destroy()')
-  report.disposed = await evaluate('globalThis.__RANGE_ROOM__.snapshot().ready === false && document.querySelectorAll(".debug-panel input,.debug-panel button").length === 0')
+  report.disposed = await evaluate('!globalThis.__RANGE_ROOM__ && !document.querySelector(".debug-panel details")')
   report.messages = messages
   if (!report.baseline.ready || errors.length || !report.disposed)
     throw new Error('Room smoke test failed; see report')

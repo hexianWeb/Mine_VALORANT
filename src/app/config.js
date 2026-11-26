@@ -31,8 +31,6 @@ export function readAppConfig(
     editor: parameters.has('editor')
       ? parameters.get('editor') !== '0'
       : !touchControls,
-    startMode: parameters.get('player') === '0'
-      ? 'fly'
-      : 'player',
+    referenceCamera: parameters.get('player') === '0',
   }
 }

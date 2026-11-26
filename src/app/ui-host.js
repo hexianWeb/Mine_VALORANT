@@ -62,7 +62,6 @@ export function createUiHost({ canvas, debugContainer = null }) {
   const api = {
     root,
     hud,
-    debug,
     modals,
     events,
     get topModal() { return stack.at(-1)?.id ?? null },

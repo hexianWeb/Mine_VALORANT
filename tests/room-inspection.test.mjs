@@ -4,16 +4,12 @@ import * as THREE from 'three/webgpu'
 import { installDiagnostics } from '../src/app/diagnostics.js'
 import { createRoomShadows } from '../src/game/range-room/lighting/room-shadows.js'
 
-test('diagnostics expose room inspection without a removed prop or legacy commands', () => {
+test('diagnostics report the fixed camera without exposing observation controls', () => {
   const target = {}
   const state = {
-    cameraMode: 'fly',
-    flySpeed: 6,
+    cameraMode: 'static',
     shadows: { enabled: true },
     player: null,
-  }
-  const inspection = {
-    snapshot: () => state,
   }
   const runtime = {
     state: 'ready',
@@ -28,8 +24,11 @@ test('diagnostics expose room inspection without a removed prop or legacy comman
   }
   const level = {
     snapshot: () => ({ ready: true, config: {} }),
+    shadows: {
+      snapshot: () => ({ enabled: true }),
+    },
   }
-  const dispose = installDiagnostics({ runtime, level, inspection, target })
+  const dispose = installDiagnostics({ runtime, level, target })
   const api = target.__RANGE_ROOM__
   assert.equal(api.ready, true)
   assert.deepEqual(api.inspection.snapshot(), state)
@@ -40,8 +39,12 @@ test('diagnostics expose room inspection without a removed prop or legacy comman
     'focusTeapot',
     'focusTarget',
     'setPaused',
+    'fly',
+    'orbit',
+    'setMode',
   ])
     assert.equal(Object.hasOwn(api.inspection, key), false)
+  assert.equal(Object.hasOwn(api, 'controls'), false)
   assert.equal(Object.hasOwn(api.snapshot().inspection, 'teapot'), false)
   dispose()
   assert.equal(Object.hasOwn(target, '__RANGE_ROOM__'), false)

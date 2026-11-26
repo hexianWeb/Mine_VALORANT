@@ -10,7 +10,7 @@
 
 [室内 LightProbeGrid](docs/lighting/light-probes.md) 使用 Blender `LightProbeVolumes` 的三个 Box，共 282 个预计算探针，为实时物体提供局部漫反射间接光；它不是枪械金属所需的室内镜面反射探针。右侧 Panel 可分别调节探针、已接入材质的天空漫反射/镜面反射、顶灯，并配置捕获与查看边界。`?probes=0` 跳过探针模块。
 
-[超平坦外部地面](docs/lighting/superflat-ground.md) 按模型实际包围盒自动生成石英砖基底，外围延伸原版平原草皮。原版 16×16 纹理按 1 m/格重复，结合像素锐度、mip 与各向异性过滤；飞出练枪房即可观察。
+[超平坦外部地面](docs/lighting/superflat-ground.md) 按模型实际包围盒自动生成石英砖基底，外围延伸原版平原草皮。原版 16×16 纹理按 1 m/格重复，结合像素锐度、mip 与各向异性过滤。
 
 ## 开发
 
@@ -21,9 +21,9 @@ npm run dev
 
 使用支持 WebGPU 的最新版 Chrome / Edge。加载后默认进入**玩家模式**：点击画面锁定鼠标，WASD 移动、Shift 静步、C 下蹲、空格跳跃，Home 回到出生点。**1 主武器、2 手枪、3 爪刀；按 B 打开商店，从七把枪中免费选购并替换同类槽位。** 初始主武器为 Phantom，手枪为 Classic，入场手持 Classic。左键使用当前武器，右键 ADS（支持的枪型），R 换弹、T 检视、K 换肤；主关卡备用弹药无限，弹匣打空仍要换弹。Esc 先关闭窗口，无窗口时暂停。详见[游戏入口与控件](docs/weapons/gameplay.md#游戏入口与控件)。
 
-**手机／平板推荐横屏**：在支持 WebGPU 的浏览器中通过 HTTPS 打开，触屏默认直接进入游戏，不需要捕获鼠标。左下摇杆推得越远走得越快，右侧空白区滑动转向；左右两枚开火键均可按住，右侧开火键还能边拖边瞄。轻点开镜（支持的武器）、下蹲或静步可切换状态。换肤和检视键在左侧摇杆上方斜向排列，换弹键在右侧开镜键下方，底部三个装备槽直接切枪。右上角可切换全屏、打开商店、设置和暂停。进入或退出全屏时画面会随视口重新调整。暂停后可回出生点。混合设备可用 `?controls=touch` 或 `?controls=mouse` 指定模式。触控默认收起开发工具，需要时加 `&editor=1`。
+**手机／平板推荐横屏**：在支持 WebGPU 的浏览器中通过 HTTPS 打开，触屏默认直接进入游戏，不需要捕获鼠标。左下摇杆推得越远走得越快，右侧空白区滑动转向；左右两枚开火键均可按住，右侧开火键还能边拖边瞄。轻点开镜（支持的武器）、下蹲或静步可切换状态。换肤和检视键在左侧摇杆上方斜向排列，换弹键在右侧开镜键下方，底部三个装备槽直接切枪。右上角可切换全屏、打开商店、设置和暂停。进入或退出全屏时画面会随视口重新调整。暂停后可回出生点。混合设备可用 `?controls=touch` 或 `?controls=mouse` 指定模式。触屏默认隐藏渲染调试入口，需要时可设 `editor=1`。
 
-V 在玩家与飞行（noclip）之间切换；飞行模式下 WASD 移动、Q/E 升降、右键拖动视角、Shift 加速、滚轮调速，R 复位。左下角可切换轨道模式、碰撞线框及动态阴影，右上角提供 AO 和 LUT 调试面板。`?player=0` 启动时保持 Blender 参考机位与飞行模式。碰撞层见[练枪房碰撞层](docs/physics/collision-layer.md)，模块与操作见[动态阴影与飞行观察](docs/lighting/room-inspection.md)。
+右上角默认折叠「渲染调试」，点击可展开光照切换、AO、LUT 和探针设置。`?editor=0` 隐藏调试入口，`?player=0` 使用固定的 Blender 参考机位。碰撞层见[练枪房碰撞层](docs/physics/collision-layer.md)，控制台操作见[动态阴影与渲染调试](docs/lighting/room-inspection.md)。
 
 当前 `package-lock.json` 与 r187 依赖一致，已验证 `npm ci --dry-run --ignore-scripts`。保留现有 pnpm 锁文件，不删除或自动互相转换；安装时选择一种包管理器。部分 ESLint 开发依赖要求 Node 22.22.2+ 或 24.15+。
 
@@ -66,10 +66,10 @@ EXR 解码和 alpha 加权 mip 生成在独立 Worker 中完成，通过 transfe
 - `framework/component/` 集中 Transform、Mesh、Motor、Camera；玩家组合 Transform／Motor／Camera 与游戏侧 Player。Transform 统一空间状态，Camera 独立负责第一人称视角与跟随表现。
 - `function/character/` 提供普通角色运动规则，`controller/` 提供扫掠／台阶算法，`physics/` 提供碰撞服务，`input/` 管理输入。Motor 在 fixed / motion 执行运动，Mesh 与 Camera 在 presentation 消费 Transform。
 - `function/render/` 按 render-system、render-pipeline、render-config、render-profiler 及 passes / material / debugdraw 组织。
-- `src/engine/editor/`：自由／轨道相机、渲染面板、探针面板、观察 HUD 与碰撞辅助线。
+- `src/engine/editor/`：渲染面板、探针面板与碰撞辅助线。
 - `src/game/`：玩家规则与练枪房内容；RangeRoomLevel 直接组装房间、地面、玩家、训练机器人、阴影和探针。
 - `src/app/`：选择关卡、连接游戏与 Editor、URL 配置及诊断接口。`main.js` 只启动应用并接入 HMR。
-- `src/configs/input-bindings.js`：练枪房玩法键位，由 app 经 RuntimeContext 注入输入系统。runtime 提供通用动作状态与按下／释放边沿，由 Player 映射为玩法命令；省略 bindings 时不绑定键盘动作。Home 回出生点在 `?editor=0` 下同样可用，键盘与玩家复位按钮都在 Tick 中执行，暂停时只排队。
+- `src/configs/input-bindings.js`：练枪房玩法键位，由 app 经 RuntimeContext 注入输入系统。runtime 提供通用动作状态与按下／释放边沿，由 Player 映射为玩法命令；省略 bindings 时不绑定键盘动作。Home 回出生点在 `?editor=0` 下同样可用，在固定步执行，暂停时只排队。
 
 文档索引见 [docs/README.md](docs/README.md)。完整目录、tick 调用链、生命周期、公共 API 与验收见 [运行时架构](docs/architecture.md)，最新调度契约见[阶段优先组件 Tick](docs/superpowers/specs/2026-11-11-phase-first-component-tick.md)，目录映射见[function 结构重构](docs/superpowers/specs/2026-11-11-function-layer-layout.md)，组件粒度取舍见[消融 Spec](docs/superpowers/specs/2026-11-10-component-based-game-objects.md)。runtime 不反向依赖 game/editor/app，game 与 editor 由 app 连接。`?editor=0` 可验证无工具界面的玩家与关卡运行。`npm test` 包含分层、阶段扫描、固定步与重入防护、运动数值、初始化回滚、关卡取消和资源归属检查。
 

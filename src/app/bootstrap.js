@@ -21,52 +21,11 @@ import { mountWeaponShop } from './weapon-shop.js'
 
 /**
  * `readAppConfig()` 的返回值。
- * `?editor=0` 关闭编辑器，`?player=0` 从飞行开始，`?probes=0` 关闭探针，
+ * `?editor=0` 关闭调试工具，`?player=0` 使用固定参考机位，`?probes=0` 关闭探针，
  * `?lighting=appearance` 改用外观清单，`?ao=0` 关闭环境光遮蔽，`?aa=none` 关闭抗锯齿，`?profile=1` 记录时间戳。
  * `?reflectionPreview=1` 在大厅中央显示已保存 HDR Cubemap 的六面原始预览。
  *
  * @typedef {ReturnType<typeof readAppConfig>} AppConfig
- */
-
-/**
- * 观察相机模式。
- * 有玩家时默认 `player`，可再切到 `fly` 或 `orbit`；无玩家但有控件时默认 `fly`；两者都没有时为 `static`。
- *
- * @typedef {'player' | 'fly' | 'orbit' | 'static'} InspectionCameraMode
- */
-
-/**
- * 玩家快照。包含玩家自身快照的全部字段，并附加当前观察状态。
- *
- * @typedef {object} InspectionPlayerSnapshot
- * @property {InspectionCameraMode} mode 当前观察模式。
- * @property {number} boxes 碰撞盒数量。
- * @property {number} stepMs 最近一次物理步进耗时，单位毫秒。
- * @property {boolean} collisionDebug 碰撞辅助线当前是否可见。
- */
-
-/**
- * `createInspection()` 给出的只读观察状态，供面板和诊断读取。
- *
- * @typedef {object} InspectionSnapshot
- * @property {InspectionCameraMode} cameraMode 当前观察模式。
- * @property {number} flySpeed 飞行速度。没有控件时为 0。
- * @property {object | undefined} shadows 阴影快照。没有阴影时缺省。
- * @property {InspectionPlayerSnapshot | null} player 玩家快照。关卡没有玩家时为 null。
- */
-
-/**
- * 编辑器面板和诊断共用的关卡操作。本对象不持有场景物体，也不推进循环。
- *
- * @typedef {object} Inspection
- * @property {object | null} player 关卡玩家。没有玩家时为 null。
- * @property {object | null} collisionDebug 碰撞辅助线。编辑器关闭或关卡没有碰撞盒时为 null。
- * @property {{ help: { player: string, fly: string, orbit: string } }} labels 三种模式的操作说明。
- * @property {(value: InspectionCameraMode) => void} setMode 切换观察模式。
- * @property {() => void} resetCamera 玩家模式重生，否则恢复观察相机初始机位。
- * @property {(value: boolean) => void} setShadows 开关阴影。
- * @property {(value: boolean) => void} setCollisionDebug 开关碰撞辅助线。
- * @property {() => InspectionSnapshot} snapshot 读取当前观察状态。
  */
 
 /**
@@ -82,7 +41,7 @@ import { mountWeaponShop } from './weapon-shop.js'
  * 应用组装根。`main.js` 调用本函数。
  *
  * 连接关系：`RuntimeContext` 持有场景、渲染、输入、物理和帧循环；`RangeRoomLevel` 持有房间、玩家和光照；
- * `createEditor` 持有飞行、环绕相机、面板和碰撞辅助线；`createInspection` 把关卡操作收成工具接口；
+ * `createEditor` 持有渲染面板和碰撞辅助线；
  * `installDiagnostics` 把诊断面挂到 `globalThis.__RANGE_ROOM__`。
  * runtime 不依赖练枪房，editor 也不直接调用关卡内部。
  *
@@ -117,8 +76,7 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
   /**
    * 关卡 `load` 之后挂上这一关的工具。
    * 先释放上一关的 `levelTools`，再换一个新的清理器。
-   * 编辑器开启时创建控件，并把 `updateInput`、`update` 接到引擎的 `input` 与 `frame`；编辑器自身没有第二套循环。
-   * `options.editor` 为 false 时不创建控件，观察接口以空控件建立。两种情况都会安装诊断。
+   * 编辑器开启时创建调试工具。两种情况都会安装诊断。
    *
    * @param {RangeRoomLevel} level 刚加载完成的关卡。
    * @returns {void}
@@ -126,43 +84,23 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
   const mountLevelTools = (level) => {
     levelTools.dispose()
     levelTools = new Disposer()
+    // 关卡已从清单设置参考机位；在玩家首次更新相机前停用玩家。
+    if (options.referenceCamera)
+      level.setPlayerEnabled(false)
     const ui = levelTools.add(createUiHost({ canvas, debugContainer: panelContainer }))
-    let inputUi = null
-    let weaponHud = null
-    let weaponShop = null
-    /**
-     * 把编辑器控件交给观察接口。编辑器关闭时不传控件。
-     *
-     * @param {object} [tools] 编辑器创建的控件。缺省表示没有观察相机。
-     * @param {import('../engine/editor/camera-controls.js').CameraControls | null} [tools.controls] 飞行与环绕相机。
-     * @param {object | null} [tools.collisionDebug] 碰撞辅助线。
-     * @returns {Inspection} 当前关卡的观察接口。
-     */
-    const bindInspection = ({ controls = null, collisionDebug = null } = {}) => createInspection({
-      level,
-      canvas,
-      controls,
-      collisionDebug,
-      physics: runtime.physics,
-      startMode: options.startMode,
-      onModeChange: () => inputUi?.sync(),
-    })
     const editor = options.editor
       ? levelTools.add(createEditor({
-          canvas,
           scene: runtime.scene,
-          camera: runtime.camera,
           render: runtime.render,
           panelContainer,
-          hudContainer: ui.debug,
           lightingMode: level.snapshot().lightingMode,
           probes: level.probes,
           collisionBoxes: level.collision?.world.boxes,
-          bindInspection,
         }))
       : null
-    const inspection = editor?.inspection ?? bindInspection()
     if (level.player) {
+      let weaponHud = null
+      let weaponShop = null
       const settings = levelTools.add(mountRangeSettings({
         ui,
         player: level.player,
@@ -171,7 +109,7 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
         readChallengeHud: () => level.readChallengeHud(),
         onCrosshair: () => weaponHud?.openCrosshair(),
       }))
-      inputUi = levelTools.add(createUiInput({
+      const inputUi = levelTools.add(createUiInput({
         canvas,
         ui,
         input: runtime.input,
@@ -228,15 +166,10 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
       levelTools.add(inputUi.subscribe(syncSettings))
       syncSettings(inputUi.read())
     }
-    if (editor) {
-      levelTools.add(runtime.engine.events.on('input', editor.updateInput))
-      levelTools.add(runtime.engine.events.on('frame', editor.update))
-    }
     levelTools.add(installDiagnostics({
       runtime,
       level,
       editor,
-      inspection,
       canvas,
     }))
   }
@@ -304,139 +237,4 @@ export function createApplication({ canvas, status, panelContainer, onError, opt
     /** 关闭运行时。重复调用无效果。 */
     dispose: () => runtime.dispose(),
   }
-}
-
-/**
- * 把当前关卡已有的玩家、阴影和碰撞调试收成 {@link Inspection}。
- * 不创建对象，也不拥有 tick。
- *
- * 初始模式：有玩家时为 `player`；无玩家但有控件时为 `fly`；两者都没有时为 `static`。
- * 有玩家才出现 `player` 模式，有控件才出现 `fly` 与 `orbit`。
- * `startMode` 为 `fly` 且存在控件时，返回前立即切到飞行。该值来自 URL `?player=0`。
- *
- * @param {object} args 当前关卡和可选的编辑器控件。
- * @param {RangeRoomLevel} args.level 已加载的练枪房。
- * @param {HTMLCanvasElement} args.canvas 接受焦点的画布。模式切换后聚焦，且不滚动页面。
- * @param {import('../engine/editor/camera-controls.js').CameraControls | null} args.controls 飞行与环绕相机。编辑器关闭时为 null。
- * @param {object | null} args.collisionDebug 碰撞辅助线。没有时为 null。
- * @param {{ lastStepMs: number }} args.physics 物理系统。快照只读取最近一步耗时。
- * @param {AppConfig['startMode']} args.startMode 初始观察模式来源。`player` 保持玩家，`fly` 在有控件时切到飞行。
- * @param {() => void} args.onModeChange 相机所有权变更后同步应用输入模式。
- * @returns {Inspection} 面板与诊断共用的观察接口。
- */
-function createInspection({ level, canvas, controls, collisionDebug, physics, startMode, onModeChange }) {
-  /** @type {InspectionCameraMode} */
-  let mode = /** @type {InspectionCameraMode} */ (level.player
-    ? 'player'
-    : controls ? 'fly' : 'static')
-  const modes = [
-    ...(level.player
-      ? ['player']
-      : []),
-    ...(controls
-      ? ['fly', 'orbit']
-      : []),
-  ]
-  const api = {
-    player: level.player,
-    collisionDebug,
-    labels: {
-      help: {
-        player: '点击锁定 · 左键开火 · 右键瞄准 · 1/2/3/滚轮切枪 · R 换弹 · T 检视 · WASD 移动 · Home 重生 · ~ 设置 · V 飞行 · Esc 暂停',
-        fly: '点击画面激活 · 右键拖动视角 · WASD 移动 · Q/E 降/升 · Shift 加速 · 滚轮调速 · Esc 释放',
-        orbit: '左键环绕 · 右键平移 · 滚轮缩放 · R 恢复初始机位',
-      },
-    },
-    /**
-     * 切换观察模式。未知模式抛错；目标与当前相同时直接返回。
-     * 切到 `player` 时关闭编辑器相机、启用玩家，并把玩家放到当前机位。
-     * 切到 `fly` 或 `orbit` 时关闭玩家，控件使用同名模式。成功切换后聚焦画布。
-     *
-     * @param {InspectionCameraMode} value 目标模式。必须包含在当前可用模式中。
-     * @returns {void}
-     * @throws {Error} `value` 不是当前关卡可用的观察模式。
-     */
-    setMode(value) {
-      if (!modes.includes(value))
-        throw new Error(`Unknown inspection camera mode: ${value}`)
-      if (mode === value)
-        return
-      controls?.setMode(value === 'player'
-        ? 'none'
-        : value)
-      level.setPlayerEnabled(value === 'player')
-      if (value === 'player')
-        level.player.placeAtCamera()
-      mode = value
-      onModeChange?.()
-      canvas.focus({ preventScroll: true })
-    },
-    /**
-     * 玩家模式下排队重生命令，下一固定步执行；否则恢复观察相机初始机位。随后聚焦画布。
-     *
-     * @returns {void}
-     */
-    resetCamera() {
-      if (mode === 'player')
-        level.player.requestRespawn()
-      else
-        controls?.reset()
-      canvas.focus({ preventScroll: true })
-    },
-    /**
-     * 开关房间阴影。没有阴影对象时不做事。
-     *
-     * @param {boolean} value `true` 为开启阴影。
-     * @returns {void}
-     */
-    setShadows: value => level.shadows?.setEnabled(value),
-    /**
-     * 开关碰撞辅助线。没有辅助线对象时不做事。
-     *
-     * @param {boolean} value `true` 为显示。
-     * @returns {void}
-     */
-    setCollisionDebug: value => collisionDebug?.setVisible(value),
-    /** Small tool readout; the complete player/weapon diagnostics stay on snapshot(). */
-    readStatus() {
-      return {
-        cameraMode: mode,
-        flySpeed: controls?.speed ?? 0,
-        shadows: level.shadows?.snapshot(),
-        player: level.player
-          ? {
-              velocity: level.player.velocity.toArray(),
-              collisionDebug: collisionDebug?.visible ?? false,
-            }
-          : null,
-      }
-    },
-    /**
-     * 收集当前模式、飞行速度、阴影和玩家步进。
-     *
-     * @returns {InspectionSnapshot} 当前观察状态。
-     */
-    snapshot() {
-      return {
-        cameraMode: mode,
-        flySpeed: controls?.speed ?? 0,
-        shadows: level.shadows?.snapshot(),
-        player: level.player
-          ? {
-              ...level.player.snapshot(),
-              mode,
-              boxes: level.collision.world.boxes.length,
-              stepMs: physics.lastStepMs,
-              collisionDebug: collisionDebug?.visible ?? false,
-            }
-          : null,
-      }
-    },
-  }
-  controls?.setMode(mode === 'player'
-    ? 'none'
-    : 'fly')
-  if (controls && startMode === 'fly')
-    api.setMode('fly')
-  return api
 }

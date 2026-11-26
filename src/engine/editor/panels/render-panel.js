@@ -11,10 +11,16 @@ export function createDebugPanel(render, container, lightingMode = 'lightmap', p
     denoiseResolutionScale: state.denoiseResolutionScale ?? 0,
     lutFile: state.customLutTitle || '内置 LUT',
   }
-  const pane = new Pane({ container, title: '渲染调试 · Reinhard' })
+  const document = container.ownerDocument
+  const disclosure = document.createElement('details')
+  const summary = document.createElement('summary')
+  summary.textContent = '渲染调试 · Reinhard'
+  const content = document.createElement('div')
+  disclosure.append(summary, content)
+  const pane = new Pane({ container: content })
   const lighting = document.createElement('p')
   lighting.className = 'debug-lighting'
-  const alternate = new URL(location.href)
+  const alternate = new URL(document.location.href)
   const isLightmap = lightingMode === 'lightmap'
   alternate.searchParams.set('lighting', isLightmap ? 'appearance' : 'lightmap')
   const label = isLightmap ? 'Lightmap · AO 可作用墙地面' : '原版 · 完整烘焙外观'
@@ -23,16 +29,16 @@ export function createDebugPanel(render, container, lightingMode = 'lightmap', p
   switchLink.href = alternate.href
   switchLink.textContent = isLightmap ? '切回原版' : '切换 Lightmap'
   lighting.append(switchLink)
-  container.prepend(lighting)
+  content.prepend(lighting)
   const message = document.createElement('p')
   message.className = 'debug-message'
   message.textContent = 'AO：低分辨率 + 边缘重建 · LUT：线性 SMAA 后的 sRGB 域'
-  container.append(message)
+  content.append(message)
   const file = document.createElement('input')
   file.type = 'file'
   file.accept = '.cube'
   file.hidden = true
-  container.append(file)
+  content.append(file)
   let disposed = false
   const probePanel = probes
     ? addProbePanel(pane, probes)
@@ -193,6 +199,7 @@ export function createDebugPanel(render, container, lightingMode = 'lightmap', p
     }
   }
   file.addEventListener('change', onFile)
+  container.append(disclosure)
   return {
     pane,
     params,
@@ -202,9 +209,7 @@ export function createDebugPanel(render, container, lightingMode = 'lightmap', p
       file.removeEventListener('change', onFile)
       probePanel?.dispose()
       pane.dispose()
-      file.remove()
-      message.remove()
-      lighting.remove()
+      disclosure.remove()
     },
   }
 }

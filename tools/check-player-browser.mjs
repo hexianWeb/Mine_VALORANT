@@ -99,22 +99,9 @@ try {
   assert.equal(report.underFloor.respawned, 1)
   assert.ok(Math.abs(report.underFloor.position[1] - 9) < 0.01, 'back on the spawn floor')
 
-  report.modes = await evaluate(`(async () => {
-    const app = __RANGE_ROOM__;
-    const canvas = document.querySelector('.webgl');
-    canvas.focus();
-    canvas.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyV', bubbles: true }));
-    const fly = app.snapshot().inspection.cameraMode;
-    canvas.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyV', bubbles: true }));
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return { fly, player: app.snapshot().inspection.cameraMode, grounded: app.inspection.player.grounded };
-  })()`)
-  assert.deepEqual(report.modes, { fly: 'fly', player: 'player', grounded: true })
-
-  await evaluate('document.querySelector(\'.room-inspection [data-action="collision"]\').click()')
+  await evaluate('__RANGE_ROOM__.inspection.setCollisionDebug(true)')
   await frames(10)
-  report.debug = await evaluate('({ visible: __RANGE_ROOM__.snapshot().player.collisionDebug, label: document.querySelector(\'.room-inspection [data-action="collision"]\').textContent })')
-  assert.deepEqual(report.debug, { visible: true, label: '碰撞线框：开' })
+  assert.equal(await evaluate('__RANGE_ROOM__.snapshot().player.collisionDebug'), true)
   await screenshot('player-collision-debug.png')
   await evaluate('__RANGE_ROOM__.inspection.setCollisionDebug(false)')
 

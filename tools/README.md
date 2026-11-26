@@ -228,7 +228,7 @@ node tools/bake-room-probes.mjs "http://localhost:5173/"
 | --- | --- | --- |
 | `check-probes-browser.mjs` | 282 个预计算探针是否接上 | `node tools/check-probes-browser.mjs http://localhost:5173/`，会自己设 `profile=1` |
 | `check-ground-browser.mjs` | 房间外石英砖和草皮 | 同上，会自己设 `player=0` |
-| `check-inspection-browser.mjs` | 飞行 / 轨道相机、阴影、观察 HUD | 同上，会自己设 `player=0` |
+| `check-inspection-browser.mjs` | 调试面板折叠、固定参考机位和阴影 | 同上，会自己设 `player=0` |
 | `benchmark-room.mjs` | 对比两个地址的 GPU / CPU 耗时 | `node tools/benchmark-room.mjs <urlA> <urlB>`，会自己设 `profile=1` |
 
 `benchmark-room` 按参数顺序逐个开页面，避免两套场景抢 GPU。

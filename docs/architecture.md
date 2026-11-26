@@ -10,7 +10,7 @@
 src/
 ├─ main.js                         启动应用、错误提示、HMR
 ├─ app/
-│  ├─ bootstrap.js                 选择关卡、连接游戏与工具、相机模式适配
+│  ├─ bootstrap.js                 选择关卡、连接游戏与调试工具
 │  ├─ config.js                    URL 参数与玩法键位接线
 │  ├─ diagnostics.js               __RANGE_ROOM__ 兼容诊断接口
 │  ├─ weapon-hud.js                消费表现时间的武器、弹药与准星 UI
@@ -45,9 +45,8 @@ src/
 │  │     ├─ physics/              同步碰撞服务与碰撞世界
 │  │     └─ render/               渲染系统、管线、passes、material、debugdraw
 │  └─ editor/
-│     ├─ editor.js                观察工具、面板与辅助线的生命周期
-│     ├─ camera-controls.js        自由／轨道观察与相机控制权
-│     └─ panels/                  渲染、探针、观察 HUD
+│     ├─ editor.js                渲染调试面板与碰撞辅助线的生命周期
+│     └─ panels/                  渲染与探针控件
 └─ game/
    ├─ combat/                     独立生命／护甲／伤害模型，供出靶结算使用
    ├─ player/
@@ -140,7 +139,7 @@ runtime 不导入 app、game、editor；game 与 editor 互不导入。只有 ap
 
 玩法键位位于 `src/configs/input-bindings.js`，由 `readAppConfig()` 经 app 和 RuntimeContext 注入 InputSystem；runtime 不导入这份配置。`createInputSystem({ element, bindings })` 省略 bindings 时不绑定动作，动作名可自定义。输入系统提供 `isDown(action)`、`consumePressed(action)`、`consumeReleased(action)`、`consumePressedEvents()`、`consumeLook()` 和 `clear()`，支持键盘、MouseN 和滚轮；玩法映射仍由 Player / PlayerWeapons 完成。有序边沿与单动作消费共享一条队列，已消费的记录不会再次返回。同动作多键独立保持；滚轮只产生边沿，不产生 held。鼠标按钮与滚轮仅在启用且 Pointer Lock 生效时接收，首次点击只捕获鼠标。失焦、解锁、禁用和隐藏页面清空输入；`clear()` 不改变启用或锁定状态。
 
-主关卡的数字键选择持有槽位：1 主武器、2 手枪、3 爪刀；七把枪通过 B 商店选购。Q 切回上一把，滚轮循环持有槽位。Home 回出生点属于游戏输入，关闭 Editor 后仍可用。玩家复位按钮通过 `Player.requestRespawn()` 排队，和 Home 一起在下一实际 postPhysics 固定步提交；暂停以及恢复首帧零步都不会提前修改模拟。飞行／轨道观察相机复位仍由 Editor 处理。完整操作见[游戏入口与控件](weapons/gameplay.md#游戏入口与控件)。
+主关卡的数字键选择持有槽位：1 主武器、2 手枪、3 爪刀；七把枪通过 B 商店选购。Q 切回上一把，滚轮循环持有槽位。Home 回出生点属于游戏输入，关闭 Editor 后仍可用；控制台的 `inspection.resetCamera()` 通过 `Player.requestRespawn()` 提交同一个命令。重生在下一实际 postPhysics 固定步执行；暂停以及恢复首帧零步都不会提前修改模拟。完整操作见[游戏入口与控件](weapons/gameplay.md#游戏入口与控件)。
 
 Context 每个应用实例独立持有。业务代码不使用全局服务查找；`__RANGE_ROOM__` 仅由 app 安装供诊断与浏览器测试使用。
 

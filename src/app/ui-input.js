@@ -253,7 +253,7 @@ export function createUiInput({ canvas, input, player, engine, ui, onSettings, o
     player.setPaused(false)
     publish()
   }))
-  // Also covers tool-driven enable/disable outside createInspection().
+  // Keep input ownership in sync with changes to the player made by diagnostics.
   owned.add(engine.events.on('input', sync))
   publish()
   return {

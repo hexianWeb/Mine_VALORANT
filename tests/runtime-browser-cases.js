@@ -6,60 +6,39 @@ function check(condition, message) {
     throw new Error(message)
 }
 
-function checkCameraOwnership(runtime, level, editorEnabled, advance) {
+function checkCameraOwnership(runtime, level, advance) {
   const { camera, input } = runtime
   const { player } = level
   const view = player.owner.requireComponent(CameraComponent)
   const projection = camera.projectionMatrix.clone()
-  const inspection = globalThis.__RANGE_ROOM__.inspection
   check(view.camera === camera && view.enabled, 'Player must publish through its CameraComponent to the shared output')
-  const modes = editorEnabled
-    ? ['fly', 'orbit']
-    : ['disabled']
-  for (const mode of modes) {
-    if (editorEnabled)
-      inspection.setMode(mode)
-    else
-      level.setPlayerEnabled(false)
-    check(!player.enabled && !view.enabled && !input.enabled, `${mode} did not release gameplay camera/input`)
-    // Deliberately change the observer pose; an accidental presentation writer would snap it back.
-    camera.position.x += 0.01
-    if (editorEnabled) {
-      inspection.fly.setMode(mode)
-      check(inspection.fly.enabled === (mode === 'fly') && inspection.orbit.enabled === (mode === 'orbit'), 'Editor camera writers disagree with the active mode')
-    }
-    const position = camera.position.clone()
-    const quaternion = camera.quaternion.clone()
-    advance()
-    check(camera.position.distanceTo(position) < 1e-9 && camera.quaternion.angleTo(quaternion) < 1e-7, `${mode} pose was overwritten by gameplay presentation`)
-    if (editorEnabled) {
-      inspection.setMode('player')
-      check(!inspection.fly.enabled && !inspection.orbit.enabled, 'Editor still writes after returning to player')
-    }
-    else {
-      player.placeAtCamera()
-      level.setPlayerEnabled(true)
-    }
-    level.tickComponents('presentation', {
-      time: {
-        ...runtime.engine.time.snapshot(),
-        rawDelta: 0,
-        delta: 0,
-      },
-    })
-    check(view.enabled && player.enabled && input.enabled, 'Player did not reclaim camera/input')
-    check(camera.position.distanceTo(position) < 1e-9 && camera.quaternion.angleTo(quaternion) < 1e-7, 'Camera handoff lost the observer pose')
-  }
+  level.setPlayerEnabled(false)
+  check(!player.enabled && !view.enabled && !input.enabled, 'Disabling the player did not release the camera and input')
+  camera.position.x += 0.01
+  const position = camera.position.clone()
+  const quaternion = camera.quaternion.clone()
+  advance()
+  check(camera.position.distanceTo(position) < 1e-9 && camera.quaternion.angleTo(quaternion) < 1e-7, 'Disabled player overwrote the camera pose')
+  player.placeAtCamera()
+  level.setPlayerEnabled(true)
+  level.tickComponents('presentation', {
+    time: {
+      ...runtime.engine.time.snapshot(),
+      rawDelta: 0,
+      delta: 0,
+    },
+  })
+  check(view.enabled && player.enabled && input.enabled, 'Player did not reclaim camera/input')
+  check(camera.position.distanceTo(position) < 1e-9 && camera.quaternion.angleTo(quaternion) < 1e-7, 'Camera handoff lost the supplied pose')
   check(camera.projectionMatrix.equals(projection), 'CameraComponent changed the runtime projection')
   return {
     sharedOutput: true,
-    modes,
     handoff: true,
     projectionPreserved: true,
   }
 }
 
-async function checkPlayerCommands(runtime, level, editorEnabled, canvas, advance) {
+async function checkPlayerCommands(runtime, level, canvas, advance) {
   const { engine, camera } = runtime
   const { player } = level
   const inspection = globalThis.__RANGE_ROOM__.inspection
@@ -112,10 +91,7 @@ async function checkPlayerCommands(runtime, level, editorEnabled, canvas, advanc
   advance()
   check(player.respawns === respawns + 1, 'Home was delivered more than once')
   pause()
-  if (editorEnabled)
-    document.querySelector('.room-inspection [data-action="reset"]').click()
-  else
-    inspection.resetCamera()
+  inspection.resetCamera()
   canvas.focus()
   press('Home')
   check(player.respawns === respawns + 1, 'Tool reset bypassed the input tick')
@@ -187,7 +163,7 @@ export async function checkLevelReload(app, editorEnabled) {
     const previousView = previous.player.owner.requireComponent(CameraComponent)
     await world.unloadLevel()
     check(scene.children.length === 0 && previous.objects.size === 0, 'Unload left scene objects attached')
-    check(document.querySelectorAll('.room-inspection').length === 0, 'Unload left editor UI attached')
+    check(!document.querySelector('.debug-panel details'), 'Unload left the debug panel attached')
     check(!globalThis.__RANGE_ROOM__, 'Unload left stale diagnostics')
     check(!input.enabled, 'Unloaded player still owns input')
     check(previousView.disposed && !previousView.enabled, 'Unloaded CameraComponent still owns output')
@@ -221,7 +197,8 @@ export async function checkLevelReload(app, editorEnabled) {
     const view = level.player.owner.requireComponent(CameraComponent)
     check(view !== previousView && view.camera === camera, 'Reload must create a new camera component using the same runtime output')
     check(level.objects.size === originalObjects && scene.children.length === originalChildren, 'Reload changed object counts')
-    check(document.querySelectorAll('.room-inspection').length === Number(editorEnabled), 'Reload duplicated or omitted editor UI')
+    check(document.querySelectorAll('.debug-panel details').length === Number(editorEnabled), 'Reload duplicated or omitted the debug panel')
+    check(!document.querySelector('.debug-panel details[open]'), 'Reload left the debug panel open')
     check(globalThis.__RANGE_ROOM__.world === level && globalThis.__RANGE_ROOM__.ready, 'Reload did not rebind diagnostics')
     engine.time.resetDelta()
     let now = performance.now()
@@ -265,13 +242,13 @@ export async function checkLevelReload(app, editorEnabled) {
       fixedTick,
       motorElapsed,
       repeatedLogicRejected,
-      input: await checkPlayerCommands(runtime, level, editorEnabled, canvas, () => engine.step(now += 1000 / 60)),
-      camera: checkCameraOwnership(runtime, level, editorEnabled, () => engine.step(now += 1000 / 60)),
+      input: await checkPlayerCommands(runtime, level, canvas, () => engine.step(now += 1000 / 60)),
+      camera: checkCameraOwnership(runtime, level, () => engine.step(now += 1000 / 60)),
     })
   }
   engine.destroy()
   check(runtime.state === 'disposed' && scene.children.length === 0, 'Shutdown left runtime/scene alive')
   check(!globalThis.__RANGE_ROOM__, 'Shutdown left diagnostics installed')
-  check(document.querySelectorAll('.room-inspection').length === 0, 'Shutdown left tool UI')
+  check(!document.querySelector('.debug-panel details'), 'Shutdown left the debug panel attached')
   return { editorEnabled, cycles, shutdown: true }
 }

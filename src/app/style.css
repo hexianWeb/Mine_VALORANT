@@ -50,11 +50,34 @@ body {
   z-index: 2;
   top: 16px;
   right: 16px;
-  width: min(320px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
   max-height: calc(100vh - 32px);
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
+}
+
+.debug-panel:has(> details[open]) {
+  width: min(320px, calc(100vw - 32px));
+}
+
+.debug-panel summary {
+  padding: 6px 10px;
+  color: #dbeafe;
+  background: #20232b;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.debug-panel summary:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: -2px;
+}
+
+.debug-panel details[open] > summary {
+  border-radius: 6px 6px 0 0;
 }
 
 .debug-message,
@@ -74,7 +97,7 @@ body {
 }
 
 .debug-lighting {
-  border-radius: 6px 6px 0 0;
+  border-radius: 0;
 }
 
 .debug-lighting a {

@@ -1,7 +1,40 @@
 import { Raycaster, Vector2 } from 'three/webgpu'
 
 /** Legacy browser/console surface is adapted here; runtime never reads this global. */
-export function installDiagnostics({ runtime, level, inspection, editor, canvas, target = globalThis }) {
+export function installDiagnostics({ runtime, level, editor, canvas, target = globalThis }) {
+  const player = level.player ?? null
+  const { collision, shadows } = level
+  const collisionDebug = editor?.collisionDebug ?? null
+  const inspection = {
+    player,
+    collisionDebug,
+    shadows,
+    input: runtime.input,
+    physics: runtime.physics,
+    collision,
+    resetCamera() {
+      player?.requestRespawn()
+      canvas.focus({ preventScroll: true })
+    },
+    setShadows: value => shadows?.setEnabled(value),
+    setCollisionDebug: value => collisionDebug?.setVisible(value),
+    snapshot() {
+      const mode = player?.enabled ? 'player' : 'static'
+      return {
+        cameraMode: mode,
+        shadows: shadows?.snapshot(),
+        player: player
+          ? {
+              ...player.snapshot(),
+              mode,
+              boxes: collision.world.boxes.length,
+              stepMs: runtime.physics.lastStepMs,
+              collisionDebug: collisionDebug?.visible ?? false,
+            }
+          : null,
+      }
+    },
+  }
   const api = {
     runtime,
     engine: runtime.engine,
@@ -11,17 +44,8 @@ export function installDiagnostics({ runtime, level, inspection, editor, canvas,
     room: level.room,
     scene: runtime.scene,
     camera: runtime.camera,
-    controls: editor?.controls.orbit,
     panel: editor?.panel,
-    inspection: {
-      ...inspection,
-      fly: editor?.controls,
-      orbit: editor?.controls.orbit,
-      shadows: level.shadows,
-      input: runtime.input,
-      physics: runtime.physics,
-      collision: level.collision,
-    },
+    inspection,
     get ready() {
       return runtime.state === 'ready' && level.snapshot().ready && runtime.render.snapshot().ready
     },
